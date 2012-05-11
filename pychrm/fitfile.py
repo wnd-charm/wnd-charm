@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-
-from pychrm import pychrm
+import stringformat
+import pychrm
 import numpy as np
 from StringIO import StringIO
 
