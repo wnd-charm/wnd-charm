@@ -50,11 +50,11 @@ setup (name = 'pychrm',
 	description = """Python bindings for wnd-charm""",
 	ext_modules = [wndchrm_module],
 	py_modules = ["pychrm"],
-	install_requires=[
-		'numpy',
-		'stringformat >= 0.4',
-	],
-	dependency_links = [
-        "https://github.com/igg/stringformat/tarball/0.4#egg=stringformat-0.4"
-    ],
+	#install_requires=[
+	#	'numpy',
+	#	'stringformat >= 0.4',
+	#],
+	#dependency_links = [
+  #      "https://github.com/igg/stringformat/tarball/0.4#egg=stringformat-0.4"
+  #  ],
 )

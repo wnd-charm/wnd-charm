@@ -6,7 +6,7 @@ SWIG_SOURCES = $(srcdir)/swig/pychrm.i \
 	$(srcdir)/swig/FeatureAlgorithms.i \
 	$(srcdir)/swig/FeatureTransforms.i
 
-pkgpython_PYTHON = pychrm.py __init__.py
+pkgpython_PYTHON = pychrm.py TrainingSet.py FeatureNameMap.py FeatureRegistration.py __init__.py
 pkgpyexec_LTLIBRARIES = _pychrm.la
 _pychrm_la_SOURCES = $(srcdir)/swig/pychrm_wrap.cxx $(SWIG_SOURCES)
 _pychrm_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) -I$(top_srcdir)/src
