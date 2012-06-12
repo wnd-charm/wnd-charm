@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
-from pycharm import pymfg
+from . import pychrm
 
 # FeatureRegistration.py is where the SWIG wrapped objects get put into a dict
 # for use in signature calculation
-from pycharm import FeatureRegistration 
+from . import FeatureRegistration 
 
 # FeatureNameMap.py contains mapping from old style names to new style
 # and the function TranslateFeatureNames()
-from pycharm import FeatureNameMap
+from . import FeatureNameMap
 
 import numpy as np
 from StringIO import StringIO
@@ -80,13 +80,12 @@ class FeatureVector(object):
 		self.names = []
 		self.values = []
 	#================================================================
-	@classmethod
-	def is_valid( cls ):
+	def is_valid( self ):
 		"""
 		@brief: an instance should know all the criteria for being a valid FeatureVector
 		"""
 		if len( self.values ) != len( self.names ):
-			raise RuntimeError( "Instance of {} is invalid: ".format( cls.__name__ ) + \
+			raise RuntimeError( "Instance of {} is invalid: ".format( self.__class__ ) + \
 			  "different number of values ({}) and names ({}).".format( \
 			  len( self.feature_values ), len( self.feature_names ) ) )
 		return True
@@ -221,9 +220,10 @@ class Signatures( FeatureVector ):
 			return cls.FromSigFile( path_to_image, sigpath, options )
 
 		# All hope is lost. Calculate sigs
-		original = pymfg.ImageMatrix()
+		original = pychrm.ImageMatrix()
 		if 1 != original.OpenImage( path_to_image, 0, None, 0, 0 ):
-			raise ValueError('Could not build an ImageMatrix from {}, check the path.'.format( path ))
+			raise ValueError( 'Could not build an ImageMatrix from {}, check the path.'.\
+			    format( path_to_image ) )
 
 		im_cache = {}
 		im_cache[ '' ] = original

@@ -1,34 +1,34 @@
-from pycharm import pymfg
+from . import pychrm
 
 #================================================================
 def LoadFeatureAlgorithms():
 	out = {}
-	out[ 'Chebyshev Coefficients' ] = pymfg.ChebyshevCoefficients()
-	out[ 'Chebyshev-Fourier Coefficients' ] = pymfg.ChebyshevFourierCoefficients()
-	out[ 'Zernike Coefficients' ] = pymfg.ZernikeCoefficients()
-	out[ 'Haralick Textures' ] = pymfg.HaralickTextures()
-	out[ 'Multiscale Histograms' ] = pymfg.MultiscaleHistograms()
-	out[ 'Tamura Textures' ] = pymfg.TamuraTextures()
-	out[ 'Comb Moments' ] = pymfg.CombFirstFourMoments()
-	out[ 'Radon Coefficients' ] = pymfg.RadonCoefficients()
-	out[ 'Fractal Features' ] = pymfg.FractalFeatures()
-	out[ 'Pixel Intensity Statistics' ] = pymfg.PixelIntensityStatistics()
-	out[ 'Edge Features' ] = pymfg.EdgeFeatures()
-	out[ 'Object Features' ] = pymfg.ObjectFeatures()
-	out[ 'Gabor Textures' ] = pymfg.GaborTextures()
-	out[ 'Gini Coefficient' ] = pymfg.GiniCoefficient()
+	out[ 'Chebyshev Coefficients' ] = pychrm.ChebyshevCoefficients()
+	out[ 'Chebyshev-Fourier Coefficients' ] = pychrm.ChebyshevFourierCoefficients()
+	out[ 'Zernike Coefficients' ] = pychrm.ZernikeCoefficients()
+	out[ 'Haralick Textures' ] = pychrm.HaralickTextures()
+	out[ 'Multiscale Histograms' ] = pychrm.MultiscaleHistograms()
+	out[ 'Tamura Textures' ] = pychrm.TamuraTextures()
+	out[ 'Comb Moments' ] = pychrm.CombFirstFourMoments()
+	out[ 'Radon Coefficients' ] = pychrm.RadonCoefficients()
+	out[ 'Fractal Features' ] = pychrm.FractalFeatures()
+	out[ 'Pixel Intensity Statistics' ] = pychrm.PixelIntensityStatistics()
+	out[ 'Edge Features' ] = pychrm.EdgeFeatures()
+	out[ 'Object Features' ] = pychrm.ObjectFeatures()
+	out[ 'Gabor Textures' ] = pychrm.GaborTextures()
+	out[ 'Gini Coefficient' ] = pychrm.GiniCoefficient()
 	return out
 
 
 #================================================================
 def LoadFeatureTransforms():
 	out = {}
-	out[ 'Fourier' ] = pymfg.FourierTransform()
-	out[ 'Chebyshev' ] = pymfg.ChebyshevTransform()
-	out[ 'Wavelet' ] = pymfg.WaveletTransform()
-	out[ 'Edge' ] = pymfg.EdgeTransform()
-	out[ 'Color' ] = pymfg.ColorTransform()
-	out[ 'Hue' ] = pymfg.HueTransform()
+	out[ 'Fourier' ] = pychrm.FourierTransform()
+	out[ 'Chebyshev' ] = pychrm.ChebyshevTransform()
+	out[ 'Wavelet' ] = pychrm.WaveletTransform()
+	out[ 'Edge' ] = pychrm.EdgeTransform()
+	out[ 'Color' ] = pychrm.ColorTransform()
+	out[ 'Hue' ] = pychrm.HueTransform()
 	return out
 
 
