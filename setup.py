@@ -4,7 +4,7 @@
 setup.py file for SWIG-ified wndchrm
 """
 
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 
 
 wndchrm_module = Extension('_pychrm',
