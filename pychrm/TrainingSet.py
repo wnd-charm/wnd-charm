@@ -1,14 +1,23 @@
 #!/usr/bin/env python
 
-from . import pychrm
+try:
+	from . import pychrm
+except:
+	import pychrm
 
 # FeatureRegistration.py is where the SWIG wrapped objects get put into a dict
 # for use in signature calculation
-from . import FeatureRegistration 
+try:
+	from . import FeatureRegistration 
+except:
+	import FeatureRegistration
 
 # FeatureNameMap.py contains mapping from old style names to new style
 # and the function TranslateFeatureNames()
-from . import FeatureNameMap
+try:
+	from . import FeatureNameMap
+except:
+	import FeatureNameMap
 
 import numpy as np
 from StringIO import StringIO
@@ -55,12 +64,14 @@ def initialize_module():
 	small_featureset_featuregroup_list = []
 	for fg_str in small_featureset_featuregroup_strings.splitlines():
 		fg = ParseFeatureGroupString( fg_str )
-		small_featureset_featuregroup_list.append( fg )
+		if fg:
+			small_featureset_featuregroup_list.append( fg )
 
 	large_featureset_featuregroup_list = []
 	for fg_str in large_featureset_featuregroup_strings.splitlines():
 		fg = ParseFeatureGroupString( fg_str )
-		large_featureset_featuregroup_list.append( fg )
+		if fg:
+			large_featureset_featuregroup_list.append( fg )
 
 #############################################################################
 # class definition of FeatureVector
@@ -85,8 +96,8 @@ class FeatureVector(object):
 		@brief: an instance should know all the criteria for being a valid FeatureVector
 		"""
 		if len( self.values ) != len( self.names ):
-			raise RuntimeError( "Instance of {} is invalid: ".format( self.__class__ ) + \
-			  "different number of values ({}) and names ({}).".format( \
+			raise RuntimeError( "Instance of {0} is invalid: ".format( self.__class__ ) + \
+			  "different number of values ({0}) and names ({1}).".format( \
 			  len( self.feature_values ), len( self.feature_names ) ) )
 		return True
 
@@ -180,16 +191,53 @@ class Signatures( FeatureVector ):
 		print "====================================================================="
 		print "Calculating large feature set for file:"
 
-		global large_featureset_featuregroup_list
-		retval = None
+		the_sigs = cls()
 
-		if options == None:
-			retval = cls.FromFeatureGroupList( imagepath, large_featureset_featuregroup_list, "-l" )
+		# Try to find a file that corresponds to this image with signatures in it.
+		# derive the name of the sig/pysig file that would exist if there were one
+		# given the options requested
+
+		sigpath = None
+		root, extension = os.path.splitext( imagepath )
+		options_str = options if options else ""
+		if not "-l" in options_str:
+			options_str += "-l"
+
+		if os.path.exists( root + options_str + ".pysig" ):
+			sigpath = root + options_str + ".pysig"
+			the_sigs = cls.FromSigFile( imagepath, sigpath, options_str )
+		elif os.path.exists( root + options_str + ".sig" ):
+			sigpath = root + options_str + ".sig" 
+			the_sigs = cls.FromSigFile( imagepath, sigpath, options_str )
 		else:
-			# FIXME: dummyproofing: does options already contain '-l'?
-			retval = cls.FromFeatureGroupList( imagepath, large_featureset_featuregroup_list, \
-					options + "-l" )
-		return retval
+			sigpath = root + options_str + ".pysig"
+
+
+		# Check to see what, if anything was loaded from file. The file could be corrupted
+		# incomplete, or calculated with different options, e.g., -S1441
+		# FIXME: Here's where you'd calculate a small subset of features
+		# and see if they match what was loaded from file
+		if len( the_sigs.names ) <= 0:
+			# All hope is lost. Calculate sigs
+			global large_featureset_featuregroup_list
+			if options == None:
+				the_sigs = cls.FromFeatureGroupList( imagepath, large_featureset_featuregroup_list, "-l" )
+			else:
+				# FIXME: dummyproofing: does options already contain '-l'?
+				retval = cls.FromFeatureGroupList( imagepath, large_featureset_featuregroup_list, \
+						options + "-l" )
+		# There are historically 2885 signatures in the large feature set 
+		elif len( the_sigs.names ) < 2873:
+			# FIXME: Calculate the difference of features between what was loaded
+			# from file, and what is supposed to be present in large feature set
+			# and calculate only those. They might also need to be placed in an order
+			# that makes sense.
+			err_msg = "There are only {0} signatures in file '{1}'".format( \
+			  len( the_sigs.names ), sigpath )
+			err_msg += "where there are supposed to be at least 2873."
+			raise ValueError( err_msg )
+		return the_sigs
+
 
 	#================================================================
 	@classmethod
@@ -202,27 +250,9 @@ class Signatures( FeatureVector ):
 		"""
 
 		print path_to_image
-		# derive the name of the sig/pysig file that would exist if there were one
-		# given the options requested
-
-		sigpath = None
-		root, extension = os.path.splitext( path_to_image )
-		options_str = options if options else ""
-
-		# FIXME: Do a sanity check to see that the sig file contains sigs that match
-		#        given the options and the features requested
-		sigpath = root + options + ".pysig"
-		if os.path.exists( sigpath ):
-			return cls.FromSigFile( path_to_image, sigpath, options )
-		
-		sigpath = root + options + ".sig" 
-		if os.path.exists( sigpath ):
-			return cls.FromSigFile( path_to_image, sigpath, options )
-
-		# All hope is lost. Calculate sigs
 		original = pychrm.ImageMatrix()
 		if 1 != original.OpenImage( path_to_image, 0, None, 0, 0 ):
-			raise ValueError( 'Could not build an ImageMatrix from {}, check the path.'.\
+			raise ValueError( 'Could not build an ImageMatrix from {0}, check the path.'.\
 			    format( path_to_image ) )
 
 		im_cache = {}
@@ -234,11 +264,11 @@ class Signatures( FeatureVector ):
 		signatures.options = options
 
 		for fg in feature_groups:
-			print "Group {}".format( fg.Name )
+			print "Group {0}".format( fg.Name )
 			returned_feature_vals = fg.CalculateFeatures( im_cache )
 			count = 0
 			for value in returned_feature_vals:
-				signatures.names.append( fg.Name + " [{}]".format( count ) )
+				signatures.names.append( fg.Name + " [{0}]".format( count ) )
 				signatures.values.append( value )	
 				count += 1
 
@@ -264,37 +294,45 @@ class Signatures( FeatureVector ):
 	def FromSigFile( cls, image_path, sigfile_path, options = None ):
 		"""@argument sigfile_path must be a .sig or a .pysig file
 		
+		@return  - An instantiated signature class with feature names translated from
+		           the old naming convention, if applicable.
 		@remarks - old style sig files don't know about their options other than 
 		           the information contained in the name. In the future pysig files
-							 may keep that info within the file. Thus, for now, the argument
-							 options is something set externally rather than gleaned from
-							 reading the file."""
+		           may keep that info within the file. Thus, for now, the argument
+		           options is something set externally rather than gleaned from
+		           reading the file."""
 
-		print "Loading features from sigfile {}".format( sigfile_path )
+		print "Loading features from sigfile {0}".format( sigfile_path )
 
 		signatures = cls()
 		signatures.path_to_image_file = image_path
 		signatures.options = options
-
+ 
 		with open( sigfile_path ) as infile:
 			linenum = 0
 			for line in infile:
 				if linenum == 0:
 					# The class id here may be trash
 					signatures.class_id = line.strip()
-					pass
 				elif linenum == 1:
-					signatures.path_to_image_file = line.strip()
+					# We've already assigned self.path_to_image_file
+					# the path in the sig file may be trash anyway
+					#signatures.path_to_image_file = line.strip()
+					pass
 				else:
 					value, name = line.strip().split( ' ', 1 )
-					signatures.values.append( float( value ) )
+					signatures.values.append( float( value ) )	
 					signatures.names.append( name )
 				linenum += 1
+			print "Loaded {0} signatures.".format( len( signatures.values ) )
+
+		# Check if the feature name follows the old convention
+		signatures.names = FeatureNameMap.TranslateToNewStyle( signatures.names ) 
 		
 		return signatures
 	
 	#================================================================
-	def	WriteFeaturesToASCIISigFile( self, filepath = None ):
+	def WriteFeaturesToASCIISigFile( self, filepath = None ):
 		"""Write a sig file.
 		
 		If filepath is specified, you get to name it whatever you want and put it
@@ -311,27 +349,57 @@ class Signatures( FeatureVector ):
 
 			path, filename = os.path.split( outfile_path )
 			if not os.path.exists( path ):
-				raise ValueError( 'Invalid path {}'.format( path ) )
+				raise ValueError( 'Invalid path {0}'.format( path ) )
 
 			filename_parts = filename.rsplit( '.', 1 )
 			if self.options and self.options is not "":
-				outfile_path = "{}{}.pysig".format( filename_parts[0],\
+				outfile_path = "{0}{1}.pysig".format( filename_parts[0],\
 																					self.options if self.options else "" )
 			else:
-				outfile_path = "{}.pysig".format( filename_parts[0] )
+				outfile_path = "{0}.pysig".format( filename_parts[0] )
 			outfile_path = os.path.join( path, outfile_path )
 
 		if os.path.exists( outfile_path ):
-			print "Overwriting {}".format( outfile_path )
+			print "Overwriting {0}".format( outfile_path )
 		else:
-			print 'Writing signature file "{}"'.format( outfile_path )
+			print 'Writing signature file "{0}"'.format( outfile_path )
 
 		with open( outfile_path, "w" ) as out_file:
 			# FIXME: line 2 contains class membership, just hardcode a number for now
 			out_file.write( "0\n" )
-			out_file.write( "{}\n".format( self.path_to_image_file ) )
-			for i in range( 0, len( self.feature_names ) ):
+			out_file.write( "{0}\n".format( self.path_to_image_file ) )
+			for i in range( 0, len( self.names ) ):
 				out_file.write( "{val:0.6f} {name}\n".format( val=self.values[i], name=self.names[i] ) )
+
+	#================================================================
+	def FeatureReduce( self, requested_features ):
+
+		if self.names == requested_features:
+			return self
+
+		selfs_features = set( self.names )
+		their_features = set( requested_features )
+		if not their_features <= selfs_features:
+			missing_features_from_req = their_features - selfs_features
+			err_str = error_banner + "Feature Reduction error:\n"
+			err_str += "The signatures set for image file '{0}' ".format( self.path_to_image_file )
+			err_str += "is missing {0}".format( len( missing_features_from_req ) )
+			err_str += "/{1} features that were requested in the feature reduction list.".format(\
+			             len( requested_features ) )
+			raise ValueError( err_str )
+
+		print "Performing feature reduce/reorder on signatures..."
+		# The featurenames sets are either out of order or contain extraneous features.
+		dictionary = dict( zip( self.names, self.values ) )
+		reduced_sigs = Signatures()
+		reduced_sigs.path_to_image_file = self.path_to_image_file
+		reduced_sigs.options = self.options
+			
+		for new_name in requested_features:
+			reduced_sigs.names.append( new_name )
+			reduced_sigs.values.append( dictionary[ new_name ] )
+		
+		return reduced_sigs
 
 
 # end definition class Signatures
@@ -348,8 +416,8 @@ class FeatureGroup:
 	Alg = None
 	Tforms = []
 	def __init__( self, name_str = "", algorithm = None, tform_list = [] ):
-		#print "Creating new FeatureGroup for string {}:".format(name_str)
-		#print "\talgorithm: {}, transform list: {}".format( algorithm, tform_list )
+		#print "Creating new FeatureGroup for string {0}:".format(name_str)
+		#print "\talgorithm: {0}, transform list: {1}".format( algorithm, tform_list )
 		self.Name = name_str 
 		self.Alg = algorithm
 		self.Tforms = tform_list
@@ -357,7 +425,7 @@ class FeatureGroup:
 		"""Returns a tuple with the features"""
 		pixel_plane = None
 		try:
-			#print "transforms: {}".format( self.Tforms )
+			#print "transforms: {0}".format( self.Tforms )
 			pixel_plane = RetrievePixelPlane( cached_pixel_planes, self.Tforms )
 		except:
 			raise
@@ -374,9 +442,9 @@ def RetrievePixelPlane( image_matrix_cache, tform_list ):
 	If it doesn't exist calculates it
 	Recurses through the compound transform chain in tform_list
 	"""
-	#print "passed in: {}".format( tform_list )
+	#print "passed in: {0}".format( tform_list )
 	requested_transform = " ".join( [ tform.name for tform in tform_list ] )
-	#print "requesting pixel plane: '{}'".format( requested_transform )
+	#print "requesting pixel plane: '{0}'".format( requested_transform )
 	if requested_transform in image_matrix_cache:
 		return image_matrix_cache[ requested_transform ]
 	
@@ -388,7 +456,7 @@ def RetrievePixelPlane( image_matrix_cache, tform_list ):
 	# already stored in the cache
 	if image_matrix_cache is None or len(image_matrix_cache) == 0:
 		raise ValueError( "Can't calculate features: couldn't find the original pixel plane" +\
-		                  "to calculate features {}.".format( self.Name ) )
+		                  "to calculate features {0}.".format( self.Name ) )
 
 	sublist = tform_list[:]
 	sublist.reverse()
@@ -406,6 +474,9 @@ def ParseFeatureGroupString( name ):
 	#TBD: make a member function of the FeatureGroup
 	# get the algorithm
 
+	# The ability to comment out lines with a hashmark
+	if name.startswith( '#' ):
+		return None
 	global Algorithms
 	global Transforms
 	string_rep = name.rstrip( ")" )
@@ -413,7 +484,7 @@ def ParseFeatureGroupString( name ):
 	
 	alg = parsed[0]
 	if alg not in Algorithms:
-		raise KeyError( "Don't know about a feature algorithm with the name {}".format(alg) )
+		raise KeyError( "Don't know about a feature algorithm with the name {0}".format(alg) )
 	
 	tform_list = parsed[1:]
 	try:
@@ -423,7 +494,7 @@ def ParseFeatureGroupString( name ):
 	if len(tform_list) != 0:
 		for tform in tform_list:
 			if tform not in Transforms:
-				raise KeyError( "Don't know about a transform named {}".format( tform ) )
+				raise KeyError( "Don't know about a transform named {0}".format( tform ) )
 
 	tform_swig_obj_list = [ Transforms[ tform ] for tform in tform_list ]
 
@@ -550,12 +621,12 @@ class TrainingSet:
 		"""
 		path, filename = os.path.split( pathname )
 		if filename == "":
-			raise ValueError( 'Invalid pathname: {}'.format( pathname ) )
+			raise ValueError( 'Invalid pathname: {0}'.format( pathname ) )
 
 		if not filename.endswith( ".fit.pickled" ):
-			raise ValueError( 'Not a pickled TrainingSet file: {}'.format( pathname ) )
+			raise ValueError( 'Not a pickled TrainingSet file: {0}'.format( pathname ) )
 
-		print "Loading Training Set from pickled file {}".format( pathname )
+		print "Loading Training Set from pickled file {0}".format( pathname )
 		unpkled = None
 		the_training_set = None
 		with open( pathname, "rb" ) as pkled_in:
@@ -576,14 +647,14 @@ class TrainingSet:
 		"""
 		path, filename = os.path.split( pathname )
 		if filename == "":
-			raise ValueError( 'Invalid pathname: {}'.format( pathname ) )
+			raise ValueError( 'Invalid pathname: {0}'.format( pathname ) )
 
 		if not filename.endswith( ".fit" ):
-			raise ValueError( 'Not a .fit file: {}'.format( pathname ) )
+			raise ValueError( 'Not a .fit file: {0}'.format( pathname ) )
 
 		pickled_pathname = pathname + ".pychrm"
 
-		print "Creating Training Set from legacy WND-CHARM text file file {}".format( pathname )
+		print "Creating Training Set from legacy WND-CHARM text file file {0}".format( pathname )
 		with open( pathname ) as fitfile:
 			data_dict = {}
 			data_dict[ 'source_path' ] = pathname
@@ -628,7 +699,7 @@ class TrainingSet:
 					if not name_line:
 						# strip off the class identity value, which is the last in the array
 						split_line = line.strip().rsplit( " ", 1)
-						#print "class {}".format( split_line[1] )
+						#print "class {0}".format( split_line[1] )
 						zero_indexed_class_id = int( split_line[1] ) - 1
 						tmp_string_data_list[ zero_indexed_class_id ].append( split_line[0] )
 					else:
@@ -640,8 +711,8 @@ class TrainingSet:
 		string_data = "\n"
 		
 		for i in range( num_classes ):
-			print "generating matrix for class {}".format( i )
-			#print "{}".format( tmp_string_data_list[i] )
+			print "generating matrix for class {0}".format( i )
+			#print "{0}".format( tmp_string_data_list[i] )
 			npmatr = np.genfromtxt( StringIO( string_data.join( tmp_string_data_list[i] ) ) )
 			data_dict[ 'data_list' ].append( npmatr )
 
@@ -698,11 +769,11 @@ class TrainingSet:
 		@brief A quick and dirty implementation of the wndchrm train command
 		Build up the self.imagenames_list, then pass it off to a sig classifier function
 		"""
-		print "Creating Training Set from directories of images {}".format( top_level_dir_path )
+		print "Creating Training Set from directories of images {0}".format( top_level_dir_path )
 		if not( os.path.exists( top_level_dir_path ) ):
-			raise ValueError( 'Path "{}" doesn\'t exist'.format( top_level_dir_path ) )
+			raise ValueError( 'Path "{0}" doesn\'t exist'.format( top_level_dir_path ) )
 		if not( os.path.isdir( top_level_dir_path ) ):
-			raise ValueError( 'Path "{}" is not a directory'.format( top_level_dir_path ) )
+			raise ValueError( 'Path "{0}" is not a directory'.format( top_level_dir_path ) )
 
 		num_images = 0
 		num_classes = 0
@@ -719,7 +790,7 @@ class TrainingSet:
 							file_list.append( os.path.join( root, file ) )
 					if len( file_list ) <= 0:
 						# nothing here to process!
-						raise ValueError( 'No tiff files in directory {}'.format( root ) )
+						raise ValueError( 'No tiff files in directory {0}'.format( root ) )
 					classnames_list.append( root )
 					num_classes = 1
 					num_images = len( file_list )
@@ -788,6 +859,8 @@ class TrainingSet:
 					raise ValueError( "sig calculation other than small and large feature set hasn't been implemented yet." )
 				# FIXME: add all the other options
 				# check validity
+				if not sig:
+					raise ValueError( "Couldn't create a valid signature from file {0} with options {1}".format( sourcefile, options ) )
 				sig.is_valid()
 				if write_sig_files_to_disk:
 					sig.WriteFeaturesToASCIISigFile()
@@ -831,10 +904,10 @@ class TrainingSet:
 
 			# sanity checks
 			if test_set.normalized_against:
-				raise ValueError( "Test set {} has already been normalized against {}."\
+				raise ValueError( "Test set {0} has already been normalized against {1}."\
 						.format( test_set.source_path, test_set.normalized_against ) )
 			if test_set.featurenames_list != self.featurenames_list:
-				raise ValueError("Can't normalize test_set {} against training_set {}: Features don't match."\
+				raise ValueError("Can't normalize test_set {0} against training_set {1}: Features don't match."\
 						.format( test_set.source_path, self.source_path ) )
 
 			for i in range( test_set.num_features ):
@@ -862,8 +935,8 @@ class TrainingSet:
 		if not their_features <= selfs_features:
 			missing_features_from_req = their_features - selfs_features
 			err_str = error_banner + "Feature Reduction error:\n"
-			err_str += "The training set '{}' is missing ".format( self.source_path )
-			err_str += "{}/{} features that were requested in the feature reduction list.".format(\
+			err_str += "The training set '{0}' is missing ".format( self.source_path )
+			err_str += "{0}/{1} features that were requested in the feature reduction list.".format(\
 					len( missing_features_from_req ), len( requested_features ) )
 			err_str += "\nDid you forget to convert the feature names into their modern counterparts?"
 
@@ -923,8 +996,9 @@ class TrainingSet:
 			self.featurenames_list = signature.names
 			self.num_features = len( signature.names )
 		else:
-			if not( self.featurenames_list == signature.names ):
-				raise ValueError("Can't add the signature '{}' to training set because it contains different features.".format( signature.path_to_image_file ) )
+			# Make sure features are in order.
+			# Feature Reduce will throw an exception if they can't be placed in order
+			signature = signature.FeatureReduce( self.featurenames_list )
 
 		# signatures may be coming in out of class order
 		while (len( self.data_list ) - 1) < class_id_index:
@@ -980,9 +1054,9 @@ class TrainingSet:
 					outfile_pathname = self.source_path + ".fit.pickled"	
 
 		if os.path.exists( outfile_pathname ):
-			print "Overwriting {}".format( outfile_pathname )
+			print "Overwriting {0}".format( outfile_pathname )
 		else:
-			print "Writing {}".format( outfile_pathname )
+			print "Writing {0}".format( outfile_pathname )
 		with open( outfile_pathname, 'wb') as outfile:
 			pickle.dump( self.__dict__, outfile, pickle.HIGHEST_PROTOCOL )
 
@@ -1018,19 +1092,19 @@ def WeightedNeighborDistance5( trainingset, testimg, feature_weights ):
 	class_similarities = [0] * trainingset.num_classes
 
 	for class_index in range( trainingset.num_classes ):
-		#print "Calculating distances to class {}".format( class_index )
+		#print "Calculating distances to class {0}".format( class_index )
 		num_tiles, num_features = trainingset.data_list[ class_index ].shape
 		assert num_features_in_testimg == num_features,\
-		"num features {}, num features in test img {}".format( num_features, num_test_img_features )
+		"num features {0}, num features in test img {1}".format( num_features, num_test_img_features )
 
 		# create a view
 		sig_matrix = trainingset.data_list[ class_index ]
 		wnd_sum = 0
 		num_collisions = 0
 
-		#print "num tiles: {}, num_test_img_features {}".format( num_tiles, num_test_img_features )
+		#print "num tiles: {0}, num_test_img_features {1}".format( num_tiles, num_test_img_features )
 		for tile_index in range( num_tiles ):
-			#print "{} ".format( tile_index )
+			#print "{0} ".format( tile_index )
 			# epsilon checking for each feature is too expensive
 			# do this quick and dirty check until we can figure something else out
 			dists = np.absolute( sig_matrix[ tile_index ] - testimg )
@@ -1069,10 +1143,10 @@ def ClassifyTestSet( training_set, test_set, feature_weights ):
 	   train_set_len != feature_weights_len or \
 	   test_set_len  != feature_weights_len:
 		raise ValueError( "Can't classify: one or more of the inputs has a different number of" \
-				"features than the others: training set={}, test set={}, feature weights={}".format( \
+				"features than the others: training set={0}, test set={1}, feature weights={2}".format( \
 				train_set_len, test_set_len, feature_weights_len ) + ". Perform a feature reduce." )
 
-	print "Classifying test set '{}' ({} features) against training set '{}' ({} features)".\
+	print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
 	      format( test_set.source_path, test_set_len, training_set.source_path, train_set_len )
 
 	column_header = "image\tnorm. fact.\t"
@@ -1106,7 +1180,7 @@ def ClassifyTestSet( training_set, test_set, feature_weights ):
 			output_str += test_set.classnames_list[ test_class_index ] + "\t"
 			# predicted class:
 			marg_probs = np.array( marginal_probabilities )
-			output_str += "{}\t".format( training_set.classnames_list[ marg_probs.argmax() ] )
+			output_str += "{0}\t".format( training_set.classnames_list[ marg_probs.argmax() ] )
 			# interpolated value, if applicable
 			if interp_coeffs is not None:
 				interp_val = np.sum( marg_probs * interp_coeffs )
@@ -1123,7 +1197,7 @@ def PrintClassificationResultsToSTDOUT( result ):
 #============================================================================
 def UnitTest1():
 	
-	weights_filepath = '/Users/chris/projects/josiah_worms_subset/josiah_worms_subset.fisher_weights'
+	weights_filepath = '/home/colettace/projects/eckley_worms/feature_weights.txt'
 
 	weights = FeatureWeights.NewFromFile( weights_filepath )
 	weights.EliminateZeros()
@@ -1142,7 +1216,7 @@ def UnitTest1():
 #=========================================================================
 def UnitTest2():
 
-	ts = TrainingSet.NewFromDirectory( '/Users/chris/projects/josiah_worms_subset',\
+	ts = TrainingSet.NewFromDirectory( '/home/colettace/projects/eckley_worms/TimeCourse',
 	                                   feature_set = "large" )
 	ts.PickleMe()
 	
@@ -1158,7 +1232,7 @@ initialize_module()
 #================================================================
 if __name__=="__main__":
 	
-	UnitTest1()
-	# UnitTest2()
+	#UnitTest1()
+	UnitTest2()
 	# UnitTest3()
 	# pass

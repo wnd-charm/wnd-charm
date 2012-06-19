@@ -1,5 +1,7 @@
-from . import pychrm
-
+try:
+	from . import pychrm
+except:
+	import pychrm
 #================================================================
 def LoadFeatureAlgorithms():
 	out = {}
@@ -103,18 +105,18 @@ Fractal Features (Fourier (Wavelet ()))
 Fractal Features (Wavelet ())
 Fractal Features (Wavelet (Edge ()))
 Fractal Features (Wavelet (Fourier ()))
-Gini Coefficient ()
-Gini Coefficient (Chebyshev ())
-Gini Coefficient (Chebyshev (Fourier ()))
-Gini Coefficient (Chebyshev (Wavelet ()))
-Gini Coefficient (Edge ())
-Gini Coefficient (Fourier ())
-Gini Coefficient (Fourier (Chebyshev ()))
-Gini Coefficient (Fourier (Edge ()))
-Gini Coefficient (Fourier (Wavelet ()))
-Gini Coefficient (Wavelet ())
-Gini Coefficient (Wavelet (Edge ()))
-Gini Coefficient (Wavelet (Fourier ()))
+#Gini Coefficient ()
+#Gini Coefficient (Chebyshev ())
+#Gini Coefficient (Chebyshev (Fourier ()))
+#Gini Coefficient (Chebyshev (Wavelet ()))
+#Gini Coefficient (Edge ())
+#Gini Coefficient (Fourier ())
+#Gini Coefficient (Fourier (Chebyshev ()))
+#Gini Coefficient (Fourier (Edge ()))
+#Gini Coefficient (Fourier (Wavelet ()))
+#Gini Coefficient (Wavelet ())
+#Gini Coefficient (Wavelet (Edge ()))
+#Gini Coefficient (Wavelet (Fourier ()))
 Haralick Textures (Chebyshev (Wavelet ()))
 Haralick Textures (Edge ())
 Haralick Textures (Fourier (Chebyshev ()))

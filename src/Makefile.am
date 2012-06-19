@@ -43,7 +43,7 @@ libchrm_la_SOURCES = \
        transforms/wavelet/DataGrid.h \
        transforms/wavelet/DataGrid2D.cpp \
        transforms/wavelet/DataGrid2D.h \
-			 transforms/wavelet/DataGrid3D.cpp \
+       transforms/wavelet/DataGrid3D.cpp \
        transforms/wavelet/DataGrid3D.h \
        transforms/wavelet/Filter.cpp \
        transforms/wavelet/Filter.h \

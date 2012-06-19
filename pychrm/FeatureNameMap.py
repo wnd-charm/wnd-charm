@@ -2,21 +2,28 @@
 name_dict = {}
 #=================================================================================
 def TranslateToNewStyle( old_name_list ):
+	"""
+    IMPORTANT: the order of the names in both hashes correspond to each other.
+	  Any fit file created with a wndchrm pre r280 will have 10 features listed named
+    "Feature DistHist" ... See http://code.google.com/p/wnd-charm/issues/detail?id=35
+	"""
 	global name_dict
 	new_name_list = []
+
+	FeatureDistHist_count = 0
 	for old_name in old_name_list:
-		new_name_list.append( name_dict[ old_name ] )
+		if old_name == "Feature DistHist":
+			old_name = "FeatureDistHist Bin{0}".format( FeatureDistHist_count )
+			FeatureDistHist_count += 1
+		if old_name in name_dict:
+			new_name_list.append( name_dict[ old_name ] )
+		else:
+			new_name_list.append( old_name )
 	return new_name_list
 
 #=================================================================================
 def InitializeThisModule():
 
-	# IMPORTANT: the order of the names in both hashes correspond to each other.
-	# FIXME: Any fit file created with a wndchrm pre r280 will have
-	#        10 features listed named "Feature DistHist"
-	#        See http://code.google.com/p/wnd-charm/issues/detail?id=35
-	# FIXME: Maybe put the new names mapped to themselves in here to
-	#        avoid KeyError exception?
 
 	global name_dict
 	name_dict[ "Chebishev Statistics bin 0 ()" ]                                     = "Chebyshev Coefficients () [0]"
