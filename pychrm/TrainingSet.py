@@ -129,14 +129,17 @@ class FeatureWeights( FeatureVector ):
 	def EliminateZeros( self ):
 		"""@breif Good for Fisher scores, N/A for Pearson scores - FIXME: subclass!"""
 
+		new_weights = FeatureWeights()
 		scores = zip( self.names, self.values )
 		nonzero_scores = [ (name, weight) for name, weight in scores if weight != 0 ]
-		self.names, self.values = zip( *nonzero_scores )
+		new_weights.names, new_weights.values = zip( *nonzero_scores )
+		return new_weights
 
 	#================================================================
 	def Threshold( self, num_features_to_be_used  ):
 		"""@breif Good for Fisher scores, N/A for Pearson scores - FIXME: subclass!"""
 
+		new_weights = FeatureWeights()
 		raw_featureweights = zip( self.names, self.values )
 		# raw_featureweights is now a list of tuples := [ (name1, value1), (name2, value2), ... ]
 
@@ -149,7 +152,8 @@ class FeatureWeights( FeatureVector ):
 		use_these_feature_weights = \
 				list( itertools.islice( sorted_featureweights, num_features_to_be_used ) )
 		
-		self.names, self.values = zip( *use_these_feature_weights )
+		new_weights.names, new_weights.values = zip( *use_these_feature_weights )
+		return new_weights
 
 
 #############################################################################
