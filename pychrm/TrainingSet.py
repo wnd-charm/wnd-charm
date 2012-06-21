@@ -30,6 +30,7 @@ except:
 import os
 import os.path 
 import re
+import itertools
 
 
 # Initialize module level globals
@@ -155,6 +156,43 @@ class FeatureWeights( FeatureVector ):
 		new_weights.names, new_weights.values = zip( *use_these_feature_weights )
 		return new_weights
 
+	#================================================================
+	def PickleMe( self, pathname = None ):
+
+		outfile_pathname = ""
+		if pathname != None:
+			outfile_pathname = pathname
+		else:
+			outfile_pathname = "feature_weights_len_{0}.weights.pickled".format( len( self.names ) )
+
+		if os.path.exists( outfile_pathname ):
+			print "Overwriting {0}".format( outfile_pathname )
+		else:
+			print "Writing {0}".format( outfile_pathname )
+		with open( outfile_pathname, 'wb') as outfile:
+			pickle.dump( self.__dict__, outfile, pickle.HIGHEST_PROTOCOL )
+
+  #=================================================================================
+	@classmethod
+	def NewFromPickleFile( cls, pathname ):
+		"""
+		The pickle is in the form of a dict
+		"""
+		path, filename = os.path.split( pathname )
+		if filename == "":
+			raise ValueError( 'Invalid pathname: {0}'.format( pathname ) )
+
+		if not filename.endswith( ".weights.pickled" ):
+			raise ValueError( "File isn't named with .weights.pickled extension: {0}".format( pathname ) )
+
+		print "Loading Training Set from pickled file {0}".format( pathname )
+		weights = None
+		with open( pathname, "rb" ) as pkled_in:
+			weights = cls( pickle.load( pkled_in ) )
+
+		return weights
+
+	
 
 #############################################################################
 # class definition of Signatures
@@ -248,9 +286,6 @@ class Signatures( FeatureVector ):
 	def FromFeatureGroupList( cls, path_to_image, feature_groups, options = None ):
 		"""@brief calculates signatures
 
-		@remarks: Currently, you are not allowed to ask for a Signatures using a feature list,
-		but instead use this call with a feature group list, load the signature into a
-		TrainingSet instance, then call TrainingSet.FeatureReduce.
 		"""
 
 		print path_to_image
@@ -280,18 +315,29 @@ class Signatures( FeatureVector ):
 
 	#================================================================
 	@classmethod
+	def FromFeatureNameList( cls, path_to_image, feature_names, options = None ):
+		"""@brief calculates signatures
+
+		"""
+
+		work_order = GenerateWorkOrderFromListOfFeatureStrings( feature_names )
+		sig = cls.FromFeatureGroupList( path_to_image, work_order, options )
+		return sig.FeatureReduce( feature_names ) 
+
+	#================================================================
+	@classmethod
 	def FromPickle( cls, path ):
 		"""
 		FIXME: Implement!
 		"""
-		pass
+		raise NotImplementedError()
 
 	#================================================================
 	def PickleMe( self ):
 		"""
 		FIXME: Implement!
 		"""
-		pass
+		raise NotImplementedError()
 
 	#================================================================
 	@classmethod
@@ -405,6 +451,19 @@ class Signatures( FeatureVector ):
 		
 		return reduced_sigs
 
+	def Normalize( training_set ):
+		"""FIXME: should there be some flag that gets set if this sig has 
+		   already been normalized??"""
+
+		if training_set.featurenames_list != self.names:
+			raise ValueError("Can't normalize signature for {0} against training_set {1}: Features don't match."\
+		  .format( self.path_to_image_file, training_set.source_path ) )
+		
+		for i in range( self.values ):
+			self.values[i] -= training_set.feature_minima[i]
+			self.values[i] /= (training_set.feature_maxima[i] -training_set.feature_minima[i])
+			self.values[i] *= 100
+		
 
 # end definition class Signatures
 
@@ -631,7 +690,6 @@ class TrainingSet:
 			raise ValueError( 'Not a pickled TrainingSet file: {0}'.format( pathname ) )
 
 		print "Loading Training Set from pickled file {0}".format( pathname )
-		unpkled = None
 		the_training_set = None
 		with open( pathname, "rb" ) as pkled_in:
 			the_training_set = cls( pickle.load( pkled_in ) )
@@ -835,13 +893,13 @@ class TrainingSet:
 	@classmethod
 	def NewFromFileOfFiles( cls, fof_path, feature_set = "large", write_sig_files_todisk = True ):
 		"""FIXME: Implement!"""
-		pass
+		raise NotImplementedError()
 
   #=================================================================================
 	@classmethod
 	def NewFromSQLiteFile(cls, path):
 		"""FIXME: Implement!"""
-		pass
+		raise NotImplementedError()
 
   #=================================================================================
 	def _ProcessSigCalculationSerially( self, feature_set = "large", write_sig_files_to_disk = True, options = None ):
@@ -880,7 +938,7 @@ class TrainingSet:
 		pass
 
   #=================================================================================
-	def Normalize( self, test_set = None ):
+	def Normalize( self, training_set = None ):
 		"""
 		By convention, the range of values are normalized on an interval [0,100]
 		FIXME: edge cases, clipping, etc
@@ -904,23 +962,23 @@ class TrainingSet:
 					class_matrix[:,i] *= 100
 			self.normalized_against = "itself"
 
-		if test_set:
+		if training_set:
 
 			# sanity checks
-			if test_set.normalized_against:
+			if self.normalized_against:
 				raise ValueError( "Test set {0} has already been normalized against {1}."\
-						.format( test_set.source_path, test_set.normalized_against ) )
-			if test_set.featurenames_list != self.featurenames_list:
+						.format( self.source_path, self.normalized_against ) )
+			if training_set.featurenames_list != self.featurenames_list:
 				raise ValueError("Can't normalize test_set {0} against training_set {1}: Features don't match."\
-						.format( test_set.source_path, self.source_path ) )
+						.format( self.source_path, training_set.source_path ) )
 
-			for i in range( test_set.num_features ):
-				for class_matrix in test_set.data_list:
-					class_matrix[:,i] -= self.feature_minima[i]
-					class_matrix[:,i] /= (self.feature_maxima[i] - self.feature_minima[i])
+			for i in range( self.num_features ):
+				for class_matrix in self.data_list:
+					class_matrix[:,i] -= training_set.feature_minima[i]
+					class_matrix[:,i] /= (training_set.feature_maxima[i] -training_set.feature_minima[i])
 					class_matrix[:,i] *= 100
 
-			test_set.normalized_against = self.source_path
+			self.normalized_against = training_set.source_path
 			
 
   #=================================================================================
@@ -1066,7 +1124,8 @@ class TrainingSet:
 
 
 	def DumpNumpyArrays():
-		pass
+		raise NotImplementedError( 'sorry, not implemented yet!' )
+
 # END TrainingSet class definition
 
 
@@ -1074,8 +1133,11 @@ class TrainingSet:
 # GLOBAL FUNCTIONS
 ######################################################################################
 
-def WeightedNeighborDistance5( trainingset, testimg, feature_weights ):
+def _ClassifyOneImageWND5( trainingset, testimg, feature_weights ):
 	"""
+	Don't call this function directly, use the wrapper functions ClassifyTestSetWND5() or
+	ClassifyOneSignatureWND5(), both of which have dummyproofing.
+
 	If you're using this function, your training set data is not continuous
 	for N images and M features:
 	  trainingset is list of length L of N x M numpy matrices
@@ -1127,6 +1189,30 @@ def WeightedNeighborDistance5( trainingset, testimg, feature_weights ):
 	normalization_factor = sum( class_similarities )
 
 	return ( normalization_factor, [ x / normalization_factor for x in class_similarities ] ) 
+#=================================================================================
+def ClassifyOneSignatureWND5( training_set, test_sig, feature_weights ):
+	"""@brief A wrapper function for _ClassifyOneImageWND5 that does dummyproofing
+	"""
+
+	# check to see if sig is valid
+	test_sig.is_valid()
+
+	train_set_len = len( training_set.featurenames_list )
+	test_set_len = len( test_sig.names )
+	feature_weights_len = len( feature_weights.names )
+
+	if train_set_len != test_set_len or \
+	   train_set_len != feature_weights_len or \
+	   test_set_len  != feature_weights_len:
+		raise ValueError( "Can't classify: one or more of the inputs has a different number of" \
+		 "features than the others: training set={0}, test set={1}, feature weights={2}".format( \
+				train_set_len, test_set_len, feature_weights_len ) + ". Perform a feature reduce." )
+
+	print "Classifying test set '{0}' ({1} features) against image '{2}' ({3} features)".\
+	   format( test_set.source_path, test_set_len, test_sig.path_to_image_file, train_set_len )
+
+	return _ClassifyOneImageWND5( trainingset, testsig.values, feature_weights.values )
+
 
 #=================================================================================
 def ClassifyTestSet( training_set, test_set, feature_weights ):
@@ -1169,7 +1255,7 @@ def ClassifyTestSet( training_set, test_set, feature_weights ):
 		for test_image_index in range( num_class_imgs ):
 			one_image_features = test_set.data_list[ test_class_index ][ test_image_index,: ]
 			normalization_factor, marginal_probabilities = \
-					WeightedNeighborDistance5( training_set, one_image_features, feature_weights.values )
+					_ClassifyOneImageWND5( training_set, one_image_features, feature_weights.values )
 
 			# FIXME: call PrintClassificationResultsToSTDOUT( results )
 			# img name:
