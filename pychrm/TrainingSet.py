@@ -1148,7 +1148,7 @@ class TrainingSet:
 # END TrainingSet class definition
 
 #=================================================================================
-class ClassificationResult:
+class ImageClassificationResult:
 	path_to_source_image = None
 
 	normalization_factor = None
@@ -1193,6 +1193,34 @@ class ClassificationResult:
 			if self.interpolated_value:
 				print "Interpolated Value:\t{0}".format( self.interpolated_value )
 				#print "Interpolated Value:\t{val=0.3f}".format( val=self.interpolated_value )
+
+class TestSetClassificationResult:
+	training_set = None
+	test_set = None
+	individual_results = []
+	classification_accuracy = None
+
+	num_classifications = 0
+	num_correct_classifications = 0
+
+	def __init__( self, training_set, test_set ):
+		self.training_set = training_set
+		self.test_set = test_set
+
+	def GenerateStats( self ):
+		for indiv_result in self.individual_results:
+			self.num_classifications += 1
+			if indiv_result.ground_truth_class_name == indiv_result.predicted_class_name:
+				self.num_correct_classifications += 1
+
+		self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
+
+	def PrintToSTDOUT( self ):
+		if self.classification_accuracy == None:
+			self.GenerateStats()
+
+		print "==========================================="
+		print "Classification accuracy for this split: {0}".format( self.classification_accuracy )
 
 
 ######################################################################################
@@ -1252,7 +1280,7 @@ def _ClassifyOneImageWND5( trainingset, testimg, feature_weights ):
 
 		class_similarities[ class_index ] /= ( num_tiles - num_collisions )
 
-	result = ClassificationResult()
+	result = ImageClassificationResult()
 	norm_factor = sum( class_similarities )
 	result.normalization_factor = norm_factor 
 	result.marginal_probabilities = [ x / norm_factor for x in class_similarities ]
@@ -1263,7 +1291,7 @@ def ClassifyOneSignatureWND5( training_set, test_sig, feature_weights ):
 	"""
 	@brief: A wrapper function for _ClassifyOneImageWND5 that does dummyproofing
 	@return: classification result
-	@returntype: ClassificationResult()
+	@returntype: ImageClassificationResult()
 	"""
 
 	# check to see if sig is valid
@@ -1331,7 +1359,7 @@ def ClassifyTestSet( training_set, test_set, feature_weights ):
 	if training_set.interpolation_coefficients:
 		interp_coeffs = np.array( training_set.interpolation_coefficients )
 
-	individual_results = []
+	split_statistics = TestSetClassificationResult( training_set, test_set )
 
 	for test_class_index in range( test_set.num_classes ):
 		num_class_imgs, num_class_features = test_set.data_list[ test_class_index ].shape
@@ -1341,31 +1369,17 @@ def ClassifyTestSet( training_set, test_set, feature_weights ):
 
 			result.path_to_source_image = test_set.imagenames_list[ test_class_index ][ test_image_index ]
 			result.ground_truth_class_name = test_set.classnames_list[ test_class_index ]
-			marg_probs = np.array( marginal_probabilities )
-			result.predicted_class = training_set.classnames_list[ marg_probs.argmax() ]
+			marg_probs = np.array( result.marginal_probabilities )
+			result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
 			# interpolated value, if applicable
 			if interp_coeffs is not None:
 				interp_val = np.sum( marg_probs * interp_coeffs )
 				result.interpolated_value = interp_val
-			individual_results.append( result )
 
-	return individual_results
+			result.PrintToSTDOUT( line_item = True )
+			split_statistics.individual_results.append( result )
 
-
-#=================================================================================
-def ResultStatistics( list_of_results, training_set, print_indiv_results = True ):
-	"""
-	
-	@arg list_of_results: a list of ClassificationResult instances
-	@argtype list_of_results: list
-	@return:  classification accuracy of the list of results
-	"""
-	pass
-
-
-	#confusion_matrix = {}
-	#for result in list_of_results:
-		
+	return split_statistics
 
 
 #============================================================================
@@ -1402,24 +1416,68 @@ def UnitTest3():
 	sigs.WriteFeaturesToASCIISigFile( "pychrm_calculated.sig" )
 
 #================================================================
-def UnitTest4( number_of_features_to_use = 10):
-	"""Classify one image"""
+def UnitTest4( max_features = 20):
+	"""Generate a time curve as a function of number of features used
+	to classify a single image"""
 
+	import time
 	mommy_feature_weights = FeatureWeights.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/feature_weights_len_2873.weights.pickled" )
 	mommy_training_set = TrainingSet.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/FacingL7class_normalized.fit.pickled" )
 
 	filename = "/home/eckleyd/ImageData/SortWorms/ScoredImages/2012-04-13/02/2012-04-13_11:57:50.tif"
 
-	reduced_feature_weights = mommy_feature_weights.Threshold( number_of_features_to_use )
-	sig = Signatures.NewFromFeatureNameList( filename, reduced_feature_weights.names )
-	reduced_training_set = mommy_training_set.FeatureReduce( reduced_feature_weights.names )
-	normalized_sig = sig.Normalize( reduced_training_set )
+	weights_to_be_tested = mommy_feature_weights.Threshold( max_features )
 
-	result = ClassifyOneSignatureWND5( reduced_training_set, normalized_sig,\
-																		 reduced_feature_weights )
-	result.PrintToSTDOUT()
+	count = 1
+	for name in weights_to_be_tested.names:
+		print "{0}\t{1}".format( count, name )
+		count += 1
+
+	import sys; sys.exit()
+	timings = []
+
+	for number_of_features_to_use in range( 1, max_features ):
+		t1 = time.time()
+		reduced_feature_weights = mommy_feature_weights.Threshold( number_of_features_to_use )
+		sig = Signatures.NewFromFeatureNameList( filename, reduced_feature_weights.names )
+		reduced_training_set = mommy_training_set.FeatureReduce( reduced_feature_weights.names )
+		normalized_sig = sig.Normalize( reduced_training_set )
+
+		result = ClassifyOneSignatureWND5( reduced_training_set, normalized_sig,\
+																			 reduced_feature_weights )
+		result.PrintToSTDOUT()
+		t2 = time.time()
+		timings.append( t2 - t1 )
+
+	count = 1
+	for timing in timings:
+		print "{0}\t{1}".format( count, timing )
+		count += 1
+
+#================================================================
+def UnitTest5( max_features = 20 ):
+	"""Generate an accuracy curve as a function of number of features used in classification."""
+
+	mommy_feature_weights = FeatureWeights.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/feature_weights_len_2873.weights.pickled" )
+	mommy_training_set = TrainingSet.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/FacingL7class_normalized.fit.pickled" )
+
+	split_results = []
 
 
+	for number_of_features_to_use in range( 1, max_features ):
+
+		reduced_feature_weights = mommy_feature_weights.Threshold( number_of_features_to_use )
+		reduced_training_set = mommy_training_set.FeatureReduce( reduced_feature_weights.names )
+
+		split_result = ClassifyTestSet( reduced_training_set, reduced_training_set,\
+																			 reduced_feature_weights )
+		split_result.PrintToSTDOUT()
+		split_results.append( split_result )
+
+	count = 1
+	for split_result in split_results:
+		print "{0}\t{1}".format( count, split_result.classification_accuracy )
+		count += 1
 
 initialize_module()
 
@@ -1430,4 +1488,5 @@ if __name__=="__main__":
 	# UnitTest2()
 	# UnitTest3()
 	UnitTest4()
+	#UnitTest5()
 	# pass
