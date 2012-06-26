@@ -31,6 +31,7 @@ import os
 import os.path 
 import re
 import itertools
+import copy
 
 
 # Initialize module level globals
@@ -86,11 +87,17 @@ class FeatureVector(object):
 	names = None
 	values = None
 	#================================================================
-	def __init__( self ):
+	def __init__( self, data_dict = None):
 		"""@brief: constructor
 		"""
 		self.names = []
 		self.values = []
+
+		if data_dict:
+			if "values" in data_dict:
+				self.values = data_dict[ "values" ]
+			if "names" in data_dict:
+				self.names = data_dict[ "names" ]
 	#================================================================
 	def is_valid( self ):
 		"""
@@ -108,9 +115,9 @@ class FeatureVector(object):
 class FeatureWeights( FeatureVector ):
 	"""
 	"""
-	def __init__( self ):
+	def __init__( self, data_dict = None ):
 		# call parent constructor
-		super( FeatureWeights, self ).__init__()
+		super( FeatureWeights, self ).__init__( data_dict )
 
 	#================================================================
 	@classmethod
@@ -153,7 +160,9 @@ class FeatureWeights( FeatureVector ):
 		use_these_feature_weights = \
 				list( itertools.islice( sorted_featureweights, num_features_to_be_used ) )
 		
-		new_weights.names, new_weights.values = zip( *use_these_feature_weights )
+		# we want lists, not tuples!
+		new_weights.names, new_weights.values =\
+		  [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
 		return new_weights
 
 	#================================================================
@@ -185,7 +194,7 @@ class FeatureWeights( FeatureVector ):
 		if not filename.endswith( ".weights.pickled" ):
 			raise ValueError( "File isn't named with .weights.pickled extension: {0}".format( pathname ) )
 
-		print "Loading Training Set from pickled file {0}".format( pathname )
+		print "Loading feature weights from pickled file {0}".format( pathname )
 		weights = None
 		with open( pathname, "rb" ) as pkled_in:
 			weights = cls( pickle.load( pkled_in ) )
@@ -201,7 +210,7 @@ class Signatures( FeatureVector ):
 	"""
 	"""
 
-	path_to_image_file = None
+	path_to_source_image = None
 	options = ""
 
 	#================================================================
@@ -221,7 +230,7 @@ class Signatures( FeatureVector ):
 		print "====================================================================="
 		print "Calculating small feature set for file:"
 		global small_featureset_featuregroup_list
-		return cls.FromFeatureGroupList( imagepath, small_featureset_featuregroup_list, options )
+		return cls.NewFromFeatureGroupList( imagepath, small_featureset_featuregroup_list, options )
 
 	#================================================================
 	@classmethod
@@ -263,10 +272,10 @@ class Signatures( FeatureVector ):
 			# All hope is lost. Calculate sigs
 			global large_featureset_featuregroup_list
 			if options == None:
-				the_sigs = cls.FromFeatureGroupList( imagepath, large_featureset_featuregroup_list, "-l" )
+				the_sigs = cls.NewFromFeatureGroupList( imagepath, large_featureset_featuregroup_list, "-l" )
 			else:
 				# FIXME: dummyproofing: does options already contain '-l'?
-				retval = cls.FromFeatureGroupList( imagepath, large_featureset_featuregroup_list, \
+				retval = cls.NewFromFeatureGroupList( imagepath, large_featureset_featuregroup_list, \
 						options + "-l" )
 		# There are historically 2885 signatures in the large feature set 
 		elif len( the_sigs.names ) < 2873:
@@ -283,7 +292,7 @@ class Signatures( FeatureVector ):
 
 	#================================================================
 	@classmethod
-	def FromFeatureGroupList( cls, path_to_image, feature_groups, options = None ):
+	def NewFromFeatureGroupList( cls, path_to_image, feature_groups, options = None ):
 		"""@brief calculates signatures
 
 		"""
@@ -299,15 +308,15 @@ class Signatures( FeatureVector ):
 
 		# instantiate an empty Signatures object
 		signatures = cls()
-		signatures.path_to_image_file = path_to_image
+		signatures.path_to_source_image = path_to_image
 		signatures.options = options
 
 		for fg in feature_groups:
-			print "Group {0}".format( fg.Name )
+			print "Group {0}".format( fg.name )
 			returned_feature_vals = fg.CalculateFeatures( im_cache )
 			count = 0
 			for value in returned_feature_vals:
-				signatures.names.append( fg.Name + " [{0}]".format( count ) )
+				signatures.names.append( fg.name + " [{0}]".format( count ) )
 				signatures.values.append( value )	
 				count += 1
 
@@ -315,13 +324,13 @@ class Signatures( FeatureVector ):
 
 	#================================================================
 	@classmethod
-	def FromFeatureNameList( cls, path_to_image, feature_names, options = None ):
+	def NewFromFeatureNameList( cls, path_to_image, feature_names, options = None ):
 		"""@brief calculates signatures
 
 		"""
 
-		work_order = GenerateWorkOrderFromListOfFeatureStrings( feature_names )
-		sig = cls.FromFeatureGroupList( path_to_image, work_order, options )
+		work_order, num_features = GenerateWorkOrderFromListOfFeatureStrings( feature_names )
+		sig = cls.NewFromFeatureGroupList( path_to_image, work_order, options )
 		return sig.FeatureReduce( feature_names ) 
 
 	#================================================================
@@ -355,7 +364,7 @@ class Signatures( FeatureVector ):
 		print "Loading features from sigfile {0}".format( sigfile_path )
 
 		signatures = cls()
-		signatures.path_to_image_file = image_path
+		signatures.path_to_source_image = image_path
 		signatures.options = options
  
 		with open( sigfile_path ) as infile:
@@ -365,9 +374,9 @@ class Signatures( FeatureVector ):
 					# The class id here may be trash
 					signatures.class_id = line.strip()
 				elif linenum == 1:
-					# We've already assigned self.path_to_image_file
+					# We've already assigned self.path_to_source_image
 					# the path in the sig file may be trash anyway
-					#signatures.path_to_image_file = line.strip()
+					#signatures.path_to_source_image = line.strip()
 					pass
 				else:
 					value, name = line.strip().split( ' ', 1 )
@@ -393,9 +402,9 @@ class Signatures( FeatureVector ):
 
 		outfile_path = ""
 		if not filepath or filepath == "":
-			if not self.path_to_image_file or self.path_to_image_file == "":
+			if not self.path_to_source_image or self.path_to_source_image == "":
 				raise ValueError( "Can't write sig file. No filepath specified in function call, and no path associated with this instance of Signatures." )
-			outfile_path = self.path_to_image_file
+			outfile_path = self.path_to_source_image
 
 			path, filename = os.path.split( outfile_path )
 			if not os.path.exists( path ):
@@ -417,7 +426,7 @@ class Signatures( FeatureVector ):
 		with open( outfile_path, "w" ) as out_file:
 			# FIXME: line 2 contains class membership, just hardcode a number for now
 			out_file.write( "0\n" )
-			out_file.write( "{0}\n".format( self.path_to_image_file ) )
+			out_file.write( "{0}\n".format( self.path_to_source_image ) )
 			for i in range( 0, len( self.names ) ):
 				out_file.write( "{val:0.6f} {name}\n".format( val=self.values[i], name=self.names[i] ) )
 
@@ -432,7 +441,7 @@ class Signatures( FeatureVector ):
 		if not their_features <= selfs_features:
 			missing_features_from_req = their_features - selfs_features
 			err_str = error_banner + "Feature Reduction error:\n"
-			err_str += "The signatures set for image file '{0}' ".format( self.path_to_image_file )
+			err_str += "The signatures set for image file '{0}' ".format( self.path_to_source_image )
 			err_str += "is missing {0}".format( len( missing_features_from_req ) )
 			err_str += "/{1} features that were requested in the feature reduction list.".format(\
 			             len( requested_features ) )
@@ -442,7 +451,7 @@ class Signatures( FeatureVector ):
 		# The featurenames sets are either out of order or contain extraneous features.
 		dictionary = dict( zip( self.names, self.values ) )
 		reduced_sigs = Signatures()
-		reduced_sigs.path_to_image_file = self.path_to_image_file
+		reduced_sigs.path_to_source_image = self.path_to_source_image
 		reduced_sigs.options = self.options
 			
 		for new_name in requested_features:
@@ -451,18 +460,25 @@ class Signatures( FeatureVector ):
 		
 		return reduced_sigs
 
-	def Normalize( training_set ):
-		"""FIXME: should there be some flag that gets set if this sig has 
-		   already been normalized??"""
+	def Normalize( self, training_set ):
+		"""
+		FIXME: should there be some flag that gets set if this sig has 
+		already been normalized??
+		
+		@return: a newly instantiated Signatures
+		"""
 
 		if training_set.featurenames_list != self.names:
 			raise ValueError("Can't normalize signature for {0} against training_set {1}: Features don't match."\
-		  .format( self.path_to_image_file, training_set.source_path ) )
-		
-		for i in range( self.values ):
-			self.values[i] -= training_set.feature_minima[i]
-			self.values[i] /= (training_set.feature_maxima[i] -training_set.feature_minima[i])
-			self.values[i] *= 100
+		  .format( self.path_to_source_image, training_set.source_path ) )
+	
+		new_sig = copy.deepcopy( self )
+		for i in range( len( self.values ) ):
+			new_sig.values[i] -= training_set.feature_minima[i]
+			new_sig.values[i] /= (training_set.feature_maxima[i] -training_set.feature_minima[i])
+			new_sig.values[i] *= 100
+
+		return new_sig
 		
 
 # end definition class Signatures
@@ -475,24 +491,24 @@ class FeatureGroup:
 	Attributes Name, Alg and Tforms are references to the SWIG objects
 	"""
 
-	Name = ""
-	Alg = None
-	Tforms = []
+	name = ""
+	algorithm = None
+	transform_list = []
 	def __init__( self, name_str = "", algorithm = None, tform_list = [] ):
 		#print "Creating new FeatureGroup for string {0}:".format(name_str)
 		#print "\talgorithm: {0}, transform list: {1}".format( algorithm, tform_list )
-		self.Name = name_str 
-		self.Alg = algorithm
-		self.Tforms = tform_list
+		self.name = name_str 
+		self.algorithm = algorithm
+		self.transform_list = tform_list
 	def CalculateFeatures( self, cached_pixel_planes ):
 		"""Returns a tuple with the features"""
 		pixel_plane = None
 		try:
 			#print "transforms: {0}".format( self.Tforms )
-			pixel_plane = RetrievePixelPlane( cached_pixel_planes, self.Tforms )
+			pixel_plane = RetrievePixelPlane( cached_pixel_planes, self.transform_list )
 		except:
 			raise
-		return self.Alg.calculate( pixel_plane )
+		return self.algorithm.calculate( pixel_plane )
 
 
 #############################################################################
@@ -568,6 +584,9 @@ def GenerateWorkOrderFromListOfFeatureStrings( feature_list ):
 	"""
 	Takes list of feature strings and chops off bin number at the first space on right, e.g.,
 	"feature alg (transform()) [bin]" ... Returns a list of FeatureGroups.
+
+	WARNING, RETURNS A TUPLE OF TWO THINGS!
+
 	@return work_order - list of FeatureGroup objects
 	@return output_features_count - total number of individual features contained in work_order
 	"""
@@ -584,7 +603,7 @@ def GenerateWorkOrderFromListOfFeatureStrings( feature_list ):
 	work_order = []
 	for feature_group in feature_group_strings:
 		fg = ParseFeatureGroupString( feature_group )
-		output_features_count += fg.Alg.n_features
+		output_features_count += fg.algorithm.n_features
 		work_order.append( fg )
 
 	return work_order, output_features_count
@@ -598,7 +617,7 @@ class TrainingSet:
 
 	# source_path - could be the name of a .fit, or pickle file from which this
 	# instance was generated, could be a directory
-	# source_path is essentially a name
+	#  source_path is essentially a name
 	# might want to make separate name member in the future
 	source_path = ""
 	num_classes = -1
@@ -613,13 +632,13 @@ class TrainingSet:
 	# across an image class excluding the other classes
 	data_list = None
 
-	# A list of strings, length C
+	#: A list of strings, length C
 	classnames_list = None
 
-	# A list of strings length M
+	#: A list of strings length M
 	featurenames_list = None
 
-	# a list of lists, length C, where each list is length Ni, contining pathnames of tiles/imgs
+	#: a list of lists, length C, where each list is length Ni, contining pathnames of tiles/imgs
 	imagenames_list = None
 
 	# The following class members are optional:
@@ -1079,7 +1098,7 @@ class TrainingSet:
 		"""
 		FIXME: implement!
 		"""
-		pass
+		raise NotImplementedError()
 
   #=================================================================================
 	def PickleMe( self, pathname = None ):
@@ -1127,6 +1146,53 @@ class TrainingSet:
 		raise NotImplementedError( 'sorry, not implemented yet!' )
 
 # END TrainingSet class definition
+
+#=================================================================================
+class ClassificationResult:
+	path_to_source_image = None
+
+	normalization_factor = None
+	marginal_probabilities = []
+	predicted_class_name = None
+	ground_truth_class_name = None
+	interpolated_value = None
+
+	#: For the future:
+	kernel_location = None
+	#==============================================================
+	def PrintToSTDOUT( self, line_item = False ):
+		"""
+		"""
+		if line_item:
+			# img name:
+			output_str = self.path_to_source_image
+			# normalization factor:
+			output_str += "\t{val:0.3g}\t".format( val=self.normalization_factor )
+			# marginal probabilities:
+			output_str += "\t".join(\
+					[ "{val:0.3f}".format( val=prob ) for prob in self.marginal_probabilities ] )
+			output_str += "\t"
+			# actual class:
+			if self.ground_truth_class_name:
+				output_str += self.ground_truth_class_name + "\t"
+			else:
+				output_str += "*\t"
+			# predicted class:
+			output_str += self.predicted_class_name + "\t"
+			# interpolated value, if applicable
+			if self.interpolated_value:
+				output_str += "{val:0.3f}".format( val=self.interpolated_value )
+			print output_str
+		else:
+			print "Image:             \t{0}".format( self.path_to_source_image )
+			print "Normalization Factor:\t{0}".format( self.normalization_factor )
+			print "Marg. Probabilities:\t" + "\t".join(\
+					[ "{val:0.3f}".format( val=prob ) for prob in self.marginal_probabilities ] )
+			print "Ground truth class:\t {0}".format( self.ground_truth_class_name ) 
+			print "Predicted class:\t {0}".format( self.ground_truth_class_name ) 
+			if self.interpolated_value:
+				print "Interpolated Value:\t{0}".format( self.interpolated_value )
+				#print "Interpolated Value:\t{val=0.3f}".format( val=self.interpolated_value )
 
 
 ######################################################################################
@@ -1186,12 +1252,18 @@ def _ClassifyOneImageWND5( trainingset, testimg, feature_weights ):
 
 		class_similarities[ class_index ] /= ( num_tiles - num_collisions )
 
-	normalization_factor = sum( class_similarities )
+	result = ClassificationResult()
+	norm_factor = sum( class_similarities )
+	result.normalization_factor = norm_factor 
+	result.marginal_probabilities = [ x / norm_factor for x in class_similarities ]
 
-	return ( normalization_factor, [ x / normalization_factor for x in class_similarities ] ) 
+	return result
 #=================================================================================
 def ClassifyOneSignatureWND5( training_set, test_sig, feature_weights ):
-	"""@brief A wrapper function for _ClassifyOneImageWND5 that does dummyproofing
+	"""
+	@brief: A wrapper function for _ClassifyOneImageWND5 that does dummyproofing
+	@return: classification result
+	@returntype: ClassificationResult()
 	"""
 
 	# check to see if sig is valid
@@ -1208,11 +1280,20 @@ def ClassifyOneSignatureWND5( training_set, test_sig, feature_weights ):
 		 "features than the others: training set={0}, test set={1}, feature weights={2}".format( \
 				train_set_len, test_set_len, feature_weights_len ) + ". Perform a feature reduce." )
 
-	print "Classifying test set '{0}' ({1} features) against image '{2}' ({3} features)".\
-	   format( test_set.source_path, test_set_len, test_sig.path_to_image_file, train_set_len )
+	print "Classifying image '{0}' ({1} features) against test set '{2}' ({3} features)".\
+	   format( test_sig.path_to_source_image, train_set_len, training_set.source_path, test_set_len )
 
-	return _ClassifyOneImageWND5( trainingset, testsig.values, feature_weights.values )
+	result = _ClassifyOneImageWND5( training_set, test_sig.values, feature_weights.values )
 
+	result.path_to_source_image = test_sig.path_to_source_image
+	marg_probs = np.array( result.marginal_probabilities )
+	result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
+	# interpolated value, if applicable
+	if training_set.interpolation_coefficients is not None:
+		interp_val = np.sum( marg_probs * training_set.interpolation_coefficients )
+		result.interpolated_value = interp_val
+
+	return result
 
 #=================================================================================
 def ClassifyTestSet( training_set, test_set, feature_weights ):
@@ -1250,39 +1331,42 @@ def ClassifyTestSet( training_set, test_set, feature_weights ):
 	if training_set.interpolation_coefficients:
 		interp_coeffs = np.array( training_set.interpolation_coefficients )
 
+	individual_results = []
+
 	for test_class_index in range( test_set.num_classes ):
 		num_class_imgs, num_class_features = test_set.data_list[ test_class_index ].shape
 		for test_image_index in range( num_class_imgs ):
 			one_image_features = test_set.data_list[ test_class_index ][ test_image_index,: ]
-			normalization_factor, marginal_probabilities = \
-					_ClassifyOneImageWND5( training_set, one_image_features, feature_weights.values )
+			result = _ClassifyOneImageWND5( training_set, one_image_features, feature_weights.values )
 
-			# FIXME: call PrintClassificationResultsToSTDOUT( results )
-			# img name:
-			output_str = test_set.imagenames_list[ test_class_index ][ test_image_index ]
-			# normalization factor:
-			output_str += "\t{val:0.3g}\t".format( val=normalization_factor )
-			# marginal probabilities:
-			output_str += "".join(\
-					[ "{val:0.3f}".format( val=prob ) + "\t" for prob in marginal_probabilities ] )
-			output_str += test_set.classnames_list[ test_class_index ] + "\t"
-			# actual class:
-			output_str += test_set.classnames_list[ test_class_index ] + "\t"
-			# predicted class:
+			result.path_to_source_image = test_set.imagenames_list[ test_class_index ][ test_image_index ]
+			result.ground_truth_class_name = test_set.classnames_list[ test_class_index ]
 			marg_probs = np.array( marginal_probabilities )
-			output_str += "{0}\t".format( training_set.classnames_list[ marg_probs.argmax() ] )
+			result.predicted_class = training_set.classnames_list[ marg_probs.argmax() ]
 			# interpolated value, if applicable
 			if interp_coeffs is not None:
 				interp_val = np.sum( marg_probs * interp_coeffs )
-				output_str += "{val:0.3f}".format( val=interp_val )
-			print output_str
+				result.interpolated_value = interp_val
+			individual_results.append( result )
+
+	return individual_results
+
 
 #=================================================================================
-def PrintClassificationResultsToSTDOUT( result ):
+def ResultStatistics( list_of_results, training_set, print_indiv_results = True ):
 	"""
-	FIXME: Implement!
+	
+	@arg list_of_results: a list of ClassificationResult instances
+	@argtype list_of_results: list
+	@return:  classification accuracy of the list of results
 	"""
 	pass
+
+
+	#confusion_matrix = {}
+	#for result in list_of_results:
+		
+
 
 #============================================================================
 def UnitTest1():
@@ -1317,12 +1401,33 @@ def UnitTest3():
 	sigs = Signatures.LargeFeatureSet( path )
 	sigs.WriteFeaturesToASCIISigFile( "pychrm_calculated.sig" )
 
+#================================================================
+def UnitTest4( number_of_features_to_use = 10):
+	"""Classify one image"""
+
+	mommy_feature_weights = FeatureWeights.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/feature_weights_len_2873.weights.pickled" )
+	mommy_training_set = TrainingSet.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/FacingL7class_normalized.fit.pickled" )
+
+	filename = "/home/eckleyd/ImageData/SortWorms/ScoredImages/2012-04-13/02/2012-04-13_11:57:50.tif"
+
+	reduced_feature_weights = mommy_feature_weights.Threshold( number_of_features_to_use )
+	sig = Signatures.NewFromFeatureNameList( filename, reduced_feature_weights.names )
+	reduced_training_set = mommy_training_set.FeatureReduce( reduced_feature_weights.names )
+	normalized_sig = sig.Normalize( reduced_training_set )
+
+	result = ClassifyOneSignatureWND5( reduced_training_set, normalized_sig,\
+																		 reduced_feature_weights )
+	result.PrintToSTDOUT()
+
+
+
 initialize_module()
 
 #================================================================
 if __name__=="__main__":
 	
 	#UnitTest1()
-	UnitTest2()
+	# UnitTest2()
 	# UnitTest3()
+	UnitTest4()
 	# pass
