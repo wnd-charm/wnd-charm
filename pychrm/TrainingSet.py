@@ -115,6 +115,9 @@ class FeatureVector(object):
 class FeatureWeights( FeatureVector ):
 	"""
 	"""
+
+	associated_training_set = None
+
 	def __init__( self, data_dict = None ):
 		# call parent constructor
 		super( FeatureWeights, self ).__init__( data_dict )
@@ -122,48 +125,19 @@ class FeatureWeights( FeatureVector ):
 	#================================================================
 	@classmethod
 	def NewFromFile( cls, weights_filepath ):
-		"""@brief written to read in files created by wndchrm -vw/path/to/weightsfile.txt"""
-
-		weights = cls()
-		with open( weights_filepath, 'r' ) as weights_file:
-			for line in weights_file:
-				# split line "number <space> name"
-				feature_line = line.strip().split( " ", 1 )
-				weights.values.append( float( feature_line[0] ) )
-				weights.names.append( feature_line[1] )
-		return weights
-
-	#================================================================
-	def EliminateZeros( self ):
-		"""@breif Good for Fisher scores, N/A for Pearson scores - FIXME: subclass!"""
-
-		new_weights = FeatureWeights()
-		scores = zip( self.names, self.values )
-		nonzero_scores = [ (name, weight) for name, weight in scores if weight != 0 ]
-		new_weights.names, new_weights.values = zip( *nonzero_scores )
-		return new_weights
+		"""load from a text file"""
+		raise NotImplementedError
 
 	#================================================================
 	def Threshold( self, num_features_to_be_used  ):
-		"""@breif Good for Fisher scores, N/A for Pearson scores - FIXME: subclass!"""
+		"""@breif Returns an instance of a FeatureWeights class with the top n relevant features in that order"""
+		raise NotImplementedError
 
-		new_weights = FeatureWeights()
-		raw_featureweights = zip( self.names, self.values )
-		# raw_featureweights is now a list of tuples := [ (name1, value1), (name2, value2), ... ]
-
-		# sort from max to min
-		# sort by the second item in the tuple, i.e., index 1
-		sort_func = lambda feat_a, feat_b: cmp( feat_a[1], feat_b[1] ) 
-
-		sorted_featureweights = sorted( raw_featureweights, sort_func, reverse = True )
-		# take top N features
-		use_these_feature_weights = \
-				list( itertools.islice( sorted_featureweights, num_features_to_be_used ) )
-		
-		# we want lists, not tuples!
-		new_weights.names, new_weights.values =\
-		  [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
-		return new_weights
+	#================================================================
+	@classmethod
+	def NewFromTrainingSet( cls, num_features_to_be_used  ):
+		"""@breif Calculate FeatureWeights from a TrainingSet"""
+		raise NotImplementedError
 
 	#================================================================
 	def PickleMe( self, pathname = None ):
@@ -201,7 +175,155 @@ class FeatureWeights( FeatureVector ):
 
 		return weights
 
+
+
+#############################################################################
+# class definition of FisherFeatureWeights
+#############################################################################
+class FisherFeatureWeights( FeatureWeights ):
+	"""
+	"""
+	def __init__( self, data_dict = None ):
+		# call parent constructor
+		super( FisherFeatureWeights, self ).__init__( data_dict )
+
+	#================================================================
+	@classmethod
+	def NewFromFile( cls, weights_filepath ):
+		"""@brief written to read in files created by wndchrm -vw/path/to/weightsfile.txt"""
+
+		weights = cls()
+		with open( weights_filepath, 'r' ) as weights_file:
+			for line in weights_file:
+				# split line "number <space> name"
+				feature_line = line.strip().split( " ", 1 )
+				weights.values.append( float( feature_line[0] ) )
+				weights.names.append( feature_line[1] )
+		return weights
+
+	#================================================================
+	def EliminateZeros( self ):
+		"""@breif Good for Fisher scores, N/A for Pearson or continuous scores"""
+
+		new_weights = FisherFeatureWeights()
+		scores = zip( self.names, self.values )
+		nonzero_scores = [ (name, weight) for name, weight in scores if weight != 0 ]
+		new_weights.names, new_weights.values = zip( *nonzero_scores )
+		return new_weights
+
+	#================================================================
+	def Threshold( self, num_features_to_be_used = None ):
+		"""@breif Returns an instance of a FeatureWeights class with the top n relevant features in that order"""
+
+		# Default is top 15% of features
+		if num_features_to_be_used is None:
+			num_features_to_be_used = int( len( self.values ) * 0.15 )
+
+		new_weights = FisherFeatureWeights()
+		raw_featureweights = zip( self.names, self.values )
+		# raw_featureweights is now a list of tuples := [ (name1, value1), (name2, value2), ... ]
+
+		# sort from max to min
+		# sort by the second item in the tuple, i.e., index 1
+		sort_func = lambda feat_a, feat_b: cmp( feat_a[1], feat_b[1] ) 
+
+		sorted_featureweights = sorted( raw_featureweights, sort_func, reverse = True )
+		# take top N features
+		use_these_feature_weights = \
+				list( itertools.islice( sorted_featureweights, num_features_to_be_used ) )
+		
+		# we want lists, not tuples!
+		new_weights.names, new_weights.values =\
+		  [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
+		return new_weights
+
+#############################################################################
+# class definition of ContinuousFeatureWeights
+#############################################################################
+class ContinuousFeatureWeights( FeatureWeights ):
+	"""Used to perform linear regressions
+	"""
+
+	slopes = None
+	intercepts = None
+	r_values = None
 	
+
+	def __init__( self, data_dict = None ):
+		# call parent constructor
+		super( ContinuousFeatureWeights, self ).__init__( data_dict )
+		self.slopes = []
+		self.intercepts = []
+		self.r_values = []
+
+	#================================================================
+	@classmethod
+	def NewFromFile( cls, weights_filepath ):
+		"""@brief Read in a text file with the three relevant parameters
+		to perfrom a linear regression"""
+		pass
+
+	#================================================================
+	@classmethod
+	def NewFromTrainingSet( cls, training_set ):
+		"""@breif Calculate FeatureWeights from a TrainingSet"""
+		
+		from scipy import stats
+
+		matrix = training_set.data_list[0]
+		#FIXME: maybe add some dummyproofing to constrain incoming array size
+
+		new_fw = cls()
+
+		new_fw.associated_training_set = training_set
+		for feature_index in range( training_set.num_features ):
+			feature_values = matrix[:,feature_index]
+			slope, intercept, r_value, p_value, std_err = \
+			   stats.linregress( [float(val) for val in training_set.ground_truths], feature_values )
+			new_fw.names.append( training_set.featurenames_list[ feature_index ] )
+			new_fw.r_values.append( r_value )
+			new_fw.slopes.append( slope )
+			new_fw.intercepts.append( intercept )
+
+		return new_fw
+
+
+	#================================================================
+	def Threshold( self, num_features_to_be_used = None  ):
+		"""@breif Returns an instance of a FeatureWeights class with the top n relevant features in that order"""
+
+		# sort on the r_values, not the weights themselves (haven't been calculated yet)
+
+		# Default is top 15% of features
+		if num_features_to_be_used is None:
+			num_features_to_be_used = int( len( self.values ) * 0.15 )
+
+		new_weights = ContinuousFeatureWeights()
+		raw_featureweights = zip( self.names, self.r_values, self.slopes, self.intercepts )
+
+		# sort from max to min
+		# sort by the second item in the tuple, i.e., index 1
+		sort_func = lambda feat_a, feat_b: cmp( feat_a[1], feat_b[1] ) 
+
+		sorted_featureweights = sorted( raw_featureweights, sort_func, reverse = True )
+		# take top N features
+		use_these_feature_weights = \
+				list( itertools.islice( sorted_featureweights, num_features_to_be_used ) )
+		
+		# we want lists, not tuples!
+		new_weights.names, new_weights.r_values, new_weights.slopes, new_weights.intercepts =\
+		  [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
+
+
+		r_val_sum = 0
+		for val in new_weights.r_values:
+			r_val_sum += val
+		new_weights.values = [val / r_val_sum for val in new_weights.r_values ]
+
+		new_weights.associated_training_set = self.associated_training_set
+
+		return new_weights
+
 
 #############################################################################
 # class definition of Signatures
@@ -256,10 +378,10 @@ class Signatures( FeatureVector ):
 
 		if os.path.exists( root + options_str + ".pysig" ):
 			sigpath = root + options_str + ".pysig"
-			the_sigs = cls.FromSigFile( imagepath, sigpath, options_str )
+			the_sigs = cls.NewFromSigFile( imagepath, sigpath, options_str )
 		elif os.path.exists( root + options_str + ".sig" ):
 			sigpath = root + options_str + ".sig" 
-			the_sigs = cls.FromSigFile( imagepath, sigpath, options_str )
+			the_sigs = cls.NewFromSigFile( imagepath, sigpath, options_str )
 		else:
 			sigpath = root + options_str + ".pysig"
 
@@ -350,7 +472,7 @@ class Signatures( FeatureVector ):
 
 	#================================================================
 	@classmethod
-	def FromSigFile( cls, image_path, sigfile_path, options = None ):
+	def NewFromSigFile( cls, image_path, sigfile_path, options = None ):
 		"""@argument sigfile_path must be a .sig or a .pysig file
 		
 		@return  - An instantiated signature class with feature names translated from
@@ -383,7 +505,7 @@ class Signatures( FeatureVector ):
 					signatures.values.append( float( value ) )	
 					signatures.names.append( name )
 				linenum += 1
-			print "Loaded {0} signatures.".format( len( signatures.values ) )
+			print "Loaded {0} features.".format( len( signatures.values ) )
 
 		# Check if the feature name follows the old convention
 		signatures.names = FeatureNameMap.TranslateToNewStyle( signatures.names ) 
@@ -660,6 +782,9 @@ class TrainingSet:
 	# FIXME: expand to have all options kept track of individually
 	feature_options = None
 
+	# FIXME: this only belongs in the subclassed continuous TrainingSet
+	ground_truths = None
+
 	def __init__( self, data_dict = None):
 		"""
 		TrainingSet constructor
@@ -691,6 +816,8 @@ class TrainingSet:
 				self.feature_maxima = data_dict[ 'feature_maxima' ]
 			if "feature_minima" in data_dict:
 				self.feature_minima = data_dict[ 'feature_minima' ]
+			if "ground_truths" in data_dict:
+				self.ground_truths = data_dict[ 'ground_truths' ]
 			if "interpolation_coefficients" in data_dict:
 				self.interpolation_coefficients = data_dict[ 'interpolation_coefficients' ]
 
@@ -897,10 +1024,11 @@ class TrainingSet:
 
 		# instantiate a new training set
 		new_ts = cls()
-		new_ts.num_images = num_images
+		#new_ts.num_images = num_images #taken care of by AddSignatures()
+		new_ts.num_images = 0 # initialize
 		new_ts.num_classes = num_classes
 		new_ts.classnames_list = classnames_list
-		new_ts.imagenames_list = imagenames_list
+		#new_ts.imagenames_list = imagenames_list  #taken care of by AddSignatures()
 		new_ts.source_path = top_level_dir_path
 		new_ts._ProcessSigCalculationSerially( feature_set, write_sig_files_todisk )
 		if feature_set == "large":
@@ -910,10 +1038,37 @@ class TrainingSet:
 
   #=================================================================================
 	@classmethod
-	def NewFromFileOfFiles( cls, fof_path, feature_set = "large", write_sig_files_todisk = True ):
-		"""FIXME: Implement!"""
-		raise NotImplementedError()
+	def NewFromFileOfFiles( cls, fof_path ):#, feature_set = "large", write_sig_files_todisk = True ):
+		"""FIXME: Only working for sigfiles, not tiffs, jury rigged to be contunuous for now"""
 
+		sig_files = []
+
+		new_ts = cls()
+		new_ts.num_images = 0
+		new_ts.classnames_list = "continuous"
+		new_ts.source_path = fof_path
+
+		# ground truths is a continuous-specific member
+		new_ts.ground_truths = []
+
+		 # When continuous subclass created, this will go away
+		new_ts.imagenames_list.append( [] )
+		new_ts.num_classes = 1
+
+		with open( fof_path ) as fof:
+			for line in fof:
+				file_path, ground_truth_val = line.strip().split( "\t" )
+				sig_files.append( file_path )
+				# FIXME: ground truth is cast as a float here, but in the future
+				# cound be a not-numeric
+				new_ts.ground_truths.append( float( ground_truth_val) )
+				sig = Signatures.NewFromSigFile( image_path = file_path, sigfile_path = file_path )
+				new_ts.AddSignature( sig, 0 )
+		
+		return new_ts
+
+
+		
   #=================================================================================
 	@classmethod
 	def NewFromSQLiteFile(cls, path):
@@ -1034,7 +1189,10 @@ class TrainingSet:
 		reduced_ts.imagenames_list = self.imagenames_list[:] # [:] = deepcopy
 		reduced_ts.classnames_list = self.classnames_list[:]
 		reduced_ts.featurenames_list = requested_features[:]
-		reduced_ts.interpolation_coefficients = self.interpolation_coefficients[:]
+		if self.interpolation_coefficients:
+			reduced_ts.interpolation_coefficients = self.interpolation_coefficients[:]
+		if self.ground_truths:
+			reduced_ts.ground_truths = self.ground_truths[:]
 		reduced_ts.feature_maxima = [None] * new_num_features
 		reduced_ts.feature_minima = [None] * new_num_features
 
@@ -1092,6 +1250,9 @@ class TrainingSet:
 			self.data_list[ class_id_index ] = np.vstack( ( self.data_list[ class_id_index ] ,\
 					np.array( signature.values ) ) )
 
+		self.num_images += 1
+		self.imagenames_list[ class_id_index ].append( signature.path_to_source_image )
+
 
   #=================================================================================
 	def CalculateFisherScores( self ):
@@ -1148,8 +1309,17 @@ class TrainingSet:
 # END TrainingSet class definition
 
 #=================================================================================
-class ImageClassificationResult:
+class ImageClassificationResult( object ):
 	path_to_source_image = None
+
+	#: For the future:
+	kernel_location = None
+
+	def PrintToSTDOUT():
+		raise NotImplementedError
+
+#=================================================================================
+class DiscreteImageClassificationResult( ImageClassificationResult ):
 
 	normalization_factor = None
 	marginal_probabilities = []
@@ -1157,8 +1327,6 @@ class ImageClassificationResult:
 	ground_truth_class_name = None
 	interpolated_value = None
 
-	#: For the future:
-	kernel_location = None
 	#==============================================================
 	def PrintToSTDOUT( self, line_item = False ):
 		"""
@@ -1189,23 +1357,66 @@ class ImageClassificationResult:
 			print "Marg. Probabilities:\t" + "\t".join(\
 					[ "{val:0.3f}".format( val=prob ) for prob in self.marginal_probabilities ] )
 			print "Ground truth class:\t {0}".format( self.ground_truth_class_name ) 
-			print "Predicted class:\t {0}".format( self.ground_truth_class_name ) 
+			print "Predicted class:\t {0}".format( self.predicted_class_name ) 
 			if self.interpolated_value:
 				print "Interpolated Value:\t{0}".format( self.interpolated_value )
 				#print "Interpolated Value:\t{val=0.3f}".format( val=self.interpolated_value )
 
-class TestSetClassificationResult:
+
+#=================================================================================
+class ContinuousImageClassificationResult( ImageClassificationResult ):
+	path_to_source_image = None
+	ground_truth_value = None
+	predicted_value = None
+
+	#==============================================================
+	def PrintToSTDOUT( self, line_item = False ):
+		"""
+		"""
+		if line_item:
+			# img name:
+			output_str = self.path_to_source_image
+			output_str += "\t"
+			# actual class:
+			if self.ground_truth_value is not None:
+				output_str += str( self.ground_truth_value ) + "\t"
+			else:
+				output_str += "*\t"
+			# predicted class:
+			output_str += str( self.predicted_value ) + "\t"
+			print output_str
+		else:
+			print "Image:             \t{0}".format( self.path_to_source_image )
+			print "Ground truth class:\t {0}".format( self.ground_truth_value ) 
+			print "Predicted class:\t {0}".format( self.predicted_value ) 
+
+
+#=================================================================================
+class TestSetClassificationResults( object ):
 	training_set = None
 	test_set = None
 	individual_results = []
-	classification_accuracy = None
 
 	num_classifications = 0
-	num_correct_classifications = 0
 
 	def __init__( self, training_set, test_set ):
 		self.training_set = training_set
 		self.test_set = test_set
+
+	def GenerateStats( self ):
+		raise NotImplementedError
+	
+	def PrintToSTDOUT( self ):
+		raise NotImplementedError
+
+#=================================================================================
+class DiscreteTestSetClassificationResults( TestSetClassificationResults ):
+	classification_accuracy = None
+	num_correct_classifications = 0
+
+	def __init__( self, training_set, test_set ):
+		# call parent constructor
+		super( DiscreteTestSetClassificationResults, self ).__init__( training_set, test_set )
 
 	def GenerateStats( self ):
 		for indiv_result in self.individual_results:
@@ -1223,9 +1434,78 @@ class TestSetClassificationResult:
 		print "Classification accuracy for this split: {0}".format( self.classification_accuracy )
 
 
+#=================================================================================
+class ContinuousTestSetClassificationResults( TestSetClassificationResults ):
+
+	r_value = None
+	p_value = None
+	std_err = None
+	ground_truth_values = None
+	predicted_values = None
+
+	def __init__( self, training_set, test_set ):
+		# call parent constructor
+		super( ContinuousTestSetClassificationResults, self ).__init__( training_set, test_set )
+
+	def GenerateStats( self ):
+		self.num_classifications = len (self.individual_results)
+
+		value_pairs = [ (result.ground_truth_value, result.predicted_value ) \
+		                                             for result in self.individual_results ]
+
+		# sort by ground_truth value first, predicted value second
+		sort_func = lambda A, B: cmp( A[0], B[0] ) if A[0] != B[0] else cmp( A[1], B[1] ) 
+
+		sorted_pairs = sorted( value_pairs, sort_func )
+		
+		# we want lists, not tuples!
+		self.ground_truth_values, self.predicted_values =\
+		  [ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_pairs ) ]	
+
+		from scipy import stats
+		slope, intercept, self.r_value, self.p_value, self.std_err = \
+		    stats.linregress( self.ground_truth_values, self.predicted_values )	
+
+	def PrintToSTDOUT( self ):
+		if self.r_value == None:
+			self.GenerateStats()
+
+		print "==========================================="
+		print "R-value for this split: {0}".format( self.r_value )
+		print "p-value for this split: {0}".format( self.p_value )
+		print "standard error for this split: {0}".format( self.r_value )
+
+
+
 ######################################################################################
 # GLOBAL FUNCTIONS
 ######################################################################################
+
+def _ClassifyOneImageContinuous( one_image_features, feature_weights ):
+	"""
+	Don't call this function directly, use the wrapper function ClassifyContinuousTestSet()
+	which has dummyproofing.
+
+	Returns an instance of the class DiscreteImageClassificationResult
+	FIXME: what about tiling??
+	"""
+
+	per_feature_predicted_vals = []
+
+	for i in range( len( one_image_features) ):
+		feat_val = one_image_features[i]
+		weight = feature_weights.values[i]
+		slope = feature_weights.slopes[i]
+		intercept = feature_weights.intercepts[i]
+		per_feature_predicted_vals.append( weight * ( slope * feat_val + intercept ) )
+
+	result = ContinuousImageClassificationResult()
+	result.predicted_value = np.sum( np.array( per_feature_predicted_vals ) )
+
+	return result
+
+
+
 
 def _ClassifyOneImageWND5( trainingset, testimg, feature_weights ):
 	"""
@@ -1238,7 +1518,7 @@ def _ClassifyOneImageWND5( trainingset, testimg, feature_weights ):
 	  testtile is a 1 x M list of feature values
 	NOTE: the trainingset and test image must have the same number of features!!!
 	AND: the features must be in the same order!!
-	Returns a tuple with norm factor and list of length L of marginal probabilities
+	Returns an instance of the class DiscreteImageClassificationResult
 	FIXME: what about tiling??
 	"""
 
@@ -1280,7 +1560,7 @@ def _ClassifyOneImageWND5( trainingset, testimg, feature_weights ):
 
 		class_similarities[ class_index ] /= ( num_tiles - num_collisions )
 
-	result = ImageClassificationResult()
+	result = DiscreteImageClassificationResult()
 	norm_factor = sum( class_similarities )
 	result.normalization_factor = norm_factor 
 	result.marginal_probabilities = [ x / norm_factor for x in class_similarities ]
@@ -1331,7 +1611,6 @@ def ClassifyTestSet( training_set, test_set, feature_weights ):
 	FIXME: What happens when the ground truth is not known? Currently they would all be shoved
 	       into class 1, might not be a big deal since class name should be something
 	       like "UNKNOWN"
-	FIXME: return some python construct that contains classification results
 	"""
 
 	train_set_len = len( training_set.featurenames_list )
@@ -1359,7 +1638,7 @@ def ClassifyTestSet( training_set, test_set, feature_weights ):
 	if training_set.interpolation_coefficients:
 		interp_coeffs = np.array( training_set.interpolation_coefficients )
 
-	split_statistics = TestSetClassificationResult( training_set, test_set )
+	split_statistics = DiscreteTestSetClassificationResult( training_set, test_set )
 
 	for test_class_index in range( test_set.num_classes ):
 		num_class_imgs, num_class_features = test_set.data_list[ test_class_index ].shape
@@ -1381,13 +1660,47 @@ def ClassifyTestSet( training_set, test_set, feature_weights ):
 
 	return split_statistics
 
+#=================================================================================
+def ClassifyContinuousTestSet( test_set, feature_weights ):
+	"""
+	@remarks - all three input arguments must have the same number of features,
+	and in the same order for this to work properly
+	"""
 
+	test_set_len = len( test_set.featurenames_list )
+	feature_weights_len = len( feature_weights.values )
+
+	if test_set_len != feature_weights_len:
+		raise ValueError( "Can't classify: one or more of the inputs has a different number of" \
+				"features than the others: test set={0}, feature weights={}".format( \
+				test_set_len, feature_weights_len ) + ". Perform a feature reduce." )
+
+	print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
+	      format( test_set.source_path, test_set_len, \
+	      feature_weights.associated_training_set.source_path, feature_weights_len )
+
+	column_header = "image\tground truth\tpred. val."
+	print column_header
+
+	split_statistics = ContinuousTestSetClassificationResults( feature_weights, test_set )
+	
+	for test_image_index in range( test_set.num_images ):
+		one_image_features = test_set.data_list[ 0 ][ test_image_index,: ]
+		result = _ClassifyOneImageContinuous( one_image_features, feature_weights )
+
+		result.path_to_source_image = test_set.imagenames_list[ 0 ][ test_image_index ]
+		result.ground_truth_value = test_set.ground_truths[ test_image_index ]
+
+		result.PrintToSTDOUT( line_item = True )
+		split_statistics.individual_results.append( result )
+
+	return split_statistics
 #============================================================================
 def UnitTest1():
 	
 	weights_filepath = '/home/colettace/projects/eckley_worms/feature_weights.txt'
 
-	weights = FeatureWeights.NewFromFile( weights_filepath )
+	weights = FisherFeatureWeights.NewFromFile( weights_filepath )
 	weights.EliminateZeros()
 	weights.names = FeatureNameMap.TranslateToNewStyle( weights.names )
 
@@ -1421,7 +1734,7 @@ def UnitTest4( max_features = 20):
 	to classify a single image"""
 
 	import time
-	mommy_feature_weights = FeatureWeights.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/feature_weights_len_2873.weights.pickled" )
+	mommy_feature_weights = FisherFeatureWeights.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/feature_weights_len_2873.weights.pickled" )
 	mommy_training_set = TrainingSet.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/FacingL7class_normalized.fit.pickled" )
 
 	filename = "/home/eckleyd/ImageData/SortWorms/ScoredImages/2012-04-13/02/2012-04-13_11:57:50.tif"
@@ -1458,11 +1771,10 @@ def UnitTest4( max_features = 20):
 def UnitTest5( max_features = 20 ):
 	"""Generate an accuracy curve as a function of number of features used in classification."""
 
-	mommy_feature_weights = FeatureWeights.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/feature_weights_len_2873.weights.pickled" )
+	mommy_feature_weights = FisherFeatureWeights.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/feature_weights_len_2873.weights.pickled" )
 	mommy_training_set = TrainingSet.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/FacingL7class_normalized.fit.pickled" )
 
 	split_results = []
-
 
 	for number_of_features_to_use in range( 1, max_features ):
 
@@ -1479,6 +1791,41 @@ def UnitTest5( max_features = 20 ):
 		print "{0}\t{1}".format( count, split_result.classification_accuracy )
 		count += 1
 
+#================================================================
+def UnitTest6():
+	"""test file of files functionality"""
+	#ts = TrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/continuous_data_set.fof" )
+	#ts.PickleMe()
+	pass
+
+
+#================================================================
+def UnitTest7(max_features = 5):
+	"""try to find the number of features at which the predicted and ground truth values
+	correllates most"""
+
+	#ts = TrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/continuous_data_set.fof" )
+	#ts.PickleMe()
+	ts = TrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/continuous_data_set.fof.fit.pickled" )
+	weights = ContinuousFeatureWeights.NewFromTrainingSet( ts )
+
+	split_results = []
+	for i in range( 1, max_features ):
+		weights_subset = weights.Threshold( i )
+		reduced_ts = ts.FeatureReduce( weights_subset.names )
+		# any point in normalizing here?
+		split_result = ClassifyContinuousTestSet( reduced_ts, weights_subset )
+		split_result.PrintToSTDOUT()
+		split_results.append( split_result )
+
+	count = 1
+	for split_result in split_results:
+		print "{0}\t{1}".format( count, split_result.r_value )
+		count += 1
+
+	
+#================================================================
+
 initialize_module()
 
 #================================================================
@@ -1487,6 +1834,7 @@ if __name__=="__main__":
 	#UnitTest1()
 	# UnitTest2()
 	# UnitTest3()
-	UnitTest4()
+	#UnitTest4()
 	#UnitTest5()
+	UnitTest7()
 	# pass
