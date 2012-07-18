@@ -146,7 +146,7 @@ class FeatureWeights( FeatureVector ):
 		if pathname != None:
 			outfile_pathname = pathname
 		else:
-			outfile_pathname = "feature_weights_len_{0}.weights.pickled".format( len( self.names ) )
+			outfile_pathname = "cont_feature_weights_len_{0}.weights.pickled".format( len( self.names ) )
 
 		if os.path.exists( outfile_pathname ):
 			print "Overwriting {0}".format( outfile_pathname )
@@ -242,6 +242,8 @@ class FisherFeatureWeights( FeatureWeights ):
 #############################################################################
 class ContinuousFeatureWeights( FeatureWeights ):
 	"""Used to perform linear regressions
+
+	IMPORTANT DISTINCTION BETWEEN the r_values array, and the weights (values) list:
 	"""
 
 	slopes = None
@@ -266,7 +268,9 @@ class ContinuousFeatureWeights( FeatureWeights ):
 	#================================================================
 	@classmethod
 	def NewFromTrainingSet( cls, training_set ):
-		"""@breif Calculate FeatureWeights from a TrainingSet"""
+		"""@breif Calculate FeatureWeights from a TrainingSet
+		
+		feature weights are proportional to the square of the R-value"""
 		
 		from scipy import stats
 
@@ -276,14 +280,20 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		new_fw = cls()
 
 		new_fw.associated_training_set = training_set
+
+		r_val_squared_sum = 0
+
 		for feature_index in range( training_set.num_features ):
 			feature_values = matrix[:,feature_index]
 			slope, intercept, r_value, p_value, std_err = \
 			   stats.linregress( [float(val) for val in training_set.ground_truths], feature_values )
 			new_fw.names.append( training_set.featurenames_list[ feature_index ] )
 			new_fw.r_values.append( r_value )
+			r_val_squared_sum += r_value * r_value
 			new_fw.slopes.append( slope )
 			new_fw.intercepts.append( intercept )
+
+		new_fw.values = [val*val / r_val_squared_sum for val in new_fw.r_values ]
 
 		return new_fw
 
@@ -1492,7 +1502,7 @@ def _ClassifyOneImageContinuous( one_image_features, feature_weights ):
 
 	per_feature_predicted_vals = []
 
-	for i in range( len( one_image_features) ):
+	for i in range( len( one_image_features ) ):
 		feat_val = one_image_features[i]
 		weight = feature_weights.values[i]
 		slope = feature_weights.slopes[i]
@@ -1500,7 +1510,8 @@ def _ClassifyOneImageContinuous( one_image_features, feature_weights ):
 		per_feature_predicted_vals.append( weight * ( slope * feat_val + intercept ) )
 
 	result = ContinuousImageClassificationResult()
-	result.predicted_value = np.sum( np.array( per_feature_predicted_vals ) )
+	result.predicted_value = np.sum( np.array( per_feature_predicted_vals ) ) / \
+	                         len( one_image_features )
 
 	return result
 
@@ -1672,7 +1683,7 @@ def ClassifyContinuousTestSet( test_set, feature_weights ):
 
 	if test_set_len != feature_weights_len:
 		raise ValueError( "Can't classify: one or more of the inputs has a different number of" \
-				"features than the others: test set={0}, feature weights={}".format( \
+				"features than the others: test set={0}, feature weights={1}".format( \
 				test_set_len, feature_weights_len ) + ". Perform a feature reduce." )
 
 	print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
@@ -1694,6 +1705,7 @@ def ClassifyContinuousTestSet( test_set, feature_weights ):
 		result.PrintToSTDOUT( line_item = True )
 		split_statistics.individual_results.append( result )
 
+	split_statistics.GenerateStats()
 	return split_statistics
 #============================================================================
 def UnitTest1():
