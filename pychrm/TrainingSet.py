@@ -65,13 +65,13 @@ def initialize_module():
 
 	small_featureset_featuregroup_list = []
 	for fg_str in small_featureset_featuregroup_strings.splitlines():
-		fg = ParseFeatureGroupString( fg_str )
+		fg = FeatureGroup.NewFromString( fg_str )
 		if fg:
 			small_featureset_featuregroup_list.append( fg )
 
 	large_featureset_featuregroup_list = []
 	for fg_str in large_featureset_featuregroup_strings.splitlines():
-		fg = ParseFeatureGroupString( fg_str )
+		fg = FeatureGroup.NewFromString( fg_str )
 		if fg:
 			large_featureset_featuregroup_list.append( fg )
 
@@ -642,6 +642,37 @@ class FeatureGroup:
 			raise
 		return self.algorithm.calculate( pixel_plane )
 
+	#================================================================
+	@classmethod
+	def NewFromString( cls, name ):
+		"""Takes a string input, parses, and returns an instance of a FeatureGroup class"""
+		# get the algorithm
+
+		# The ability to comment out lines with a hashmark
+		if name.startswith( '#' ):
+			return None
+		global Algorithms
+		global Transforms
+		string_rep = name.rstrip( ")" )
+		parsed = string_rep.split( ' (' )
+		
+		alg = parsed[0]
+		if alg not in Algorithms:
+			raise KeyError( "Don't know about a feature algorithm with the name {0}".format(alg) )
+		
+		tform_list = parsed[1:]
+		try:
+			tform_list.remove( "" )
+		except ValueError:
+			pass
+		if len(tform_list) != 0:
+			for tform in tform_list:
+				if tform not in Transforms:
+					raise KeyError( "Don't know about a transform named {0}".format( tform ) )
+
+		tform_swig_obj_list = [ Transforms[ tform ] for tform in tform_list ]
+
+		return cls( name, Algorithms[ alg ], tform_swig_obj_list )
 
 #############################################################################
 # global functions
@@ -679,37 +710,6 @@ def RetrievePixelPlane( image_matrix_cache, tform_list ):
 	image_matrix_cache[ requested_transform ] = tformed_pp
 	return tformed_pp
 
-#================================================================
-def ParseFeatureGroupString( name ):
-	"""Takes a string input, parses, and returns an instance of a FeatureGroup class"""
-	#TBD: make a member function of the FeatureGroup
-	# get the algorithm
-
-	# The ability to comment out lines with a hashmark
-	if name.startswith( '#' ):
-		return None
-	global Algorithms
-	global Transforms
-	string_rep = name.rstrip( ")" )
-	parsed = string_rep.split( ' (' )
-	
-	alg = parsed[0]
-	if alg not in Algorithms:
-		raise KeyError( "Don't know about a feature algorithm with the name {0}".format(alg) )
-	
-	tform_list = parsed[1:]
-	try:
-		tform_list.remove( "" )
-	except ValueError:
-		pass
-	if len(tform_list) != 0:
-		for tform in tform_list:
-			if tform not in Transforms:
-				raise KeyError( "Don't know about a transform named {0}".format( tform ) )
-
-	tform_swig_obj_list = [ Transforms[ tform ] for tform in tform_list ]
-
-	return FeatureGroup( name, Algorithms[ alg ], tform_swig_obj_list )
 
 #================================================================
 def GenerateWorkOrderFromListOfFeatureStrings( feature_list ):
@@ -734,7 +734,7 @@ def GenerateWorkOrderFromListOfFeatureStrings( feature_list ):
 	# iterate over set and construct feature groups
 	work_order = []
 	for feature_group in feature_group_strings:
-		fg = ParseFeatureGroupString( feature_group )
+		fg = FeatureGroup.NewFromString( feature_group )
 		output_features_count += fg.algorithm.n_features
 		work_order.append( fg )
 
@@ -1843,10 +1843,10 @@ initialize_module()
 #================================================================
 if __name__=="__main__":
 	
-	#UnitTest1()
+	UnitTest1()
 	# UnitTest2()
 	# UnitTest3()
 	#UnitTest4()
 	#UnitTest5()
-	UnitTest7()
+	#UnitTest7()
 	# pass
