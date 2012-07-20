@@ -146,7 +146,7 @@ class FeatureWeights( FeatureVector ):
 		if pathname != None:
 			outfile_pathname = pathname
 		else:
-			outfile_pathname = "cont_feature_weights_len_{0}.weights.pickled".format( len( self.names ) )
+			outfile_pathname = "feature_weights_len_{0}.weights.pickled".format( len( self.names ) )
 
 		if os.path.exists( outfile_pathname ):
 			print "Overwriting {0}".format( outfile_pathname )
@@ -743,8 +743,8 @@ def GenerateWorkOrderFromListOfFeatureStrings( feature_list ):
 #############################################################################
 # class definition of TrainingSet
 #############################################################################
-class TrainingSet:
-	"""
+class TrainingSet( object ):
+	"""@breif Base class for DiscreteTrainingSet and ContinuousTrainingSet
   """
 
 	# source_path - could be the name of a .fit, or pickle file from which this
@@ -752,25 +752,14 @@ class TrainingSet:
 	#  source_path is essentially a name
 	# might want to make separate name member in the future
 	source_path = ""
-	num_classes = -1
 	num_features = -1
 	num_images = -1
-
-	# For C classes, each with Ni images and M features:
-	# If the dataset is contiguous, C = 1
-
-	# A list of numpy matrices, length C (one Ni x M matrix for each class)
-	# The design is such because it's useful to be able to quickly collect feature statistics
-	# across an image class excluding the other classes
-	data_list = None
-
-	#: A list of strings, length C
-	classnames_list = None
 
 	#: A list of strings length M
 	featurenames_list = None
 
-	#: a list of lists, length C, where each list is length Ni, contining pathnames of tiles/imgs
+	#: for discrete classes this is a list of lists of image paths
+	#: for continuous it's a simple list
 	imagenames_list = None
 
 	# The following class members are optional:
@@ -784,24 +773,15 @@ class TrainingSet:
 	feature_maxima = None
 	feature_minima = None
 
-	# A list of floats against which marg probs can be multiplied
-	# to obtain an interpolated value
-	interpolation_coefficients = None
-
 	# keep track of all the options (-l -S###, etc)
 	# FIXME: expand to have all options kept track of individually
 	feature_options = None
-
-	# FIXME: this only belongs in the subclassed continuous TrainingSet
-	ground_truths = None
 
 	def __init__( self, data_dict = None):
 		"""
 		TrainingSet constructor
 		"""
 
-		self.data_list = []
-		self.classnames_list = []
 		self.featurenames_list = []
 		self.imagenames_list = []
 
@@ -814,10 +794,6 @@ class TrainingSet:
 				self.num_features = data_dict[ 'num_features' ]
 			if "num_images" in data_dict:
 				self.num_images = data_dict[ 'num_images' ]
-			if "data_list" in data_dict:
-				self.data_list = data_dict[ 'data_list' ]
-			if "classnames_list" in data_dict:
-				self.classnames_list = data_dict[ 'classnames_list' ]
 			if "featurenames_list" in data_dict:
 				self.featurenames_list = data_dict[ 'featurenames_list' ]
 			if "imagenames_list" in data_dict:
@@ -826,10 +802,6 @@ class TrainingSet:
 				self.feature_maxima = data_dict[ 'feature_maxima' ]
 			if "feature_minima" in data_dict:
 				self.feature_minima = data_dict[ 'feature_minima' ]
-			if "ground_truths" in data_dict:
-				self.ground_truths = data_dict[ 'ground_truths' ]
-			if "interpolation_coefficients" in data_dict:
-				self.interpolation_coefficients = data_dict[ 'interpolation_coefficients' ]
 
   #=================================================================================
 	@classmethod
@@ -855,6 +827,173 @@ class TrainingSet:
 		# the_training_set.Normalize()
 
 		return the_training_set
+
+  #=================================================================================
+	def PickleMe( self, pathname = None ):
+		"""
+		FIXME: pathname needs to end with suffix '.fit.pickled'
+		       or TrainingSet.FromPickleFile() won't read it.
+		"""
+
+		outfile_pathname = ""
+		if pathname != None:
+			outfile_pathname = pathname
+		else:
+			# try to generate a path based on member source_path
+			if self.source_path == None or self.source_path == "":
+				raise ValueError( "Can't pickle this training set: its 'source_path' member"\
+						"is not defined, and you did not specify a file path for the pickle file." )
+			if os.path.isdir( self.source_path ):
+				# this trainingset was generated from a directory
+				# naming convention is /path/to/topleveldir/topleveldir-options.fit.pickled
+				root, top_level_dir = os.path.split( self.source_path )
+				if self.feature_options != None and self.feature_options != "":
+					outfile_pathname = os.path.join( self.source_path, \
+							                  top_level_dir + self.feature_options + ".fit.pickled" )
+				else:
+					outfile_pathname = os.path.join( self.source_path, \
+					                      top_level_dir + ".fit.pickled" )
+			else:
+				# was genearated from a file, could have already been a pickled file
+				if self.source_path.endswith( "fit.pickled" ):
+					outfile_pathname = self.source_path
+				elif self.source_path.endswith( ".fit" ):
+					outfile_pathname = self.source_path + ".pickled"
+				else:
+					outfile_pathname = self.source_path + ".fit.pickled"	
+
+		if os.path.exists( outfile_pathname ):
+			print "Overwriting {0}".format( outfile_pathname )
+		else:
+			print "Writing {0}".format( outfile_pathname )
+		with open( outfile_pathname, 'wb') as outfile:
+			pickle.dump( self.__dict__, outfile, pickle.HIGHEST_PROTOCOL )
+
+  #=================================================================================
+	@classmethod
+	def NewFromFitFile( cls, pathname ):
+		"""
+		Helper function which reads in a c-chrm fit file, builds a dict with the info
+		Then calls the constructor and passes the dict as an argument
+		"""
+		raise NotImplementedError()
+
+  #=================================================================================
+	@classmethod
+	def NewFromSignature( cls, signature, ts_name = "TestSet", ):
+		"""@brief Creates a new TrainingSet from a single signature
+		Was written with performing a real-time classification in mind.
+		"""
+
+		raise NotImplementedError()
+
+  #=================================================================================
+	@classmethod
+	def NewFromDirectory( cls, top_level_dir_path, feature_set = "large", write_sig_files_todisk = True ):
+		"""
+		@brief A quick and dirty implementation of the wndchrm train command
+		Build up the self.imagenames_list, then pass it off to a sig classifier function
+		"""
+		raise NotImplementedError()
+
+  #=================================================================================
+	@classmethod
+	def NewFromFileOfFiles( cls, fof_path ):#, feature_set = "large", write_sig_files_todisk = True ):
+
+		raise NotImplementedError()
+
+		
+  #=================================================================================
+	@classmethod
+	def NewFromSQLiteFile(cls, path):
+		raise NotImplementedError()
+
+  #=================================================================================
+	def _ProcessSigCalculationSerially( self, feature_set = "large", write_sig_files_to_disk = True, options = None ):
+		"""
+		Work off the self.imagenames_list
+		"""
+		raise NotImplementedError()
+
+  #=================================================================================
+	def _ProcessSigCalculationParallelly( self, feature_set = "large", write_sig_files_todisk = True ):
+		"""
+		FIXME: When we figure out concurrency
+		"""
+		raise NotImplementedError()
+
+  #=================================================================================
+	def Normalize( self, training_set = None ):
+		"""
+		By convention, the range of values are normalized on an interval [0,100]
+		FIXME: edge cases, clipping, etc
+		"""
+
+		raise NotImplementedError()			
+
+  #=================================================================================
+	def FeatureReduce( self, requested_features ):
+		"""
+		Returns a new TrainingSet that contains a subset of the features
+		arg requested_features is a tuple of features
+		the returned TrainingSet will have features in the same order as they appear in
+		     requested_features
+		"""
+
+		raise NotImplementedError()
+
+  #=================================================================================
+	def AddSignature( self, signature, class_id_index = None ):
+		"""
+		@argument signature is a valid signature
+		@argument class_id_index identifies the class to which the signature belongs
+		"""
+		
+		raise NotImplementedError()
+
+
+# END TrainingSet class definition
+
+#############################################################################
+# class definition of DiscreteTrainingSet
+#############################################################################
+class DiscreteTrainingSet( TrainingSet ):
+	"""
+  """
+
+	num_classes = -1
+
+	# For C classes, each with Ni images and M features:
+	# If the dataset is contiguous, C = 1
+
+	# A list of numpy matrices, length C (one Ni x M matrix for each class)
+	# The design is such because it's useful to be able to quickly collect feature statistics
+	# across an image class excluding the other classes
+	data_list = None
+
+	#: A list of strings, length C
+	classnames_list = None
+
+	# A list of floats against which marg probs can be multiplied
+	# to obtain an interpolated value
+	interpolation_coefficients = None
+
+	def __init__( self, data_dict = None):
+		"""
+		TrainingSet constructor
+		"""
+		super( DiscreteTrainingSet, self ).__init__( data_dict )
+
+		self.data_list = []
+		self.classnames_list = []
+
+		if data_dict != None:
+			if "data_list" in data_dict:
+				self.data_list = data_dict[ 'data_list' ]
+			if "classnames_list" in data_dict:
+				self.classnames_list = data_dict[ 'classnames_list' ]
+			if "interpolation_coefficients" in data_dict:
+				self.interpolation_coefficients = data_dict[ 'interpolation_coefficients' ]
 
   #=================================================================================
 	@classmethod
@@ -1077,14 +1216,6 @@ class TrainingSet:
 		
 		return new_ts
 
-
-		
-  #=================================================================================
-	@classmethod
-	def NewFromSQLiteFile(cls, path):
-		"""FIXME: Implement!"""
-		raise NotImplementedError()
-
   #=================================================================================
 	def _ProcessSigCalculationSerially( self, feature_set = "large", write_sig_files_to_disk = True, options = None ):
 		"""
@@ -1115,17 +1246,11 @@ class TrainingSet:
 
 
   #=================================================================================
-	def _ProcessSigCalculationParallelly( self, feature_set = "large", write_sig_files_todisk = True ):
-		"""
-		FIXME: When we figure out concurrency
-		"""
-		pass
-
-  #=================================================================================
 	def Normalize( self, training_set = None ):
 		"""
 		By convention, the range of values are normalized on an interval [0,100]
-		FIXME: edge cases, clipping, etc
+		Normalizing is a necessary step because one does not want to include features
+		in distance calculations for which there is no variation.
 		"""
 
 		if not( self.normalized_against ):
@@ -1137,13 +1262,19 @@ class TrainingSet:
 
 			for i in range( num_features ):
 				feature_max = np.max( full_stack[:,i] )
-				self.feature_maxima[ i ] = feature_max
 				feature_min = np.min( full_stack[:,i] )
-				self.feature_minima[ i ] = feature_min
-				for class_matrix in self.data_list:
-					class_matrix[:,i] -= feature_min
-					class_matrix[:,i] /= (feature_max - feature_min)
-					class_matrix[:,i] *= 100
+				if feature_min >= feature_max:
+					self.feature_maxima[ i ] = -1
+					self.feature_minima[ i ] = -1
+					for class_matrix in self.data_list:
+						class_matrix[:,i] = 0
+				else:
+					self.feature_maxima[ i ] = feature_max
+					self.feature_minima[ i ] = feature_min
+					for class_matrix in self.data_list:
+						class_matrix[:,i] -= feature_min
+						class_matrix[:,i] /= (feature_max - feature_min)
+						class_matrix[:,i] *= 100
 			self.normalized_against = "itself"
 
 		if training_set:
@@ -1189,7 +1320,7 @@ class TrainingSet:
 			raise ValueError( err_str )
 
 		# copy everything but the signature data
-		reduced_ts = TrainingSet()
+		reduced_ts = DiscreteTrainingSet()
 		reduced_ts.source_path = self.source_path + "(feature reduced)"
 		reduced_ts.num_classes = self.num_classes
 		assert reduced_ts.num_classes == len( self.data_list )
@@ -1201,8 +1332,6 @@ class TrainingSet:
 		reduced_ts.featurenames_list = requested_features[:]
 		if self.interpolation_coefficients:
 			reduced_ts.interpolation_coefficients = self.interpolation_coefficients[:]
-		if self.ground_truths:
-			reduced_ts.ground_truths = self.ground_truths[:]
 		reduced_ts.feature_maxima = [None] * new_num_features
 		reduced_ts.feature_minima = [None] * new_num_features
 
@@ -1264,59 +1393,249 @@ class TrainingSet:
 		self.imagenames_list[ class_id_index ].append( signature.path_to_source_image )
 
 
+# END DiscreteTrainingSet class definition
+
+
+#############################################################################
+# class definition of ContinuousTrainingSet
+#############################################################################
+class ContinuousTrainingSet( TrainingSet ):
+	"""
+  """
+
+	#: A single numpy matrix N features x M images
+	data_matrix = None
+
+	#: Ground truth numerical values accociated with each image
+	ground_truths = None
+
+	def __init__( self, data_dict = None):
+		"""
+		ContinuousTrainingSet constructor
+		"""
+		# call parent constructor
+		super( ContinuousTrainingSet, self ).__init__( data_dict )
+		self.ground_truths = []
+
+		if data_dict != None:
+			if "data_matrix" in data_dict:
+				self.data_matrix = data_dict[ 'data_matrix' ]
+			if "ground_truths" in data_dict:
+				self.ground_truths = data_dict[ 'ground_truths' ]
+
   #=================================================================================
-	def CalculateFisherScores( self ):
+	@classmethod
+	def NewFromFitFile( cls, pathname ):
 		"""
-		FIXME: implement!
+		A continuous specific function.
+		Helper function which reads in a c-chrm fit file, builds a dict with the info
+		Then calls the constructor and passes the dict as an argument
 		"""
-		raise NotImplementedError()
+		path, filename = os.path.split( pathname )
+		if filename == "":
+			raise ValueError( 'Invalid pathname: {0}'.format( pathname ) )
+
+		if not filename.endswith( ".fit" ):
+			raise ValueError( 'Not a .fit file: {0}'.format( pathname ) )
+
+		pickled_pathname = pathname + ".pychrm"
+
+		print "Creating Continuous Training Set from legacy WND-CHARM text file file {0}".format( pathname )
+		with open( pathname ) as fitfile:
+			new_ts = cls()
+
+			new_ts.source_path = pathname
+			tmp_string_data_list = []
+
+			name_line = False
+			line_num = 0
+			feature_count = 0
+			image_pathname = ""
+			num_classes = 0
+			num_features = 0
+
+			classnames_list = []
+
+			for line in fitfile:
+				if line_num is 0:
+					# we don't really care how many classes there are for a continuous training set
+					pass
+				elif line_num is 1:
+					num_features = int( line )
+					new_ts.num_features = num_features
+				elif line_num is 2:
+					new_ts.num_images = int( line )
+				elif line_num <= ( num_features + 2 ):
+					new_ts.featurenames_list.append( line.strip() )
+					feature_count += 1
+				elif line_num == ( num_features + 3 ):
+					pass # skip a line
+				elif line_num <= ( num_features + 3 + num_classes ):
+					line = line.strip()
+					m = re.search( r'(\d*\.?\d+)', line )
+					if m:
+						classnames_list.append( float( m.group(1) ) )
+					else:
+						raise ValueError( "Can't create continuous training set, one of the class names " \
+								"'{0}' is not able to be interpreted as a number.".format( line ) )
+				else:
+					# Read in features
+					# Comes in alternating lines of data, then tile name
+					if not name_line:
+						# strip off the class identity value, which is the last in the array
+						split_line = line.strip().rsplit( " ", 1)
+						zero_indexed_class_id = int( split_line[1] ) - 1
+						tmp_string_data_list.append( split_line[0] )
+						new_ts.ground_truths.append( classnames_list[ zero_indexed_class_id ] )
+					else:
+						image_pathname = line.strip()
+						new_ts.imagenames_list.append( image_pathname )
+					name_line = not name_line
+				line_num += 1
+
+		string_data = "\n"
+		print "parsing text into a numpy matrix"
+		new_ts.data_matrix = np.genfromtxt( StringIO( string_data.join( tmp_string_data_list ) ) )
+		
+		return new_ts
 
   #=================================================================================
-	def PickleMe( self, pathname = None ):
+	@classmethod
+	def NewFromFileOfFiles( cls, fof_path ):#, feature_set = "large", write_sig_files_todisk = True ):
+		"""FIXME: Only working for sigfiles, not tiffs, jury rigged to be contunuous for now"""
+
+		sig_files = []
+
+		new_ts = cls()
+		new_ts.num_images = 0
+		new_ts.source_path = fof_path
+
+		with open( fof_path ) as fof:
+			for line in fof:
+				file_path, ground_truth_val = line.strip().split( "\t" )
+				sig_files.append( file_path )
+				# FIXME: raise exception if ground truth is 
+				sig = Signatures.NewFromSigFile( image_path = file_path, sigfile_path = file_path )
+				new_ts.AddSignature( sig, float( ground_truth_val) )
+		
+		return new_ts
+
+
+		
+  #=================================================================================
+	def _ProcessSigCalculationSerially( self, feature_set = "large", write_sig_files_to_disk = True, options = None ):
 		"""
-		FIXME: pathname needs to end with suffix '.fit.pickled'
-		       or TrainingSet.FromPickleFile() won't read it.
+		Work off the self.imagenames_list
+		"""
+		# FIXME: check to see if any .sig, or .pysig files exist that match our
+		#        Signature calculation criteria, and if so read them in and incorporate them
+
+		sig = None
+		class_id = 0
+		for class_filelist in self.imagenames_list:
+			for sourcefile in class_filelist:
+				if feature_set == "large":
+					sig = Signatures.LargeFeatureSet( sourcefile, options )
+				elif feature_set == "small":
+					sig = Signatures.SmallFeatureSet( sourcefile, options )
+				else:
+					raise ValueError( "sig calculation other than small and large feature set hasn't been implemented yet." )
+				# FIXME: add all the other options
+				# check validity
+				if not sig:
+					raise ValueError( "Couldn't create a valid signature from file {0} with options {1}".format( sourcefile, options ) )
+				sig.is_valid()
+				if write_sig_files_to_disk:
+					sig.WriteFeaturesToASCIISigFile()
+				self.AddSignature( sig, class_id )
+			class_id += 1
+			
+
+  #=================================================================================
+	def FeatureReduce( self, requested_features ):
+		"""
+		Returns a new TrainingSet that contains a subset of the features
+		arg requested_features is a tuple of features
+		the returned TrainingSet will have features in the same order as they appear in
+		     requested_features
 		"""
 
-		outfile_pathname = ""
-		if pathname != None:
-			outfile_pathname = pathname
+		# Check that self's faturelist contains all the features in requested_features
+
+
+		selfs_features = set( self.featurenames_list )
+		their_features = set( requested_features )
+		if not their_features <= selfs_features:
+			missing_features_from_req = their_features - selfs_features
+			err_str = error_banner + "Feature Reduction error:\n"
+			err_str += "The training set '{0}' is missing ".format( self.source_path )
+			err_str += "{0}/{1} features that were requested in the feature reduction list.".format(\
+					len( missing_features_from_req ), len( requested_features ) )
+			err_str += "\nDid you forget to convert the feature names into their modern counterparts?"
+
+			raise ValueError( err_str )
+
+		# copy everything but the signature data
+		reduced_ts = ContinuousTrainingSet()
+		reduced_ts.source_path = self.source_path + "(feature reduced)"
+		reduced_ts.num_classes = self.num_classes
+		assert reduced_ts.num_classes == len( self.data_list )
+		new_num_features = len( requested_features )
+		reduced_ts.num_features = new_num_features
+		reduced_ts.num_images = self.num_images
+		reduced_ts.imagenames_list = self.imagenames_list[:] # [:] = deepcopy
+		reduced_ts.featurenames_list = requested_features[:]
+		if self.ground_truths:
+			reduced_ts.ground_truths = self.ground_truths[:]
+		reduced_ts.feature_maxima = [None] * new_num_features
+		reduced_ts.feature_minima = [None] * new_num_features
+
+		# copy feature minima/maxima
+		if self.feature_maxima and self.feature_minima:
+			new_index = 0
+			for featurename in requested_features:
+				old_index = self.featurenames_list.index( featurename )
+				reduced_ts.feature_maxima[ new_index ] = self.feature_maxima[ old_index ]
+				reduced_ts.feature_minima[ new_index ] = self.feature_minima[ old_index ]
+				new_index += 1
+
+		# feature reduce
+		num_imgs_in_class, num_old_features = self.data_matrix.shape
+		# NB: double parentheses required when calling numpy.zeros(), i guess it's a tuple thing
+		reduced_ts.data_matrix = np.zeros( ( num_imgs_in_class, new_num_features ) )
+		new_column_index = 0
+		for featurename in requested_features:
+			fat_column_index = self.featurenames_list.index( featurename )
+			reduced_ts.data_matrix[:,new_column_index] = self.data_matrix[:,fat_column_index]
+			new_column_index += 1
+
+		return reduced_ts
+
+  #=================================================================================
+	def AddSignature( self, signature, ground_truth = None ):
+		"""
+		@argument signature is a valid signature
+		@argument class_id_index identifies the class to which the signature belongs
+		"""
+		
+		if (self.data_matrix == None) or ( len( self.data_matrix ) == 0 ) :
+			self.data_matrix = np.array( signature.values )
+			self.featurenames_list = signature.names
+			self.num_features = len( signature.names )
 		else:
-			# try to generate a path based on member source_path
-			if self.source_path == None or self.source_path == "":
-				raise ValueError( "Can't pickle this training set: its 'source_path' member"\
-						"is not defined, and you did not specify a file path for the pickle file." )
-			if os.path.isdir( self.source_path ):
-				# this trainingset was generated from a directory
-				# naming convention is /path/to/topleveldir/topleveldir-options.fit.pickled
-				root, top_level_dir = os.path.split( self.source_path )
-				if self.feature_options != None and self.feature_options != "":
-					outfile_pathname = os.path.join( self.source_path, \
-							                  top_level_dir + self.feature_options + ".fit.pickled" )
-				else:
-					outfile_pathname = os.path.join( self.source_path, \
-					                      top_level_dir + ".fit.pickled" )
-			else:
-				# was genearated from a file, could have already been a pickled file
-				if self.source_path.endswith( "fit.pickled" ):
-					outfile_pathname = self.source_path
-				elif self.source_path.endswith( ".fit" ):
-					outfile_pathname = self.source_path + ".pickled"
-				else:
-					outfile_pathname = self.source_path + ".fit.pickled"	
+			# Make sure features are in order.
+			# Feature Reduce will throw an exception if they can't be placed in order
+			signature = signature.FeatureReduce( self.featurenames_list )
+			# vstack takes only one argument, a tuple, thus the extra set of parens
+			self.data_matrix = np.vstack( ( self.data_matrix[ class_id_index ] ,\
+					np.array( signature.values ) ) )
 
-		if os.path.exists( outfile_pathname ):
-			print "Overwriting {0}".format( outfile_pathname )
-		else:
-			print "Writing {0}".format( outfile_pathname )
-		with open( outfile_pathname, 'wb') as outfile:
-			pickle.dump( self.__dict__, outfile, pickle.HIGHEST_PROTOCOL )
+		self.num_images += 1
+		self.imagenames_list.append( signature.path_to_source_image )
 
+		self.ground_truths.append( ground_truth )
 
-	def DumpNumpyArrays():
-		raise NotImplementedError( 'sorry, not implemented yet!' )
-
-# END TrainingSet class definition
+# END ContinuousTrainingSet class definition
 
 #=================================================================================
 class ImageClassificationResult( object ):
@@ -1402,7 +1721,7 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 
 
 #=================================================================================
-class TestSetClassificationResults( object ):
+class TestSetClassificationResult( object ):
 	training_set = None
 	test_set = None
 	individual_results = []
@@ -1420,13 +1739,13 @@ class TestSetClassificationResults( object ):
 		raise NotImplementedError
 
 #=================================================================================
-class DiscreteTestSetClassificationResults( TestSetClassificationResults ):
+class DiscreteTestSetClassificationResult( TestSetClassificationResult ):
 	classification_accuracy = None
 	num_correct_classifications = 0
 
 	def __init__( self, training_set, test_set ):
 		# call parent constructor
-		super( DiscreteTestSetClassificationResults, self ).__init__( training_set, test_set )
+		super( DiscreteTestSetClassificationResult, self ).__init__( training_set, test_set )
 
 	def GenerateStats( self ):
 		for indiv_result in self.individual_results:
@@ -1445,7 +1764,7 @@ class DiscreteTestSetClassificationResults( TestSetClassificationResults ):
 
 
 #=================================================================================
-class ContinuousTestSetClassificationResults( TestSetClassificationResults ):
+class ContinuousTestSetClassificationResult( TestSetClassificationResult ):
 
 	r_value = None
 	p_value = None
@@ -1455,7 +1774,7 @@ class ContinuousTestSetClassificationResults( TestSetClassificationResults ):
 
 	def __init__( self, training_set, test_set ):
 		# call parent constructor
-		super( ContinuousTestSetClassificationResults, self ).__init__( training_set, test_set )
+		super( ContinuousTestSetClassificationResult, self ).__init__( training_set, test_set )
 
 	def GenerateStats( self ):
 		self.num_classifications = len (self.individual_results)
@@ -1557,7 +1876,7 @@ def _ClassifyOneImageWND5( trainingset, testimg, feature_weights ):
 		for tile_index in range( num_tiles ):
 			#print "{0} ".format( tile_index )
 			# epsilon checking for each feature is too expensive
-			# do this quick and dirty check until we can figure something else out
+			# FIXME: Do quick and dirty summation check until we can figure something else out
 			dists = np.absolute( sig_matrix[ tile_index ] - testimg )
 			w_dist = np.sum( dists )
 			if w_dist < epsilon:
@@ -1615,7 +1934,7 @@ def ClassifyOneSignatureWND5( training_set, test_sig, feature_weights ):
 	return result
 
 #=================================================================================
-def ClassifyTestSet( training_set, test_set, feature_weights ):
+def ClassifyDiscreteTestSet( training_set, test_set, feature_weights ):
 	"""
 	@remarks - all three input arguments must have the same number of features,
 	and in the same order for this to work properly
@@ -1724,7 +2043,7 @@ def UnitTest1():
 	reduced_ts = big_ts.FeatureReduce( weights.names )
 	reduced_ts.Normalize()
 	
-	ClassifyTestSet( reduced_ts, reduced_ts, weights )
+	ClassifyDiscreteTestSet( reduced_ts, reduced_ts, weights )
 
 #=========================================================================
 def UnitTest2():
@@ -1793,7 +2112,7 @@ def UnitTest5( max_features = 20 ):
 		reduced_feature_weights = mommy_feature_weights.Threshold( number_of_features_to_use )
 		reduced_training_set = mommy_training_set.FeatureReduce( reduced_feature_weights.names )
 
-		split_result = ClassifyTestSet( reduced_training_set, reduced_training_set,\
+		split_result = ClassifyDiscreteTestSet( reduced_training_set, reduced_training_set,\
 																			 reduced_feature_weights )
 		split_result.PrintToSTDOUT()
 		split_results.append( split_result )
@@ -1835,6 +2154,47 @@ def UnitTest7(max_features = 5):
 		print "{0}\t{1}".format( count, split_result.r_value )
 		count += 1
 
+
+#================================================================
+def UnitTest8( max_num_graphs = 10 ):
+	"""Generate a series of graphs which show how interpolated values change
+	as a function of the number of features used in classification"""
+
+	from matplotlib import pyplot
+
+	full_ts = DiscreteTrainingSet.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class_normalized_2873_features.fit.pickled" )
+	full_fisher_weights = FisherFeatureWeights.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/feature_weights_len_2873.weights.pickled" )
+
+	split_results = []
+
+	max_num_features = 2873 * 0.10
+
+	# sort by ground_truth value first, predicted value second
+	sort_func = lambda A, B: cmp( A[0], B[0] ) if A[0] != B[0] else cmp( A[1], B[1] ) 
+
+	for i in range( 1, max_num_graphs ):
+		num_features_used = int( float( i ) / max_num_graphs * max_num_features )
+		weights_subset = full_fisher_weights.Threshold( num_features_used )
+
+		reduced_ts = full_ts.FeatureReduce( weights_subset.names )
+
+		split_result = ClassifyDiscreteTestSet( reduced_ts, reduced_ts, weights_subset )
+		split_result.PrintToSTDOUT()
+		split_results.append( split_result )
+
+		x_vals = [ float( result.ground_truth_class_name ) for result in split_result.individual_results ]
+		y_vals = [ result.interpolated_value for result in split_result.individual_results ]
+
+		coords = zip( x_vals, y_vals )
+		sorted_coords = sorted( coords, sort_func )
+		
+		# we want lists, not tuples!
+		x_vals, y_vals = [ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_coords ) ]
+
+		pyplot.plot( x_vals, y_vals ) 
+
+
+
 	
 #================================================================
 
@@ -1843,10 +2203,11 @@ initialize_module()
 #================================================================
 if __name__=="__main__":
 	
-	UnitTest1()
+	#UnitTest1()
 	# UnitTest2()
 	# UnitTest3()
 	#UnitTest4()
 	#UnitTest5()
 	#UnitTest7()
+	UnitTest8()
 	# pass
