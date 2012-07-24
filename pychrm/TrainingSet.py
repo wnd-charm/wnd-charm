@@ -1846,9 +1846,9 @@ class ContinuousTestSetClassificationResult( TestSetClassificationResult ):
 			self.GenerateStats()
 
 		print "==========================================="
-		print "R-value for this split: {0}".format( self.r_value )
+		print "Goodness of fit for this split: {0}".format( self.r_value )
 		print "p-value for this split: {0}".format( self.p_value )
-		print "standard error for this split: {0}".format( self.r_value )
+		print "Standard error for this split: {0}".format( self.std_err )
 
 
 
@@ -1872,11 +1872,14 @@ def _ClassifyOneImageContinuous( one_image_features, feature_weights ):
 		weight = feature_weights.values[i]
 		slope = feature_weights.slopes[i]
 		intercept = feature_weights.intercepts[i]
-		per_feature_predicted_vals.append( weight * ( slope * feat_val + intercept ) )
+
+		# y = mx+b
+		# feature value = slope * age + intercept
+		# solve for the abscissa:
+		per_feature_predicted_vals.append( weight * ( feat_val - intercept ) / slope )
 
 	result = ContinuousImageClassificationResult()
-	result.predicted_value = np.sum( np.array( per_feature_predicted_vals ) ) / \
-	                         len( one_image_features )
+	result.predicted_value = sum( per_feature_predicted_vals )
 
 	return result
 
@@ -2177,11 +2180,12 @@ def UnitTest6():
 
 
 #================================================================
-def UnitTest7(max_features = 15):
+def UnitTest7(max_features = 50):
 	"""try to find the number of features at which the predicted and ground truth values
 	correllates most"""
 
 	ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
+	#ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/src/fake_signatures/classes/test_classes.fit" )
 	ts.Normalize()
 	#ts = ContinuousTrainingSet.NewFromFileOfFiles( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
 	#ts.PickleMe()
@@ -2194,13 +2198,14 @@ def UnitTest7(max_features = 15):
 		reduced_ts = ts.FeatureReduce( weights_subset.names )
 		# any point in normalizing here?
 		split_result = ClassifyContinuousTestSet( reduced_ts, weights_subset )
-		split_result.PrintToSTDOUT()
+		#split_result.PrintToSTDOUT()
 		split_results.append( split_result )
 
 	count = 1
 	for split_result in split_results:
-		print "{0}\t{1}".format( count, split_result.r_value )
+		print "{0}".format( count )
 		count += 1
+		split_result.PrintToSTDOUT()
 
 
 #================================================================
