@@ -274,7 +274,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		
 		from scipy import stats
 
-		matrix = training_set.data_list[0]
+		matrix = training_set.data_matrix
 		#FIXME: maybe add some dummyproofing to constrain incoming array size
 
 		new_fw = cls()
@@ -1248,9 +1248,10 @@ class DiscreteTrainingSet( TrainingSet ):
   #=================================================================================
 	def Normalize( self, training_set = None ):
 		"""
-		By convention, the range of values are normalized on an interval [0,100]
-		Normalizing is a necessary step because one does not want to include features
-		in distance calculations for which there is no variation.
+		By convention, the range of values are normalized on an interval [0,100].
+		Normalizing is useful in making the variation of features human readable
+		and also lets us know which features to exclude from consideration
+		in classification because they don't vary at all.
 		"""
 
 		if not( self.normalized_against ):
@@ -1278,7 +1279,6 @@ class DiscreteTrainingSet( TrainingSet ):
 			self.normalized_against = "itself"
 
 		if training_set:
-
 			# sanity checks
 			if self.normalized_against:
 				raise ValueError( "Test set {0} has already been normalized against {1}."\
@@ -1458,6 +1458,7 @@ class ContinuousTrainingSet( TrainingSet ):
 
 			for line in fitfile:
 				if line_num is 0:
+					num_classes = int( line )
 					# we don't really care how many classes there are for a continuous training set
 					pass
 				elif line_num is 1:
@@ -1550,6 +1551,53 @@ class ContinuousTrainingSet( TrainingSet ):
 				self.AddSignature( sig, class_id )
 			class_id += 1
 			
+  #=================================================================================
+	def Normalize( self, training_set = None ):
+		"""
+		By convention, the range of values are normalized on an interval [0,100].
+		Normalizing is useful in making the variation of features human readable
+		and also lets us know which features to exclude from consideration
+		in classification because they don't vary at all.
+		"""
+
+		if not( self.normalized_against ):
+
+			# FIXME: This will fail if there's only one image or one feature
+			# because the .shape function won't return a tuple
+			total_num_imgs, num_features = self.data_matrix.shape
+			self.feature_maxima = [None] * num_features
+			self.feature_minima = [None] * num_features
+
+			for i in range( num_features ):
+				feature_max = np.max( self.data_matrix[:,i] )
+				feature_min = np.min( self.data_matrix[:,i] )
+				if feature_min >= feature_max:
+					self.feature_maxima[ i ] = -1
+					self.feature_minima[ i ] = -1
+					self.data_matrix[:,i] = 0
+				else:
+					self.feature_maxima[ i ] = feature_max
+					self.feature_minima[ i ] = feature_min
+					self.data_matrix[:,i] -= feature_min
+					self.data_matrix[:,i] /= (feature_max - feature_min)
+					self.data_matrix[:,i] *= 100
+			self.normalized_against = "itself"
+
+		if training_set:
+			# sanity checks
+			if self.normalized_against:
+				raise ValueError( "Test set {0} has already been normalized against {1}."\
+						.format( self.source_path, self.normalized_against ) )
+			if training_set.featurenames_list != self.featurenames_list:
+				raise ValueError("Can't normalize test_set {0} against training_set {1}: Features don't match."\
+						.format( self.source_path, training_set.source_path ) )
+
+			for i in range( self.num_features ):
+				self.data_matrix[:,i] -= training_set.feature_minima[i]
+				self.data_matrix[:,i] /= (training_set.feature_maxima[i] -training_set.feature_minima[i])
+				self.data_matrix[:,i] *= 100
+
+			self.normalized_against = training_set.source_path
 
   #=================================================================================
 	def FeatureReduce( self, requested_features ):
@@ -1578,8 +1626,6 @@ class ContinuousTrainingSet( TrainingSet ):
 		# copy everything but the signature data
 		reduced_ts = ContinuousTrainingSet()
 		reduced_ts.source_path = self.source_path + "(feature reduced)"
-		reduced_ts.num_classes = self.num_classes
-		assert reduced_ts.num_classes == len( self.data_list )
 		new_num_features = len( requested_features )
 		reduced_ts.num_features = new_num_features
 		reduced_ts.num_images = self.num_images
@@ -2012,13 +2058,13 @@ def ClassifyContinuousTestSet( test_set, feature_weights ):
 	column_header = "image\tground truth\tpred. val."
 	print column_header
 
-	split_statistics = ContinuousTestSetClassificationResults( feature_weights, test_set )
+	split_statistics = ContinuousTestSetClassificationResult( feature_weights, test_set )
 	
 	for test_image_index in range( test_set.num_images ):
-		one_image_features = test_set.data_list[ 0 ][ test_image_index,: ]
+		one_image_features = test_set.data_matrix[ test_image_index,: ]
 		result = _ClassifyOneImageContinuous( one_image_features, feature_weights )
 
-		result.path_to_source_image = test_set.imagenames_list[ 0 ][ test_image_index ]
+		result.path_to_source_image = test_set.imagenames_list[ test_image_index ]
 		result.ground_truth_value = test_set.ground_truths[ test_image_index ]
 
 		result.PrintToSTDOUT( line_item = True )
@@ -2131,13 +2177,15 @@ def UnitTest6():
 
 
 #================================================================
-def UnitTest7(max_features = 5):
+def UnitTest7(max_features = 15):
 	"""try to find the number of features at which the predicted and ground truth values
 	correllates most"""
 
-	#ts = TrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/continuous_data_set.fof" )
+	ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
+	ts.Normalize()
+	#ts = ContinuousTrainingSet.NewFromFileOfFiles( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
 	#ts.PickleMe()
-	ts = TrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/continuous_data_set.fof.fit.pickled" )
+	#ts = ContinuousTrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/continuous_data_set.fof.fit.pickled" )
 	weights = ContinuousFeatureWeights.NewFromTrainingSet( ts )
 
 	split_results = []
@@ -2208,6 +2256,6 @@ if __name__=="__main__":
 	# UnitTest3()
 	#UnitTest4()
 	#UnitTest5()
-	#UnitTest7()
-	UnitTest8()
+	UnitTest7()
+	#UnitTest8()
 	# pass
