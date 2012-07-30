@@ -285,8 +285,9 @@ class ContinuousFeatureWeights( FeatureWeights ):
 
 		for feature_index in range( training_set.num_features ):
 			feature_values = matrix[:,feature_index]
+			ground_truths = [float(val) for val in training_set.ground_truths]
 			slope, intercept, r_value, p_value, std_err = \
-			   stats.linregress( [float(val) for val in training_set.ground_truths], feature_values )
+			             stats.linregress( ground_truths, feature_values )
 			new_fw.names.append( training_set.featurenames_list[ feature_index ] )
 			new_fw.r_values.append( r_value )
 			r_val_squared_sum += r_value * r_value
@@ -351,6 +352,22 @@ class Signatures( FeatureVector ):
 		"""
 		# call parent constructor
 		super( Signatures, self ).__init__()
+
+	#================================================================
+	@classmethod
+	def NewFromTiffFile( cls, imagepath, options = "-l" ):
+		"""@brief Loads precalculated sigs, or calculates new ones
+
+		This function is meant to be the quarterback in deciding what sig
+		loading function is called.
+		@argument path - path to a tiff file
+		@return An instance of the class Signatures for image with sigs calculated."""
+
+		if options == "-l":
+			return cls.LargeFeatureSet( imagepath, options.replace( "-l", "" ) )
+		else:
+			return cls.SmallFeatureSet( imagepath, options )
+		# FIXME: else if a feature list or feature group list were specified...
 
 	#================================================================
 	@classmethod
@@ -492,6 +509,14 @@ class Signatures( FeatureVector ):
 		           may keep that info within the file. Thus, for now, the argument
 		           options is something set externally rather than gleaned from
 		           reading the file."""
+
+		if sigfile_path == None or sigfile_path == "":
+			raise ValueError( "The path to the signature file to be opened was empty or null. "\
+			                  "Check arguments to the function {0}.NewFromSigFile and try again.".\
+			                  format( cls.__name__ ) )
+		if not sigfile_path.endswith( (".sig", ".pysig" ) ):
+			raise ValueError( "The file {0} isn't a signature file (doesn't end in .sig or .pysig)".\
+			                  format( sigfile_path ) )
 
 		print "Loading features from sigfile {0}".format( sigfile_path )
 
@@ -898,7 +923,7 @@ class TrainingSet( object ):
 
   #=================================================================================
 	@classmethod
-	def NewFromFileOfFiles( cls, fof_path ):#, feature_set = "large", write_sig_files_todisk = True ):
+	def NewFromFileOfFiles( cls, fof_path, options = None ):#, feature_set = "large", write_sig_files_todisk = True ):
 
 		raise NotImplementedError()
 
@@ -1183,37 +1208,6 @@ class DiscreteTrainingSet( TrainingSet ):
 		if feature_set == "large":
 			# FIXME: add other options
 			new_ts.feature_options = "-l"
-		return new_ts
-
-  #=================================================================================
-	@classmethod
-	def NewFromFileOfFiles( cls, fof_path ):#, feature_set = "large", write_sig_files_todisk = True ):
-		"""FIXME: Only working for sigfiles, not tiffs, jury rigged to be contunuous for now"""
-
-		sig_files = []
-
-		new_ts = cls()
-		new_ts.num_images = 0
-		new_ts.classnames_list = "continuous"
-		new_ts.source_path = fof_path
-
-		# ground truths is a continuous-specific member
-		new_ts.ground_truths = []
-
-		 # When continuous subclass created, this will go away
-		new_ts.imagenames_list.append( [] )
-		new_ts.num_classes = 1
-
-		with open( fof_path ) as fof:
-			for line in fof:
-				file_path, ground_truth_val = line.strip().split( "\t" )
-				sig_files.append( file_path )
-				# FIXME: ground truth is cast as a float here, but in the future
-				# cound be a not-numeric
-				new_ts.ground_truths.append( float( ground_truth_val) )
-				sig = Signatures.NewFromSigFile( image_path = file_path, sigfile_path = file_path )
-				new_ts.AddSignature( sig, 0 )
-		
 		return new_ts
 
   #=================================================================================
@@ -1502,8 +1496,9 @@ class ContinuousTrainingSet( TrainingSet ):
 
   #=================================================================================
 	@classmethod
-	def NewFromFileOfFiles( cls, fof_path ):#, feature_set = "large", write_sig_files_todisk = True ):
-		"""FIXME: Only working for sigfiles, not tiffs, jury rigged to be contunuous for now"""
+	def NewFromFileOfFiles( cls, fof_path, options = None, feature_list = None, write_sig_files_todisk = False ):
+		"""
+		"""
 
 		sig_files = []
 
@@ -1511,15 +1506,24 @@ class ContinuousTrainingSet( TrainingSet ):
 		new_ts.num_images = 0
 		new_ts.source_path = fof_path
 
+		# ground truths is a continuous-specific member
+		new_ts.ground_truths = []
+
 		with open( fof_path ) as fof:
 			for line in fof:
 				file_path, ground_truth_val = line.strip().split( "\t" )
 				sig_files.append( file_path )
-				# FIXME: raise exception if ground truth is 
-				sig = Signatures.NewFromSigFile( image_path = file_path, sigfile_path = file_path )
-				new_ts.AddSignature( sig, float( ground_truth_val) )
+				ground_truth_val = float( ground_truth_val )
+				if file_path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ): 
+					sig = Signatures.NewFromTiffFile( file_path, options )
+				elif file_path.endswith( (".sig", "pysig" ) ): 
+					sig = Signatures.NewFromSigFile( image_path = None, sigfile_path = file_path, options  = options )
+				else:
+					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
+				new_ts.AddSignature( sig, ground_truth_val )
 		
 		return new_ts
+
 
 
 		
@@ -1673,8 +1677,7 @@ class ContinuousTrainingSet( TrainingSet ):
 			# Feature Reduce will throw an exception if they can't be placed in order
 			signature = signature.FeatureReduce( self.featurenames_list )
 			# vstack takes only one argument, a tuple, thus the extra set of parens
-			self.data_matrix = np.vstack( ( self.data_matrix[ class_id_index ] ,\
-					np.array( signature.values ) ) )
+			self.data_matrix = np.vstack( (self.data_matrix, np.array( signature.values )) )
 
 		self.num_images += 1
 		self.imagenames_list.append( signature.path_to_source_image )
@@ -2184,7 +2187,8 @@ def UnitTest7(max_features = 50):
 	"""try to find the number of features at which the predicted and ground truth values
 	correllates most"""
 
-	ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
+	ts = ContinuousTrainingSet.NewFromFileOfFiles( "/home/colettace/projects/kimmeljc_interp_stuff/Frames_CA3/mmu_list_01.txt", options = "-l" )
+	#ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
 	#ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/src/fake_signatures/classes/test_classes.fit" )
 	ts.Normalize()
 	#ts = ContinuousTrainingSet.NewFromFileOfFiles( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
