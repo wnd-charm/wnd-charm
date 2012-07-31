@@ -317,19 +317,27 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		sort_func = lambda feat_a, feat_b: cmp( feat_a[1], feat_b[1] ) 
 
 		sorted_featureweights = sorted( raw_featureweights, sort_func, reverse = True )
-		# take top N features
-		use_these_feature_weights = \
-				list( itertools.islice( sorted_featureweights, num_features_to_be_used ) )
-		
-		# we want lists, not tuples!
-		new_weights.names, new_weights.r_values, new_weights.slopes, new_weights.intercepts =\
-		  [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
+		# take most correllated features, both positive and negative
+		positively_correllated = itertools.islice( sorted_featureweights, num_features_to_be_used/2 )
+		negatively_correllated = itertools.islice( \
+		  sorted_featureweights, len( self.values ) - num_features_to_be_used/2, len( self.values ) )
 
+		use_these_feature_weights = itertools.chain( positively_correllated, negatively_correllated )
+		
+		names, r_values, slopes, intercepts = zip( *use_these_feature_weights )
 
 		r_val_sum = 0
 		for val in new_weights.r_values:
-			r_val_sum += val
-		new_weights.values = [val / r_val_sum for val in new_weights.r_values ]
+			r_val_sum += abs( val )
+		values = [ abs(val) / r_val_sum for val in r_values ]
+
+		# rezip, resort based on feature weights, then unzip
+		use_these_feature_weights = zip( names, values, r_values, slopes, intercepts )
+		sorted_featureweights = sorted( use_these_feature_weights, sort_func, reverse = True )
+
+		# we want lists, not tuples!
+		new_weights.names, new_weights.values, new_weights.r_values, new_weights.slopes, new_weights.intercepts =\
+		  [ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_feature_weights ) ]
 
 		new_weights.associated_training_set = self.associated_training_set
 
@@ -446,10 +454,14 @@ class Signatures( FeatureVector ):
 
 		"""
 
+
+		if not os.path.exists( path_to_image ):
+			raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( outfile_pathname ) )
+
 		print path_to_image
 		original = pychrm.ImageMatrix()
 		if 1 != original.OpenImage( path_to_image, 0, None, 0, 0 ):
-			raise ValueError( 'Could not build an ImageMatrix from {0}, check the path.'.\
+			raise ValueError( 'Could not build an ImageMatrix from {0}, check the file.'.\
 			    format( path_to_image ) )
 
 		im_cache = {}
@@ -1500,8 +1512,6 @@ class ContinuousTrainingSet( TrainingSet ):
 		"""
 		"""
 
-		sig_files = []
-
 		new_ts = cls()
 		new_ts.num_images = 0
 		new_ts.source_path = fof_path
@@ -1512,7 +1522,8 @@ class ContinuousTrainingSet( TrainingSet ):
 		with open( fof_path ) as fof:
 			for line in fof:
 				file_path, ground_truth_val = line.strip().split( "\t" )
-				sig_files.append( file_path )
+				if not os.path.exists( file_path ):
+					raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( file_path ) )
 				ground_truth_val = float( ground_truth_val )
 				if file_path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ): 
 					sig = Signatures.NewFromTiffFile( file_path, options )
