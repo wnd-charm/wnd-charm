@@ -175,6 +175,10 @@ class FeatureWeights( FeatureVector ):
 
 		return weights
 
+	#================================================================
+	def PrintToSTDOUT( self ):
+		"""@breif Prints out feature values and statistics"""
+		raise NotImplementedError
 
 
 #############################################################################
@@ -249,21 +253,17 @@ class ContinuousFeatureWeights( FeatureWeights ):
 	slopes = None
 	intercepts = None
 	r_values = None
+	std_errs = None
+	p_values = None
 	
-
 	def __init__( self, data_dict = None ):
 		# call parent constructor
 		super( ContinuousFeatureWeights, self ).__init__( data_dict )
 		self.slopes = []
 		self.intercepts = []
 		self.r_values = []
-
-	#================================================================
-	@classmethod
-	def NewFromFile( cls, weights_filepath ):
-		"""@brief Read in a text file with the three relevant parameters
-		to perfrom a linear regression"""
-		pass
+		self.std_errs = []
+		self.p_values = []
 
 	#================================================================
 	@classmethod
@@ -286,18 +286,22 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		for feature_index in range( training_set.num_features ):
 			feature_values = matrix[:,feature_index]
 			ground_truths = [float(val) for val in training_set.ground_truths]
+
 			slope, intercept, r_value, p_value, std_err = \
 			             stats.linregress( ground_truths, feature_values )
+
 			new_fw.names.append( training_set.featurenames_list[ feature_index ] )
 			new_fw.r_values.append( r_value )
-			r_val_squared_sum += r_value * r_value
 			new_fw.slopes.append( slope )
 			new_fw.intercepts.append( intercept )
+			new_fw.std_errs.append( std_err )
+			new_fw.p_values.append( p_value )
+
+			r_val_squared_sum += r_value * r_value
 
 		new_fw.values = [val*val / r_val_squared_sum for val in new_fw.r_values ]
 
 		return new_fw
-
 
 	#================================================================
 	def Threshold( self, num_features_to_be_used = None  ):
@@ -310,38 +314,92 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			num_features_to_be_used = int( len( self.values ) * 0.15 )
 
 		new_weights = ContinuousFeatureWeights()
-		raw_featureweights = zip( self.names, self.r_values, self.slopes, self.intercepts )
 
+		abs_val_r_values = [ abs( val ) for val in self.r_values ]
+		raw_featureweights = zip( self.names, abs_val_r_values, self.r_values, \
+				self.slopes, self.intercepts, self.std_errs, self.p_values )
+		
 		# sort from max to min
 		# sort by the second item in the tuple, i.e., index 1
 		sort_func = lambda feat_a, feat_b: cmp( feat_a[1], feat_b[1] ) 
 
 		sorted_featureweights = sorted( raw_featureweights, sort_func, reverse = True )
-		# take most correllated features, both positive and negative
-		positively_correllated = itertools.islice( sorted_featureweights, num_features_to_be_used/2 )
-		negatively_correllated = itertools.islice( \
-		  sorted_featureweights, len( self.values ) - num_features_to_be_used/2, len( self.values ) )
-
-		use_these_feature_weights = itertools.chain( positively_correllated, negatively_correllated )
 		
-		names, r_values, slopes, intercepts = zip( *use_these_feature_weights )
-
-		r_val_sum = 0
-		for val in new_weights.r_values:
-			r_val_sum += abs( val )
-		values = [ abs(val) / r_val_sum for val in r_values ]
-
-		# rezip, resort based on feature weights, then unzip
-		use_these_feature_weights = zip( names, values, r_values, slopes, intercepts )
-		sorted_featureweights = sorted( use_these_feature_weights, sort_func, reverse = True )
+		# take most correllated features, both positive and negative
+		use_these_feature_weights = list( itertools.islice( \
+			sorted_featureweights, num_features_to_be_used ) )
 
 		# we want lists, not tuples!
-		new_weights.names, new_weights.values, new_weights.r_values, new_weights.slopes, new_weights.intercepts =\
-		  [ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_feature_weights ) ]
+		new_weights.names, abs_r_values, new_weights.r_values, new_weights.slopes, \
+				new_weights.intercepts, new_weights.std_errs, new_weights.p_values =\
+		  [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
+
+		r_val_sum = 0
+		for val in abs_r_values:
+			r_val_sum += val
+		new_weights.values = [ val / r_val_sum for val in abs_r_values ]
 
 		new_weights.associated_training_set = self.associated_training_set
 
 		return new_weights
+
+	#================================================================
+	@classmethod
+	def NewOptimizedFromTrainingSet( cls, training_set, create_graph = False, max_features = 50 ):
+		"""@breif Returns optimum number of Pearson feature weights.
+		
+		Cycle through the list of top features and return the set that provides
+		maximum correllation coefficient"""
+
+
+		print "Calculating optimized continuous classifier for training set {0}".\
+				format( training_set.source_path )
+
+		weights = cls.NewFromTrainingSet( training_set )
+
+		best_set_of_weights = None
+		best_classification_result = None
+		opt_number_features = None
+		max_correlation_coeff = -1
+
+		split_results = []
+		for i in range( 1, max_features ):
+			weights_subset = weights.Threshold( i )
+			reduced_ts = training_set.FeatureReduce( weights_subset.names )
+			split_result = ClassifyContinuousTestSet( reduced_ts, weights_subset, quiet = True )
+			#print "{0}\t{1}".format( i, split_result.r_value )
+			if split_result.r_value > max_correlation_coeff:
+				max_correlation_coeff = split_result.r_value
+				best_set_of_weights = weights_subset
+				best_classification_result = split_result
+				opt_number_features = i + 1
+			split_results.append( split_result )
+
+		print "Optimum number of features: {0}".format( opt_number_features )
+		best_classification_result.PrintToSTDOUT()
+		best_set_of_weights.PrintToSTDOUT()
+
+		if create_graph == True:
+			from matplotlib import pyplot
+			
+		return best_set_of_weights
+
+	#================================================================
+	def PrintToSTDOUT( self ):
+		"""@breif Prints out feature values and statistics"""
+		
+		print "Rank\tCorr.\tWeight\tStd err\tp-value\tSlope\tIntercept\tName"
+		print "====\t=====\t======\t=======\t=======\t=====\t=========\t===="
+		for i in range( len( self.values ) ):
+			line_item = "{0}\t".format( i + 1 )
+			line_item += "{0:2.4f}\t".format( self.r_values[i] )
+			line_item += "{0:2.4f}\t".format( self.values[i] )
+			line_item += "{0:2.4f}\t".format( self.std_errs[i] )
+			line_item += "{0:2.4f}\t".format( self.p_values[i] )
+			line_item += "{0:2.4f}\t".format( self.slopes[i] )
+			line_item += "{0:.4f}\t\t".format( self.intercepts[i] )
+			line_item += self.names[i]
+			print line_item
 
 
 #############################################################################
@@ -1898,8 +1956,6 @@ def _ClassifyOneImageContinuous( one_image_features, feature_weights ):
 	return result
 
 
-
-
 def _ClassifyOneImageWND5( trainingset, testimg, feature_weights ):
 	"""
 	Don't call this function directly, use the wrapper functions ClassifyTestSetWND5() or
@@ -2054,7 +2110,7 @@ def ClassifyDiscreteTestSet( training_set, test_set, feature_weights ):
 	return split_statistics
 
 #=================================================================================
-def ClassifyContinuousTestSet( test_set, feature_weights ):
+def ClassifyContinuousTestSet( test_set, feature_weights, quiet = False ):
 	"""
 	@remarks - all three input arguments must have the same number of features,
 	and in the same order for this to work properly
@@ -2068,12 +2124,14 @@ def ClassifyContinuousTestSet( test_set, feature_weights ):
 				"features than the others: test set={0}, feature weights={1}".format( \
 				test_set_len, feature_weights_len ) + ". Perform a feature reduce." )
 
-	print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
-	      format( test_set.source_path, test_set_len, \
-	      feature_weights.associated_training_set.source_path, feature_weights_len )
+	if not quiet:
+		print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
+					format( test_set.source_path, test_set_len, \
+					feature_weights.associated_training_set.source_path, feature_weights_len )
 
-	column_header = "image\tground truth\tpred. val."
-	print column_header
+	if not quiet:
+		column_header = "image\tground truth\tpred. val."
+		print column_header
 
 	split_statistics = ContinuousTestSetClassificationResult( feature_weights, test_set )
 	
@@ -2084,7 +2142,8 @@ def ClassifyContinuousTestSet( test_set, feature_weights ):
 		result.path_to_source_image = test_set.imagenames_list[ test_image_index ]
 		result.ground_truth_value = test_set.ground_truths[ test_image_index ]
 
-		result.PrintToSTDOUT( line_item = True )
+		if not quiet:
+			result.PrintToSTDOUT( line_item = True )
 		split_statistics.individual_results.append( result )
 
 	split_statistics.GenerateStats()
@@ -2198,29 +2257,17 @@ def UnitTest7(max_features = 50):
 	"""try to find the number of features at which the predicted and ground truth values
 	correllates most"""
 
-	ts = ContinuousTrainingSet.NewFromFileOfFiles( "/home/colettace/projects/kimmeljc_interp_stuff/Frames_CA3/mmu_list_01.txt", options = "-l" )
+	#ts = ContinuousTrainingSet.NewFromFileOfFiles( "/home/colettace/projects/kimmeljc_interp_stuff/Frames_CA3/mmu_list_01.txt", options = "-l" )
 	#ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
 	#ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/src/fake_signatures/classes/test_classes.fit" )
+	ts = ContinuousTrainingSet.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/mmu_list_01.txt.fit.pickled" )
 	ts.Normalize()
 	#ts = ContinuousTrainingSet.NewFromFileOfFiles( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
 	#ts.PickleMe()
 	#ts = ContinuousTrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/continuous_data_set.fof.fit.pickled" )
-	weights = ContinuousFeatureWeights.NewFromTrainingSet( ts )
+	weights = ContinuousFeatureWeights.NewOptimizedFromTrainingSet( ts )
 
-	split_results = []
-	for i in range( 1, max_features ):
-		weights_subset = weights.Threshold( i )
-		reduced_ts = ts.FeatureReduce( weights_subset.names )
-		# any point in normalizing here?
-		split_result = ClassifyContinuousTestSet( reduced_ts, weights_subset )
-		#split_result.PrintToSTDOUT()
-		split_results.append( split_result )
-
-	count = 1
-	for split_result in split_results:
-		print "{0}".format( count )
-		count += 1
-		split_result.PrintToSTDOUT()
+	
 
 
 #================================================================
