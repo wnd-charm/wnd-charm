@@ -356,7 +356,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 
 	#================================================================
 	@classmethod
-	def NewOptimizedFromTrainingSet( cls, training_set, max_features = 100, print_analysis = True ):
+	def NewOptimizedFromTrainingSet( cls, training_set, max_features = 300, print_analysis = True ):
 		"""@brief Returns optimum number of Pearson feature weights.
 		
 		Cycle through the list of top features and return the set that provides
@@ -434,16 +434,22 @@ class ContinuousFeatureWeights( FeatureWeights ):
 				line_item += best_classifier.names[i]
 				print line_item
 
-			for i in range( opt_number_features, max_features):
-				line_item = "{0}\t".format( i + 1 )
-				line_item += "{0:.4f}\t".format( classification_results[i].figure_of_merit )
-				line_item += "0\t"
+			for i in range( opt_number_features + 1, max_features):
+				line_item = "{0}\t".format( i ) # NUM
+				line_item += "{0:.4f}\t".format( classification_results[i].figure_of_merit ) # ASE
+				line_item += "{0:.4f}\t".format( classification_results[i].pearson_coeff ) # APC
+				line_item += "{0:.4f}\t".format( classification_results[i].pearson_std_err ) # APE
+				line_item += "{0:.4f}\t".format( classification_results[i].pearson_p_value ) # APP
+				line_item += "{0:.4f}\t".format( classification_results[i].spearman_coeff ) # ASC
+				line_item += "{0:.4f}\t".format( classification_results[i].spearman_p_value ) # ASP
+
+				line_item += "0\t" # IFW
 				line_item += "{0:2.4f}\t".format( last_classifier.pearson_coeffs[i] )
 				line_item += "{0:2.4f}\t".format( last_classifier.pearson_stderrs[i] )
 				line_item += "{0:2.4f}\t".format( last_classifier.pearson_p_values[i] )
 				line_item += "{0:2.4f}\t".format( last_classifier.spearman_coeffs[i] )
 				line_item += "{0:2.4f}\t".format( last_classifier.spearman_p_values[i] )
-				line_item += last_classifier.names[i]		
+				line_item += last_classifier.names[i]
 				print line_item
 
 			
@@ -1907,13 +1913,14 @@ class TestSetClassificationResult( object ):
 	training_set = None
 	test_set = None
 	figure_of_merit = None
-	individual_results = []
+	individual_results = None
 
 	num_classifications = 0
 
 	def __init__( self, training_set, test_set ):
 		self.training_set = training_set
 		self.test_set = test_set
+		self.individual_results = []
 
 	def GenerateStats( self ):
 		raise NotImplementedError
