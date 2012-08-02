@@ -247,23 +247,28 @@ class FisherFeatureWeights( FeatureWeights ):
 class ContinuousFeatureWeights( FeatureWeights ):
 	"""Used to perform linear regressions
 
-	IMPORTANT DISTINCTION BETWEEN the r_values array, and the weights (values) list:
+	IMPORTANT DISTINCTION BETWEEN the pearson_coeffs array, and the weights (values) list:
 	"""
 
 	slopes = None
 	intercepts = None
-	r_values = None
-	std_errs = None
-	p_values = None
+	pearson_coeffs = None
+	pearson_stderrs = None
+	pearson_p_values = None
+	spearman_coeffs = None
+	spearman_p_values = None
 	
 	def __init__( self, data_dict = None ):
 		# call parent constructor
 		super( ContinuousFeatureWeights, self ).__init__( data_dict )
 		self.slopes = []
 		self.intercepts = []
-		self.r_values = []
-		self.std_errs = []
-		self.p_values = []
+		self.pearson_coeffs = []
+		self.pearson_stderrs = []
+		self.pearson_p_values = []
+		self.spearman_coeffs = []
+		self.spearman_p_values = []
+
 
 	#================================================================
 	@classmethod
@@ -287,37 +292,42 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			feature_values = matrix[:,feature_index]
 			ground_truths = [float(val) for val in training_set.ground_truths]
 
-			slope, intercept, r_value, p_value, std_err = \
+			slope, intercept, pearson_coeff, p_value, std_err = \
 			             stats.linregress( ground_truths, feature_values )
 
 			new_fw.names.append( training_set.featurenames_list[ feature_index ] )
-			new_fw.r_values.append( r_value )
+			new_fw.pearson_coeffs.append( pearson_coeff )
 			new_fw.slopes.append( slope )
 			new_fw.intercepts.append( intercept )
-			new_fw.std_errs.append( std_err )
-			new_fw.p_values.append( p_value )
+			new_fw.pearson_stderrs.append( std_err )
+			new_fw.pearson_p_values.append( p_value )
 
-			r_val_squared_sum += r_value * r_value
+			r_val_squared_sum += pearson_coeff * pearson_coeff
 
-		new_fw.values = [val*val / r_val_squared_sum for val in new_fw.r_values ]
+			spearman_coeff, spearman_p_val = stats.spearmanr( ground_truths, feature_values )
+			new_fw.spearman_coeffs.append( spearman_coeff )
+			new_fw.spearman_p_values.append( spearman_p_val )
+
+		new_fw.values = [val*val / r_val_squared_sum for val in new_fw.pearson_coeffs ]
 
 		return new_fw
 
 	#================================================================
 	def Threshold( self, num_features_to_be_used = None  ):
-		"""@breif Returns an instance of a FeatureWeights class with the top n relevant features in that order"""
+		"""@breif Returns an instance of a FeatureWeights class with the top n relevant features in that order
 
-		# sort on the r_values, not the weights themselves (haven't been calculated yet)
+		Sorts on the absolute value of the Pearson coefficients
+		Default is top 15% of features"""
 
-		# Default is top 15% of features
 		if num_features_to_be_used is None:
 			num_features_to_be_used = int( len( self.values ) * 0.15 )
 
 		new_weights = ContinuousFeatureWeights()
 
-		abs_val_r_values = [ abs( val ) for val in self.r_values ]
-		raw_featureweights = zip( self.names, abs_val_r_values, self.r_values, \
-				self.slopes, self.intercepts, self.std_errs, self.p_values )
+		abs_val_pearson_coeffs = [ abs( val ) for val in self.pearson_coeffs ]
+		raw_featureweights = zip( self.names, abs_val_pearson_coeffs, self.pearson_coeffs, \
+		    self.slopes, self.intercepts, self.pearson_stderrs, self.pearson_p_values, \
+		    self.spearman_coeffs, self.spearman_p_values )
 		
 		# sort from max to min
 		# sort by the second item in the tuple, i.e., index 1
@@ -330,14 +340,15 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			sorted_featureweights, num_features_to_be_used ) )
 
 		# we want lists, not tuples!
-		new_weights.names, abs_r_values, new_weights.r_values, new_weights.slopes, \
-				new_weights.intercepts, new_weights.std_errs, new_weights.p_values =\
-		  [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
+		new_weights.names, abs_pearson_coeffs, new_weights.pearson_coeffs, new_weights.slopes, \
+		    new_weights.intercepts, new_weights.pearson_stderrs, new_weights.pearson_p_values,\
+		    new_weights.spearman_coeffs, new_weights. spearman_p_values =\
+		      [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
 
 		r_val_sum = 0
-		for val in abs_r_values:
+		for val in abs_pearson_coeffs:
 			r_val_sum += val
-		new_weights.values = [ val / r_val_sum for val in abs_r_values ]
+		new_weights.values = [ val / r_val_sum for val in abs_pearson_coeffs ]
 
 		new_weights.associated_training_set = self.associated_training_set
 
@@ -345,8 +356,8 @@ class ContinuousFeatureWeights( FeatureWeights ):
 
 	#================================================================
 	@classmethod
-	def NewOptimizedFromTrainingSet( cls, training_set, create_graph = False, max_features = 50 ):
-		"""@breif Returns optimum number of Pearson feature weights.
+	def NewOptimizedFromTrainingSet( cls, training_set, max_features = 100, print_analysis = True ):
+		"""@brief Returns optimum number of Pearson feature weights.
 		
 		Cycle through the list of top features and return the set that provides
 		maximum correllation coefficient"""
@@ -357,42 +368,97 @@ class ContinuousFeatureWeights( FeatureWeights ):
 
 		weights = cls.NewFromTrainingSet( training_set )
 
-		best_set_of_weights = None
+		classification_results = []
+		last_classifier = None
+		last_split_result = None
+		best_classifier = None
 		best_classification_result = None
 		opt_number_features = None
-		max_correlation_coeff = -1
+		min_std_err = float( "inf" )
 
-		split_results = []
-		for i in range( 1, max_features ):
-			weights_subset = weights.Threshold( i )
-			reduced_ts = training_set.FeatureReduce( weights_subset.names )
-			split_result = ClassifyContinuousTestSet( reduced_ts, weights_subset, quiet = True )
-			#print "{0}\t{1}".format( i, split_result.r_value )
-			if split_result.r_value > max_correlation_coeff:
-				max_correlation_coeff = split_result.r_value
-				best_set_of_weights = weights_subset
-				best_classification_result = split_result
-				opt_number_features = i + 1
-			split_results.append( split_result )
+		for i in range( 1, max_features + 1 ):
+			last_classifier = weights.Threshold( i )
+			reduced_ts = training_set.FeatureReduce( last_classifier.names )
+			last_classification_result = ClassifyContinuousTestSet( reduced_ts, last_classifier, quiet = True )
+			if last_classification_result.figure_of_merit < min_std_err:
+				min_std_err = last_classification_result.figure_of_merit
+				best_classifier = last_classifier
+				best_classification_result = last_classification_result
+				opt_number_features = i
+			classification_results.append( last_classification_result )
 
 		print "Optimum number of features: {0}".format( opt_number_features )
 		best_classification_result.PrintToSTDOUT()
-		best_set_of_weights.PrintToSTDOUT()
 
-		if create_graph == True:
-			from matplotlib import pyplot
+		if print_analysis:
+			print "Legend:"
+			print "======="
+			print "NUM - Number of features used in aggregate / Individual feature rank"
+			print "NAME - name of individual feature"
+			print ""
+			print "Statistics using aggregated (compound) classifier:"
+			print "--------------------------------------------------"
+			print "ASE - Standard Error of Final Predicted Value (using aggregated feature) vs ground truth"
+			print "APC - Pearson correlation coefficient of Final Predicted Values vs ground truth"
+			print "APE - Standard Error of APC"
+			print "APP - P-value of APC"
+			print "ASC - Spearman correlation coefficient of Final Predicted Values vs ground truth"
+			print "APP - P-value of ASC"
+			print ""
+			print "Statistics of individual (single feature) regression:"
+			print "--------------------------------------------------"
+			print "IFW - Feature weight applied to the individual feature"
+			print "IPC - Pearson correlation coefficient of feature values vs ground truth"
+			print "IPE - Standard Error of IPC"
+			print "IPP - P-value of IPC"
+			print "ISC - Spearman correlation coefficient of feature values vs ground truth"
+			print "IPP - P-value of ISC"
+			print ""
+			print "NUM\tASE\tAPC\tAPE\tAPP\tASC\tAPP\tIFW\tIPC\tIPE\tIPP\tISC\tIPP\tNAME"
+			print "===\t===\t===\t===\t===\t===\t===\t===\t===\t===\t===\t===\t===\t===="
+			for i in range( len( best_classifier.values ) ):
+				line_item = "{0}\t".format( i + 1 ) # NUM
+				line_item += "{0:.4f}\t".format( classification_results[i].figure_of_merit ) # ASE
+				line_item += "{0:.4f}\t".format( classification_results[i].pearson_coeff ) # APC
+				line_item += "{0:.4f}\t".format( classification_results[i].pearson_std_err ) # APE
+				line_item += "{0:.4f}\t".format( classification_results[i].pearson_p_value ) # APP
+				line_item += "{0:.4f}\t".format( classification_results[i].spearman_coeff ) # ASC
+				line_item += "{0:.4f}\t".format( classification_results[i].spearman_p_value ) # ASP
+
+				line_item += "{0:2.4f}\t".format( best_classifier.values[i] ) # IFW
+				line_item += "{0:2.4f}\t".format( best_classifier.pearson_coeffs[i] )
+				line_item += "{0:2.4f}\t".format( best_classifier.pearson_stderrs[i] )
+				line_item += "{0:2.4f}\t".format( best_classifier.pearson_p_values[i] )
+				line_item += "{0:2.4f}\t".format( best_classifier.spearman_coeffs[i] )
+				line_item += "{0:2.4f}\t".format( best_classifier.spearman_p_values[i] )
+				line_item += best_classifier.names[i]
+				print line_item
+
+			for i in range( opt_number_features, max_features):
+				line_item = "{0}\t".format( i + 1 )
+				line_item += "{0:.4f}\t".format( classification_results[i].figure_of_merit )
+				line_item += "0\t"
+				line_item += "{0:2.4f}\t".format( last_classifier.pearson_coeffs[i] )
+				line_item += "{0:2.4f}\t".format( last_classifier.pearson_stderrs[i] )
+				line_item += "{0:2.4f}\t".format( last_classifier.pearson_p_values[i] )
+				line_item += "{0:2.4f}\t".format( last_classifier.spearman_coeffs[i] )
+				line_item += "{0:2.4f}\t".format( last_classifier.spearman_p_values[i] )
+				line_item += last_classifier.names[i]		
+				print line_item
+
 			
-		return best_set_of_weights
+		return best_classifier
 
 	#================================================================
 	def PrintToSTDOUT( self ):
 		"""@breif Prints out feature values and statistics"""
 		
-		print "Rank\tCorr.\tWeight\tStd err\tp-value\tSlope\tIntercept\tName"
-		print "====\t=====\t======\t=======\t=======\t=====\t=========\t===="
+		print "Rank\tPearson\tSpearman\tWeight\tStd err\tp-value\tSlope\tIntercept\tName"
+		print "====\t=======\t========\t======\t=======\t=======\t=====\t=========\t===="
 		for i in range( len( self.values ) ):
 			line_item = "{0}\t".format( i + 1 )
-			line_item += "{0:2.4f}\t".format( self.r_values[i] )
+			line_item += "{0:2.4f}\t".format( self.pearson_coeffs[i] )
+			line_item += "{0:2.4f}\t".format( self.spearman_coeffs[i] )
 			line_item += "{0:2.4f}\t".format( self.values[i] )
 			line_item += "{0:2.4f}\t".format( self.std_errs[i] )
 			line_item += "{0:2.4f}\t".format( self.p_values[i] )
@@ -1523,8 +1589,6 @@ class ContinuousTrainingSet( TrainingSet ):
 			for line in fitfile:
 				if line_num is 0:
 					num_classes = int( line )
-					# we don't really care how many classes there are for a continuous training set
-					pass
 				elif line_num is 1:
 					num_features = int( line )
 					new_ts.num_features = num_features
@@ -1842,6 +1906,7 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 class TestSetClassificationResult( object ):
 	training_set = None
 	test_set = None
+	figure_of_merit = None
 	individual_results = []
 
 	num_classifications = 0
@@ -1858,7 +1923,7 @@ class TestSetClassificationResult( object ):
 
 #=================================================================================
 class DiscreteTestSetClassificationResult( TestSetClassificationResult ):
-	classification_accuracy = None
+	"""@brief This class's "figure_of_merit" is classification accuracy"""
 	num_correct_classifications = 0
 
 	def __init__( self, training_set, test_set ):
@@ -1871,56 +1936,78 @@ class DiscreteTestSetClassificationResult( TestSetClassificationResult ):
 			if indiv_result.ground_truth_class_name == indiv_result.predicted_class_name:
 				self.num_correct_classifications += 1
 
-		self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
+		self.figure_of_merit = float( self.num_correct_classifications) / float( self.num_classifications )
 
 	def PrintToSTDOUT( self ):
-		if self.classification_accuracy == None:
+		if self.figure_of_merit == None:
 			self.GenerateStats()
 
 		print "==========================================="
-		print "Classification accuracy for this split: {0}".format( self.classification_accuracy )
+		print "Classification accuracy for this split: {0}".format( self.figure_of_merit )
 
 
 #=================================================================================
 class ContinuousTestSetClassificationResult( TestSetClassificationResult ):
+	"""@brief This class's "figure_of_merit" is the standard error betw predicted and ground truth"""
 
-	r_value = None
-	p_value = None
-	std_err = None
+	pearson_coeff = None
+	pearson_p_value = None
+	pearson_std_err = None
+	spearman_coeff = None
+	spearman_p_value = None
 	ground_truth_values = None
 	predicted_values = None
 
 	def __init__( self, training_set, test_set ):
 		# call parent constructor
 		super( ContinuousTestSetClassificationResult, self ).__init__( training_set, test_set )
+		self.predicted_values = []
 
 	def GenerateStats( self ):
-		self.num_classifications = len (self.individual_results)
+		#FIXME: how to calculate p-value???
+		self.num_classifications = len( self.individual_results )
 
-		value_pairs = [ (result.ground_truth_value, result.predicted_value ) \
-		                                             for result in self.individual_results ]
+		if self.ground_truth_values is not None and \
+		     len( self.ground_truth_values ) == len( self.predicted_values):
 
-		# sort by ground_truth value first, predicted value second
-		sort_func = lambda A, B: cmp( A[0], B[0] ) if A[0] != B[0] else cmp( A[1], B[1] ) 
+			value_pairs = zip( self.ground_truth_values, self.predicted_values )
 
-		sorted_pairs = sorted( value_pairs, sort_func )
-		
-		# we want lists, not tuples!
-		self.ground_truth_values, self.predicted_values =\
-		  [ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_pairs ) ]	
+			# sort by ground_truth value first, predicted value second
+			sort_func = lambda A, B: cmp( A[0], B[0] ) if A[0] != B[0] else cmp( A[1], B[1] ) 
 
-		from scipy import stats
-		slope, intercept, self.r_value, self.p_value, self.std_err = \
-		    stats.linregress( self.ground_truth_values, self.predicted_values )	
+			sorted_pairs = sorted( value_pairs, sort_func )
+			
+			# we want lists, not tuples!
+			self.ground_truth_values, self.predicted_values =\
+				[ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_pairs ) ]	
+
+			gt = np.array( self.ground_truth_values )
+			pv = np.array( self.predicted_values )
+
+			diffs = gt - pv
+			diffs = np.square( diffs )
+			err_sum = np.sum( diffs )
+
+			import math; from scipy import stats
+			self.figure_of_merit = math.sqrt( err_sum / self.num_classifications )
+
+			slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
+			             stats.linregress( self.ground_truth_values, self.predicted_values )
+
+			self.spearman_coeff, self.spearman_p_value =\
+			       stats.spearmanr( self.ground_truth_values, self.predicted_values )
+
 
 	def PrintToSTDOUT( self ):
-		if self.r_value == None:
+		if self.figure_of_merit == None:
 			self.GenerateStats()
 
 		print "==========================================="
-		print "Goodness of fit for this split: {0}".format( self.r_value )
-		print "p-value for this split: {0}".format( self.p_value )
-		print "Standard error for this split: {0}".format( self.std_err )
+		print "Number of observations: {0}".format( self.num_classifications )
+		if self.figure_of_merit != None:
+			print "Standard error of predicted vs. ground truth values: {0}".format( self.figure_of_merit )
+		#print "p-value for this split: {0}".format( self.p_value )
+		#print "Standard error for this split: {0}".format( self.std_err )
 
 
 
@@ -2134,13 +2221,16 @@ def ClassifyContinuousTestSet( test_set, feature_weights, quiet = False ):
 		print column_header
 
 	split_statistics = ContinuousTestSetClassificationResult( feature_weights, test_set )
-	
+	if test_set.ground_truths is not None and len( test_set.ground_truths ) != 0:
+		split_statistics.ground_truth_values = test_set.ground_truths
+
 	for test_image_index in range( test_set.num_images ):
 		one_image_features = test_set.data_matrix[ test_image_index,: ]
 		result = _ClassifyOneImageContinuous( one_image_features, feature_weights )
 
 		result.path_to_source_image = test_set.imagenames_list[ test_image_index ]
 		result.ground_truth_value = test_set.ground_truths[ test_image_index ]
+		split_statistics.predicted_values.append( result.predicted_value )
 
 		if not quiet:
 			result.PrintToSTDOUT( line_item = True )
@@ -2241,7 +2331,7 @@ def UnitTest5( max_features = 20 ):
 
 	count = 1
 	for split_result in split_results:
-		print "{0}\t{1}".format( count, split_result.classification_accuracy )
+		print "{0}\t{1}".format( count, split_result.figure_of_merit )
 		count += 1
 
 #================================================================
