@@ -379,7 +379,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		for i in range( 1, max_features + 1 ):
 			last_classifier = weights.Threshold( i )
 			reduced_ts = training_set.FeatureReduce( last_classifier.names )
-			last_classification_result = ClassifyContinuousTestSet( reduced_ts, last_classifier, quiet = True )
+			last_classification_result = ContinuousBatchClassificationResult.New( reduced_ts, last_classifier, quiet = True )
 			if last_classification_result.figure_of_merit < min_std_err:
 				min_std_err = last_classification_result.figure_of_merit
 				best_classifier = last_classifier
@@ -481,7 +481,7 @@ class Signatures( FeatureVector ):
 	"""
 	"""
 
-	path_to_source_image = None
+	source_file = None
 	options = ""
 
 	#================================================================
@@ -599,7 +599,7 @@ class Signatures( FeatureVector ):
 
 		# instantiate an empty Signatures object
 		signatures = cls()
-		signatures.path_to_source_image = path_to_image
+		signatures.source_file = path_to_image
 		signatures.options = options
 
 		for fg in feature_groups:
@@ -663,7 +663,7 @@ class Signatures( FeatureVector ):
 		print "Loading features from sigfile {0}".format( sigfile_path )
 
 		signatures = cls()
-		signatures.path_to_source_image = image_path
+		signatures.source_file = image_path
 		signatures.options = options
  
 		with open( sigfile_path ) as infile:
@@ -673,9 +673,9 @@ class Signatures( FeatureVector ):
 					# The class id here may be trash
 					signatures.class_id = line.strip()
 				elif linenum == 1:
-					# We've already assigned self.path_to_source_image
+					# We've already assigned self.source_file
 					# the path in the sig file may be trash anyway
-					#signatures.path_to_source_image = line.strip()
+					#signatures.source_file = line.strip()
 					pass
 				else:
 					value, name = line.strip().split( ' ', 1 )
@@ -701,9 +701,9 @@ class Signatures( FeatureVector ):
 
 		outfile_path = ""
 		if not filepath or filepath == "":
-			if not self.path_to_source_image or self.path_to_source_image == "":
+			if not self.source_file or self.source_file == "":
 				raise ValueError( "Can't write sig file. No filepath specified in function call, and no path associated with this instance of Signatures." )
-			outfile_path = self.path_to_source_image
+			outfile_path = self.source_file
 
 			path, filename = os.path.split( outfile_path )
 			if not os.path.exists( path ):
@@ -725,7 +725,7 @@ class Signatures( FeatureVector ):
 		with open( outfile_path, "w" ) as out_file:
 			# FIXME: line 2 contains class membership, just hardcode a number for now
 			out_file.write( "0\n" )
-			out_file.write( "{0}\n".format( self.path_to_source_image ) )
+			out_file.write( "{0}\n".format( self.source_file ) )
 			for i in range( 0, len( self.names ) ):
 				out_file.write( "{val:0.6f} {name}\n".format( val=self.values[i], name=self.names[i] ) )
 
@@ -740,7 +740,7 @@ class Signatures( FeatureVector ):
 		if not their_features <= selfs_features:
 			missing_features_from_req = their_features - selfs_features
 			err_str = error_banner + "Feature Reduction error:\n"
-			err_str += "The signatures set for image file '{0}' ".format( self.path_to_source_image )
+			err_str += "The signatures set for image file '{0}' ".format( self.source_file )
 			err_str += "is missing {0}".format( len( missing_features_from_req ) )
 			err_str += "/{1} features that were requested in the feature reduction list.".format(\
 			             len( requested_features ) )
@@ -750,7 +750,7 @@ class Signatures( FeatureVector ):
 		# The featurenames sets are either out of order or contain extraneous features.
 		dictionary = dict( zip( self.names, self.values ) )
 		reduced_sigs = Signatures()
-		reduced_sigs.path_to_source_image = self.path_to_source_image
+		reduced_sigs.source_file = self.source_file
 		reduced_sigs.options = self.options
 			
 		for new_name in requested_features:
@@ -769,7 +769,7 @@ class Signatures( FeatureVector ):
 
 		if training_set.featurenames_list != self.names:
 			raise ValueError("Can't normalize signature for {0} against training_set {1}: Features don't match."\
-		  .format( self.path_to_source_image, training_set.source_path ) )
+		  .format( self.source_file, training_set.source_path ) )
 	
 		new_sig = copy.deepcopy( self )
 		for i in range( len( self.values ) ):
@@ -1526,7 +1526,7 @@ class DiscreteTrainingSet( TrainingSet ):
 					np.array( signature.values ) ) )
 
 		self.num_images += 1
-		self.imagenames_list[ class_id_index ].append( signature.path_to_source_image )
+		self.imagenames_list[ class_id_index ].append( signature.source_file )
 
 
 # END DiscreteTrainingSet class definition
@@ -1819,15 +1819,31 @@ class ContinuousTrainingSet( TrainingSet ):
 			self.data_matrix = np.vstack( (self.data_matrix, np.array( signature.values )) )
 
 		self.num_images += 1
-		self.imagenames_list.append( signature.path_to_source_image )
+		self.imagenames_list.append( signature.source_file )
 
 		self.ground_truths.append( ground_truth )
 
 # END ContinuousTrainingSet class definition
 
 #=================================================================================
-class ImageClassificationResult( object ):
-	path_to_source_image = None
+class ClassificationResult( object ):
+	"""All Result classes inherit from this base"""
+
+	def GenerateStats( self ):
+		raise NotImplementedError
+	
+	def PrintToSTDOUT( self ):
+		raise NotImplementedError
+
+	def GenerateHTML( self ):
+		raise NotImplementedError
+
+
+#=================================================================================
+class ImageClassificationResult( ClassificationResult ):
+	source_file = None
+	predicted_value = None
+	batch_number = None
 
 	#: For the future:
 	kernel_location = None
@@ -1842,7 +1858,6 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 	marginal_probabilities = []
 	predicted_class_name = None
 	ground_truth_class_name = None
-	interpolated_value = None
 
 	#==============================================================
 	def PrintToSTDOUT( self, line_item = False ):
@@ -1850,7 +1865,7 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 		"""
 		if line_item:
 			# img name:
-			output_str = self.path_to_source_image
+			output_str = self.source_file
 			# normalization factor:
 			output_str += "\t{val:0.3g}\t".format( val=self.normalization_factor )
 			# marginal probabilities:
@@ -1865,26 +1880,124 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 			# predicted class:
 			output_str += self.predicted_class_name + "\t"
 			# interpolated value, if applicable
-			if self.interpolated_value:
-				output_str += "{val:0.3f}".format( val=self.interpolated_value )
+			if self.predicted_value:
+				output_str += "{val:0.3f}".format( val=self.predicted_value )
 			print output_str
 		else:
-			print "Image:             \t{0}".format( self.path_to_source_image )
+			print "Image:             \t{0}".format( self.source_file )
 			print "Normalization Factor:\t{0}".format( self.normalization_factor )
 			print "Marg. Probabilities:\t" + "\t".join(\
 					[ "{val:0.3f}".format( val=prob ) for prob in self.marginal_probabilities ] )
 			print "Ground truth class:\t {0}".format( self.ground_truth_class_name ) 
 			print "Predicted class:\t {0}".format( self.predicted_class_name ) 
-			if self.interpolated_value:
-				print "Interpolated Value:\t{0}".format( self.interpolated_value )
-				#print "Interpolated Value:\t{val=0.3f}".format( val=self.interpolated_value )
+			if self.predicted_value:
+				print "Interpolated Value:\t{0}".format( self.predicted_value )
+				#print "Interpolated Value:\t{val=0.3f}".format( val=self.predicted_value )
+
+	#==============================================================
+	@classmethod
+	def _WND5( cls, trainingset, testimg, feature_weights ):
+		"""
+		Don't call this function directly, use the wrapper functions ClassifyTestSetWND5() or
+		ClassifyOneSignatureWND5(), both of which have dummyproofing.
+
+		If you're using this function, your training set data is not continuous
+		for N images and M features:
+			trainingset is list of length L of N x M numpy matrices
+			testtile is a 1 x M list of feature values
+		NOTE: the trainingset and test image must have the same number of features!!!
+		AND: the features must be in the same order!!
+		Returns an instance of the class DiscreteImageClassificationResult
+		FIXME: what about tiling??
+		"""
+
+		#print "classifying..."
+		epsilon = np.finfo( np.float ).eps
+
+		num_features_in_testimg = len( testimg ) 
+		weights_squared = np.square( feature_weights )
+
+		# initialize
+		class_similarities = [0] * trainingset.num_classes
+
+		for class_index in range( trainingset.num_classes ):
+			#print "Calculating distances to class {0}".format( class_index )
+			num_tiles, num_features = trainingset.data_list[ class_index ].shape
+			assert num_features_in_testimg == num_features,\
+			"num features {0}, num features in test img {1}".format( num_features, num_test_img_features )
+
+			# create a view
+			sig_matrix = trainingset.data_list[ class_index ]
+			wnd_sum = 0
+			num_collisions = 0
+
+			#print "num tiles: {0}, num_test_img_features {1}".format( num_tiles, num_test_img_features )
+			for tile_index in range( num_tiles ):
+				#print "{0} ".format( tile_index )
+				# epsilon checking for each feature is too expensive
+				# FIXME: Do quick and dirty summation check until we can figure something else out
+				dists = np.absolute( sig_matrix[ tile_index ] - testimg )
+				w_dist = np.sum( dists )
+				if w_dist < epsilon:
+					num_collisions += 1
+					continue
+				dists = np.multiply( weights_squared, np.square( dists ) )
+				w_dist = np.sum( dists )
+				# The exponent -5 is the "5" in "WND5"
+				class_similarities[ class_index ] += w_dist ** -5
+			#print "\n"
+
+			class_similarities[ class_index ] /= ( num_tiles - num_collisions )
+
+		result = cls()
+		norm_factor = sum( class_similarities )
+		result.normalization_factor = norm_factor 
+		result.marginal_probabilities = [ x / norm_factor for x in class_similarities ]
+
+		return result
+
+	#=================================================================================
+	@classmethod
+	def NewWND5( cls, training_set, test_sig, feature_weights ):
+		"""
+		@brief: A wrapper function for _ClassifyOneImageWND5 that does dummyproofing
+		@return: classification result
+		@returntype: ImageClassificationResult()
+		"""
+
+		# check to see if sig is valid
+		test_sig.is_valid()
+
+		train_set_len = len( training_set.featurenames_list )
+		test_set_len = len( test_sig.names )
+		feature_weights_len = len( feature_weights.names )
+
+		if train_set_len != test_set_len or \
+			 train_set_len != feature_weights_len or \
+			 test_set_len  != feature_weights_len:
+			raise ValueError( "Can't classify: one or more of the inputs has a different number of" \
+			 "features than the others: training set={0}, test set={1}, feature weights={2}".format( \
+					train_set_len, test_set_len, feature_weights_len ) + ". Perform a feature reduce." )
+
+		print "Classifying image '{0}' ({1} features) against test set '{2}' ({3} features)".\
+			 format( test_sig.source_file, train_set_len, training_set.source_path, test_set_len )
+
+		result = cls._WND5( training_set, test_sig.values, feature_weights.values )
+
+		result.source_file = test_sig.source_file
+		marg_probs = np.array( result.marginal_probabilities )
+		result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
+		# interpolated value, if applicable
+		if training_set.interpolation_coefficients is not None:
+			interp_val = np.sum( marg_probs * training_set.interpolation_coefficients )
+			result.predicted_value = interp_val
+
+		return result
 
 
 #=================================================================================
 class ContinuousImageClassificationResult( ImageClassificationResult ):
-	path_to_source_image = None
 	ground_truth_value = None
-	predicted_value = None
 
 	#==============================================================
 	def PrintToSTDOUT( self, line_item = False ):
@@ -1892,7 +2005,7 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 		"""
 		if line_item:
 			# img name:
-			output_str = self.path_to_source_image
+			output_str = self.source_file
 			output_str += "\t"
 			# actual class:
 			if self.ground_truth_value is not None:
@@ -1903,13 +2016,40 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 			output_str += str( self.predicted_value ) + "\t"
 			print output_str
 		else:
-			print "Image:             \t{0}".format( self.path_to_source_image )
+			print "Image:             \t{0}".format( self.source_file )
 			print "Ground truth class:\t {0}".format( self.ground_truth_value ) 
 			print "Predicted class:\t {0}".format( self.predicted_value ) 
 
+#==============================================================
+	@classmethod
+	def _LinearRegression( cls, one_image_features, feature_weights ):
+		"""
+		Don't call this function directly, use the wrapper function ClassifyContinuousTestSet()
+		which has dummyproofing.
+		"""
+
+		per_feature_predicted_vals = []
+
+		for i in range( len( one_image_features ) ):
+			feat_val = one_image_features[i]
+			weight = feature_weights.values[i]
+			slope = feature_weights.slopes[i]
+			intercept = feature_weights.intercepts[i]
+
+			# y = mx+b
+			# feature value = slope * age + intercept
+			# solve for the abscissa:
+			per_feature_predicted_vals.append( weight * ( feat_val - intercept ) / slope )
+
+		result = cls()
+		result.predicted_value = sum( per_feature_predicted_vals )
+
+		return result
 
 #=================================================================================
-class TestSetClassificationResult( object ):
+class BatchClassificationResult( ClassificationResult ):
+	"""A container object for individual ImageClassificationResult instances"""
+
 	training_set = None
 	test_set = None
 	figure_of_merit = None
@@ -1922,20 +2062,19 @@ class TestSetClassificationResult( object ):
 		self.test_set = test_set
 		self.individual_results = []
 
-	def GenerateStats( self ):
-		raise NotImplementedError
-	
-	def PrintToSTDOUT( self ):
+	def TrainTestSplit( self ):
 		raise NotImplementedError
 
+
+
 #=================================================================================
-class DiscreteTestSetClassificationResult( TestSetClassificationResult ):
+class DiscreteBatchClassificationResult( BatchClassificationResult ):
 	"""@brief This class's "figure_of_merit" is classification accuracy"""
 	num_correct_classifications = 0
 
 	def __init__( self, training_set, test_set ):
 		# call parent constructor
-		super( DiscreteTestSetClassificationResult, self ).__init__( training_set, test_set )
+		super( DiscreteBatchClassificationResult, self ).__init__( training_set, test_set )
 
 	def GenerateStats( self ):
 		for indiv_result in self.individual_results:
@@ -1953,8 +2092,68 @@ class DiscreteTestSetClassificationResult( TestSetClassificationResult ):
 		print "Classification accuracy for this split: {0}".format( self.figure_of_merit )
 
 
+	#=====================================================================
+	@classmethod
+	def New( cls, training_set, test_set, feature_weights, batch_number = None ):
+		"""
+		@remarks - all three input arguments must have the same number of features,
+		and in the same order for this to work properly
+		FIXME: What happens when the ground truth is not known? Currently they would all be shoved
+					 into class 1, might not be a big deal since class name should be something
+					 like "UNKNOWN"
+		"""
+
+		train_set_len = len( training_set.featurenames_list )
+		test_set_len = len( test_set.featurenames_list )
+		feature_weights_len = len( feature_weights.names )
+
+		if train_set_len != test_set_len or \
+			 train_set_len != feature_weights_len or \
+			 test_set_len  != feature_weights_len:
+			raise ValueError( "Can't classify: one or more of the inputs has a different number of" \
+					"features than the others: training set={0}, test set={1}, feature weights={2}".format( \
+					train_set_len, test_set_len, feature_weights_len ) + ". Perform a feature reduce." )
+
+		print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
+					format( test_set.source_path, test_set_len, training_set.source_path, train_set_len )
+
+		column_header = "image\tnorm. fact.\t"
+		column_header +=\
+				"".join( [ "p(" + class_name + ")\t" for class_name in training_set.classnames_list ] )
+
+		column_header += "act. class\tpred. class\tpred. val."
+		print column_header
+
+		interp_coeffs = None
+		if training_set.interpolation_coefficients:
+			interp_coeffs = np.array( training_set.interpolation_coefficients )
+
+		split_statistics = cls( training_set, test_set )
+
+		for test_class_index in range( test_set.num_classes ):
+			num_class_imgs, num_class_features = test_set.data_list[ test_class_index ].shape
+			for test_image_index in range( num_class_imgs ):
+				one_image_features = test_set.data_list[ test_class_index ][ test_image_index,: ]
+				result = DiscreteImageClassificationResult._WND5( training_set, one_image_features, feature_weights.values )
+
+				result.source_file = test_set.imagenames_list[ test_class_index ][ test_image_index ]
+				result.ground_truth_class_name = test_set.classnames_list[ test_class_index ]
+				if not batch_number is None:
+					result.batch_number = batch_number
+				marg_probs = np.array( result.marginal_probabilities )
+				result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
+				# interpolated value, if applicable
+				if interp_coeffs is not None:
+					interp_val = np.sum( marg_probs * interp_coeffs )
+					result.predicted_value = interp_val
+
+				result.PrintToSTDOUT( line_item = True )
+				split_statistics.individual_results.append( result )
+
+		return split_statistics
+
 #=================================================================================
-class ContinuousTestSetClassificationResult( TestSetClassificationResult ):
+class ContinuousBatchClassificationResult( BatchClassificationResult ):
 	"""@brief This class's "figure_of_merit" is the standard error betw predicted and ground truth"""
 
 	pearson_coeff = None
@@ -1967,7 +2166,7 @@ class ContinuousTestSetClassificationResult( TestSetClassificationResult ):
 
 	def __init__( self, training_set, test_set ):
 		# call parent constructor
-		super( ContinuousTestSetClassificationResult, self ).__init__( training_set, test_set )
+		super( ContinuousBatchClassificationResult, self ).__init__( training_set, test_set )
 		self.predicted_values = []
 
 	def GenerateStats( self ):
@@ -2017,234 +2216,101 @@ class ContinuousTestSetClassificationResult( TestSetClassificationResult ):
 		#print "Standard error for this split: {0}".format( self.std_err )
 
 
+	#=================================================================================
+	@classmethod
+	def New( cls, test_set, feature_weights, quiet = False ):
+		"""
+		@remarks - all three input arguments must have the same number of features,
+		and in the same order for this to work properly
+		"""
 
-######################################################################################
-# GLOBAL FUNCTIONS
-######################################################################################
+		test_set_len = len( test_set.featurenames_list )
+		feature_weights_len = len( feature_weights.values )
 
-def _ClassifyOneImageContinuous( one_image_features, feature_weights ):
-	"""
-	Don't call this function directly, use the wrapper function ClassifyContinuousTestSet()
-	which has dummyproofing.
-
-	Returns an instance of the class DiscreteImageClassificationResult
-	FIXME: what about tiling??
-	"""
-
-	per_feature_predicted_vals = []
-
-	for i in range( len( one_image_features ) ):
-		feat_val = one_image_features[i]
-		weight = feature_weights.values[i]
-		slope = feature_weights.slopes[i]
-		intercept = feature_weights.intercepts[i]
-
-		# y = mx+b
-		# feature value = slope * age + intercept
-		# solve for the abscissa:
-		per_feature_predicted_vals.append( weight * ( feat_val - intercept ) / slope )
-
-	result = ContinuousImageClassificationResult()
-	result.predicted_value = sum( per_feature_predicted_vals )
-
-	return result
-
-
-def _ClassifyOneImageWND5( trainingset, testimg, feature_weights ):
-	"""
-	Don't call this function directly, use the wrapper functions ClassifyTestSetWND5() or
-	ClassifyOneSignatureWND5(), both of which have dummyproofing.
-
-	If you're using this function, your training set data is not continuous
-	for N images and M features:
-	  trainingset is list of length L of N x M numpy matrices
-	  testtile is a 1 x M list of feature values
-	NOTE: the trainingset and test image must have the same number of features!!!
-	AND: the features must be in the same order!!
-	Returns an instance of the class DiscreteImageClassificationResult
-	FIXME: what about tiling??
-	"""
-
-	#print "classifying..."
-	epsilon = np.finfo( np.float ).eps
-
-	num_features_in_testimg = len( testimg ) 
-	weights_squared = np.square( feature_weights )
-
-	# initialize
-	class_similarities = [0] * trainingset.num_classes
-
-	for class_index in range( trainingset.num_classes ):
-		#print "Calculating distances to class {0}".format( class_index )
-		num_tiles, num_features = trainingset.data_list[ class_index ].shape
-		assert num_features_in_testimg == num_features,\
-		"num features {0}, num features in test img {1}".format( num_features, num_test_img_features )
-
-		# create a view
-		sig_matrix = trainingset.data_list[ class_index ]
-		wnd_sum = 0
-		num_collisions = 0
-
-		#print "num tiles: {0}, num_test_img_features {1}".format( num_tiles, num_test_img_features )
-		for tile_index in range( num_tiles ):
-			#print "{0} ".format( tile_index )
-			# epsilon checking for each feature is too expensive
-			# FIXME: Do quick and dirty summation check until we can figure something else out
-			dists = np.absolute( sig_matrix[ tile_index ] - testimg )
-			w_dist = np.sum( dists )
-			if w_dist < epsilon:
-				num_collisions += 1
-				continue
-			dists = np.multiply( weights_squared, np.square( dists ) )
-			w_dist = np.sum( dists )
-			# The exponent -5 is the "5" in "WND5"
-			class_similarities[ class_index ] += w_dist ** -5
-		#print "\n"
-
-		class_similarities[ class_index ] /= ( num_tiles - num_collisions )
-
-	result = DiscreteImageClassificationResult()
-	norm_factor = sum( class_similarities )
-	result.normalization_factor = norm_factor 
-	result.marginal_probabilities = [ x / norm_factor for x in class_similarities ]
-
-	return result
-#=================================================================================
-def ClassifyOneSignatureWND5( training_set, test_sig, feature_weights ):
-	"""
-	@brief: A wrapper function for _ClassifyOneImageWND5 that does dummyproofing
-	@return: classification result
-	@returntype: ImageClassificationResult()
-	"""
-
-	# check to see if sig is valid
-	test_sig.is_valid()
-
-	train_set_len = len( training_set.featurenames_list )
-	test_set_len = len( test_sig.names )
-	feature_weights_len = len( feature_weights.names )
-
-	if train_set_len != test_set_len or \
-	   train_set_len != feature_weights_len or \
-	   test_set_len  != feature_weights_len:
-		raise ValueError( "Can't classify: one or more of the inputs has a different number of" \
-		 "features than the others: training set={0}, test set={1}, feature weights={2}".format( \
-				train_set_len, test_set_len, feature_weights_len ) + ". Perform a feature reduce." )
-
-	print "Classifying image '{0}' ({1} features) against test set '{2}' ({3} features)".\
-	   format( test_sig.path_to_source_image, train_set_len, training_set.source_path, test_set_len )
-
-	result = _ClassifyOneImageWND5( training_set, test_sig.values, feature_weights.values )
-
-	result.path_to_source_image = test_sig.path_to_source_image
-	marg_probs = np.array( result.marginal_probabilities )
-	result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
-	# interpolated value, if applicable
-	if training_set.interpolation_coefficients is not None:
-		interp_val = np.sum( marg_probs * training_set.interpolation_coefficients )
-		result.interpolated_value = interp_val
-
-	return result
-
-#=================================================================================
-def ClassifyDiscreteTestSet( training_set, test_set, feature_weights ):
-	"""
-	@remarks - all three input arguments must have the same number of features,
-	and in the same order for this to work properly
-	FIXME: What happens when the ground truth is not known? Currently they would all be shoved
-	       into class 1, might not be a big deal since class name should be something
-	       like "UNKNOWN"
-	"""
-
-	train_set_len = len( training_set.featurenames_list )
-	test_set_len = len( test_set.featurenames_list )
-	feature_weights_len = len( feature_weights.names )
-
-	if train_set_len != test_set_len or \
-	   train_set_len != feature_weights_len or \
-	   test_set_len  != feature_weights_len:
-		raise ValueError( "Can't classify: one or more of the inputs has a different number of" \
-				"features than the others: training set={0}, test set={1}, feature weights={2}".format( \
-				train_set_len, test_set_len, feature_weights_len ) + ". Perform a feature reduce." )
-
-	print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
-	      format( test_set.source_path, test_set_len, training_set.source_path, train_set_len )
-
-	column_header = "image\tnorm. fact.\t"
-	column_header +=\
-			"".join( [ "p(" + class_name + ")\t" for class_name in training_set.classnames_list ] )
-
-	column_header += "act. class\tpred. class\tpred. val."
-	print column_header
-
-	interp_coeffs = None
-	if training_set.interpolation_coefficients:
-		interp_coeffs = np.array( training_set.interpolation_coefficients )
-
-	split_statistics = DiscreteTestSetClassificationResult( training_set, test_set )
-
-	for test_class_index in range( test_set.num_classes ):
-		num_class_imgs, num_class_features = test_set.data_list[ test_class_index ].shape
-		for test_image_index in range( num_class_imgs ):
-			one_image_features = test_set.data_list[ test_class_index ][ test_image_index,: ]
-			result = _ClassifyOneImageWND5( training_set, one_image_features, feature_weights.values )
-
-			result.path_to_source_image = test_set.imagenames_list[ test_class_index ][ test_image_index ]
-			result.ground_truth_class_name = test_set.classnames_list[ test_class_index ]
-			marg_probs = np.array( result.marginal_probabilities )
-			result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
-			# interpolated value, if applicable
-			if interp_coeffs is not None:
-				interp_val = np.sum( marg_probs * interp_coeffs )
-				result.interpolated_value = interp_val
-
-			result.PrintToSTDOUT( line_item = True )
-			split_statistics.individual_results.append( result )
-
-	return split_statistics
-
-#=================================================================================
-def ClassifyContinuousTestSet( test_set, feature_weights, quiet = False ):
-	"""
-	@remarks - all three input arguments must have the same number of features,
-	and in the same order for this to work properly
-	"""
-
-	test_set_len = len( test_set.featurenames_list )
-	feature_weights_len = len( feature_weights.values )
-
-	if test_set_len != feature_weights_len:
-		raise ValueError( "Can't classify: one or more of the inputs has a different number of" \
-				"features than the others: test set={0}, feature weights={1}".format( \
-				test_set_len, feature_weights_len ) + ". Perform a feature reduce." )
-
-	if not quiet:
-		print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
-					format( test_set.source_path, test_set_len, \
-					feature_weights.associated_training_set.source_path, feature_weights_len )
-
-	if not quiet:
-		column_header = "image\tground truth\tpred. val."
-		print column_header
-
-	split_statistics = ContinuousTestSetClassificationResult( feature_weights, test_set )
-	if test_set.ground_truths is not None and len( test_set.ground_truths ) != 0:
-		split_statistics.ground_truth_values = test_set.ground_truths
-
-	for test_image_index in range( test_set.num_images ):
-		one_image_features = test_set.data_matrix[ test_image_index,: ]
-		result = _ClassifyOneImageContinuous( one_image_features, feature_weights )
-
-		result.path_to_source_image = test_set.imagenames_list[ test_image_index ]
-		result.ground_truth_value = test_set.ground_truths[ test_image_index ]
-		split_statistics.predicted_values.append( result.predicted_value )
+		if test_set_len != feature_weights_len:
+			raise ValueError( "Can't classify: one or more of the inputs has a different number of" \
+					"features than the others: test set={0}, feature weights={1}".format( \
+					test_set_len, feature_weights_len ) + ". Perform a feature reduce." )
 
 		if not quiet:
-			result.PrintToSTDOUT( line_item = True )
-		split_statistics.individual_results.append( result )
+			print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
+						format( test_set.source_path, test_set_len, \
+						feature_weights.associated_training_set.source_path, feature_weights_len )
 
-	split_statistics.GenerateStats()
-	return split_statistics
+		if not quiet:
+			column_header = "image\tground truth\tpred. val."
+			print column_header
+
+		batch_result = cls( feature_weights, test_set )
+		if test_set.ground_truths is not None and len( test_set.ground_truths ) != 0:
+			batch_result.ground_truth_values = test_set.ground_truths
+
+		for test_image_index in range( test_set.num_images ):
+			one_image_features = test_set.data_matrix[ test_image_index,: ]
+			result = ContinuousImageClassificationResult._LinearRegression( one_image_features, feature_weights )
+
+			result.source_file = test_set.imagenames_list[ test_image_index ]
+			result.ground_truth_value = test_set.ground_truths[ test_image_index ]
+			batch_result.predicted_values.append( result.predicted_value )
+
+			if not quiet:
+				result.PrintToSTDOUT( line_item = True )
+			batch_result.individual_results.append( result )
+
+		batch_result.GenerateStats()
+		return batch_result
+
+
+#============================================================================
+class ClassificationExperimentResult( ClassificationResult ):
+	"""A container object for BatchClassificationResults and their associated statistics"""
+
+	list_of_batch_results = None
+
+	#: A dictionary where the name is the key, and the value is a list of individual results
+	accumulated_individual_results = None
+	individual_stats = None
+
+	def __init__(self):
+		self.list_of_batch_results = []
+
+	def GenerateStats( self ):
+
+		if self.list_of_batch_results == 0:
+			raise ValueError( 'No batch results to analyze' )
+
+		self.accumulated_individual_results = {}
+		self.individual_stats = {}
+
+		#FIXME: could there be a way to identify which result comes from which batch?
+		for batch in self.list_of_batch_results:
+			for result in batch.individual_results:
+				if not result.source_file in self.accumulated_individual_results:
+					self.accumulated_individual_results[ result.source_file ] = []
+				self.accumulated_individual_results[ result.source_file ].append( result )
+	
+		for filename in self.accumulated_individual_results:
+			vals = np.array( [result.predicted_value for result in self.accumulated_individual_results[filename] ])
+			self.individual_stats[filename] = ( len(vals)+1, np.min(vals), np.mean(vals), \
+			                                    np.max(vals), np.std(vals) ) 
+
+	def PrintToSTDOUT( self, line_item = False ):
+
+		if self.accumulated_individual_results == None:
+			self.GenerateStats()
+
+
+		print "filename\tcount\tmin\tmean\tmax\tstdev"
+		print "========\t=====\t===\t====\t===\t====="
+		outstr = "{0}\t{1}\t{2:0.3f}\t{3:0.3f}\t{4:0.3f}\t{5:0.3f}"
+		for filename in sorted( self.accumulated_individual_results.iterkeys() ):
+			if line_item:
+				for result in self.accumulated_individual_results[ filename ]:
+					result.PrintToSTDOUT( line_item = True )
+			print outstr.format( filename, *self.individual_stats[ filename ] )
+
+
+
 #============================================================================
 def UnitTest1():
 	
@@ -2306,8 +2372,8 @@ def UnitTest4( max_features = 20):
 		reduced_training_set = mommy_training_set.FeatureReduce( reduced_feature_weights.names )
 		normalized_sig = sig.Normalize( reduced_training_set )
 
-		result = ClassifyOneSignatureWND5( reduced_training_set, normalized_sig,\
-																			 reduced_feature_weights )
+		result = DiscreteImageClassificationResult.NewWND5( reduced_training_set, \
+		              normalized_sig, reduced_feature_weights )
 		result.PrintToSTDOUT()
 		t2 = time.time()
 		timings.append( t2 - t1 )
@@ -2368,7 +2434,7 @@ def UnitTest7(max_features = 50):
 
 
 #================================================================
-def UnitTest8( max_num_graphs = 10 ):
+def UnitTest8( max_num_graphs = 11 ):
 	"""Generate a series of graphs which show how interpolated values change
 	as a function of the number of features used in classification"""
 
@@ -2377,7 +2443,7 @@ def UnitTest8( max_num_graphs = 10 ):
 	full_ts = DiscreteTrainingSet.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class_normalized_2873_features.fit.pickled" )
 	full_fisher_weights = FisherFeatureWeights.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/feature_weights_len_2873.weights.pickled" )
 
-	split_results = []
+	experiment = ClassificationExperimentResult()
 
 	max_num_features = 2873 * 0.10
 
@@ -2390,20 +2456,21 @@ def UnitTest8( max_num_graphs = 10 ):
 
 		reduced_ts = full_ts.FeatureReduce( weights_subset.names )
 
-		split_result = ClassifyDiscreteTestSet( reduced_ts, reduced_ts, weights_subset )
-		split_result.PrintToSTDOUT()
-		split_results.append( split_result )
+		batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, weights_subset, batch_number = i )
+		batch_result.PrintToSTDOUT()
+		experiment.list_of_batch_results.append( batch_result )
 
-		x_vals = [ float( result.ground_truth_class_name ) for result in split_result.individual_results ]
-		y_vals = [ result.interpolated_value for result in split_result.individual_results ]
+		#x_vals = [ float( result.ground_truth_class_name ) for result in batch_result.individual_results ]
+		#y_vals = [ result.predicted_value for result in batch_result.individual_results ]
 
-		coords = zip( x_vals, y_vals )
-		sorted_coords = sorted( coords, sort_func )
+		#coords = zip( x_vals, y_vals )
+		#sorted_coords = sorted( coords, sort_func )
 		
 		# we want lists, not tuples!
-		x_vals, y_vals = [ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_coords ) ]
+		#x_vals, y_vals = [ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_coords ) ]
 
-		pyplot.plot( x_vals, y_vals ) 
+		#pyplot.plot( x_vals, y_vals ) 
+	experiment.PrintToSTDOUT()
 
 
 
@@ -2420,6 +2487,6 @@ if __name__=="__main__":
 	# UnitTest3()
 	#UnitTest4()
 	#UnitTest5()
-	UnitTest7()
-	#UnitTest8()
+	#UnitTest7()
+	UnitTest8()
 	# pass
