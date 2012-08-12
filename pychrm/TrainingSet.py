@@ -1842,6 +1842,7 @@ class ClassificationResult( object ):
 #=================================================================================
 class ImageClassificationResult( ClassificationResult ):
 	source_file = None
+	ground_truth_value = None
 	predicted_value = None
 	batch_number = None
 
@@ -1856,6 +1857,8 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 
 	normalization_factor = None
 	marginal_probabilities = []
+	#: predicted_class_name will always be a string
+	#: the interpolated value, if applicable, gets stored in self.predicted_vlaue
 	predicted_class_name = None
 	ground_truth_class_name = None
 
@@ -1874,7 +1877,7 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 			output_str += "\t"
 			# actual class:
 			if self.ground_truth_class_name:
-				output_str += self.ground_truth_class_name + "\t"
+				output_str += "{0}\t".format( self.ground_truth_class_name )
 			else:
 				output_str += "*\t"
 			# predicted class:
@@ -1997,7 +2000,6 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 
 #=================================================================================
 class ContinuousImageClassificationResult( ImageClassificationResult ):
-	ground_truth_value = None
 
 	#==============================================================
 	def PrintToSTDOUT( self, line_item = False ):
@@ -2052,35 +2054,56 @@ class BatchClassificationResult( ClassificationResult ):
 
 	training_set = None
 	test_set = None
+	feature_weights = None
 	figure_of_merit = None
 	individual_results = None
+	predicted_values = None
+	ground_truth_values = None
 
-	num_classifications = 0
+	num_classifications = None
 
-	def __init__( self, training_set, test_set ):
+	def __init__( self, training_set = None, test_set = None, feature_weights = None ):
 		self.training_set = training_set
 		self.test_set = test_set
+		self.feature_weights = feature_weights
 		self.individual_results = []
 
-	def TrainTestSplit( self ):
-		raise NotImplementedError
+		self.num_classifications = 0
 
+	def RankOrderSort( self ):
+		value_pairs = zip( self.ground_truth_values, self.predicted_values )
+
+		# sort by ground_truth value first, predicted value second
+		sort_func = lambda A, B: cmp( A[0], B[0] ) if A[0] != B[0] else cmp( A[1], B[1] ) 
+
+		sorted_pairs = sorted( value_pairs, sort_func )
+		
+		# we want lists, not tuples!
+		self.ground_truth_values, self.predicted_values =\
+			[ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_pairs ) ]	
 
 
 #=================================================================================
 class DiscreteBatchClassificationResult( BatchClassificationResult ):
 	"""@brief This class's "figure_of_merit" is classification accuracy"""
-	num_correct_classifications = 0
+	num_correct_classifications = None
+
+	confusion_matrix = None
+	average_similarity_matrix = None
+	average_class_probability_matrix = None
 
 	def __init__( self, training_set, test_set ):
 		# call parent constructor
 		super( DiscreteBatchClassificationResult, self ).__init__( training_set, test_set )
 
 	def GenerateStats( self ):
+		self.num_correct_classifications = 0
 		for indiv_result in self.individual_results:
 			self.num_classifications += 1
 			if indiv_result.ground_truth_class_name == indiv_result.predicted_class_name:
 				self.num_correct_classifications += 1
+
+		#FIXME: Create confusion, similarity, and class probability matrices
 
 		self.figure_of_merit = float( self.num_correct_classifications) / float( self.num_classifications )
 
@@ -2089,7 +2112,10 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 			self.GenerateStats()
 
 		print "==========================================="
-		print "Classification accuracy for this split: {0}".format( self.figure_of_merit )
+		print "Batch summary:"
+		print "Total number of classifications: {0}".format( self.num_classifications )
+		print "Total number of CORRECT classifications: {0}".format( self.num_correct_classifications )
+		print "Total classification accuracy: {0:0.4f}\n\n".format( self.figure_of_merit )
 
 
 	#=====================================================================
@@ -2124,11 +2150,13 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		column_header += "act. class\tpred. class\tpred. val."
 		print column_header
 
+		batch_result = cls( training_set, test_set )
+
 		interp_coeffs = None
 		if training_set.interpolation_coefficients:
 			interp_coeffs = np.array( training_set.interpolation_coefficients )
-
-		split_statistics = cls( training_set, test_set )
+			batch_result.predicted_values = []
+			batch_result.ground_truth_values = []
 
 		for test_class_index in range( test_set.num_classes ):
 			num_class_imgs, num_class_features = test_set.data_list[ test_class_index ].shape
@@ -2146,11 +2174,14 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 				if interp_coeffs is not None:
 					interp_val = np.sum( marg_probs * interp_coeffs )
 					result.predicted_value = interp_val
+					result.ground_truth_value = interp_coeffs[ test_class_index ]
+					batch_result.predicted_values.append( interp_val )
+					batch_result.ground_truth_values.append( interp_coeffs[ test_class_index ] )
 
 				result.PrintToSTDOUT( line_item = True )
-				split_statistics.individual_results.append( result )
+				batch_result.individual_results.append( result )
 
-		return split_statistics
+		return batch_result
 
 #=================================================================================
 class ContinuousBatchClassificationResult( BatchClassificationResult ):
@@ -2169,23 +2200,13 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		super( ContinuousBatchClassificationResult, self ).__init__( training_set, test_set )
 		self.predicted_values = []
 
+	#=====================================================================
 	def GenerateStats( self ):
 		#FIXME: how to calculate p-value???
 		self.num_classifications = len( self.individual_results )
 
 		if self.ground_truth_values is not None and \
 		     len( self.ground_truth_values ) == len( self.predicted_values):
-
-			value_pairs = zip( self.ground_truth_values, self.predicted_values )
-
-			# sort by ground_truth value first, predicted value second
-			sort_func = lambda A, B: cmp( A[0], B[0] ) if A[0] != B[0] else cmp( A[1], B[1] ) 
-
-			sorted_pairs = sorted( value_pairs, sort_func )
-			
-			# we want lists, not tuples!
-			self.ground_truth_values, self.predicted_values =\
-				[ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_pairs ) ]	
 
 			gt = np.array( self.ground_truth_values )
 			pv = np.array( self.predicted_values )
@@ -2203,7 +2224,7 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 			self.spearman_coeff, self.spearman_p_value =\
 			       stats.spearmanr( self.ground_truth_values, self.predicted_values )
 
-
+	#=====================================================================
 	def PrintToSTDOUT( self ):
 		if self.figure_of_merit == None:
 			self.GenerateStats()
@@ -2216,7 +2237,7 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		#print "Standard error for this split: {0}".format( self.std_err )
 
 
-	#=================================================================================
+	#=====================================================================
 	@classmethod
 	def New( cls, test_set, feature_weights, quiet = False ):
 		"""
@@ -2262,52 +2283,134 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 
 
 #============================================================================
-class ClassificationExperimentResult( ClassificationResult ):
-	"""A container object for BatchClassificationResults and their associated statistics"""
+class ClassificationExperimentResult( BatchClassificationResult ):
+	"""A container object for BatchClassificationResults and their associated statistics
 
-	list_of_batch_results = None
+	N.B. Here, the list self.individual_results that is inherited from
+	BatchClassificationResult is of type BatchClassificationResult, not of
+	ImageClassificationResult
+	"""
 
 	#: A dictionary where the name is the key, and the value is a list of individual results
 	accumulated_individual_results = None
+
+	#: keep track of stats related to predicted values for reporting purposes
 	individual_stats = None
 
-	def __init__(self):
-		self.list_of_batch_results = []
+	#=====================================================================
+	def PredictedValueAnalysis( self ):
+		"""This only works if the ImageClassificationResults contain predicted/interpolated values"""
 
-	def GenerateStats( self ):
-
-		if self.list_of_batch_results == 0:
+		if self.individual_results == 0:
 			raise ValueError( 'No batch results to analyze' )
+
+		self.predicted_values = []
+		self.ground_truth_values = []
 
 		self.accumulated_individual_results = {}
 		self.individual_stats = {}
 
-		#FIXME: could there be a way to identify which result comes from which batch?
-		for batch in self.list_of_batch_results:
+		for batch in self.individual_results:
 			for result in batch.individual_results:
 				if not result.source_file in self.accumulated_individual_results:
+					# initialize list of individual results for this file
 					self.accumulated_individual_results[ result.source_file ] = []
 				self.accumulated_individual_results[ result.source_file ].append( result )
 	
 		for filename in self.accumulated_individual_results:
 			vals = np.array( [result.predicted_value for result in self.accumulated_individual_results[filename] ])
-			self.individual_stats[filename] = ( len(vals)+1, np.min(vals), np.mean(vals), \
+			self.ground_truth_values.append( self.accumulated_individual_results[filename][0].ground_truth_value )
+			self.predicted_values.append( np.mean(vals) )
+			self.individual_stats[filename] = ( len(vals), np.min(vals), np.mean(vals), \
 			                                    np.max(vals), np.std(vals) ) 
-
-	def PrintToSTDOUT( self, line_item = False ):
-
-		if self.accumulated_individual_results == None:
-			self.GenerateStats()
-
 
 		print "filename\tcount\tmin\tmean\tmax\tstdev"
 		print "========\t=====\t===\t====\t===\t====="
-		outstr = "{0}\t{1}\t{2:0.3f}\t{3:0.3f}\t{4:0.3f}\t{5:0.3f}"
+		mp = "  "
+		lineoutstr = "\tsplit {split_num} - predicted: {pred_class}, actual: {actual_class}. Norm dists: ( {norm_dists} ) Interp val: {interp_val:0.3f}"
+		outstr = "\t---> Tested {0} times, low {1:0.3f}, mean {2:0.3f}, high {3:0.3f}, std dev {4:0.3f}"
 		for filename in sorted( self.accumulated_individual_results.iterkeys() ):
-			if line_item:
-				for result in self.accumulated_individual_results[ filename ]:
-					result.PrintToSTDOUT( line_item = True )
-			print outstr.format( filename, *self.individual_stats[ filename ] )
+			print 'File "' + filename + '"'
+			for result in self.accumulated_individual_results[ filename ]:
+				marg_probs = [ "{0:0.3f}".format( num ) for num in result.marginal_probabilities ]
+
+				print lineoutstr.format( split_num = result.batch_number, \
+				                         pred_class = result.predicted_class_name, \
+				                         actual_class = result.ground_truth_value, \
+				                         norm_dists = mp.join( marg_probs ), \
+				                         interp_val = result.predicted_value )
+			print outstr.format( *self.individual_stats[ filename ] )
+
+
+#============================================================================
+class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
+	"""A container object for BatchClassificationResults and their associated statistics
+
+	In this subclass, the figure of merit is classification accuracy"""
+
+	num_correct_classifications = None
+
+	confusion_matrix = None
+	average_similarity_matrix = None
+	average_class_probability_matrix = None
+
+	#=====================================================================
+	def GenerateStats( self ):
+
+		self.num_correct_classifications = 0
+		for batch_result in self.individual_results:
+			for indiv_result in batch_result.individual_results:
+				self.num_classifications += 1
+				if indiv_result.ground_truth_class_name == indiv_result.predicted_class_name:
+					self.num_correct_classifications += 1
+
+		self.figure_of_merit = float( self.num_correct_classifications) / float( self.num_classifications )
+
+		#FIXME: Create confusion, similarity, and class probability matrices
+
+
+	#=====================================================================
+	def PrintToSTDOUT( self ):
+		if self.figure_of_merit == None:
+			self.GenerateStats()
+
+		print "==========================================="
+		print "Experiment summary:"
+		print "Number of batches: {0}".format( len( self.individual_results ) )
+		print "Total number of classifications: {0}".format( self.num_classifications )
+		print "Total number of CORRECT classifications: {0}".format( self.num_correct_classifications )
+		print "Total classification accuracy: {0:0.4f}\n".format( self.figure_of_merit )
+
+		print "Batch accuracies:"
+		print "-----------------"
+
+		count = 1
+		for batch_result in self.individual_results:
+			if batch_result.figure_of_merit == None:
+				batch_result.GenerateStats()
+			print "{0}\t{1:0.4f}".format( count, batch_result.figure_of_merit )
+			count += 1
+
+
+#============================================================================
+class BaseGraph( object ):
+	chart_title = None
+	file_name = None
+
+	def __init__( self, result ):
+		pass
+
+
+class KernelSmoothedDensityGraph( BaseGraph ):
+	def __init__( self, result ):
+		super( KernelSmoothedDensityGraph, self ).__init__( self, result )
+
+class RankOrderedPredictedValuesGraph( BaseGraph ):
+	def __init__( self, result ):
+		super( RankOrderedPredictedValuesGraph, self ).__init__( self, result )
+
+class FeatureTimingVersusAccuracyGraph( BaseGraph ):
+	pass
 
 
 
@@ -2388,24 +2491,24 @@ def UnitTest5( max_features = 20 ):
 	"""Generate an accuracy curve as a function of number of features used in classification."""
 
 	mommy_feature_weights = FisherFeatureWeights.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/feature_weights_len_2873.weights.pickled" )
-	mommy_training_set = TrainingSet.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/FacingL7class_normalized.fit.pickled" )
+	mommy_training_set = DiscreteTrainingSet.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/FacingL7class_normalized.fit.pickled" )
 
-	split_results = []
+	experiment = DiscreteClassificationExperimentResult( training_set = mommy_training_set,\
+	                                             test_set = mommy_training_set, \
+	                                             feature_weights = mommy_feature_weights )
 
 	for number_of_features_to_use in range( 1, max_features ):
 
 		reduced_feature_weights = mommy_feature_weights.Threshold( number_of_features_to_use )
 		reduced_training_set = mommy_training_set.FeatureReduce( reduced_feature_weights.names )
 
-		split_result = ClassifyDiscreteTestSet( reduced_training_set, reduced_training_set,\
+		split_result = DiscreteBatchClassificationResult.New( reduced_training_set, reduced_training_set,\
 																			 reduced_feature_weights )
 		split_result.PrintToSTDOUT()
-		split_results.append( split_result )
+		experiment.individual_results.results.append( split_result )
 
-	count = 1
-	for split_result in split_results:
-		print "{0}\t{1}".format( count, split_result.figure_of_merit )
-		count += 1
+
+	experiment.PrintToSTDOUT()
 
 #================================================================
 def UnitTest6():
@@ -2428,9 +2531,7 @@ def UnitTest7(max_features = 50):
 	#ts = ContinuousTrainingSet.NewFromFileOfFiles( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
 	#ts.PickleMe()
 	#ts = ContinuousTrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/continuous_data_set.fof.fit.pickled" )
-	weights = ContinuousFeatureWeights.NewOptimizedFromTrainingSet( ts )
-
-	
+	weights = ContinuousFeatureWeights.NewOptimizedFromTrainingSet( ts )	
 
 
 #================================================================
@@ -2443,12 +2544,11 @@ def UnitTest8( max_num_graphs = 11 ):
 	full_ts = DiscreteTrainingSet.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class_normalized_2873_features.fit.pickled" )
 	full_fisher_weights = FisherFeatureWeights.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/feature_weights_len_2873.weights.pickled" )
 
-	experiment = ClassificationExperimentResult()
+	experiment = DiscreteClassificationExperimentResult( training_set = full_ts,\
+	                                             test_set = full_ts, \
+	                                             feature_weights = full_fisher_weights )
 
 	max_num_features = 2873 * 0.10
-
-	# sort by ground_truth value first, predicted value second
-	sort_func = lambda A, B: cmp( A[0], B[0] ) if A[0] != B[0] else cmp( A[1], B[1] ) 
 
 	for i in range( 1, max_num_graphs ):
 		num_features_used = int( float( i ) / max_num_graphs * max_num_features )
@@ -2458,23 +2558,14 @@ def UnitTest8( max_num_graphs = 11 ):
 
 		batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, weights_subset, batch_number = i )
 		batch_result.PrintToSTDOUT()
-		experiment.list_of_batch_results.append( batch_result )
+		experiment.individual_results.append( batch_result )
 
-		#x_vals = [ float( result.ground_truth_class_name ) for result in batch_result.individual_results ]
-		#y_vals = [ result.predicted_value for result in batch_result.individual_results ]
-
-		#coords = zip( x_vals, y_vals )
-		#sorted_coords = sorted( coords, sort_func )
-		
-		# we want lists, not tuples!
-		#x_vals, y_vals = [ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_coords ) ]
-
-		#pyplot.plot( x_vals, y_vals ) 
-	experiment.PrintToSTDOUT()
-
-
-
+		#pyplot.plot( x_vals, y_vals )
 	
+	experiment.PrintToSTDOUT()
+	#experiment.PredictedValueAnalysis()
+
+
 #================================================================
 
 initialize_module()
