@@ -1545,6 +1545,11 @@ class ContinuousTrainingSet( TrainingSet ):
 	#: Ground truth numerical values accociated with each image
 	ground_truths = None
 
+	#: For continuous training sets that were created from discrete data
+	#FIXME: put these in the base class??
+	classnames_list = None
+	interpolation_coefficients = None
+
 	def __init__( self, data_dict = None):
 		"""
 		ContinuousTrainingSet constructor
@@ -1590,7 +1595,8 @@ class ContinuousTrainingSet( TrainingSet ):
 			num_classes = 0
 			num_features = 0
 
-			classnames_list = []
+			self.classnames_list = []
+			self.interpolation_coefficients = []
 
 			for line in fitfile:
 				if line_num is 0:
@@ -1607,9 +1613,10 @@ class ContinuousTrainingSet( TrainingSet ):
 					pass # skip a line
 				elif line_num <= ( num_features + 3 + num_classes ):
 					line = line.strip()
+					self.classnames_list.append( line )
 					m = re.search( r'(\d*\.?\d+)', line )
 					if m:
-						classnames_list.append( float( m.group(1) ) )
+						self.interpolation_coefficients.append( float( m.group(1) ) )
 					else:
 						raise ValueError( "Can't create continuous training set, one of the class names " \
 								"'{0}' is not able to be interpreted as a number.".format( line ) )
@@ -1621,7 +1628,7 @@ class ContinuousTrainingSet( TrainingSet ):
 						split_line = line.strip().rsplit( " ", 1)
 						zero_indexed_class_id = int( split_line[1] ) - 1
 						tmp_string_data_list.append( split_line[0] )
-						new_ts.ground_truths.append( classnames_list[ zero_indexed_class_id ] )
+						new_ts.ground_truths.append( self.interpolation_coefficients[ zero_indexed_class_id ] )
 					else:
 						image_pathname = line.strip()
 						new_ts.imagenames_list.append( image_pathname )
@@ -1768,8 +1775,8 @@ class ContinuousTrainingSet( TrainingSet ):
 
 		# copy everything but the signature data
 		reduced_ts = ContinuousTrainingSet()
-		reduced_ts.source_path = self.source_path + "(feature reduced)"
 		new_num_features = len( requested_features )
+		reduced_ts.source_path = self.source_path + "({0} features)".format( new_num_features )
 		reduced_ts.num_features = new_num_features
 		reduced_ts.num_images = self.num_images
 		reduced_ts.imagenames_list = self.imagenames_list[:] # [:] = deepcopy
@@ -1841,6 +1848,8 @@ class ClassificationResult( object ):
 
 #=================================================================================
 class ImageClassificationResult( ClassificationResult ):
+
+	name = None
 	source_file = None
 	ground_truth_value = None
 	predicted_value = None
@@ -1856,11 +1865,14 @@ class ImageClassificationResult( ClassificationResult ):
 class DiscreteImageClassificationResult( ImageClassificationResult ):
 
 	normalization_factor = None
-	marginal_probabilities = []
+	marginal_probabilities = None
 	#: predicted_class_name will always be a string
 	#: the interpolated value, if applicable, gets stored in self.predicted_vlaue
 	predicted_class_name = None
 	ground_truth_class_name = None
+
+	def __init__( self ):
+		self.marginal_probabilities = []
 
 	#==============================================================
 	def PrintToSTDOUT( self, line_item = False ):
@@ -2015,7 +2027,7 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 			else:
 				output_str += "*\t"
 			# predicted class:
-			output_str += str( self.predicted_value ) + "\t"
+			output_str += str( self.predicted_value ) + "\t:03d"
 			print output_str
 		else:
 			print "Image:             \t{0}".format( self.source_file )
@@ -2052,6 +2064,7 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 class BatchClassificationResult( ClassificationResult ):
 	"""A container object for individual ImageClassificationResult instances"""
 
+	name = None
 	training_set = None
 	test_set = None
 	feature_weights = None
@@ -2120,7 +2133,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 	#=====================================================================
 	@classmethod
-	def New( cls, training_set, test_set, feature_weights, batch_number = None ):
+	def New( cls, training_set, test_set, feature_weights, batch_number = None, batch_name = None):
 		"""
 		@remarks - all three input arguments must have the same number of features,
 		and in the same order for this to work properly
@@ -2151,6 +2164,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		print column_header
 
 		batch_result = cls( training_set, test_set )
+		batch_result.name = batch_name
 
 		interp_coeffs = None
 		if training_set.interpolation_coefficients:
@@ -2168,6 +2182,8 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 				result.ground_truth_class_name = test_set.classnames_list[ test_class_index ]
 				if not batch_number is None:
 					result.batch_number = batch_number
+				if not batch_name is None:
+					result.name = batch_name
 				marg_probs = np.array( result.marginal_probabilities )
 				result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
 				# interpolated value, if applicable
@@ -2324,10 +2340,9 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 			self.individual_stats[filename] = ( len(vals), np.min(vals), np.mean(vals), \
 			                                    np.max(vals), np.std(vals) ) 
 
-		print "filename\tcount\tmin\tmean\tmax\tstdev"
-		print "========\t=====\t===\t====\t===\t====="
+		print "\n\nIndividual results\n========================\n"
 		mp = "  "
-		lineoutstr = "\tsplit {split_num} - predicted: {pred_class}, actual: {actual_class}. Norm dists: ( {norm_dists} ) Interp val: {interp_val:0.3f}"
+		lineoutstr = "\tsplit {split_num:02d} '{batch_name}': predicted: {pred_class}, actual: {actual_class}. Norm dists: ( {norm_dists} ) Interp val: {interp_val:0.3f}"
 		outstr = "\t---> Tested {0} times, low {1:0.3f}, mean {2:0.3f}, high {3:0.3f}, std dev {4:0.3f}"
 		for filename in sorted( self.accumulated_individual_results.iterkeys() ):
 			print 'File "' + filename + '"'
@@ -2335,6 +2350,7 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 				marg_probs = [ "{0:0.3f}".format( num ) for num in result.marginal_probabilities ]
 
 				print lineoutstr.format( split_num = result.batch_number, \
+				                         batch_name = result.name, \
 				                         pred_class = result.predicted_class_name, \
 				                         actual_class = result.ground_truth_value, \
 				                         norm_dists = mp.join( marg_probs ), \
@@ -2375,41 +2391,131 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 			self.GenerateStats()
 
 		print "==========================================="
-		print "Experiment summary:"
+		print "Experiment name: {0}".format( self.name )
+		print "Summary:"
 		print "Number of batches: {0}".format( len( self.individual_results ) )
 		print "Total number of classifications: {0}".format( self.num_classifications )
 		print "Total number of CORRECT classifications: {0}".format( self.num_correct_classifications )
 		print "Total classification accuracy: {0:0.4f}\n".format( self.figure_of_merit )
 
-		print "Batch accuracies:"
-		print "-----------------"
+		print "Batch Accuracies:"
+		print "#\tname\tclassification accuracy"
+		print "------------------------------------"
 
 		count = 1
 		for batch_result in self.individual_results:
 			if batch_result.figure_of_merit == None:
 				batch_result.GenerateStats()
-			print "{0}\t{1:0.4f}".format( count, batch_result.figure_of_merit )
+			print "{0}\t\"{1}\"\t{2:0.4f}".format( count, batch_result.name, batch_result.figure_of_merit )
 			count += 1
 
 
 #============================================================================
-class BaseGraph( object ):
+class PredictedValuesGraph( object ):
+
+	# general stuff:
 	chart_title = None
 	file_name = None
+	batch_result = None
+
+	# pyplot-specific stuff
+	figure = None
+	main_axes = None
+
+	# members concerned with class-dependent figures 
+	grouped_coords = None
+	num_classes = None
+	classnames_list = None
+	class_values = None
 
 	def __init__( self, result ):
-		pass
+		self.batch_result = result
+		self.grouped_coords = {}
+
+		self.classnames_list = result.training_set.classnames_list
+		self.class_values = result.training_set.interpolation_coefficients
+
+		#FIXME: implement user-definable bin edges
+
+		result.RankOrderSort()
+		whole_list = zip( result.ground_truth_values, result.predicted_values )
+
+		class_index = 0
+		for class_name in self.classnames_list:
+			self.grouped_coords[ class_name ] = []
+			for coords in whole_list:
+				if coords[0] == self.class_values[ class_index ]:
+					self.grouped_coords[ class_name ].append( coords )
+			class_index += 1
 
 
-class KernelSmoothedDensityGraph( BaseGraph ):
-	def __init__( self, result ):
-		super( KernelSmoothedDensityGraph, self ).__init__( self, result )
+	def RankOrderedPredictedValuesGraph( self, chart_title, file_path ):
 
-class RankOrderedPredictedValuesGraph( BaseGraph ):
-	def __init__( self, result ):
-		super( RankOrderedPredictedValuesGraph, self ).__init__( self, result )
+		print "Creating rank-ordered predicted values graph for batch \"{0}\"".format( self.batch_result.name )
 
-class FeatureTimingVersusAccuracyGraph( BaseGraph ):
+		from matplotlib import pyplot
+
+		color = iter(['r', 'g', 'b', 'c', 'm', 'y', 'k'])
+
+		self.figure = pyplot.figure()
+		self.main_axes = self.figure.add_subplot(111)
+		self.chart_title = chart_title
+		self.main_axes.set_title( chart_title )
+		self.main_axes.set_xlabel( 'count' )
+		self.main_axes.set_ylabel( 'Predicted Value Scores' )
+
+		abscissa_index = 1
+
+		for class_name in self.classnames_list:
+			ground_truth_vals, predicted_vals = zip( *self.grouped_coords[ class_name ] )
+			x_vals = [ i + abscissa_index for i in range( len( ground_truth_vals ) ) ]
+			self.main_axes.scatter( x_vals, predicted_vals, color = next( color ), marker = 'o', label = class_name )
+			abscissa_index += len( ground_truth_vals )
+
+		# FIXME: put legend in bottom left
+		self.main_axes.legend( loc = 'lower right')
+		self.figure.savefig( file_path )
+
+		print "...saved to file {0}.".format( file_path )
+		
+	def KernelSmoothedDensityGraph( self, chart_title, file_path ):
+		"""Uses scipy.stats.gaussian_kde """
+
+		print "Creating kernel-smoothed probability density estimate graph for batch \"{0}\"".format( self.batch_result.name )
+
+		from matplotlib import pyplot
+
+		color = iter(['r', 'g', 'b', 'c', 'm', 'y', 'k'])
+
+		self.figure = pyplot.figure()
+		self.main_axes = self.figure.add_subplot(111)
+		self.chart_title = chart_title
+		self.main_axes.set_title( chart_title )
+		self.main_axes.set_xlabel( 'Age score' )
+		self.main_axes.set_ylabel( 'Probability density' )
+
+		from scipy import stats
+
+		for class_name in self.classnames_list:
+			ground_truth_vals, predicted_vals = zip( *self.grouped_coords[ class_name ] )
+
+			pred_vals = np.array( predicted_vals )
+			lobound = pred_vals.min()
+			hibound = pred_vals.max()
+			kernel_smoother = stats.gaussian_kde( pred_vals )
+			intervals = np.mgrid[ lobound:hibound:100j ]
+			density_estimates = kernel_smoother.evaluate( intervals )
+			self.main_axes.plot( intervals, density_estimates, color = next( color ), linewidth = 3, label = class_name )
+
+		self.main_axes.legend()
+		self.figure.savefig( file_path )
+		print "...saved to file {0}.".format( file_path )
+
+class FeatureTimingVersusAccuracyGraph( object ):
+	pass
+
+class Dendrogram( object ):
+	"""Uses scipy.cluster"""
 	pass
 
 
@@ -2425,18 +2531,18 @@ def UnitTest1():
 
 	#big_ts = TrainingSet.NewFromFitFile( '/Users/chris/projects/josiah_worms_subset/trunk_train.fit' )
 	#big_ts.PickleMe()
-	big_ts = TrainingSet.NewFromPickleFile( '/Users/chris/projects/josiah_worms_subset/trunk_train.fit.pickled' )
+	big_ts = DiscreteTrainingSet.NewFromPickleFile( '/Users/chris/projects/josiah_worms_subset/trunk_train.fit.pickled' )
 	big_ts.featurenames_list = FeatureNameMap.TranslateToNewStyle( big_ts.featurenames_list )
 
 	reduced_ts = big_ts.FeatureReduce( weights.names )
 	reduced_ts.Normalize()
 	
-	ClassifyDiscreteTestSet( reduced_ts, reduced_ts, weights )
+	result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, weights )
 
 #=========================================================================
 def UnitTest2():
 
-	ts = TrainingSet.NewFromDirectory( '/home/colettace/projects/eckley_worms/TimeCourse',
+	ts = DiscreteTrainingSet.NewFromDirectory( '/home/colettace/projects/eckley_worms/TimeCourse',
 	                                   feature_set = "large" )
 	ts.PickleMe()
 	
@@ -2454,7 +2560,7 @@ def UnitTest4( max_features = 20):
 
 	import time
 	mommy_feature_weights = FisherFeatureWeights.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/feature_weights_len_2873.weights.pickled" )
-	mommy_training_set = TrainingSet.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/FacingL7class_normalized.fit.pickled" )
+	mommy_training_set = DiscreteTrainingSet.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/FacingL7class_normalized.fit.pickled" )
 
 	filename = "/home/eckleyd/ImageData/SortWorms/ScoredImages/2012-04-13/02/2012-04-13_11:57:50.tif"
 
@@ -2487,7 +2593,7 @@ def UnitTest4( max_features = 20):
 		count += 1
 
 #================================================================
-def UnitTest5( max_features = 20 ):
+def UnitTest5( max_features = 3 ):
 	"""Generate an accuracy curve as a function of number of features used in classification."""
 
 	mommy_feature_weights = FisherFeatureWeights.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/feature_weights_len_2873.weights.pickled" )
@@ -2507,14 +2613,13 @@ def UnitTest5( max_features = 20 ):
 		split_result.PrintToSTDOUT()
 		experiment.individual_results.results.append( split_result )
 
-
 	experiment.PrintToSTDOUT()
 
 #================================================================
 def UnitTest6():
 	"""test file of files functionality"""
-	#ts = TrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/continuous_data_set.fof" )
-	#ts.PickleMe()
+	ts = ContinuousTrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/continuous_data_set.fof" )
+	ts.PickleMe()
 	pass
 
 
@@ -2535,7 +2640,7 @@ def UnitTest7(max_features = 50):
 
 
 #================================================================
-def UnitTest8( max_num_graphs = 11 ):
+def UnitTest8():
 	"""Generate a series of graphs which show how interpolated values change
 	as a function of the number of features used in classification"""
 
@@ -2548,22 +2653,39 @@ def UnitTest8( max_num_graphs = 11 ):
 	                                             test_set = full_ts, \
 	                                             feature_weights = full_fisher_weights )
 
-	max_num_features = 2873 * 0.10
+	max_num_features = 2873 * 0.1
+	num_graphs = 20
+	feature_numbers = []
 
-	for i in range( 1, max_num_graphs ):
-		num_features_used = int( float( i ) / max_num_graphs * max_num_features )
+	# sample a wide variety of numbers of features
+	for i in range( 1, num_graphs/2 + 1 ):
+		feature_numbers.append( int( float( i ) / num_graphs * max_num_features * 0.1) )
+		feature_numbers.append( int( float( i ) / num_graphs * max_num_features ) )
+
+	i = 1
+
+	for num_features_used in sorted( feature_numbers ):
 		weights_subset = full_fisher_weights.Threshold( num_features_used )
 
 		reduced_ts = full_ts.FeatureReduce( weights_subset.names )
-
-		batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, weights_subset, batch_number = i )
+		name = "{0:03d} Features".format( num_features_used )
+		batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, \
+		               weights_subset, batch_number = i, batch_name = name )
 		batch_result.PrintToSTDOUT()
-		experiment.individual_results.append( batch_result )
+		grapher = PredictedValuesGraph( batch_result )
 
-		#pyplot.plot( x_vals, y_vals )
+		grapher.RankOrderedPredictedValuesGraph( \
+		             "FacingL7class Terminal Bulb Interp vals, {0} features".format( num_features_used ), \
+								 "RANK_ORDERED_term_bulb_{0:03d}_features".format( num_features_used ) )
+		grapher.KernelSmoothedDensityGraph( \
+		             "FacingL7class Terminal Bulb Interp vals, {0} features".format( num_features_used ), \
+								 "KS_DENSITY_term_bulb_{0:03d}_features".format( num_features_used ) )
+
+		experiment.individual_results.append( batch_result )
+		i += 1
 	
 	experiment.PrintToSTDOUT()
-	#experiment.PredictedValueAnalysis()
+	experiment.PredictedValueAnalysis()
 
 
 #================================================================
