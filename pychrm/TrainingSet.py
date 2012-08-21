@@ -2095,6 +2095,12 @@ class BatchClassificationResult( ClassificationResult ):
 		self.ground_truth_values, self.predicted_values =\
 			[ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_pairs ) ]	
 
+	# FIXME: Implement these!
+	def PickleMe( self ):
+		raise NotImplementedError
+	def NewFromPickleFile( self ):
+		raise NotImplementedError
+
 
 #=================================================================================
 class DiscreteBatchClassificationResult( BatchClassificationResult ):
@@ -2411,8 +2417,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 
 
 #============================================================================
-class PredictedValuesGraph( object ):
-
+class BaseGraph( object ):
 	# general stuff:
 	chart_title = None
 	file_name = None
@@ -2421,6 +2426,16 @@ class PredictedValuesGraph( object ):
 	# pyplot-specific stuff
 	figure = None
 	main_axes = None
+
+	def SaveToFile( self, filepath ):
+	
+		if self.figure == None:
+			raise ValueError( 'No figure to save!' )
+		self.figure.savefig( file_path )
+		print "...saved to file {0}.".format( file_path )
+			
+#============================================================================
+class PredictedValuesGraph( BaseGraph ):
 
 	# members concerned with class-dependent figures 
 	grouped_coords = None
@@ -2449,7 +2464,7 @@ class PredictedValuesGraph( object ):
 			class_index += 1
 
 
-	def RankOrderedPredictedValuesGraph( self, chart_title, file_path ):
+	def RankOrderedPredictedValuesGraph( self, chart_title ):
 
 		print "Creating rank-ordered predicted values graph for batch \"{0}\"".format( self.batch_result.name )
 
@@ -2474,11 +2489,8 @@ class PredictedValuesGraph( object ):
 
 		# FIXME: put legend in bottom left
 		self.main_axes.legend( loc = 'lower right')
-		self.figure.savefig( file_path )
-
-		print "...saved to file {0}.".format( file_path )
 		
-	def KernelSmoothedDensityGraph( self, chart_title, file_path ):
+	def KernelSmoothedDensityGraph( self, chart_title ):
 		"""Uses scipy.stats.gaussian_kde """
 
 		print "Creating kernel-smoothed probability density estimate graph for batch \"{0}\"".format( self.batch_result.name )
@@ -2508,12 +2520,59 @@ class PredictedValuesGraph( object ):
 			self.main_axes.plot( intervals, density_estimates, color = next( color ), linewidth = 3, label = class_name )
 
 		self.main_axes.legend()
-		self.figure.savefig( file_path )
-		print "...saved to file {0}.".format( file_path )
 
+#============================================================================
 class FeatureTimingVersusAccuracyGraph( object ):
-	pass
+	"""Generate a time curve as a function of number of features used
+	to classify a single image"""
+	timing_axes = None
 
+	def __init__( self, training_set, feature_weights, test_image_path, chart_title = None, max_num_features = 300):
+		import time
+		timings = []
+	
+		experiment = DiscreteClassificationExperimentResult( training_set = full_ts,\
+	                                             test_set = full_ts, \
+	                                             feature_weights = full_fisher_weights )
+		for number_of_features_to_use in range( 1, max_features ):
+			t1 = time.time()
+			reduced_feature_weights = feature_weights.Threshold( number_of_features_to_use )
+			sig = Signatures.NewFromFeatureNameList( test_image_path, reduced_feature_weights.names )
+			reduced_training_set = training_set.FeatureReduce( reduced_feature_weights.names )
+			normalized_sig = sig.Normalize( reduced_training_set )
+	
+			batch_result = DiscreteBatchClassificationResult.NewWND5( reduced_training_set, \
+			              normalized_sig, reduced_feature_weights )
+			batch_result.PrintToSTDOUT()
+			# FIXME: save intermediates
+			# batch_result.PickleMe()
+			t2 = time.time()
+			timings.append( t2 - t1 )
+			experiment.individual_results.append( batch_result )
+
+		from matplotlib import pyplot
+
+		x_vals = list( range( i, max_num_features ) )
+
+		self.figure = pyplot.figure()
+		self.main_axes = self.figure.add_subplot(111)
+		if chart_title = None:
+			self.chart_title = "Feature timing v. classification accuracy"	
+		else:
+			self.chart_title = chart_title
+		self.main_axes.set_title( self.chart_title )
+		self.main_axes.set_xlabel( 'Number of features' )
+		self.main_axes.set_ylabel( 'Classification accuracy', color='b' )
+		classification_accuracies = \
+		  [ batch_result.figure_of_merit for batch_result in experiment.individual_results ]
+
+		self.main_axes.plot( x_vals, classification_accuracies, color='b', linewidth=2 )
+	
+		self.timing_axes = self.main_axes.twinx()
+		self.timing_axes.set_ylabel( 'Time to calculate features', color='r' )
+		self.timing_axes.plot( x_vals, timings, color='r' )
+
+#============================================================================
 class Dendrogram( object ):
 	"""Uses scipy.cluster"""
 	pass
@@ -2554,43 +2613,17 @@ def UnitTest3():
 	sigs.WriteFeaturesToASCIISigFile( "pychrm_calculated.sig" )
 
 #================================================================
-def UnitTest4( max_features = 20):
-	"""Generate a time curve as a function of number of features used
-	to classify a single image"""
+def UnitTest4( ):
+	"""testing FeatureTimingVersusAccuracy class"""
 
-	import time
-	mommy_feature_weights = FisherFeatureWeights.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/feature_weights_len_2873.weights.pickled" )
-	mommy_training_set = DiscreteTrainingSet.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/FacingL7class_normalized.fit.pickled" )
+	fw = FisherFeatureWeights.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/feature_weights_len_2873.weights.pickled" )
+	ts = DiscreteTrainingSet.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/FacingL7class_normalized.fit.pickled" )
+	
+	path_to_image = "/home/eckleyd/ImageData/SortWorms/ScoredImages/2012-04-13/02/2012-04-13_11:57:50.tif"
+	
+	graph = FeatureTimingVersusAccuracyGraph( fw, ts, path_to_image, max_num_features = 10 )
+	graph.SaveToFile( "feature_timing_graph" )
 
-	filename = "/home/eckleyd/ImageData/SortWorms/ScoredImages/2012-04-13/02/2012-04-13_11:57:50.tif"
-
-	weights_to_be_tested = mommy_feature_weights.Threshold( max_features )
-
-	count = 1
-	for name in weights_to_be_tested.names:
-		print "{0}\t{1}".format( count, name )
-		count += 1
-
-	import sys; sys.exit()
-	timings = []
-
-	for number_of_features_to_use in range( 1, max_features ):
-		t1 = time.time()
-		reduced_feature_weights = mommy_feature_weights.Threshold( number_of_features_to_use )
-		sig = Signatures.NewFromFeatureNameList( filename, reduced_feature_weights.names )
-		reduced_training_set = mommy_training_set.FeatureReduce( reduced_feature_weights.names )
-		normalized_sig = sig.Normalize( reduced_training_set )
-
-		result = DiscreteImageClassificationResult.NewWND5( reduced_training_set, \
-		              normalized_sig, reduced_feature_weights )
-		result.PrintToSTDOUT()
-		t2 = time.time()
-		timings.append( t2 - t1 )
-
-	count = 1
-	for timing in timings:
-		print "{0}\t{1}".format( count, timing )
-		count += 1
 
 #================================================================
 def UnitTest5( max_features = 3 ):
@@ -2643,8 +2676,6 @@ def UnitTest7(max_features = 50):
 def UnitTest8():
 	"""Generate a series of graphs which show how interpolated values change
 	as a function of the number of features used in classification"""
-
-	from matplotlib import pyplot
 
 	full_ts = DiscreteTrainingSet.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class_normalized_2873_features.fit.pickled" )
 	full_fisher_weights = FisherFeatureWeights.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/feature_weights_len_2873.weights.pickled" )
