@@ -2111,9 +2111,9 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 	average_similarity_matrix = None
 	average_class_probability_matrix = None
 
-	def __init__( self, training_set, test_set ):
+	def __init__( self, training_set = None, test_set = None, feature_weights = None ):
 		# call parent constructor
-		super( DiscreteBatchClassificationResult, self ).__init__( training_set, test_set )
+		super( DiscreteBatchClassificationResult, self ).__init__( training_set, test_set, feature_weights)
 
 	def GenerateStats( self ):
 		self.num_correct_classifications = 0
@@ -2431,8 +2431,8 @@ class BaseGraph( object ):
 	
 		if self.figure == None:
 			raise ValueError( 'No figure to save!' )
-		self.figure.savefig( file_path )
-		print "...saved to file {0}.".format( file_path )
+		self.figure.savefig( filepath )
+		print "...saved to file {0}.".format( filepath )
 			
 #============================================================================
 class PredictedValuesGraph( BaseGraph ):
@@ -2462,6 +2462,9 @@ class PredictedValuesGraph( BaseGraph ):
 				if coords[0] == self.class_values[ class_index ]:
 					self.grouped_coords[ class_name ].append( coords )
 			class_index += 1
+
+	def SaveToFile( self, filepath ):
+		super( PredictedValuesGraph, self ).SaveToFile( filepath )
 
 
 	def RankOrderedPredictedValuesGraph( self, chart_title ):
@@ -2522,61 +2525,87 @@ class PredictedValuesGraph( BaseGraph ):
 		self.main_axes.legend()
 
 #============================================================================
-class FeatureTimingVersusAccuracyGraph( object ):
-	"""Generate a time curve as a function of number of features used
-	to classify a single image"""
+class FeatureTimingVersusAccuracyGraph( BaseGraph ):
+	"""A cost/benefit analysis of the number of features used and the time it takes to calculate
+	that number of features for a single image"""
 	timing_axes = None
 
 	def __init__( self, training_set, feature_weights, test_image_path, chart_title = None, max_num_features = 300):
 		import time
 		timings = []
 	
-		experiment = DiscreteClassificationExperimentResult( training_set = full_ts,\
-	                                             test_set = full_ts, \
-	                                             feature_weights = full_fisher_weights )
-		for number_of_features_to_use in range( 1, max_features ):
+		batch = DiscreteBatchClassificationResult( training_set, training_set, feature_weights) 
+		experiment = DiscreteClassificationExperimentResult( training_set, training_set, feature_weights)
+		for number_of_features_to_use in range( 1, max_num_features ):
+
+			# Time the creation and classification of a single signature
 			t1 = time.time()
-			reduced_feature_weights = feature_weights.Threshold( number_of_features_to_use )
-			sig = Signatures.NewFromFeatureNameList( test_image_path, reduced_feature_weights.names )
-			reduced_training_set = training_set.FeatureReduce( reduced_feature_weights.names )
-			normalized_sig = sig.Normalize( reduced_training_set )
+			reduced_fw = feature_weights.Threshold( number_of_features_to_use )
+			sig = Signatures.NewFromFeatureNameList( test_image_path, reduced_fw.names )
+			reduced_ts = training_set.FeatureReduce( reduced_fw.names )
+			norm_sig = sig.Normalize( reduced_ts )
 	
-			batch_result = DiscreteBatchClassificationResult.NewWND5( reduced_training_set, \
-			              normalized_sig, reduced_feature_weights )
-			batch_result.PrintToSTDOUT()
-			# FIXME: save intermediates
-			# batch_result.PickleMe()
+			result = DiscreteImageClassificationResult.NewWND5( reduced_ts, norm_sig, reduced_fw )
+			result.PrintToSTDOUT()
+			# FIXME: save intermediates just in case of interruption or parallization
+			# result.PickleMe()
 			t2 = time.time()
 			timings.append( t2 - t1 )
+			batch.individual_results.append( result )
+
+			# now, do a fit-on-fit test to measure classification accuracy
+			batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, reduced_fw )
+			batch_result.PrintToSTDOUT()
 			experiment.individual_results.append( batch_result )
 
 		from matplotlib import pyplot
 
-		x_vals = list( range( i, max_num_features ) )
+		x_vals = list( range( 1, max_num_features ) )
 
 		self.figure = pyplot.figure()
 		self.main_axes = self.figure.add_subplot(111)
-		if chart_title = None:
+		if chart_title == None:
 			self.chart_title = "Feature timing v. classification accuracy"	
 		else:
 			self.chart_title = chart_title
 		self.main_axes.set_title( self.chart_title )
 		self.main_axes.set_xlabel( 'Number of features' )
-		self.main_axes.set_ylabel( 'Classification accuracy', color='b' )
+		self.main_axes.set_ylabel( 'Classification accuracy (%)', color='b' )
 		classification_accuracies = \
-		  [ batch_result.figure_of_merit for batch_result in experiment.individual_results ]
+		  [ batch_result.figure_of_merit * 100 for batch_result in experiment.individual_results ]
 
 		self.main_axes.plot( x_vals, classification_accuracies, color='b', linewidth=2 )
-	
+		for tl in self.main_axes.get_yticklabels():
+			tl.set_color('b')	
+
 		self.timing_axes = self.main_axes.twinx()
-		self.timing_axes.set_ylabel( 'Time to calculate features', color='r' )
+		self.timing_axes.set_ylabel( 'Time to calculate features (s)', color='r' )
 		self.timing_axes.plot( x_vals, timings, color='r' )
+		for tl in self.timing_axes.get_yticklabels():
+			tl.set_color('r')	
+
+	def SaveToFile( self, filepath ):
+		super(FeatureTimingVersusAccuracyGraph, self).SaveToFile( filepath )
 
 #============================================================================
 class Dendrogram( object ):
 	"""Uses scipy.cluster"""
 	pass
 
+
+# Pychrm roadmap:
+# 0. Confirmation/validation/ biology experiments
+# 0b. Wha's up with continuous averages averaging to sum N
+# 1a. Classify images against multiple classifiers
+# 1. Break out classes into their own modules
+# 1b. Establish and implement is_valid() criteria for all objects
+# 2. Flush out docstrings
+# 3a. API documentation generation using pydoc
+# 3b. Further documentation, getting started, tutorials, examples
+# 4. Use some model-building module to map out object model (Pylint/Pyreverse)
+# 5. Migrate over to using the unittest module
+# 6. Implement the multiprocessing
+# 7. Implement kernel classifier
 
 
 #============================================================================
@@ -2616,12 +2645,12 @@ def UnitTest3():
 def UnitTest4( ):
 	"""testing FeatureTimingVersusAccuracy class"""
 
-	fw = FisherFeatureWeights.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/feature_weights_len_2873.weights.pickled" )
-	ts = DiscreteTrainingSet.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/FacingL7class_normalized.fit.pickled" )
+	ts = DiscreteTrainingSet.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class_normalized_2873_features.fit.pickled" )
+	fw = FisherFeatureWeights.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/feature_weights_len_2873.weights.pickled" )
 	
-	path_to_image = "/home/eckleyd/ImageData/SortWorms/ScoredImages/2012-04-13/02/2012-04-13_11:57:50.tif"
+	path_to_image = "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/2012-03-20_13:40:34.tif"
 	
-	graph = FeatureTimingVersusAccuracyGraph( fw, ts, path_to_image, max_num_features = 10 )
+	graph = FeatureTimingVersusAccuracyGraph( ts, fw, path_to_image )
 	graph.SaveToFile( "feature_timing_graph" )
 
 
@@ -2684,8 +2713,8 @@ def UnitTest8():
 	                                             test_set = full_ts, \
 	                                             feature_weights = full_fisher_weights )
 
-	max_num_features = 2873 * 0.1
-	num_graphs = 20
+	max_num_features = 2873 * 0.35
+	num_graphs = 50
 	feature_numbers = []
 
 	# sample a wide variety of numbers of features
@@ -2729,8 +2758,8 @@ if __name__=="__main__":
 	#UnitTest1()
 	# UnitTest2()
 	# UnitTest3()
-	#UnitTest4()
+	UnitTest4()
 	#UnitTest5()
 	#UnitTest7()
-	UnitTest8()
+	#UnitTest8()
 	# pass
