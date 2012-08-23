@@ -203,7 +203,15 @@ class FisherFeatureWeights( FeatureWeights ):
 				feature_line = line.strip().split( " ", 1 )
 				weights.values.append( float( feature_line[0] ) )
 				weights.names.append( feature_line[1] )
+
 		return weights
+
+	#================================================================
+	@classmethod
+	def NewFromTrainingSet( cls, training_set ):
+		# new_fw.associated_training_set = training_set
+		raise NotImplementedError
+
 
 	#================================================================
 	def EliminateZeros( self ):
@@ -242,6 +250,9 @@ class FisherFeatureWeights( FeatureWeights ):
 		# we want lists, not tuples!
 		new_weights.names, new_weights.values =\
 		  [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
+
+		new_weights.associated_training_set = self.associated_training_set
+
 		return new_weights
 
 #############################################################################
@@ -976,7 +987,10 @@ class TrainingSet( object ):
 				self.feature_maxima = data_dict[ 'feature_maxima' ]
 			if "feature_minima" in data_dict:
 				self.feature_minima = data_dict[ 'feature_minima' ]
-
+			if "classnames_list" in data_dict:
+				self.classnames_list = data_dict[ 'classnames_list' ]
+			if "interpolation_coefficients" in data_dict:
+				self.interpolation_coefficients = data_dict[ 'interpolation_coefficients' ]
   #=================================================================================
 	@classmethod
 	def NewFromPickleFile( cls, pathname ):
@@ -1156,18 +1170,15 @@ class DiscreteTrainingSet( TrainingSet ):
 		"""
 		TrainingSet constructor
 		"""
-		super( DiscreteTrainingSet, self ).__init__( data_dict )
-
 		self.data_list = []
 		self.classnames_list = []
+		
+		super( DiscreteTrainingSet, self ).__init__( data_dict )
 
 		if data_dict != None:
 			if "data_list" in data_dict:
 				self.data_list = data_dict[ 'data_list' ]
-			if "classnames_list" in data_dict:
-				self.classnames_list = data_dict[ 'classnames_list' ]
-			if "interpolation_coefficients" in data_dict:
-				self.interpolation_coefficients = data_dict[ 'interpolation_coefficients' ]
+
 
   #=================================================================================
 	@classmethod
@@ -1562,8 +1573,9 @@ class ContinuousTrainingSet( TrainingSet ):
 		ContinuousTrainingSet constructor
 		"""
 		# call parent constructor
-		super( ContinuousTrainingSet, self ).__init__( data_dict )
 		self.ground_truths = []
+
+		super( ContinuousTrainingSet, self ).__init__( data_dict )
 
 		if data_dict != None:
 			if "data_matrix" in data_dict:
@@ -2028,7 +2040,7 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 			else:
 				output_str += "*\t"
 			# predicted class:
-			output_str += str( self.predicted_value ) + "\t:03d"
+			output_str += str( self.predicted_value )
 			print output_str
 		else:
 			print "Image:             \t{0}".format( self.source_file )
@@ -2170,7 +2182,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		column_header += "act. class\tpred. class\tpred. val."
 		print column_header
 
-		batch_result = cls( training_set, test_set )
+		batch_result = cls( training_set, test_set, feature_weights )
 		batch_result.name = batch_name
 
 		interp_coeffs = None
@@ -2218,9 +2230,9 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 	ground_truth_values = None
 	predicted_values = None
 
-	def __init__( self, training_set, test_set ):
+	def __init__( self, training_set, test_set, feature_weights ):
 		# call parent constructor
-		super( ContinuousBatchClassificationResult, self ).__init__( training_set, test_set )
+		super( ContinuousBatchClassificationResult, self ).__init__( training_set, test_set, feature_weights )
 		self.predicted_values = []
 
 	#=====================================================================
@@ -2285,7 +2297,7 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 			column_header = "image\tground truth\tpred. val."
 			print column_header
 
-		batch_result = cls( feature_weights, test_set )
+		batch_result = cls( feature_weights.associated_training_set, test_set, feature_weights)
 		if test_set.ground_truths is not None and len( test_set.ground_truths ) != 0:
 			batch_result.ground_truth_values = test_set.ground_truths
 
@@ -2700,7 +2712,24 @@ def UnitTest7(max_features = 50):
 	#ts = ContinuousTrainingSet.NewFromFileOfFiles( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
 	#ts.PickleMe()
 	#ts = ContinuousTrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/continuous_data_set.fof.fit.pickled" )
-	weights = ContinuousFeatureWeights.NewOptimizedFromTrainingSet( ts )	
+	#weights = ContinuousFeatureWeights.NewOptimizedFromTrainingSet( ts )	
+
+	weights = ContinuousFeatureWeights.NewFromTrainingSet( ts )
+	reduced_weights = weights.Threshold( 10 )
+
+	reduced_ts = ts.FeatureReduce( reduced_weights.names )
+
+	batch_result = ContinuousBatchClassificationResult.New( reduced_ts, reduced_weights )
+	batch_result.PrintToSTDOUT()
+
+	grapher = PredictedValuesGraph( batch_result )
+	grapher.RankOrderedPredictedValuesGraph( \
+	               "Josiah Terminal Bulb Interp vals using continuous classifier" )
+	grapher.SaveToFile( "RANK_ORDERED_josiah_continuous" )
+	grapher.KernelSmoothedDensityGraph( \
+	               "Josiah Terminal Bulb Interp Vals using continuous classifier" )
+	grapher.SaveToFile( "KS_DENSITY_josiah_continuous")
+
 
 
 #================================================================
@@ -2708,15 +2737,18 @@ def UnitTest8():
 	"""Generate a series of graphs which show how interpolated values change
 	as a function of the number of features used in classification"""
 
-	full_ts = DiscreteTrainingSet.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class_normalized_2873_features.fit.pickled" )
-	full_fisher_weights = FisherFeatureWeights.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/feature_weights_len_2873.weights.pickled" )
+	#full_ts = DiscreteTrainingSet.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class_normalized_2873_features.fit.pickled" )
+	#full_fisher_weights = FisherFeatureWeights.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/feature_weights_len_2873.weights.pickled" )
+
+	full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )
+	full_fisher_weights =  FisherFeatureWeights.NewFromFile(  "/Users/chris/projects/josiah_worms/feature_weights.txt" )
 
 	experiment = DiscreteClassificationExperimentResult( training_set = full_ts,\
 	                                             test_set = full_ts, \
 	                                             feature_weights = full_fisher_weights )
 
 	max_num_features = 2873 * 0.35
-	num_graphs = 50
+	num_graphs = 3
 	feature_numbers = []
 
 	# sample a wide variety of numbers of features
@@ -2737,11 +2769,12 @@ def UnitTest8():
 		grapher = PredictedValuesGraph( batch_result )
 
 		grapher.RankOrderedPredictedValuesGraph( \
-		             "FacingL7class Terminal Bulb Interp vals, {0} features".format( num_features_used ), \
-								 "RANK_ORDERED_term_bulb_{0:03d}_features".format( num_features_used ) )
+		  "FacingL7class Terminal Bulb Interp vals, {0} features".format( num_features_used ) )
+		grapher.SaveToFile( "RANK_ORDERED_term_bulb_{0:03d}_features".format( num_features_used ))
+
 		grapher.KernelSmoothedDensityGraph( \
-		             "FacingL7class Terminal Bulb Interp vals, {0} features".format( num_features_used ), \
-								 "KS_DENSITY_term_bulb_{0:03d}_features".format( num_features_used ) )
+		  "FacingL7class Terminal Bulb Interp vals, {0} features".format( num_features_used ) )
+		grapher.SaveToFile( "KS_DENSITY_term_bulb_{0:03d}_features".format( num_features_used ) )
 
 		experiment.individual_results.append( batch_result )
 		i += 1
@@ -2762,6 +2795,6 @@ if __name__=="__main__":
 	# UnitTest3()
 	#UnitTest4()
 	#UnitTest5()
-	UnitTest7()
-	#UnitTest8()
+	#UnitTest7()
+	UnitTest8()
 	# pass
