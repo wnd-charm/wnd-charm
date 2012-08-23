@@ -222,6 +222,9 @@ class FisherFeatureWeights( FeatureWeights ):
 		# Default is top 15% of features
 		if num_features_to_be_used is None:
 			num_features_to_be_used = int( len( self.values ) * 0.15 )
+		elif num_features_to_be_used >= len( self.values ):
+			raise ValueError('Cannot reduce a set of {0} feature weights to requested {1} features.'.\
+			                      format( len( self.values ), num_features_to_be_used ) )
 
 		new_weights = FisherFeatureWeights()
 		raw_featureweights = zip( self.names, self.values )
@@ -376,6 +379,9 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		opt_number_features = None
 		min_std_err = float( "inf" )
 
+		if max_features > len( weights.values ):
+			max_features = len( weights.values )
+
 		for i in range( 1, max_features + 1 ):
 			last_classifier = weights.Threshold( i )
 			reduced_ts = training_set.FeatureReduce( last_classifier.names )
@@ -434,8 +440,9 @@ class ContinuousFeatureWeights( FeatureWeights ):
 				line_item += best_classifier.names[i]
 				print line_item
 
-			for i in range( opt_number_features + 1, max_features):
-				line_item = "{0}\t".format( i ) # NUM
+			for i in range( opt_number_features, max_features ):
+
+				line_item = "{0}\t".format( i + 1 ) # NUM
 				line_item += "{0:.4f}\t".format( classification_results[i].figure_of_merit ) # ASE
 				line_item += "{0:.4f}\t".format( classification_results[i].pearson_coeff ) # APC
 				line_item += "{0:.4f}\t".format( classification_results[i].pearson_std_err ) # APE
@@ -1568,9 +1575,6 @@ class ContinuousTrainingSet( TrainingSet ):
 	@classmethod
 	def NewFromFitFile( cls, pathname ):
 		"""
-		A continuous specific function.
-		Helper function which reads in a c-chrm fit file, builds a dict with the info
-		Then calls the constructor and passes the dict as an argument
 		"""
 		path, filename = os.path.split( pathname )
 		if filename == "":
@@ -1595,8 +1599,8 @@ class ContinuousTrainingSet( TrainingSet ):
 			num_classes = 0
 			num_features = 0
 
-			self.classnames_list = []
-			self.interpolation_coefficients = []
+			new_ts.classnames_list = []
+			new_ts.interpolation_coefficients = []
 
 			for line in fitfile:
 				if line_num is 0:
@@ -1613,10 +1617,10 @@ class ContinuousTrainingSet( TrainingSet ):
 					pass # skip a line
 				elif line_num <= ( num_features + 3 + num_classes ):
 					line = line.strip()
-					self.classnames_list.append( line )
+					new_ts.classnames_list.append( line )
 					m = re.search( r'(\d*\.?\d+)', line )
 					if m:
-						self.interpolation_coefficients.append( float( m.group(1) ) )
+						new_ts.interpolation_coefficients.append( float( m.group(1) ) )
 					else:
 						raise ValueError( "Can't create continuous training set, one of the class names " \
 								"'{0}' is not able to be interpreted as a number.".format( line ) )
@@ -1628,7 +1632,7 @@ class ContinuousTrainingSet( TrainingSet ):
 						split_line = line.strip().rsplit( " ", 1)
 						zero_indexed_class_id = int( split_line[1] ) - 1
 						tmp_string_data_list.append( split_line[0] )
-						new_ts.ground_truths.append( self.interpolation_coefficients[ zero_indexed_class_id ] )
+						new_ts.ground_truths.append( new_ts.interpolation_coefficients[ zero_indexed_class_id ] )
 					else:
 						image_pathname = line.strip()
 						new_ts.imagenames_list.append( image_pathname )
@@ -1670,9 +1674,6 @@ class ContinuousTrainingSet( TrainingSet ):
 		
 		return new_ts
 
-
-
-		
   #=================================================================================
 	def _ProcessSigCalculationSerially( self, feature_set = "large", write_sig_files_to_disk = True, options = None ):
 		"""
@@ -2560,7 +2561,7 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 
 		from matplotlib import pyplot
 
-		x_vals = list( range( 1, max_num_features ) )
+		x_vals = list( range( 1, max_num_features + 1 ) )
 
 		self.figure = pyplot.figure()
 		self.main_axes = self.figure.add_subplot(111)
@@ -2603,7 +2604,7 @@ class Dendrogram( object ):
 # 3a. API documentation generation using pydoc
 # 3b. Further documentation, getting started, tutorials, examples
 # 4. Use some model-building module to map out object model (Pylint/Pyreverse)
-# 5. Migrate over to using the unittest module
+# 5. Migrate over to using the unittest module, and check in unit test related files 
 # 6. Implement the multiprocessing
 # 7. Implement kernel classifier
 
@@ -2693,7 +2694,8 @@ def UnitTest7(max_features = 50):
 	#ts = ContinuousTrainingSet.NewFromFileOfFiles( "/home/colettace/projects/kimmeljc_interp_stuff/Frames_CA3/mmu_list_01.txt", options = "-l" )
 	#ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
 	#ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/src/fake_signatures/classes/test_classes.fit" )
-	ts = ContinuousTrainingSet.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/mmu_list_01.txt.fit.pickled" )
+	ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )
+	#ts = ContinuousTrainingSet.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/mmu_list_01.txt.fit.pickled" )
 	ts.Normalize()
 	#ts = ContinuousTrainingSet.NewFromFileOfFiles( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
 	#ts.PickleMe()
@@ -2758,8 +2760,8 @@ if __name__=="__main__":
 	#UnitTest1()
 	# UnitTest2()
 	# UnitTest3()
-	UnitTest4()
+	#UnitTest4()
 	#UnitTest5()
-	#UnitTest7()
+	UnitTest7()
 	#UnitTest8()
 	# pass
