@@ -385,109 +385,26 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		
 		Cycle through the list of top features and return the set that provides
 		maximum correllation coefficient"""
+		raise NotImplementedError
 
-
-		print "Calculating optimized continuous classifier for training set {0}".\
-				format( training_set.source_path )
-
-		weights = cls.NewFromTrainingSet( training_set )
-
-		classification_results = []
-		last_classifier = None
-		last_split_result = None
-		best_classifier = None
-		best_classification_result = None
-		opt_number_features = None
-		min_std_err = float( "inf" )
-
-		if max_features > len( weights.values ):
-			max_features = len( weights.values )
-
-		for i in range( 1, max_features + 1 ):
-			last_classifier = weights.Threshold( i )
-			reduced_ts = training_set.FeatureReduce( last_classifier.names )
-			last_classification_result = ContinuousBatchClassificationResult.New( reduced_ts, last_classifier, quiet = True )
-			if last_classification_result.figure_of_merit < min_std_err:
-				min_std_err = last_classification_result.figure_of_merit
-				best_classifier = last_classifier
-				best_classification_result = last_classification_result
-				opt_number_features = i
-			classification_results.append( last_classification_result )
-
-		print "Optimum number of features: {0}".format( opt_number_features )
-		best_classification_result.PrintToSTDOUT()
-
-		if print_analysis:
-			print "Legend:"
-			print "======="
-			print "NUM - Number of features used in aggregate / Individual feature rank"
-			print "NAME - name of individual feature"
-			print ""
-			print "Statistics using aggregated (compound) classifier:"
-			print "--------------------------------------------------"
-			print "ASE - Standard Error of Final Predicted Value (using aggregated feature) vs ground truth"
-			print "APC - Pearson correlation coefficient of Final Predicted Values vs ground truth"
-			print "APE - Standard Error of APC"
-			print "APP - P-value of APC"
-			print "ASC - Spearman correlation coefficient of Final Predicted Values vs ground truth"
-			print "APP - P-value of ASC"
-			print ""
-			print "Statistics of individual (single feature) regression:"
-			print "--------------------------------------------------"
-			print "IFW - Feature weight applied to the individual feature"
-			print "IPC - Pearson correlation coefficient of feature values vs ground truth"
-			print "IPE - Standard Error of IPC"
-			print "IPP - P-value of IPC"
-			print "ISC - Spearman correlation coefficient of feature values vs ground truth"
-			print "IPP - P-value of ISC"
-			print ""
-			print "NUM\tASE\tAPC\tAPE\tAPP\tASC\tAPP\tIFW\tIPC\tIPE\tIPP\tISC\tIPP\tNAME"
-			print "===\t===\t===\t===\t===\t===\t===\t===\t===\t===\t===\t===\t===\t===="
-			for i in range( len( best_classifier.values ) ):
-				line_item = "{0}\t".format( i + 1 ) # NUM
-				line_item += "{0:.4f}\t".format( classification_results[i].figure_of_merit ) # ASE
-				line_item += "{0:.4f}\t".format( classification_results[i].pearson_coeff ) # APC
-				line_item += "{0:.4f}\t".format( classification_results[i].pearson_std_err ) # APE
-				line_item += "{0:.4f}\t".format( classification_results[i].pearson_p_value ) # APP
-				line_item += "{0:.4f}\t".format( classification_results[i].spearman_coeff ) # ASC
-				line_item += "{0:.4f}\t".format( classification_results[i].spearman_p_value ) # ASP
-
-				line_item += "{0:2.4f}\t".format( best_classifier.values[i] ) # IFW
-				line_item += "{0:2.4f}\t".format( best_classifier.pearson_coeffs[i] )
-				line_item += "{0:2.4f}\t".format( best_classifier.pearson_stderrs[i] )
-				line_item += "{0:2.4f}\t".format( best_classifier.pearson_p_values[i] )
-				line_item += "{0:2.4f}\t".format( best_classifier.spearman_coeffs[i] )
-				line_item += "{0:2.4f}\t".format( best_classifier.spearman_p_values[i] )
-				line_item += best_classifier.names[i]
-				print line_item
-
-			for i in range( opt_number_features, max_features ):
-
-				line_item = "{0}\t".format( i + 1 ) # NUM
-				line_item += "{0:.4f}\t".format( classification_results[i].figure_of_merit ) # ASE
-				line_item += "{0:.4f}\t".format( classification_results[i].pearson_coeff ) # APC
-				line_item += "{0:.4f}\t".format( classification_results[i].pearson_std_err ) # APE
-				line_item += "{0:.4f}\t".format( classification_results[i].pearson_p_value ) # APP
-				line_item += "{0:.4f}\t".format( classification_results[i].spearman_coeff ) # ASC
-				line_item += "{0:.4f}\t".format( classification_results[i].spearman_p_value ) # ASP
-
-				line_item += "0\t" # IFW
-				line_item += "{0:2.4f}\t".format( last_classifier.pearson_coeffs[i] )
-				line_item += "{0:2.4f}\t".format( last_classifier.pearson_stderrs[i] )
-				line_item += "{0:2.4f}\t".format( last_classifier.pearson_p_values[i] )
-				line_item += "{0:2.4f}\t".format( last_classifier.spearman_coeffs[i] )
-				line_item += "{0:2.4f}\t".format( last_classifier.spearman_p_values[i] )
-				line_item += last_classifier.names[i]
-				print line_item
-			
-		return best_classifier
 
 	#================================================================
 	def PrintToSTDOUT( self ):
 		"""@breif Prints out feature values and statistics"""
-		
-		print "Rank\tWeight\tPearson\tPears. StdEr\tPears. Pval\tSpearman\tSp. Pval\tName"
-		print "====\t======\t=======\t============\t===========\t========\t========\t===="
+
+		print "Total num features: {0}".format( len( self.values ) )
+		print "Individual feature weight analysis:"
+		print "-----------------------------------"
+		print "Legend:"
+		print "IFW - Feature weight applied to the individual feature"
+		print "IPC - Pearson correlation coefficient of feature values vs ground truth"
+		print "IPE - Standard Error of IPC"
+		print "IPP - P-value of IPC"
+		print "ISC - Spearman correlation coefficient of feature values vs ground truth"
+		print "IPP - P-value of ISC"
+		print ""
+		print "NUM\tIFW\tIPC\tIPE\tIPP\tISC\tIPP\tNAME"
+		print "===\t===\t===\t===\t===\t===\t===\t===="	
 		for i in range( len( self.values ) ):
 			line_item = "{0}\t".format( i + 1 )
 			line_item += "{0:2.4f}\t".format( self.values[i] )
@@ -2096,6 +2013,17 @@ class BatchClassificationResult( ClassificationResult ):
 
 	num_classifications = None
 
+
+	# This stuff is for correllation analysis
+	pearson_coeff = None
+	pearson_p_value = None
+	pearson_std_err = None
+	spearman_coeff = None
+	spearman_p_value = None
+	ground_truth_values = None
+	predicted_values = None
+
+
 	def __init__( self, training_set = None, test_set = None, feature_weights = None ):
 		self.training_set = training_set
 		self.test_set = test_set
@@ -2103,6 +2031,30 @@ class BatchClassificationResult( ClassificationResult ):
 		self.individual_results = []
 
 		self.num_classifications = 0
+
+
+	def GenerateStats( self ):
+		#FIXME: how to calculate p-value???
+		self.num_classifications = len( self.individual_results )
+		if self.ground_truth_values is not None and \
+		        len( self.ground_truth_values ) == len( self.predicted_values):
+
+			gt = np.array( self.ground_truth_values )
+			pv = np.array( self.predicted_values )
+
+			diffs = gt - pv
+			diffs = np.square( diffs )
+			err_sum = np.sum( diffs )
+
+			import math; from scipy import stats
+			self.figure_of_merit = math.sqrt( err_sum / self.num_classifications )
+
+			slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
+			             stats.linregress( self.ground_truth_values, self.predicted_values )
+
+			self.spearman_coeff, self.spearman_p_value =\
+			       stats.spearmanr( self.ground_truth_values, self.predicted_values )
+
 
 	def RankOrderSort( self ):
 		value_pairs = zip( self.ground_truth_values, self.predicted_values )
@@ -2127,6 +2079,7 @@ class BatchClassificationResult( ClassificationResult ):
 class DiscreteBatchClassificationResult( BatchClassificationResult ):
 	"""@brief This class's "figure_of_merit" is classification accuracy"""
 	num_correct_classifications = None
+	classification_accuracy = None
 
 	confusion_matrix = None
 	average_similarity_matrix = None
@@ -2142,10 +2095,13 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 			self.num_classifications += 1
 			if indiv_result.ground_truth_class_name == indiv_result.predicted_class_name:
 				self.num_correct_classifications += 1
-
+		
 		#FIXME: Create confusion, similarity, and class probability matrices
 
-		self.figure_of_merit = float( self.num_correct_classifications) / float( self.num_classifications )
+		# Run a standard error analysis if ground_truth/predicted vals exist (call base method ):
+		super( DiscreteBatchClassificationResult, self ).GenerateStats()
+
+		self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
 
 	def PrintToSTDOUT( self ):
 		if self.figure_of_merit == None:
@@ -2155,8 +2111,13 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		print "Batch summary:"
 		print "Total number of classifications: {0}".format( self.num_classifications )
 		print "Total number of CORRECT classifications: {0}".format( self.num_correct_classifications )
-		print "Total classification accuracy: {0:0.4f}\n\n".format( self.figure_of_merit )
+		print "Total classification accuracy: {0:0.4f}".format( self.classification_accuracy )
+		if not self.figure_of_merit == None:
+			print "Standard Error: {0:0.4f}".format( self.figure_of_merit )
+			print "Pearson Coefficient: {0:0.4f}".format( self.pearson_coeff )
+			print "Spearman Coefficient: {0:0.4f}".format( self.spearman_coeff )
 
+		print ""
 
 	#=====================================================================
 	@classmethod
@@ -2230,14 +2191,6 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 class ContinuousBatchClassificationResult( BatchClassificationResult ):
 	"""@brief This class's "figure_of_merit" is the standard error betw predicted and ground truth"""
 
-	pearson_coeff = None
-	pearson_p_value = None
-	pearson_std_err = None
-	spearman_coeff = None
-	spearman_p_value = None
-	ground_truth_values = None
-	predicted_values = None
-
 	def __init__( self, training_set, test_set, feature_weights ):
 		# call parent constructor
 		super( ContinuousBatchClassificationResult, self ).__init__( training_set, test_set, feature_weights )
@@ -2245,27 +2198,8 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 
 	#=====================================================================
 	def GenerateStats( self ):
-		#FIXME: how to calculate p-value???
-		self.num_classifications = len( self.individual_results )
-
-		if self.ground_truth_values is not None and \
-		     len( self.ground_truth_values ) == len( self.predicted_values):
-
-			gt = np.array( self.ground_truth_values )
-			pv = np.array( self.predicted_values )
-
-			diffs = gt - pv
-			diffs = np.square( diffs )
-			err_sum = np.sum( diffs )
-
-			import math; from scipy import stats
-			self.figure_of_merit = math.sqrt( err_sum / self.num_classifications )
-
-			slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
-			             stats.linregress( self.ground_truth_values, self.predicted_values )
-
-			self.spearman_coeff, self.spearman_p_value =\
-			       stats.spearmanr( self.ground_truth_values, self.predicted_values )
+		# Run a standard error analysis if ground_truth/predicted vals exist (call base method):
+		super( ContinuousBatchClassificationResult, self ).GenerateStats()
 
 	#=====================================================================
 	def PrintToSTDOUT( self ):
@@ -2406,6 +2340,59 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 				  	       format( result.__class__.__name__ ) )
 			print outstr.format( *self.individual_stats[ filename ] )
 
+	#=====================================================================
+	def WeightsOptimizationAnalysis( self ):
+		"""input myself, with a bunch of batch_results in tow,
+		    each with different feature weights
+
+				Note: this works only for experiments with ground truth values!!!
+		"""
+		print "Calculating optimized continuous classifier for training set {0}".\
+				format( self.training_set.source_path )
+
+		best_classification_result = None
+		best_weights = None
+		opt_number_features = None
+		min_std_err = float( "inf" )
+
+		for batch_result in self.individual_results:
+			weights = batch_result.feature_weights
+			num_features = len( weights.values )
+			if batch_result.figure_of_merit < min_std_err:
+				min_std_err = batch_result.figure_of_merit
+				best_classification_result = batch_result
+				best_weights = weights
+				opt_number_features = num_features
+
+		print "Optimum number of features: {0}".format( opt_number_features )
+		best_classification_result.PrintToSTDOUT()
+		best_weights.PrintToSTDOUT()
+		print ""
+		print "Aggregate feature weight analysis:"
+		print "-----------------------------------"
+		print "Legend:"
+		print "NUM - Number of features used in aggregate / Individual feature rank"
+		print "ASE - Standard Error of Final Predicted Value (using aggregated feature) vs ground truth"
+		print "APC - Pearson correlation coefficient of Final Predicted Values vs ground truth"
+		print "APE - Standard Error of APC"
+		print "APP - P-value of APC"
+		print "ASC - Spearman correlation coefficient of Final Predicted Values vs ground truth"
+		print "APP - P-value of ASC"
+		print ""
+
+		print "NUM\tASE\tAPC\tAPE\tAPP\tASC\tAPP"
+		print "===\t===\t===\t===\t===\t===\t==="
+		for result in self.individual_results:
+			line_item = "{0}\t".format( len( result.feature_weights.values ) ) # NUM
+			line_item += "{0:.4f}\t".format( result.figure_of_merit ) # ASE
+			line_item += "{0:.4f}\t".format( result.pearson_coeff ) # APC
+			line_item += "{0:.4f}\t".format( result.pearson_std_err ) # APE
+			line_item += "{0:.4f}\t".format( result.pearson_p_value ) # APP
+			line_item += "{0:.4f}\t".format( result.spearman_coeff ) # ASC
+			line_item += "{0:.4f}\t".format( result.spearman_p_value ) # ASP
+			print line_item
+
+		
 
 #============================================================================
 class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
@@ -2769,21 +2756,21 @@ def UnitTest8():
 	full_ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )	
 	#full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )
 	full_weights =  ContinuousFeatureWeights.NewFromTrainingSet( full_ts )
-	#full_weights =  FisherFeatureWeights.NewFromFile( "/Users/chris/projects/josiah_worms/feature_weights.txt" )
+	#full_weights =  FisherFeatureWeights.NewFromFile( "/Users/chris/projects/josiah_worms/terminal_bulb_2873_weights.txt" )
 
 	#experiment = DiscreteClassificationExperimentResult( training_set = full_ts,\
 	experiment = ClassificationExperimentResult( training_set = full_ts,\
 	                                             test_set = full_ts, \
 	                                             feature_weights = full_weights )
 
-	max_num_features = 2873 * 0.15
-	num_graphs = 30
-	feature_numbers = []
+	max_num_features = 2873 * 0.75
+	num_graphs = 50
+	feature_numbers = set() 
 
 	# sample a wide variety of numbers of features
 	for i in range( 1, num_graphs/2 + 1 ):
-		feature_numbers.append( int( float( i * 2 ) / num_graphs * max_num_features * 0.1) )
-		feature_numbers.append( int( float( i * 2 ) / num_graphs * max_num_features ) )
+		feature_numbers.add( int( float( i * 2 ) / num_graphs * max_num_features * 0.1) )
+		feature_numbers.add( int( float( i * 2 ) / num_graphs * max_num_features ) )
 
 	i = 1
 
@@ -2792,7 +2779,7 @@ def UnitTest8():
 		print "==============================================================="
 		print "New batch, number of features: {0}".format( num_features_used )
 		weights_subset = full_weights.Threshold( num_features_used )
-		weights_subset.PrintToSTDOUT()
+		#weights_subset.PrintToSTDOUT()
 		reduced_ts = full_ts.FeatureReduce( weights_subset.names )
 		name = "{0:03d} Features".format( num_features_used )
 		#batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, \
@@ -2813,7 +2800,8 @@ def UnitTest8():
 		i += 1
 	
 	#experiment.PrintToSTDOUT()
-	experiment.PredictedValueAnalysis()
+	#experiment.PredictedValueAnalysis()
+	experiment.WeightsOptimizationAnalysis()
 
 
 #================================================================
