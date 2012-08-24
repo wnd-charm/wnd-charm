@@ -230,7 +230,7 @@ class FisherFeatureWeights( FeatureWeights ):
 		# Default is top 15% of features
 		if num_features_to_be_used is None:
 			num_features_to_be_used = int( len( self.values ) * 0.15 )
-		elif num_features_to_be_used >= len( self.values ):
+		elif num_features_to_be_used > len( self.values ):
 			raise ValueError('Cannot reduce a set of {0} feature weights to requested {1} features.'.\
 			                      format( len( self.values ), num_features_to_be_used ) )
 
@@ -1383,6 +1383,7 @@ class DiscreteTrainingSet( TrainingSet ):
 		the returned TrainingSet will have features in the same order as they appear in
 		     requested_features
 		"""
+		# FIXME: Roll this function into parent class!!!!!!!!!
 
 		# Check that self's faturelist contains all the features in requested_features
 
@@ -1695,7 +1696,7 @@ class ContinuousTrainingSet( TrainingSet ):
 		the returned TrainingSet will have features in the same order as they appear in
 		     requested_features
 		"""
-
+		# FIXME: Roll this function into parent class
 		# Check that self's faturelist contains all the features in requested_features
 
 
@@ -1719,6 +1720,10 @@ class ContinuousTrainingSet( TrainingSet ):
 		reduced_ts.num_images = self.num_images
 		reduced_ts.imagenames_list = self.imagenames_list[:] # [:] = deepcopy
 		reduced_ts.featurenames_list = requested_features[:]
+		if self.interpolation_coefficients:
+			reduced_ts.interpolation_coefficients= self.interpolation_coefficients[:]
+		if self.classnames_list:
+			reduced_ts.classnames_list = self.classnames_list[:]
 		if self.ground_truths:
 			reduced_ts.ground_truths = self.ground_truths[:]
 		reduced_ts.feature_maxima = [None] * new_num_features
@@ -2753,18 +2758,24 @@ def UnitTest8():
 	#full_ts = DiscreteTrainingSet.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class_normalized_2873_features.fit.pickled" )
 	#full_fisher_weights = FisherFeatureWeights.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/feature_weights_len_2873.weights.pickled" )
 
-	full_ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )	
-	#full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )
-	full_weights =  ContinuousFeatureWeights.NewFromTrainingSet( full_ts )
-	#full_weights =  FisherFeatureWeights.NewFromFile( "/Users/chris/projects/josiah_worms/terminal_bulb_2873_weights.txt" )
+	#full_ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )	
+	full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )
+	full_f_weights =  FisherFeatureWeights.NewFromFile( "/Users/chris/projects/josiah_worms/terminal_bulb_2873_weights.txt" )
 
-	#experiment = DiscreteClassificationExperimentResult( training_set = full_ts,\
-	experiment = ClassificationExperimentResult( training_set = full_ts,\
+	full_weights = full_f_weights.EliminateZeros()
+	max_num_features = len( full_weights.names )
+	print "Max number of features: {0}".format( max_num_features )
+
+	full_ts = full_ts.FeatureReduce( full_weights.names )
+	full_ts.Normalize()
+	#full_weights =  ContinuousFeatureWeights.NewFromTrainingSet( full_ts )
+
+	experiment = DiscreteClassificationExperimentResult( training_set = full_ts,\
+	#experiment = ClassificationExperimentResult( training_set = full_ts,\
 	                                             test_set = full_ts, \
 	                                             feature_weights = full_weights )
 
-	max_num_features = 2873 * 0.75
-	num_graphs = 50
+	num_graphs = 30
 	feature_numbers = set() 
 
 	# sample a wide variety of numbers of features
@@ -2782,25 +2793,25 @@ def UnitTest8():
 		#weights_subset.PrintToSTDOUT()
 		reduced_ts = full_ts.FeatureReduce( weights_subset.names )
 		name = "{0:03d} Features".format( num_features_used )
-		#batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, \
-		batch_result = ContinuousBatchClassificationResult.New( reduced_ts, \
+		batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, \
+		#batch_result = ContinuousBatchClassificationResult.New( reduced_ts, \
 		               weights_subset, batch_number = i, batch_name = name, quiet = True)
 		batch_result.PrintToSTDOUT()
 		grapher = PredictedValuesGraph( batch_result )
 
 		grapher.RankOrderedPredictedValuesGraph( \
-		  "Josiah Terminal Bulb Pred. Vals (cont. classifier, {0} features)".format( num_features_used ) )
-		grapher.SaveToFile( "RANK_ORDERED_term_bulb_cont_{0:03d}_features".format( num_features_used ))
+		  "Josiah Terminal Bulb Pred. Vals (disc classifier, {0} features)".format( num_features_used ) )
+		grapher.SaveToFile( "RANK_ORDERED_term_bulb_disc_{0:04d}_features".format( num_features_used ))
 
 		grapher.KernelSmoothedDensityGraph( \
-		  "Josiah Terminal Bulb Pred. Vals (cont classifier, {0} features)".format( num_features_used ) )
-		grapher.SaveToFile( "KS_DENSITY_term_bulb_cont_{0:03d}_features".format( num_features_used ) )
+		  "Josiah Terminal Bulb Pred. Vals (disc classifier, {0} features)".format( num_features_used ) )
+		grapher.SaveToFile( "KS_DENSITY_term_bulb_disc_{0:04d}_features".format( num_features_used ) )
 
 		experiment.individual_results.append( batch_result )
 		i += 1
 	
-	#experiment.PrintToSTDOUT()
-	#experiment.PredictedValueAnalysis()
+	experiment.PrintToSTDOUT()
+	experiment.PredictedValueAnalysis()
 	experiment.WeightsOptimizationAnalysis()
 
 
