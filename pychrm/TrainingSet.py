@@ -254,6 +254,16 @@ class FisherFeatureWeights( FeatureWeights ):
 		new_weights.associated_training_set = self.associated_training_set
 
 		return new_weights
+	#================================================================
+	def PrintToSTDOUT( self ):
+		"""@breif Prints out feature values and statistics"""
+		print "Fisher Feature Weight analysis:"
+		print "Rank\tValue\tName"
+		print "====\t=====\t===="
+		for i in range( 0, len( self.names ) ):
+			print "{0}\t{1:.03f}\t{2}".format( i+1, self.values[i], self.names[i] )
+		print ""
+
 
 #############################################################################
 # class definition of ContinuousFeatureWeights
@@ -469,7 +479,6 @@ class ContinuousFeatureWeights( FeatureWeights ):
 				line_item += "{0:2.4f}\t".format( last_classifier.spearman_p_values[i] )
 				line_item += last_classifier.names[i]
 				print line_item
-
 			
 		return best_classifier
 
@@ -477,17 +486,16 @@ class ContinuousFeatureWeights( FeatureWeights ):
 	def PrintToSTDOUT( self ):
 		"""@breif Prints out feature values and statistics"""
 		
-		print "Rank\tPearson\tSpearman\tWeight\tStd err\tp-value\tSlope\tIntercept\tName"
-		print "====\t=======\t========\t======\t=======\t=======\t=====\t=========\t===="
+		print "Rank\tWeight\tPearson\tPears. StdEr\tPears. Pval\tSpearman\tSp. Pval\tName"
+		print "====\t======\t=======\t============\t===========\t========\t========\t===="
 		for i in range( len( self.values ) ):
 			line_item = "{0}\t".format( i + 1 )
-			line_item += "{0:2.4f}\t".format( self.pearson_coeffs[i] )
-			line_item += "{0:2.4f}\t".format( self.spearman_coeffs[i] )
 			line_item += "{0:2.4f}\t".format( self.values[i] )
-			line_item += "{0:2.4f}\t".format( self.std_errs[i] )
-			line_item += "{0:2.4f}\t".format( self.p_values[i] )
-			line_item += "{0:2.4f}\t".format( self.slopes[i] )
-			line_item += "{0:.4f}\t\t".format( self.intercepts[i] )
+			line_item += "{0:2.4f}\t".format( self.pearson_coeffs[i] )
+			line_item += "{0:2.4f}\t".format( self.pearson_stderrs[i] )
+			line_item += "{0:2.4f}\t".format( self.pearson_p_values[i] )
+			line_item += "{0:2.4f}\t".format( self.spearman_coeffs[i] )
+			line_item += "{0:2.4f}\t".format( self.spearman_p_values[i] )
 			line_item += self.names[i]
 			print line_item
 
@@ -601,7 +609,6 @@ class Signatures( FeatureVector ):
 		"""@brief calculates signatures
 
 		"""
-
 
 		if not os.path.exists( path_to_image ):
 			raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( outfile_pathname ) )
@@ -805,7 +812,7 @@ class Signatures( FeatureVector ):
 #############################################################################
 class FeatureGroup:
 	"""
-	Attributes Name, Alg and Tforms are references to the SWIG objects
+	Attributes name, algorithm and transform_list are references to the SWIG objects
 	"""
 
 	name = ""
@@ -1253,7 +1260,8 @@ class DiscreteTrainingSet( TrainingSet ):
 		string_data = "\n"
 		
 		for i in range( num_classes ):
-			print "generating matrix for class {0}".format( i )
+			print 'generating matrix for class {0} "{1}" ({2} images)'.\
+			   format( i, data_dict['classnames_list'][i], len(data_dict['imagenames_list'][i]) )
 			#print "{0}".format( tmp_string_data_list[i] )
 			npmatr = np.genfromtxt( StringIO( string_data.join( tmp_string_data_list[i] ) ) )
 			data_dict[ 'data_list' ].append( npmatr )
@@ -2152,7 +2160,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 	#=====================================================================
 	@classmethod
-	def New( cls, training_set, test_set, feature_weights, batch_number = None, batch_name = None):
+	def New( cls, training_set, test_set, feature_weights, batch_number = None, batch_name = None, quiet = False):
 		"""
 		@remarks - all three input arguments must have the same number of features,
 		and in the same order for this to work properly
@@ -2175,12 +2183,13 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
 					format( test_set.source_path, test_set_len, training_set.source_path, train_set_len )
 
-		column_header = "image\tnorm. fact.\t"
-		column_header +=\
-				"".join( [ "p(" + class_name + ")\t" for class_name in training_set.classnames_list ] )
-
-		column_header += "act. class\tpred. class\tpred. val."
-		print column_header
+		if not quiet:
+			column_header = "image\tnorm. fact.\t"
+			column_header +=\
+					"".join( [ "p(" + class_name + ")\t" for class_name in training_set.classnames_list ] )
+	
+			column_header += "act. class\tpred. class\tpred. val."
+			print column_header
 
 		batch_result = cls( training_set, test_set, feature_weights )
 		batch_result.name = batch_name
@@ -2199,10 +2208,8 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 				result.source_file = test_set.imagenames_list[ test_class_index ][ test_image_index ]
 				result.ground_truth_class_name = test_set.classnames_list[ test_class_index ]
-				if not batch_number is None:
-					result.batch_number = batch_number
-				if not batch_name is None:
-					result.name = batch_name
+				result.batch_number = batch_number
+				result.name = batch_name
 				marg_probs = np.array( result.marginal_probabilities )
 				result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
 				# interpolated value, if applicable
@@ -2213,7 +2220,8 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 					batch_result.predicted_values.append( interp_val )
 					batch_result.ground_truth_values.append( interp_coeffs[ test_class_index ] )
 
-				result.PrintToSTDOUT( line_item = True )
+				if not quiet:
+					result.PrintToSTDOUT( line_item = True )
 				batch_result.individual_results.append( result )
 
 		return batch_result
@@ -2274,7 +2282,7 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 
 	#=====================================================================
 	@classmethod
-	def New( cls, test_set, feature_weights, quiet = False ):
+	def New( cls, test_set, feature_weights, quiet = False, batch_number = None, batch_name = None):
 		"""
 		@remarks - all three input arguments must have the same number of features,
 		and in the same order for this to work properly
@@ -2298,13 +2306,16 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 			print column_header
 
 		batch_result = cls( feature_weights.associated_training_set, test_set, feature_weights)
+		batch_result.name = batch_name
+
 		if test_set.ground_truths is not None and len( test_set.ground_truths ) != 0:
 			batch_result.ground_truth_values = test_set.ground_truths
 
 		for test_image_index in range( test_set.num_images ):
 			one_image_features = test_set.data_matrix[ test_image_index,: ]
 			result = ContinuousImageClassificationResult._LinearRegression( one_image_features, feature_weights )
-
+			result.batch_number = batch_number
+			result.name = batch_name
 			result.source_file = test_set.imagenames_list[ test_image_index ]
 			result.ground_truth_value = test_set.ground_truths[ test_image_index ]
 			batch_result.predicted_values.append( result.predicted_value )
@@ -2361,19 +2372,38 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 
 		print "\n\nIndividual results\n========================\n"
 		mp = "  "
-		lineoutstr = "\tsplit {split_num:02d} '{batch_name}': predicted: {pred_class}, actual: {actual_class}. Norm dists: ( {norm_dists} ) Interp val: {interp_val:0.3f}"
+		discrlineoutstr = "\tsplit {split_num:02d} '{batch_name}': predicted: {pred_class}, actual: {actual_class}. Norm dists: ( {norm_dists} ) Interp val: {pred_val:0.3f}"
+		contlineoutstr = "\tsplit {split_num:02d} '{batch_name}': actual: {actual_class}. Predicted val: {pred_val:0.3f}"
 		outstr = "\t---> Tested {0} times, low {1:0.3f}, mean {2:0.3f}, high {3:0.3f}, std dev {4:0.3f}"
-		for filename in sorted( self.accumulated_individual_results.iterkeys() ):
+
+
+		#create view
+		res_dict =  self.accumulated_individual_results
+
+		# sort by ground truth, then alphanum
+		sort_func = lambda A, B: cmp( A, B ) if res_dict[A][0].ground_truth_value == res_dict[B][0].ground_truth_value else cmp( res_dict[A][0].ground_truth_value, res_dict[B][0].ground_truth_value  ) 
+		sorted_images = sorted( self.accumulated_individual_results.iterkeys(), sort_func )
+
+		for filename in sorted_images:
 			print 'File "' + filename + '"'
 			for result in self.accumulated_individual_results[ filename ]:
-				marg_probs = [ "{0:0.3f}".format( num ) for num in result.marginal_probabilities ]
 
-				print lineoutstr.format( split_num = result.batch_number, \
+				if result.__class__.__name__ == "DiscreteImageClassificationResult":
+					marg_probs = [ "{0:0.3f}".format( num ) for num in result.marginal_probabilities ]
+					print discrlineoutstr.format( split_num = result.batch_number, \
 				                         batch_name = result.name, \
 				                         pred_class = result.predicted_class_name, \
 				                         actual_class = result.ground_truth_value, \
 				                         norm_dists = mp.join( marg_probs ), \
-				                         interp_val = result.predicted_value )
+				                         pred_val = result.predicted_value )
+				elif result.__class__.__name__ == "ContinuousImageClassificationResult":
+					print contlineoutstr.format( split_num = result.batch_number, \
+				                         batch_name = result.name, \
+				                         actual_class = result.ground_truth_value, \
+				                         pred_val = result.predicted_value )
+				else:
+					raise ValueError( 'expected an ImageClassification result but got a {0} class'.\
+				  	       format( result.__class__.__name__ ) )
 			print outstr.format( *self.individual_stats[ filename ] )
 
 
@@ -2445,7 +2475,7 @@ class BaseGraph( object ):
 		if self.figure == None:
 			raise ValueError( 'No figure to save!' )
 		self.figure.savefig( filepath )
-		print "...saved to file {0}.".format( filepath )
+		print 'Wrote chart "{0}" to file "{1}.png"'.format( self.chart_title, filepath )
 			
 #============================================================================
 class PredictedValuesGraph( BaseGraph ):
@@ -2482,8 +2512,6 @@ class PredictedValuesGraph( BaseGraph ):
 
 	def RankOrderedPredictedValuesGraph( self, chart_title ):
 
-		print "Creating rank-ordered predicted values graph for batch \"{0}\"".format( self.batch_result.name )
-
 		from matplotlib import pyplot
 
 		color = iter(['r', 'g', 'b', 'c', 'm', 'y', 'k'])
@@ -2508,8 +2536,6 @@ class PredictedValuesGraph( BaseGraph ):
 		
 	def KernelSmoothedDensityGraph( self, chart_title ):
 		"""Uses scipy.stats.gaussian_kde """
-
-		print "Creating kernel-smoothed probability density estimate graph for batch \"{0}\"".format( self.batch_result.name )
 
 		from matplotlib import pyplot
 
@@ -2740,46 +2766,53 @@ def UnitTest8():
 	#full_ts = DiscreteTrainingSet.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class_normalized_2873_features.fit.pickled" )
 	#full_fisher_weights = FisherFeatureWeights.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/feature_weights_len_2873.weights.pickled" )
 
-	full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )
-	full_fisher_weights =  FisherFeatureWeights.NewFromFile(  "/Users/chris/projects/josiah_worms/feature_weights.txt" )
+	full_ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )	
+	#full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )
+	full_weights =  ContinuousFeatureWeights.NewFromTrainingSet( full_ts )
+	#full_weights =  FisherFeatureWeights.NewFromFile( "/Users/chris/projects/josiah_worms/feature_weights.txt" )
 
-	experiment = DiscreteClassificationExperimentResult( training_set = full_ts,\
+	#experiment = DiscreteClassificationExperimentResult( training_set = full_ts,\
+	experiment = ClassificationExperimentResult( training_set = full_ts,\
 	                                             test_set = full_ts, \
-	                                             feature_weights = full_fisher_weights )
+	                                             feature_weights = full_weights )
 
-	max_num_features = 2873 * 0.35
-	num_graphs = 3
+	max_num_features = 2873 * 0.15
+	num_graphs = 30
 	feature_numbers = []
 
 	# sample a wide variety of numbers of features
 	for i in range( 1, num_graphs/2 + 1 ):
-		feature_numbers.append( int( float( i ) / num_graphs * max_num_features * 0.1) )
-		feature_numbers.append( int( float( i ) / num_graphs * max_num_features ) )
+		feature_numbers.append( int( float( i * 2 ) / num_graphs * max_num_features * 0.1) )
+		feature_numbers.append( int( float( i * 2 ) / num_graphs * max_num_features ) )
 
 	i = 1
 
 	for num_features_used in sorted( feature_numbers ):
-		weights_subset = full_fisher_weights.Threshold( num_features_used )
-
+		print "\n\n==============================================================="
+		print "==============================================================="
+		print "New batch, number of features: {0}".format( num_features_used )
+		weights_subset = full_weights.Threshold( num_features_used )
+		weights_subset.PrintToSTDOUT()
 		reduced_ts = full_ts.FeatureReduce( weights_subset.names )
 		name = "{0:03d} Features".format( num_features_used )
-		batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, \
-		               weights_subset, batch_number = i, batch_name = name )
+		#batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, \
+		batch_result = ContinuousBatchClassificationResult.New( reduced_ts, \
+		               weights_subset, batch_number = i, batch_name = name, quiet = True)
 		batch_result.PrintToSTDOUT()
 		grapher = PredictedValuesGraph( batch_result )
 
 		grapher.RankOrderedPredictedValuesGraph( \
-		  "FacingL7class Terminal Bulb Interp vals, {0} features".format( num_features_used ) )
-		grapher.SaveToFile( "RANK_ORDERED_term_bulb_{0:03d}_features".format( num_features_used ))
+		  "Josiah Terminal Bulb Pred. Vals (cont. classifier, {0} features)".format( num_features_used ) )
+		grapher.SaveToFile( "RANK_ORDERED_term_bulb_cont_{0:03d}_features".format( num_features_used ))
 
 		grapher.KernelSmoothedDensityGraph( \
-		  "FacingL7class Terminal Bulb Interp vals, {0} features".format( num_features_used ) )
-		grapher.SaveToFile( "KS_DENSITY_term_bulb_{0:03d}_features".format( num_features_used ) )
+		  "Josiah Terminal Bulb Pred. Vals (cont classifier, {0} features)".format( num_features_used ) )
+		grapher.SaveToFile( "KS_DENSITY_term_bulb_cont_{0:03d}_features".format( num_features_used ) )
 
 		experiment.individual_results.append( batch_result )
 		i += 1
 	
-	experiment.PrintToSTDOUT()
+	#experiment.PrintToSTDOUT()
 	experiment.PredictedValueAnalysis()
 
 
