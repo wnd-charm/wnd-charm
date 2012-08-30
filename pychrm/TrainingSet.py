@@ -209,9 +209,63 @@ class FisherFeatureWeights( FeatureWeights ):
 	#================================================================
 	@classmethod
 	def NewFromTrainingSet( cls, training_set ):
-		# new_fw.associated_training_set = training_set
-		raise NotImplementedError
+		"""
+		For:
+		N = number of classes
+		F = number of features
+		It = total number of images in training set
+		Ic = number of images in a given class
+		"""
 
+		# 2D matrix It * F
+		all_images_combined_classes = np.vstack( training_set.data_list )
+
+		# 1D matrix 1 * F
+		population_means = np.mean( all_images_combined_classes, axis = 0 )
+
+		# 3D matrix N * Ic * F
+		all_images_classes_separate = np.array( training_set.data_list )
+
+		# If 'training_set' is a balanced training set (i.e., same number of images
+		# in each class), you can use pure matrix calls without iteration:
+		if len( all_images_classes_separate.shape ) == 3:
+
+			# 2D matrix N * F
+			intra_class_means = np.mean( all_images_classes_separate, axis = 1 )
+			# 2D matrix N * F
+			intra_class_variances = np.var( all_images_classes_separate, axis = 1 )
+
+		else:
+
+			# 2D matrix shape N * F
+			intra_class_means = np.empty( \
+						 ( training_set.num_classes, len( training_set.featurenames_list ) ) )
+			# 2D matrix shape N * F
+			intra_class_variances = np.empty( \
+						 ( training_set.num_classes, len( training_set.featurenames_list ) ) )
+
+			class_index = 0
+			for class_feature_matrix in training_set.data_list:
+				intra_class_means[ class_index ] = np.mean( class_feature_matrix, axis=0 )
+				intra_class_variances[ class_index ] = np.var( class_feature_matrix, axis=0 )
+				class_index += 1
+
+
+		# 1D matrix 1 * F
+		feature_weights =  np.square( population_means - intra_class_means ).sum( axis = 0 ) / \
+		    (training_set.num_classes - 1) / np.mean( intra_class_variances, axis = 0 ) 
+		
+		# remove nan's
+		# np.isnan( feature_weights ) returns a boolean array
+		# which numpy uses "fancy indexing" to assign 0's
+		feature_weights[ np.isnan(feature_weights) ] = 0
+
+		new_fw = cls()
+		new_fw.names = training_set.featurenames_list[:]
+		new_fw.values = feature_weights.tolist()
+		new_fw.associated_training_set = training_set
+	
+		return new_fw
 
 	#================================================================
 	def EliminateZeros( self ):
@@ -261,7 +315,8 @@ class FisherFeatureWeights( FeatureWeights ):
 		print "Rank\tValue\tName"
 		print "====\t=====\t===="
 		for i in range( 0, len( self.names ) ):
-			print "{0}\t{1:.03f}\t{2}".format( i+1, self.values[i], self.names[i] )
+			#print "{0}\t{1:.5f}\t{2}".format( i+1, self.values[i], self.names[i] )
+			print "{0:.6f}\t{1}".format( self.values[i], self.names[i] )
 		print ""
 
 
@@ -343,8 +398,12 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		Sorts on the absolute value of the Pearson coefficients
 		Default is top 15% of features"""
 
+		# Default is top 15% of features
 		if num_features_to_be_used is None:
 			num_features_to_be_used = int( len( self.values ) * 0.15 )
+		elif num_features_to_be_used > len( self.values ):
+			raise ValueError('Cannot reduce a set of {0} feature weights to requested {1} features.'.\
+			                      format( len( self.values ), num_features_to_be_used ) ) 
 
 		new_weights = ContinuousFeatureWeights()
 
@@ -605,7 +664,9 @@ class Signatures( FeatureVector ):
 		print "Loading features from sigfile {0}".format( sigfile_path )
 
 		signatures = cls()
-		signatures.source_file = image_path
+		# FIXME: Do we care about the .tif?
+
+		signatures.source_file = sigfile_path
 		signatures.options = options
  
 		with open( sigfile_path ) as infile:
@@ -1296,6 +1357,51 @@ class DiscreteTrainingSet( TrainingSet ):
 		return new_ts
 
   #=================================================================================
+	@classmethod
+	def NewFromFileOfFiles( cls, fof_path, options = None, feature_list = None, write_sig_files_todisk = False ):
+		"""
+		"""
+
+		new_ts = cls()
+		new_ts.num_images = 0
+		new_ts.source_path = fof_path
+
+		classnames_set = set()
+
+		with open( fof_path ) as fof:
+			for line in fof:
+				class_id_index = None
+				file_path, class_name = line.strip().split( "\t" )
+				if not os.path.exists( file_path ):
+					raise ValueError(\
+					    "The file '{0}' doesn't exist, maybe you need to specify the full path?".\
+					    format( file_path ) )
+				
+				if not class_name in classnames_set:
+					classnames_set.add( class_name )
+					new_ts.classnames_list.append( class_name )
+					class_id_index = len( new_ts.classnames_list ) - 1
+					m = re.search( r'(\d*\.?\d+)', class_name )
+					if m:
+						if new_ts.interpolation_coefficients == None:
+							new_ts.interpolation_coefficients = []
+						new_ts.interpolation_coefficients.append( float( m.group(1) ) )
+				else:
+					class_id_index = new_ts.classnames_list.index( class_name )
+
+				if file_path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ): 
+					sig = Signatures.NewFromTiffFile( file_path, options )
+				elif file_path.endswith( (".sig", "pysig" ) ): 
+					sig = Signatures.NewFromSigFile( image_path = None, sigfile_path = file_path, options  = options )
+				else:
+					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
+				new_ts.AddSignature( sig, class_id_index )
+		
+		new_ts.num_classes = len( new_ts.data_list )
+		return new_ts
+
+
+  #=================================================================================
 	def _ProcessSigCalculationSerially( self, feature_set = "large", write_sig_files_to_disk = True, options = None ):
 		"""
 		Work off the self.imagenames_list
@@ -1439,11 +1545,15 @@ class DiscreteTrainingSet( TrainingSet ):
 		return reduced_ts
 
   #=================================================================================
-	def AddSignature( self, signature, class_id_index = None ):
+	def AddSignature( self, signature, class_id_index ):
 		"""
 		@argument signature is a valid signature
 		@argument class_id_index identifies the class to which the signature belongs
+		          class_id_index is zero-indexed
 		"""
+
+		if None == class_id_index:
+			raise ValueError( 'Must specify either a class_index' )
 		
 		if (self.data_list == None) or ( len( self.data_list ) == 0 ) :
 			# If no class_id_index is specified, sig goes in first matrix in the list by default
@@ -1459,8 +1569,12 @@ class DiscreteTrainingSet( TrainingSet ):
 			signature = signature.FeatureReduce( self.featurenames_list )
 
 		# signatures may be coming in out of class order
-		while (len( self.data_list ) - 1) < class_id_index:
+		while (len( self.data_list ) ) < class_id_index + 1:
 			self.data_list.append( None )
+		while (len( self.imagenames_list ) ) < class_id_index + 1:
+			self.imagenames_list.append( [] )
+
+		self.imagenames_list[class_id_index].append( signature.source_file )
 
 		if self.data_list[ class_id_index ] == None:
 			self.data_list[ class_id_index ] = np.array( signature.values )
@@ -1470,7 +1584,9 @@ class DiscreteTrainingSet( TrainingSet ):
 					np.array( signature.values ) ) )
 
 		self.num_images += 1
-		self.imagenames_list[ class_id_index ].append( signature.source_file )
+
+		print 'Added file "{0}" to class {1} "{2}" ({3} images)'.format( signature.source_file, \
+		    class_id_index, self.classnames_list[class_id_index], len( self.imagenames_list[ class_id_index ] ) ) 
 
 
 # END DiscreteTrainingSet class definition
@@ -1601,7 +1717,12 @@ class ContinuousTrainingSet( TrainingSet ):
 				file_path, ground_truth_val = line.strip().split( "\t" )
 				if not os.path.exists( file_path ):
 					raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( file_path ) )
-				ground_truth_val = float( ground_truth_val )
+					m = re.search( r'(\d*\.?\d+)', ground_truth_val )
+					if not m:
+						raise ValueError( "Can't create continuous training set, one of the class names " \
+								"'{0}' is not able to be interpreted as a number.".format( line ) )
+					else:
+						ground_truth_val = float( m.group(1) )
 				if file_path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ): 
 					sig = Signatures.NewFromTiffFile( file_path, options )
 				elif file_path.endswith( (".sig", "pysig" ) ): 
@@ -1772,6 +1893,14 @@ class ContinuousTrainingSet( TrainingSet ):
 		self.imagenames_list.append( signature.source_file )
 
 		self.ground_truths.append( ground_truth )
+
+  #=================================================================================
+	def ScrambleGroundTruths( self ):
+		"""
+		Produce an instant negative control training set
+		"""
+
+		random.shuffle( self.ground_truths )
 
 # END ContinuousTrainingSet class definition
 
@@ -2637,6 +2766,10 @@ class Dendrogram( object ):
 # 5. Migrate over to using the unittest module, and check in unit test related files 
 # 6. Implement the multiprocessing
 # 7. Implement kernel classifier
+# 8. Implement database hookup
+# 9. OMERO integration
+# 10. Channels.
+# 11. Train/test splits
 
 
 #============================================================================
@@ -2760,14 +2893,17 @@ def UnitTest8():
 
 	#full_ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )	
 	full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )
-	full_f_weights =  FisherFeatureWeights.NewFromFile( "/Users/chris/projects/josiah_worms/terminal_bulb_2873_weights.txt" )
+	#full_f_weights =  FisherFeatureWeights.NewFromFile( "/Users/chris/projects/josiah_worms/terminal_bulb_2873_weights.txt" )
+
+	full_ts.Normalize()
+
+	full_f_weights = FisherFeatureWeights.NewFromTrainingSet( full_ts )
 
 	full_weights = full_f_weights.EliminateZeros()
 	max_num_features = len( full_weights.names )
 	print "Max number of features: {0}".format( max_num_features )
 
 	full_ts = full_ts.FeatureReduce( full_weights.names )
-	full_ts.Normalize()
 	#full_weights =  ContinuousFeatureWeights.NewFromTrainingSet( full_ts )
 
 	experiment = DiscreteClassificationExperimentResult( training_set = full_ts,\
@@ -2817,6 +2953,22 @@ def UnitTest8():
 
 #================================================================
 
+def UnitTest9():
+
+	#full_ts = DiscreteTrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof" )	
+	full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )	
+	#full_ts.PickleMe()
+	#full_ts = DiscreteTrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof.fit.pickled" )
+	full_ts.Normalize()
+	fisher_weights = FisherFeatureWeights.NewFromTrainingSet( full_ts )
+	fisher_weights = fisher_weights.Threshold(450)
+	fisher_weights.PrintToSTDOUT()
+
+
+
+
+#================================================================
+
 initialize_module()
 
 #================================================================
@@ -2829,4 +2981,5 @@ if __name__=="__main__":
 	#UnitTest5()
 	#UnitTest7()
 	UnitTest8()
+	#UnitTest9()
 	# pass
