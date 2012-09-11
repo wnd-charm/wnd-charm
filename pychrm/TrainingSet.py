@@ -181,6 +181,7 @@ class FeatureWeights( FeatureVector ):
 		raise NotImplementedError
 
 
+
 #############################################################################
 # class definition of FisherFeatureWeights
 #############################################################################
@@ -291,7 +292,7 @@ class FisherFeatureWeights( FeatureWeights ):
 			raise ValueError('Cannot reduce a set of {0} feature weights to requested {1} features.'.\
 			                      format( len( self.values ), num_features_to_be_used ) )
 
-		new_weights = FisherFeatureWeights()
+		new_weights = self.__class__()
 		raw_featureweights = zip( self.names, self.values )
 		# raw_featureweights is now a list of tuples := [ (name1, value1), (name2, value2), ... ]
 
@@ -311,6 +312,38 @@ class FisherFeatureWeights( FeatureWeights ):
 		new_weights.associated_training_set = self.associated_training_set
 
 		return new_weights
+
+	#================================================================
+	def Slice( self, start_index, stop_index):
+		"""@breif return a chunk of middle-ranked features"""
+		
+		min_index = None
+		max_index = None
+
+		if stop_index > start_index:
+			min_index = start_index
+			max_index = stop_index
+		else:
+			min_index = stop_index
+			max_index = start_index
+
+		if (min_index < 0) or ( max_index > len( self.values ) ):
+			raise ValueError( 'Cannot slice, check your start and stop indices.' )
+
+		new_weights = self.__class__()
+		raw_featureweights = zip( self.names, self.values )
+
+		use_these_feature_weights = \
+				list( itertools.islice( raw_featureweights, min_index, max_index ) )
+		
+		# we want lists, not tuples!
+		new_weights.names, new_weights.values =\
+		  [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
+
+		new_weights.associated_training_set = self.associated_training_set
+
+		return new_weights
+
 	#================================================================
 	def PrintToSTDOUT( self ):
 		"""@breif Prints out feature values and statistics"""
@@ -444,14 +477,45 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		return new_weights
 
 	#================================================================
-	@classmethod
-	def NewOptimizedFromTrainingSet( cls, training_set, max_features = 300, print_analysis = True ):
-		"""@brief Returns optimum number of Pearson feature weights.
+	def Slice( self, start_index, stop_index):
+		"""@breif return a chunk of middle-ranked features"""
 		
-		Cycle through the list of top features and return the set that provides
-		maximum correllation coefficient"""
-		raise NotImplementedError
+		min_index = None
+		max_index = None
 
+		if stop_index > start_index:
+			min_index = start_index
+			max_index = stop_index
+		else:
+			min_index = stop_index
+			max_index = start_index
+
+		if (min_index < 0) or ( max_index > len( self.values ) ):
+			raise ValueError( 'Cannot slice, check your start and stop indices.' )
+
+		new_weights = self.__class__()
+
+		abs_val_pearson_coeffs = [ abs( val ) for val in self.pearson_coeffs ]
+		raw_featureweights = zip( self.names, abs_val_pearson_coeffs, self.pearson_coeffs, \
+		    self.slopes, self.intercepts, self.pearson_stderrs, self.pearson_p_values, \
+		    self.spearman_coeffs, self.spearman_p_values )
+
+		use_these_feature_weights = \
+				list( itertools.islice( raw_featureweights, min_index, max_index ) )
+		
+		new_weights.names, abs_pearson_coeffs, new_weights.pearson_coeffs, new_weights.slopes, \
+		    new_weights.intercepts, new_weights.pearson_stderrs, new_weights.pearson_p_values,\
+		    new_weights.spearman_coeffs, new_weights. spearman_p_values =\
+		      [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
+
+		r_val_sum = 0
+		for val in abs_pearson_coeffs:
+			r_val_sum += val
+		new_weights.values = [ val / r_val_sum for val in abs_pearson_coeffs ]
+
+		new_weights.associated_training_set = self.associated_training_set
+
+		return new_weights
 
 	#================================================================
 	def PrintToSTDOUT( self ):
@@ -953,6 +1017,7 @@ class TrainingSet( object ):
 	# FIXME: expand to have all options kept track of individually
 	feature_options = None
 
+	#==============================================================
 	def __init__( self, data_dict = None):
 		"""
 		TrainingSet constructor
@@ -983,14 +1048,14 @@ class TrainingSet( object ):
 			if "interpolation_coefficients" in data_dict:
 				self.interpolation_coefficients = data_dict[ 'interpolation_coefficients' ]
 
-#=================================================================================
+	#==============================================================
 	def PrintInfo( self ):
 		print 'Training Set "{0}"'.format( self.source_path )
 		print 'Type: {0}'.format( self.__class__.__name__ )
 		print 'Total number of images: {0}'.format( self.num_images )
 		print 'Number features: {0}'.format( len( self.featurenames_list ) )
 
-#=================================================================================
+	#==============================================================
 	@classmethod
 	def NewFromPickleFile( cls, pathname ):
 		"""
@@ -1015,7 +1080,7 @@ class TrainingSet( object ):
 
 		return the_training_set
 
-  #=================================================================================
+	#==============================================================
 	def PickleMe( self, pathname = None ):
 		"""
 		FIXME: pathname needs to end with suffix '.fit.pickled'
@@ -1056,7 +1121,7 @@ class TrainingSet( object ):
 		with open( outfile_pathname, 'wb') as outfile:
 			pickle.dump( self.__dict__, outfile, pickle.HIGHEST_PROTOCOL )
 
-  #=================================================================================
+	#==============================================================
 	@classmethod
 	def NewFromFitFile( cls, pathname ):
 		"""
@@ -1065,7 +1130,7 @@ class TrainingSet( object ):
 		"""
 		raise NotImplementedError()
 
-  #=================================================================================
+	#==============================================================
 	@classmethod
 	def NewFromSignature( cls, signature, ts_name = "TestSet", ):
 		"""@brief Creates a new TrainingSet from a single signature
@@ -1074,7 +1139,7 @@ class TrainingSet( object ):
 
 		raise NotImplementedError()
 
-  #=================================================================================
+	#==============================================================
 	@classmethod
 	def NewFromDirectory( cls, top_level_dir_path, feature_set = "large", write_sig_files_todisk = True ):
 		"""
@@ -1083,33 +1148,33 @@ class TrainingSet( object ):
 		"""
 		raise NotImplementedError()
 
-  #=================================================================================
+	#==============================================================
 	@classmethod
 	def NewFromFileOfFiles( cls, fof_path, options = None ):#, feature_set = "large", write_sig_files_todisk = True ):
 
 		raise NotImplementedError()
 
 		
-  #=================================================================================
+	#==============================================================
 	@classmethod
 	def NewFromSQLiteFile(cls, path):
 		raise NotImplementedError()
 
-  #=================================================================================
+	#==============================================================
 	def _ProcessSigCalculationSerially( self, feature_set = "large", write_sig_files_to_disk = True, options = None ):
 		"""
 		Work off the self.imagenames_list
 		"""
 		raise NotImplementedError()
 
-  #=================================================================================
+	#==============================================================
 	def _ProcessSigCalculationParallelly( self, feature_set = "large", write_sig_files_todisk = True ):
 		"""
 		FIXME: When we figure out concurrency
 		"""
 		raise NotImplementedError()
 
-  #=================================================================================
+	#==============================================================
 	def Normalize( self, training_set = None ):
 		"""
 		By convention, the range of values are normalized on an interval [0,100]
@@ -1118,7 +1183,7 @@ class TrainingSet( object ):
 
 		raise NotImplementedError()			
 
-  #=================================================================================
+	#==============================================================
 	def FeatureReduce( self, requested_features ):
 		"""
 		Returns a new TrainingSet that contains a subset of the features
@@ -1129,7 +1194,7 @@ class TrainingSet( object ):
 
 		raise NotImplementedError()
 
-  #=================================================================================
+	#==============================================================
 	def AddSignature( self, signature, class_id_index = None ):
 		"""
 		@argument signature is a valid signature
@@ -1139,13 +1204,13 @@ class TrainingSet( object ):
 		raise NotImplementedError()
 
 
-  #=================================================================================
+	#==============================================================
 	def ScrambleGroundTruths( self ):
 		"""
 		Produce an instant negative control training set
 		"""
 
-  #=================================================================================
+	#==============================================================
 	def Split( self ):
 		raise NotImplementedError()
 
@@ -1177,6 +1242,7 @@ class DiscreteTrainingSet( TrainingSet ):
 	# to obtain an interpolated value
 	interpolation_coefficients = None
 
+	#==============================================================
 	def __init__( self, data_dict = None):
 		"""
 		TrainingSet constructor
@@ -1190,7 +1256,7 @@ class DiscreteTrainingSet( TrainingSet ):
 			if "data_list" in data_dict:
 				self.data_list = data_dict[ 'data_list' ]
 
-  #=================================================================================
+	#==============================================================
 	def PrintInfo( self ):
 		super( DiscreteTrainingSet, self ).PrintInfo()
 		class_index = 0
@@ -1199,7 +1265,7 @@ class DiscreteTrainingSet( TrainingSet ):
 			        class_index, class_name, len( self.imagenames_list[ class_index ] ) )
 			class_index += 1
 
-  #=================================================================================
+	#==============================================================
 	@classmethod
 	def NewFromFitFile( cls, pathname ):
 		"""
@@ -1299,7 +1365,7 @@ class DiscreteTrainingSet( TrainingSet ):
 		
 		return the_training_set
 
-  #=================================================================================
+	#==============================================================
 	@classmethod
 	def NewFromSignature( cls, signature, ts_name = "TestSet", ):
 		"""@brief Creates a new TrainingSet from a single signature
@@ -1324,7 +1390,7 @@ class DiscreteTrainingSet( TrainingSet ):
 
 		return new_ts
 
-  #=================================================================================
+	#==============================================================
 	@classmethod
 	def NewFromDirectory( cls, top_level_dir_path, feature_set = "large", write_sig_files_todisk = True ):
 		"""
@@ -1390,7 +1456,7 @@ class DiscreteTrainingSet( TrainingSet ):
 			new_ts.feature_options = "-l"
 		return new_ts
 
-  #=================================================================================
+	#==============================================================
 	@classmethod
 	def NewFromFileOfFiles( cls, fof_path, options = None, feature_list = None, write_sig_files_todisk = False ):
 		"""
@@ -1435,7 +1501,7 @@ class DiscreteTrainingSet( TrainingSet ):
 		return new_ts
 
 
-  #=================================================================================
+	#==============================================================
 	def _ProcessSigCalculationSerially( self, feature_set = "large", write_sig_files_to_disk = True, options = None ):
 		"""
 		Work off the self.imagenames_list
@@ -1464,7 +1530,7 @@ class DiscreteTrainingSet( TrainingSet ):
 			class_id += 1
 
 
-  #=================================================================================
+	#==============================================================
 	def Normalize( self, training_set = None ):
 		"""
 		By convention, the range of values are normalized on an interval [0,100].
@@ -1524,7 +1590,7 @@ class DiscreteTrainingSet( TrainingSet ):
 			self.normalized_against = training_set.source_path
 			
 
-  #=================================================================================
+	#==============================================================
 	def FeatureReduce( self, requested_features ):
 		"""
 		Returns a new TrainingSet that contains a subset of the features
@@ -1587,7 +1653,7 @@ class DiscreteTrainingSet( TrainingSet ):
 
 		return reduced_ts
 
-  #=================================================================================
+	#==============================================================
 	def AddSignature( self, signature, class_id_index ):
 		"""
 		@argument signature is a valid signature
@@ -1631,15 +1697,70 @@ class DiscreteTrainingSet( TrainingSet ):
 		#print 'Added file "{0}" to class {1} "{2}" ({3} images)'.format( signature.source_file, \
 		#    class_id_index, self.classnames_list[class_id_index], len( self.imagenames_list[ class_id_index ] ) ) 
 
-  #=================================================================================
-	def ScrambleGroundTruths( self ):
+	#==============================================================
+	def ScrambleGroundTruths( self, fine_grained_scramble = True ):
 		"""
 		Produce an instant negative control training set
 		"""
 
-		#random.shuffle( self.ground_truths )
+		import random
+		import itertools
 
-  #=================================================================================
+		new_ts = self.__class__()
+		new_ts.data_list = [ None ] * self.num_classes
+		new_ts.imagenames_list = [ [] for j in range( self.num_classes ) ]
+		new_ts.num_classes = self.num_classes
+		new_ts.classnames_list = self.classnames_list
+		new_ts.featurenames_list = self.featurenames_list
+		new_ts.num_features = len( self.featurenames_list )
+		new_ts.source_path = self.source_path + " (scrambled)"
+		if self.interpolation_coefficients:
+			new_ts.interpolation_coefficients = self.interpolation_coefficients
+
+
+		if fine_grained_scramble:
+			# Dump out all the images into one big pool, and reassign them
+			# back to the classes randomly
+			num_images_per_class = [ len( names_list ) for names_list in self.imagenames_list ]
+			num_filenames = sum( num_images_per_class )
+			all_filenames = list( itertools.chain.from_iterable( self.imagenames_list ) )
+			all_images = np.vstack( self.data_list )
+
+			num_imgs, num_features = all_images.shape
+			if not num_imgs == num_filenames:
+				raise ValueError( "Number of filenames doesn't match number of signatures" )
+			new_ts.num_images = num_imgs
+
+			image_lottery = range( num_imgs )
+			random.shuffle( image_lottery )
+			image_lottery = iter( image_lottery )
+
+			#for feature_index in range( num_features ):
+			#	new_ts.featurenames_list[ feature_index ] += " (scrambled)"
+
+			class_index = 0
+			for num_images_in_this_class in num_images_per_class:
+				new_matrix = np.empty( ( num_images_in_this_class, num_features ) )
+				new_file_list = []
+
+				for i in range( num_images_in_this_class ):
+					index = next( image_lottery )
+					new_matrix[i] = all_images[ index ]
+					new_file_list.append( all_filenames[ index ] )
+
+				new_ts.data_list[ class_index ] = new_matrix
+				new_ts.imagenames_list[ class_index ] = new_file_list
+
+				class_index += 1
+
+		else:
+			# A course-grained scramble would keep the members in their respective bins
+			# but scramble just the class names.
+			raise NotImplementedError
+
+		return new_ts
+
+	#==============================================================
 	def Split( self, randomize = True, balanced_classes = False, training_set_fraction = 0.75,\
 	           i = None, j = None, training_set_only = False ):
 		
@@ -1665,8 +1786,8 @@ class DiscreteTrainingSet( TrainingSet ):
 		training_set.imagenames_list = [ [] for j in range( self.num_classes ) ]
 		test_set.imagenames_list = [ [] for j in range( self.num_classes ) ]
 
-		training_set.source_path = self.source_path + "(subset)"
-		test_set.source_path = self.source_path + "(subset)"
+		training_set.source_path = self.source_path + " (subset)"
+		test_set.source_path = self.source_path + " (subset)"
 
 		if self.interpolation_coefficients:
 			training_set.interpolation_coefficients = self.interpolation_coefficients
@@ -1674,8 +1795,6 @@ class DiscreteTrainingSet( TrainingSet ):
 	
 		# assemble training and test sets
 		for class_index in range( self.num_classes ):
-
-			#source_matrix = self.data_list[ class_index ]
 
 			num_images = len( self.imagenames_list[ class_index] )
 			image_lottery = range( num_images )
@@ -1754,11 +1873,11 @@ class ContinuousTrainingSet( TrainingSet ):
 			if "ground_truths" in data_dict:
 				self.ground_truths = data_dict[ 'ground_truths' ]
 
-  #=================================================================================
+	#==============================================================
 	def PrintInfo( self ):
 		super( ContinuousTrainingSet, self ).PrintInfo()
 
-  #=================================================================================
+	#==============================================================
 	@classmethod
 	def NewFromFitFile( cls, pathname ):
 		"""
@@ -1832,7 +1951,7 @@ class ContinuousTrainingSet( TrainingSet ):
 		
 		return new_ts
 
-  #=================================================================================
+	#==============================================================
 	@classmethod
 	def NewFromFileOfFiles( cls, fof_path, options = None, feature_list = None, write_sig_files_todisk = False ):
 		"""
@@ -1867,7 +1986,7 @@ class ContinuousTrainingSet( TrainingSet ):
 		new_ts.PrintInfo()
 		return new_ts
 
-  #=================================================================================
+	#==============================================================
 	def _ProcessSigCalculationSerially( self, feature_set = "large", write_sig_files_to_disk = True, options = None ):
 		"""
 		Work off the self.imagenames_list
@@ -1895,7 +2014,7 @@ class ContinuousTrainingSet( TrainingSet ):
 				self.AddSignature( sig, class_id )
 			class_id += 1
 			
-  #=================================================================================
+	#==============================================================
 	def Normalize( self, training_set = None ):
 		"""
 		By convention, the range of values are normalized on an interval [0,100].
@@ -1943,7 +2062,7 @@ class ContinuousTrainingSet( TrainingSet ):
 
 			self.normalized_against = training_set.source_path
 
-  #=================================================================================
+	#==============================================================
 	def FeatureReduce( self, requested_features ):
 		"""
 		Returns a new TrainingSet that contains a subset of the features
@@ -2005,7 +2124,7 @@ class ContinuousTrainingSet( TrainingSet ):
 
 		return reduced_ts
 
-  #=================================================================================
+	#==============================================================
 	def AddSignature( self, signature, ground_truth = None ):
 		"""
 		@argument signature is a valid signature
@@ -2028,7 +2147,7 @@ class ContinuousTrainingSet( TrainingSet ):
 
 		self.ground_truths.append( ground_truth )
 
-  #=================================================================================
+	#==============================================================
 	def ScrambleGroundTruths( self ):
 		"""
 		Produce an instant negative control training set
@@ -2036,7 +2155,7 @@ class ContinuousTrainingSet( TrainingSet ):
 
 		random.shuffle( self.ground_truths )
 
-  #=================================================================================
+	#==============================================================
 	def Split( self, randomize = False, balanced_classes = False, i = None, j = None,\
 	           training_set_only = False ):
 		
@@ -2245,7 +2364,7 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 			print "Ground truth class:\t {0}".format( self.ground_truth_value ) 
 			print "Predicted class:\t {0}".format( self.predicted_value ) 
 
-#==============================================================
+	#==============================================================
 	@classmethod
 	def _LinearRegression( cls, one_image_features, feature_weights ):
 		"""
@@ -2297,6 +2416,7 @@ class BatchClassificationResult( ClassificationResult ):
 	predicted_values = None
 
 
+	#==============================================================
 	def __init__( self, training_set = None, test_set = None, feature_weights = None ):
 		self.training_set = training_set
 		self.test_set = test_set
@@ -2306,6 +2426,7 @@ class BatchClassificationResult( ClassificationResult ):
 		self.num_classifications = 0
 
 
+	#==============================================================
 	def GenerateStats( self ):
 		#FIXME: how to calculate p-value???
 		self.num_classifications = len( self.individual_results )
@@ -2329,6 +2450,7 @@ class BatchClassificationResult( ClassificationResult ):
 			       stats.spearmanr( self.ground_truth_values, self.predicted_values )
 
 
+	#==============================================================
 	def RankOrderSort( self ):
 		value_pairs = zip( self.ground_truth_values, self.predicted_values )
 
@@ -2341,6 +2463,7 @@ class BatchClassificationResult( ClassificationResult ):
 		self.ground_truth_values, self.predicted_values =\
 			[ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_pairs ) ]	
 
+	#==============================================================
 	# FIXME: Implement these!
 	def PickleMe( self ):
 		raise NotImplementedError
@@ -2358,10 +2481,12 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 	average_similarity_matrix = None
 	average_class_probability_matrix = None
 
+	#==============================================================
 	def __init__( self, training_set = None, test_set = None, feature_weights = None ):
 		# call parent constructor
 		super( DiscreteBatchClassificationResult, self ).__init__( training_set, test_set, feature_weights)
 
+	#==============================================================
 	def GenerateStats( self ):
 		self.num_correct_classifications = 0
 		for indiv_result in self.individual_results:
@@ -2376,6 +2501,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 		self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
 
+	#==============================================================
 	def PrintToSTDOUT( self ):
 		if self.figure_of_merit == None:
 			self.GenerateStats()
@@ -2589,7 +2715,6 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 		discrlineoutstr = "\tsplit {split_num:02d} '{batch_name}': predicted: {pred_class}, actual: {actual_class}. Norm dists: ( {norm_dists} ) Interp val: {pred_val:0.3f}"
 		contlineoutstr = "\tsplit {split_num:02d} '{batch_name}': actual: {actual_class}. Predicted val: {pred_val:0.3f}"
 		outstr = "\t---> Tested {0} times, low {1:0.3f}, mean {2:0.3f}, high {3:0.3f}, std dev {4:0.3f}"
-
 
 		#create view
 		res_dict =  self.accumulated_individual_results
@@ -3140,7 +3265,7 @@ def UnitTest10():
 
 	experiment = DiscreteClassificationExperimentResult( training_set = full_ts )
 
-	num_splits = 5
+	num_splits = 10
 	for i in range( num_splits ):
 
 		training_set, test_set = full_ts.Split()
@@ -3149,23 +3274,38 @@ def UnitTest10():
 		test_set.Normalize( training_set )
 
 		fisher_weights = FisherFeatureWeights.NewFromTrainingSet( training_set )
-		fisher_weights = fisher_weights.Threshold()
+		fisher_weights = fisher_weights.Threshold(50)
+		#fisher_weights = fisher_weights.Slice( 20, 30 )
 
+		print "Fisher weights before:"
 		fisher_weights.PrintToSTDOUT()
-
-		reduced_training_set = training_set.FeatureReduce( fisher_weights.names )
 		reduced_test_set = test_set.FeatureReduce( fisher_weights.names )
+		reduced_training_set = training_set.FeatureReduce( fisher_weights.names )
 
-		batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, \
-		                  reduced_test_set, fisher_weights, batch_number = i, quiet = True )
+		scrambled_training_set = reduced_training_set.ScrambleGroundTruths()
+		scrambled_training_set.Normalize()
+		scrambled_fisher_weights = FisherFeatureWeights.NewFromTrainingSet( scrambled_training_set)
+		scrambled_fisher_weights = scrambled_fisher_weights.Threshold( 50 )
+		print "Fisher weights after:"
+		scrambled_fisher_weights.PrintToSTDOUT()
+
+		scrambled_fisher_weights = scrambled_fisher_weights.Threshold()
+		scrambled_training_set = scrambled_training_set.FeatureReduce( scrambled_fisher_weights.names )
+
+		reduced_test_set = reduced_test_set.FeatureReduce( scrambled_fisher_weights.names )
+
+		#batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, \
+		#                  reduced_test_set, fisher_weights, batch_number = i, quiet = True )
+		batch_result = DiscreteBatchClassificationResult.New( scrambled_training_set, \
+		               reduced_test_set, scrambled_fisher_weights, batch_number = i, quiet = True )
 
 		batch_result.PrintToSTDOUT()
 
 		experiment.individual_results.append( batch_result )
 
 		grapher = PredictedValuesGraph( batch_result )
-		grapher.RankOrderedPredictedValuesGraph( "t" )
-		grapher.SaveToFile( "graph_fixed_{0}".format( i ) )
+		grapher.RankOrderedPredictedValuesGraph( "synthetic data set, scrambled training set" )
+		grapher.SaveToFile( "rank_ordered_synthetic_scrambled_graph{0}".format( i ) )
 	
 	experiment.PredictedValueAnalysis()
 
