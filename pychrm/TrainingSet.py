@@ -217,6 +217,9 @@ class FisherFeatureWeights( FeatureWeights ):
 		Ic = number of images in a given class
 		"""
 
+		if not training_set.__class__.__name__ == "DiscreteTrainingSet":
+			raise ValueError( "Cannot create Fisher weights from anything other than a DiscreteTrainingSet." )
+
 		# 2D matrix It * F
 		all_images_combined_classes = np.vstack( training_set.data_list )
 
@@ -365,7 +368,8 @@ class ContinuousFeatureWeights( FeatureWeights ):
 
 		new_fw.associated_training_set = training_set
 
-		r_val_squared_sum = 0
+		#r_val_squared_sum = 0
+		r_val_cubed_sum = 0
 
 		for feature_index in range( training_set.num_features ):
 			feature_values = matrix[:,feature_index]
@@ -381,13 +385,15 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			new_fw.pearson_stderrs.append( std_err )
 			new_fw.pearson_p_values.append( p_value )
 
-			r_val_squared_sum += pearson_coeff * pearson_coeff
+			#r_val_squared_sum += pearson_coeff * pearson_coeff
+			r_val_cubed_sum += pearson_coeff * pearson_coeff * pearson_coeff
 
 			spearman_coeff, spearman_p_val = stats.spearmanr( ground_truths, feature_values )
 			new_fw.spearman_coeffs.append( spearman_coeff )
 			new_fw.spearman_p_values.append( spearman_p_val )
 
-		new_fw.values = [val*val / r_val_squared_sum for val in new_fw.pearson_coeffs ]
+		#new_fw.values = [val*val / r_val_squared_sum for val in new_fw.pearson_coeffs ]
+		new_fw.values = [val*val*val / r_val_cubed_sum for val in new_fw.pearson_coeffs ]
 
 		return new_fw
 
@@ -661,7 +667,7 @@ class Signatures( FeatureVector ):
 			raise ValueError( "The file {0} isn't a signature file (doesn't end in .sig or .pysig)".\
 			                  format( sigfile_path ) )
 
-		print "Loading features from sigfile {0}".format( sigfile_path )
+		#print "Loading features from sigfile {0}".format( sigfile_path )
 
 		signatures = cls()
 		# FIXME: Do we care about the .tif?
@@ -685,7 +691,7 @@ class Signatures( FeatureVector ):
 					signatures.values.append( float( value ) )	
 					signatures.names.append( name )
 				linenum += 1
-			print "Loaded {0} features.".format( len( signatures.values ) )
+			#print "Loaded {0} features.".format( len( signatures.values ) )
 
 		# Check if the feature name follows the old convention
 		signatures.names = FeatureNameMap.TranslateToNewStyle( signatures.names ) 
@@ -976,7 +982,15 @@ class TrainingSet( object ):
 				self.classnames_list = data_dict[ 'classnames_list' ]
 			if "interpolation_coefficients" in data_dict:
 				self.interpolation_coefficients = data_dict[ 'interpolation_coefficients' ]
-  #=================================================================================
+
+#=================================================================================
+	def PrintInfo( self ):
+		print 'Training Set "{0}"'.format( self.source_path )
+		print 'Type: {0}'.format( self.__class__.__name__ )
+		print 'Total number of images: {0}'.format( self.num_images )
+		print 'Number features: {0}'.format( len( self.featurenames_list ) )
+
+#=================================================================================
 	@classmethod
 	def NewFromPickleFile( cls, pathname ):
 		"""
@@ -1125,6 +1139,18 @@ class TrainingSet( object ):
 		raise NotImplementedError()
 
 
+  #=================================================================================
+	def ScrambleGroundTruths( self ):
+		"""
+		Produce an instant negative control training set
+		"""
+
+  #=================================================================================
+	def Split( self ):
+		raise NotImplementedError()
+
+
+
 # END TrainingSet class definition
 
 #############################################################################
@@ -1164,6 +1190,14 @@ class DiscreteTrainingSet( TrainingSet ):
 			if "data_list" in data_dict:
 				self.data_list = data_dict[ 'data_list' ]
 
+  #=================================================================================
+	def PrintInfo( self ):
+		super( DiscreteTrainingSet, self ).PrintInfo()
+		class_index = 0
+		for class_name in self.classnames_list:
+			print '\tClass {0} "{1}": {2} images'.format( \
+			        class_index, class_name, len( self.imagenames_list[ class_index ] ) )
+			class_index += 1
 
   #=================================================================================
 	@classmethod
@@ -1439,7 +1473,9 @@ class DiscreteTrainingSet( TrainingSet ):
 		in classification because they don't vary at all.
 		"""
 
-		if not( self.normalized_against ):
+		if self.normalized_against and training_set:
+			raise ValueError( "You can't normalize a training set against another training set once it's already been normalized." )
+		elif not self.normalized_against and not training_set:
 
 			full_stack = np.vstack( self.data_list )
 			total_num_imgs, num_features = full_stack.shape
@@ -1463,7 +1499,7 @@ class DiscreteTrainingSet( TrainingSet ):
 						class_matrix[:,i] *= 100
 			self.normalized_against = "itself"
 
-		if training_set:
+		else:
 			# sanity checks
 			if self.normalized_against:
 				raise ValueError( "Test set {0} has already been normalized against {1}."\
@@ -1471,6 +1507,9 @@ class DiscreteTrainingSet( TrainingSet ):
 			if training_set.featurenames_list != self.featurenames_list:
 				raise ValueError("Can't normalize test_set {0} against training_set {1}: Features don't match."\
 						.format( self.source_path, training_set.source_path ) )
+
+			if not training_set.normalized_against:
+				training_set.Normalize()
 
 			for i in range( self.num_features ):
 				for class_matrix in self.data_list:
@@ -1555,7 +1594,7 @@ class DiscreteTrainingSet( TrainingSet ):
 		if None == class_id_index:
 			raise ValueError( 'Must specify either a class_index' )
 		
-		if (self.data_list == None) or ( len( self.data_list ) == 0 ) :
+		if( self.data_list == None ) or ( len( self.data_list ) == 0 ) :
 			# If no class_id_index is specified, sig goes in first matrix in the list by default
 			# make sure there's something there when you try to dereference that index
 			self.data_list = []
@@ -1585,8 +1624,93 @@ class DiscreteTrainingSet( TrainingSet ):
 
 		self.num_images += 1
 
-		print 'Added file "{0}" to class {1} "{2}" ({3} images)'.format( signature.source_file, \
-		    class_id_index, self.classnames_list[class_id_index], len( self.imagenames_list[ class_id_index ] ) ) 
+		#print 'Added file "{0}" to class {1} "{2}" ({3} images)'.format( signature.source_file, \
+		#    class_id_index, self.classnames_list[class_id_index], len( self.imagenames_list[ class_id_index ] ) ) 
+
+  #=================================================================================
+	def ScrambleGroundTruths( self ):
+		"""
+		Produce an instant negative control training set
+		"""
+
+		#random.shuffle( self.ground_truths )
+
+  #=================================================================================
+	def Split( self, randomize = True, balanced_classes = False, training_set_fraction = 0.75,\
+	           i = None, j = None, training_set_only = False ):
+		
+		import random
+
+		training_set = self.__class__()
+		test_set = self.__class__()
+
+		# initialize
+		training_set.data_list = [ None ] * self.num_classes
+		test_set.data_list = [ None ] * self.num_classes
+
+		training_set.num_images = 0
+		test_set.num_images = 0
+
+		training_set.num_classes = self.num_classes
+		test_set.num_classes = self.num_classes
+
+		training_set.classnames_list = test_set.classnames_list = self.classnames_list
+		training_set.featurenames_list = test_set.featurenames_list = self.featurenames_list
+
+		training_set.imagenames_list = [ [] for j in range( self.num_classes ) ]
+		test_set.imagenames_list = [ [] for j in range( self.num_classes ) ]
+
+		training_set.source_path = self.source_path + "(subset)"
+		test_set.source_path = self.source_path + "(subset)"
+
+		if self.interpolation_coefficients:
+			training_set.interpolation_coefficients = self.interpolation_coefficients
+			test_set.interpolation_coefficients = self.interpolation_coefficients
+	
+		# assemble training and test sets
+		for class_index in range( self.num_classes ):
+
+			#source_matrix = self.data_list[ class_index ]
+
+			num_images = len( self.imagenames_list[ class_index] )
+			image_lottery = range( num_images )
+			random.shuffle( image_lottery )
+
+			num_images_in_training_set = int( training_set_fraction * num_images )
+
+			training_matrix = None
+			test_matrix = None
+
+			class_image_count = 0
+			for image_index in image_lottery:
+
+				image_name = self.imagenames_list[ class_index ][ image_index ]
+
+				if class_image_count < num_images_in_training_set:
+					# fill out training_set:
+					if training_matrix == None:
+						training_matrix = np.array( self.data_list[ class_index ][ image_index ] )
+					else:
+						training_matrix = np.vstack( ( training_matrix, \
+						    self.data_list[ class_index ][ image_index ] ) )
+					training_set.imagenames_list[ class_index ].append( image_name )
+					training_set.num_images += 1
+				else:
+					# fill out test set:
+					if test_matrix == None:
+						test_matrix = np.array( self.data_list[ class_index ][ image_index ] )
+					else:
+						test_matrix = np.vstack( ( test_matrix, \
+						    self.data_list[ class_index ][ image_index ] ) )
+					test_set.imagenames_list[ class_index ].append( image_name )
+					test_set.num_images += 1
+
+				class_image_count += 1
+
+			training_set.data_list[ class_index ] = training_matrix
+			test_set.data_list[ class_index ] = test_matrix
+
+		return training_set, test_set
 
 
 # END DiscreteTrainingSet class definition
@@ -1624,6 +1748,10 @@ class ContinuousTrainingSet( TrainingSet ):
 				self.data_matrix = data_dict[ 'data_matrix' ]
 			if "ground_truths" in data_dict:
 				self.ground_truths = data_dict[ 'ground_truths' ]
+
+  #=================================================================================
+	def PrintInfo( self ):
+		super( ContinuousTrainingSet, self ).PrintInfo()
 
   #=================================================================================
 	@classmethod
@@ -1730,7 +1858,8 @@ class ContinuousTrainingSet( TrainingSet ):
 				else:
 					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
 				new_ts.AddSignature( sig, ground_truth_val )
-		
+	
+		new_ts.PrintInfo()
 		return new_ts
 
   #=================================================================================
@@ -1902,6 +2031,11 @@ class ContinuousTrainingSet( TrainingSet ):
 
 		random.shuffle( self.ground_truths )
 
+  #=================================================================================
+	def Split( self, randomize = False, balanced_classes = False, i = None, j = None,\
+	           training_set_only = False ):
+		
+		raise NotImplementedError()
 # END ContinuousTrainingSet class definition
 
 #=================================================================================
@@ -2063,7 +2197,7 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 			 train_set_len != feature_weights_len or \
 			 test_set_len  != feature_weights_len:
 			raise ValueError( "Can't classify: one or more of the inputs has a different number of" \
-			 "features than the others: training set={0}, test set={1}, feature weights={2}".format( \
+			 " features than the others: training set={0}, test set={1}, feature weights={2}".format( \
 					train_set_len, test_set_len, feature_weights_len ) + ". Perform a feature reduce." )
 
 		print "Classifying image '{0}' ({1} features) against test set '{2}' ({3} features)".\
@@ -2289,10 +2423,14 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		batch_result = cls( training_set, test_set, feature_weights )
 		batch_result.name = batch_name
 
-		interp_coeffs = None
+		train_set_interp_coeffs = None
 		if training_set.interpolation_coefficients:
-			interp_coeffs = np.array( training_set.interpolation_coefficients )
+			train_set_interp_coeffs = np.array( training_set.interpolation_coefficients )
 			batch_result.predicted_values = []
+
+		test_set_interp_coeffs = None
+		if test_set.interpolation_coefficients:
+			test_set_interp_coeffs = np.array( test_set.interpolation_coefficients )
 			batch_result.ground_truth_values = []
 
 		for test_class_index in range( test_set.num_classes ):
@@ -2307,13 +2445,16 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 				result.name = batch_name
 				marg_probs = np.array( result.marginal_probabilities )
 				result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
+
 				# interpolated value, if applicable
-				if interp_coeffs is not None:
-					interp_val = np.sum( marg_probs * interp_coeffs )
+				if train_set_interp_coeffs is not None:
+					interp_val = np.sum( marg_probs * train_set_interp_coeffs )
 					result.predicted_value = interp_val
-					result.ground_truth_value = interp_coeffs[ test_class_index ]
 					batch_result.predicted_values.append( interp_val )
-					batch_result.ground_truth_values.append( interp_coeffs[ test_class_index ] )
+
+				if test_set_interp_coeffs is not None:
+					result.ground_truth_value = test_set_interp_coeffs[ test_class_index ]
+					batch_result.ground_truth_values.append( test_set_interp_coeffs[ test_class_index ] )
 
 				if not quiet:
 					result.PrintToSTDOUT( line_item = True )
@@ -2607,12 +2748,14 @@ class PredictedValuesGraph( BaseGraph ):
 	classnames_list = None
 	class_values = None
 
+	#=====================================================================
 	def __init__( self, result ):
+
 		self.batch_result = result
 		self.grouped_coords = {}
 
-		self.classnames_list = result.training_set.classnames_list
-		self.class_values = result.training_set.interpolation_coefficients
+		self.classnames_list = result.test_set.classnames_list
+		self.class_values = result.test_set.interpolation_coefficients
 
 		#FIXME: implement user-definable bin edges
 
@@ -2627,19 +2770,23 @@ class PredictedValuesGraph( BaseGraph ):
 					self.grouped_coords[ class_name ].append( coords )
 			class_index += 1
 
+	#=====================================================================
 	def SaveToFile( self, filepath ):
 		super( PredictedValuesGraph, self ).SaveToFile( filepath )
 
 
-	def RankOrderedPredictedValuesGraph( self, chart_title ):
+	#=====================================================================
+	def RankOrderedPredictedValuesGraph( self, chart_title = None ):
 
 		from matplotlib import pyplot
 
-		color = iter(['r', 'g', 'b', 'c', 'm', 'y', 'k'])
+		color = itertools.cycle(['r', 'g', 'b', 'c', 'm', 'y', 'k'])
 
 		self.figure = pyplot.figure()
 		self.main_axes = self.figure.add_subplot(111)
-		self.chart_title = chart_title
+		if chart_title:
+			self.chart_title = chart_title
+			self.main_axes.set_title( chart_title )
 		self.main_axes.set_title( chart_title )
 		self.main_axes.set_xlabel( 'count' )
 		self.main_axes.set_ylabel( 'Predicted Value Scores' )
@@ -2655,17 +2802,19 @@ class PredictedValuesGraph( BaseGraph ):
 		# FIXME: put legend in bottom left
 		self.main_axes.legend( loc = 'lower right')
 		
-	def KernelSmoothedDensityGraph( self, chart_title ):
+	#=====================================================================
+	def KernelSmoothedDensityGraph( self, chart_title = None ):
 		"""Uses scipy.stats.gaussian_kde """
 
 		from matplotlib import pyplot
 
-		color = iter(['r', 'g', 'b', 'c', 'm', 'y', 'k'])
+		color = itertools.cycle(['r', 'g', 'b', 'c', 'm', 'y', 'k'])
 
 		self.figure = pyplot.figure()
 		self.main_axes = self.figure.add_subplot(111)
-		self.chart_title = chart_title
-		self.main_axes.set_title( chart_title )
+		if chart_title:
+			self.chart_title = chart_title
+			self.main_axes.set_title( chart_title )
 		self.main_axes.set_xlabel( 'Age score' )
 		self.main_axes.set_ylabel( 'Probability density' )
 
@@ -2754,22 +2903,27 @@ class Dendrogram( object ):
 
 
 # Pychrm roadmap:
-# 0. Confirmation/validation/ biology experiments
-# 0b. Wha's up with continuous averages averaging to sum N
-# 1a. Classify images against multiple classifiers
-# 1. Break out classes into their own modules
-# 1b. Establish and implement is_valid() criteria for all objects
-# 2. Flush out docstrings
-# 3a. API documentation generation using pydoc
-# 3b. Further documentation, getting started, tutorials, examples
-# 4. Use some model-building module to map out object model (Pylint/Pyreverse)
-# 5. Migrate over to using the unittest module, and check in unit test related files 
-# 6. Implement the multiprocessing
-# 7. Implement kernel classifier
-# 8. Implement database hookup
-# 9. OMERO integration
-# 10. Channels.
-# 11. Train/test splits
+# Confirmation/validation/ biology experiments
+# Use scipy.optimize.curve_fit (http://www.scipy.org/Cookbook/FittingData)
+# Implement dendrogram using scipy.cluster
+# Wha's up with continuous averages averaging to sum N
+# Classify images against multiple classifiers
+# Break out classes into their own modules
+# (low) Establish and implement is_valid() criteria for all objects
+# Flush out docstrings
+# API documentation generation using pydoc
+# Further documentation, getting started, tutorials, examples
+# Use some model-building module to map out object model (Pylint/Pyreverse)
+# Migrate over to using the unittest module, and check in unit test related files 
+# Implement the multiprocessing
+# Implement kernel classifier
+# Implement database hookup
+# OMERO integration
+# Implement Channels.
+# Implement TrainingSet::Split
+# Implement ScrambleGroundTruths
+# Overhaul PrintToSTDOUT to be able to take a filename and write output to that file instead
+#     of STDOUT
 
 
 #============================================================================
@@ -2892,26 +3046,30 @@ def UnitTest8():
 	#full_fisher_weights = FisherFeatureWeights.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/feature_weights_len_2873.weights.pickled" )
 
 	#full_ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )	
-	full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )
-	#full_f_weights =  FisherFeatureWeights.NewFromFile( "/Users/chris/projects/josiah_worms/terminal_bulb_2873_weights.txt" )
+	#full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )
 
+	#full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
+	#full_ts.PickleMe()
+	discrete_full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
+	full_ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
+
+	discrete_full_ts.Normalize()
 	full_ts.Normalize()
 
-	full_f_weights = FisherFeatureWeights.NewFromTrainingSet( full_ts )
-
+	full_f_weights = FisherFeatureWeights.NewFromTrainingSet( discrete_full_ts )
 	full_weights = full_f_weights.EliminateZeros()
 	max_num_features = len( full_weights.names )
 	print "Max number of features: {0}".format( max_num_features )
 
-	full_ts = full_ts.FeatureReduce( full_weights.names )
-	#full_weights =  ContinuousFeatureWeights.NewFromTrainingSet( full_ts )
+	#full_ts = discrete_full_ts.FeatureReduce( full_weights.names )
+	full_weights =  ContinuousFeatureWeights.NewFromTrainingSet( full_ts )
 
-	experiment = DiscreteClassificationExperimentResult( training_set = full_ts,\
-	#experiment = ClassificationExperimentResult( training_set = full_ts,\
+	#experiment = DiscreteClassificationExperimentResult( training_set = full_ts,\
+	experiment = ClassificationExperimentResult( training_set = full_ts,\
 	                                             test_set = full_ts, \
 	                                             feature_weights = full_weights )
 
-	num_graphs = 30
+	num_graphs = 50
 	feature_numbers = set() 
 
 	# sample a wide variety of numbers of features
@@ -2926,27 +3084,26 @@ def UnitTest8():
 		print "==============================================================="
 		print "New batch, number of features: {0}".format( num_features_used )
 		weights_subset = full_weights.Threshold( num_features_used )
-		#weights_subset.PrintToSTDOUT()
 		reduced_ts = full_ts.FeatureReduce( weights_subset.names )
 		name = "{0:03d} Features".format( num_features_used )
-		batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, \
-		#batch_result = ContinuousBatchClassificationResult.New( reduced_ts, \
+		#batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, \
+		batch_result = ContinuousBatchClassificationResult.New( reduced_ts, \
 		               weights_subset, batch_number = i, batch_name = name, quiet = True)
 		batch_result.PrintToSTDOUT()
 		grapher = PredictedValuesGraph( batch_result )
 
 		grapher.RankOrderedPredictedValuesGraph( \
-		  "Josiah Terminal Bulb Pred. Vals (disc classifier, {0} features)".format( num_features_used ) )
-		grapher.SaveToFile( "RANK_ORDERED_term_bulb_disc_{0:04d}_features".format( num_features_used ))
+		  "FacingL7class Pred. Vals (cont-3 classifier, {0} features)".format( num_features_used ) )
+		grapher.SaveToFile( "RANK_ORDERED_term_bulb_cont3_{0:04d}_features".format( num_features_used ))
 
 		grapher.KernelSmoothedDensityGraph( \
-		  "Josiah Terminal Bulb Pred. Vals (disc classifier, {0} features)".format( num_features_used ) )
-		grapher.SaveToFile( "KS_DENSITY_term_bulb_disc_{0:04d}_features".format( num_features_used ) )
+		  "FacingL7class Pred. Vals (cont-3 classifier, {0} features)".format( num_features_used ) )
+		grapher.SaveToFile( "KS_DENSITY_term_bulb_cont3_{0:04d}_features".format( num_features_used ) )
 
 		experiment.individual_results.append( batch_result )
 		i += 1
 	
-	experiment.PrintToSTDOUT()
+	#experiment.PrintToSTDOUT()
 	experiment.PredictedValueAnalysis()
 	experiment.WeightsOptimizationAnalysis()
 
@@ -2961,12 +3118,114 @@ def UnitTest9():
 	#full_ts = DiscreteTrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof.fit.pickled" )
 	full_ts.Normalize()
 	fisher_weights = FisherFeatureWeights.NewFromTrainingSet( full_ts )
-	fisher_weights = fisher_weights.Threshold(450)
+	#fisher_weights = fisher_weights.Threshold(2873)
 	fisher_weights.PrintToSTDOUT()
 
 
+#================================================================
+
+def UnitTest10():
+	"""Meant to exercize train/test/split functionality"""
+
+	#full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/eckley_state_classifier/FOFSimpleState.fit" )
+	#full_ts = DiscreteTrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof.fit.pickled" )
+	full_ts = DiscreteTrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof" )
+	full_ts.PrintInfo()
+	#full_ts.Normalize()
+
+	experiment = DiscreteClassificationExperimentResult( training_set = full_ts )
+
+	num_splits = 5
+
+	for i in range( num_splits ):
+
+		training_set, test_set = full_ts.Split()
+
+		training_set.Normalize()
+		test_set.Normalize( training_set )
+
+		fisher_weights = FisherFeatureWeights.NewFromTrainingSet( training_set )
+		fisher_weights = fisher_weights.Threshold()
+
+		fisher_weights.PrintToSTDOUT()
+
+		reduced_training_set = training_set.FeatureReduce( fisher_weights.names )
+		reduced_test_set = test_set.FeatureReduce( fisher_weights.names )
+
+		batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, \
+		                  reduced_test_set, fisher_weights, batch_number = i, quiet = True )
+
+		batch_result.PrintToSTDOUT()
+
+		experiment.individual_results.append( batch_result )
+
+		grapher = PredictedValuesGraph( batch_result )
+		grapher.RankOrderedPredictedValuesGraph( "t" )
+		grapher.SaveToFile( "graph{0}".format( i ) )
+
+	experiment.PredictedValueAnalysis()
 
 
+#================================================================
+
+def UnitTest11():
+	"""Meant to test the functionality when the training set has less classes than the test set"""
+
+	full_training_set = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FOF.fit" )
+	full_training_set.Normalize()
+	full_feature_weights = FisherFeatureWeights.NewFromTrainingSet( full_training_set )
+
+	full_test_set = DiscreteTrainingSet.NewFromFitFile(  "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
+	full_test_set.Normalize()
+
+	experiment = DiscreteClassificationExperimentResult( training_set = full_training_set,\
+	                                             test_set = full_test_set, \
+	                                             feature_weights = full_feature_weights )
+
+
+	max_num_features = 750
+	num_graphs = 20
+	feature_numbers = set() 
+
+	# sample a wide variety of numbers of features
+	for i in range( 1, num_graphs/2 + 1 ):
+		feature_numbers.add( int( float( i * 2 ) / num_graphs * max_num_features * 0.1) )
+		feature_numbers.add( int( float( i * 2 ) / num_graphs * max_num_features ) )
+
+	i = 1
+
+	for num_features_used in sorted( feature_numbers ):
+		print "\n\n==============================================================="
+		print "==============================================================="
+		print "New batch, number of features: {0}".format( num_features_used )
+		weights_subset = full_feature_weights.Threshold( num_features_used )
+		reduced_training_set = full_training_set.FeatureReduce( weights_subset.names )
+		reduced_test_set = full_test_set.FeatureReduce( weights_subset.names )
+		name = "{0:03d} Features".format( num_features_used )
+		batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, reduced_test_set, \
+		               weights_subset, batch_number = i, batch_name = name, quiet = True)
+		batch_result.PrintToSTDOUT()
+
+		
+		grapher = PredictedValuesGraph( batch_result )
+
+		chart_title = "FacingL7class against FOF ({0} features)".format( num_features_used )
+		base_file_name = "_FOF_on_Facing_{0:03d}_features".format( num_features_used )
+
+		grapher.RankOrderedPredictedValuesGraph( chart_title )
+		grapher.SaveToFile( "RANK_ORDERED" + base_file_name )
+
+		grapher.KernelSmoothedDensityGraph( chart_title )
+		grapher.SaveToFile( "KS_DENSITY" + base_file_name )
+
+		experiment.individual_results.append( batch_result )
+		i += 1
+	
+	experiment.PrintToSTDOUT()
+	experiment.PredictedValueAnalysis()
+	experiment.WeightsOptimizationAnalysis()
+
+	
 #================================================================
 
 initialize_module()
@@ -2980,6 +3239,8 @@ if __name__=="__main__":
 	#UnitTest4()
 	#UnitTest5()
 	#UnitTest7()
-	UnitTest8()
+	#UnitTest8()
 	#UnitTest9()
+	UnitTest10()
+	#UnitTest11()
 	# pass
