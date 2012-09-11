@@ -1511,10 +1511,14 @@ class DiscreteTrainingSet( TrainingSet ):
 			if not training_set.normalized_against:
 				training_set.Normalize()
 
+			if self.num_features <= 0:
+				err_str = "member 'num_features' in training set {0} not set."
+				raise ValueError( err_str.format( self.source_path ) )
+			
 			for i in range( self.num_features ):
 				for class_matrix in self.data_list:
 					class_matrix[:,i] -= training_set.feature_minima[i]
-					class_matrix[:,i] /= (training_set.feature_maxima[i] -training_set.feature_minima[i])
+					class_matrix[:,i] /= (training_set.feature_maxima[i] - training_set.feature_minima[i])
 					class_matrix[:,i] *= 100
 
 			self.normalized_against = training_set.source_path
@@ -1656,6 +1660,7 @@ class DiscreteTrainingSet( TrainingSet ):
 
 		training_set.classnames_list = test_set.classnames_list = self.classnames_list
 		training_set.featurenames_list = test_set.featurenames_list = self.featurenames_list
+		training_set.num_features = test_set.num_features = len( self.featurenames_list )
 
 		training_set.imagenames_list = [ [] for j in range( self.num_classes ) ]
 		test_set.imagenames_list = [ [] for j in range( self.num_classes ) ]
@@ -3136,7 +3141,6 @@ def UnitTest10():
 	experiment = DiscreteClassificationExperimentResult( training_set = full_ts )
 
 	num_splits = 5
-
 	for i in range( num_splits ):
 
 		training_set, test_set = full_ts.Split()
@@ -3161,9 +3165,33 @@ def UnitTest10():
 
 		grapher = PredictedValuesGraph( batch_result )
 		grapher.RankOrderedPredictedValuesGraph( "t" )
-		grapher.SaveToFile( "graph{0}".format( i ) )
-
+		grapher.SaveToFile( "graph_fixed_{0}".format( i ) )
+	
 	experiment.PredictedValueAnalysis()
+
+
+#	full_ts.Normalize()
+#
+#	fisher_weights = FisherFeatureWeights.NewFromTrainingSet( full_ts )
+#	fisher_weights = fisher_weights.Threshold(50)
+#	fisher_weights.PrintToSTDOUT()
+#
+#
+#	training_set, test_set = full_ts.Split()
+#
+#	reduced_training_set = training_set.FeatureReduce( fisher_weights.names )
+#	reduced_test_set = test_set.FeatureReduce( fisher_weights.names )
+#
+#
+#	batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, \
+#	               reduced_test_set, fisher_weights, quiet = True )
+#	batch_result.PrintToSTDOUT()
+#	grapher = PredictedValuesGraph( batch_result )
+#	grapher.RankOrderedPredictedValuesGraph( "one split normalized first" )
+#	grapher.SaveToFile( "one_split_normalized_first" )
+
+
+
 
 
 #================================================================
