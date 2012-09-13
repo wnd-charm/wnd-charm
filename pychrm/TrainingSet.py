@@ -2328,8 +2328,6 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 		@returntype: ImageClassificationResult()
 		"""
 
-		import pdb; pdb.set_trace()
-
 		if not isinstance( training_set, DiscreteTrainingSet):
 			raise ValueError( 'First argument to NewWND5 must be of type "DiscreteTrainingSet", you gave a {0}'.format( type( training_set ).__name__ ) )
 		
