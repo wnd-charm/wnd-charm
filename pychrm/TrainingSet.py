@@ -218,6 +218,10 @@ class FisherFeatureWeights( FeatureWeights ):
 		Ic = number of images in a given class
 		"""
 
+		if training_set == None:
+			import inspect
+			form_str = 'You passed in a None as a training set to the function {0}.{1}'	
+			raise ValueError( form_str.format( cls.__name__, inspect.stack()[1][3] ) )
 		if not training_set.__class__.__name__ == "DiscreteTrainingSet":
 			raise ValueError( "Cannot create Fisher weights from anything other than a DiscreteTrainingSet." )
 
@@ -227,32 +231,36 @@ class FisherFeatureWeights( FeatureWeights ):
 		# 1D matrix 1 * F
 		population_means = np.mean( all_images_combined_classes, axis = 0 )
 
-		# 3D matrix N * Ic * F
-		all_images_classes_separate = np.array( training_set.data_list )
-
+		# WARNING, this only works in python27:
+		# ====================================
 		# If 'training_set' is a balanced training set (i.e., same number of images
 		# in each class), you can use pure matrix calls without iteration:
-		if len( all_images_classes_separate.shape ) == 3:
+
+		# 3D matrix N * Ic * F
+		#all_images_classes_separate = np.array( training_set.data_list )
+
+		#if len( all_images_classes_separate.shape ) == 3:
 
 			# 2D matrix N * F
-			intra_class_means = np.mean( all_images_classes_separate, axis = 1 )
+		#	intra_class_means = np.mean( all_images_classes_separate, axis = 1 )
 			# 2D matrix N * F
-			intra_class_variances = np.var( all_images_classes_separate, axis = 1 )
+		#	intra_class_variances = np.var( all_images_classes_separate, axis = 1 )
 
-		else:
+		#else:
+		# ====================================
 
-			# 2D matrix shape N * F
-			intra_class_means = np.empty( \
-						 ( training_set.num_classes, len( training_set.featurenames_list ) ) )
-			# 2D matrix shape N * F
-			intra_class_variances = np.empty( \
-						 ( training_set.num_classes, len( training_set.featurenames_list ) ) )
-
-			class_index = 0
-			for class_feature_matrix in training_set.data_list:
-				intra_class_means[ class_index ] = np.mean( class_feature_matrix, axis=0 )
-				intra_class_variances[ class_index ] = np.var( class_feature_matrix, axis=0 )
-				class_index += 1
+		# 2D matrix shape N * F
+		intra_class_means = np.empty( \
+				 ( training_set.num_classes, len( training_set.featurenames_list ) ) )
+		# 2D matrix shape N * F
+		intra_class_variances = np.empty( \
+				 ( training_set.num_classes, len( training_set.featurenames_list ) ) )
+		
+		class_index = 0
+		for class_feature_matrix in training_set.data_list:
+			intra_class_means[ class_index ] = np.mean( class_feature_matrix, axis=0 )
+			intra_class_variances[ class_index ] = np.var( class_feature_matrix, axis=0 )
+			class_index += 1
 
 
 		# 1D matrix 1 * F
@@ -554,6 +562,7 @@ class Signatures( FeatureVector ):
 	"""
 
 	source_file = None
+	path_to_image = None
 	options = ""
 
 	#================================================================
@@ -615,10 +624,10 @@ class Signatures( FeatureVector ):
 
 		if os.path.exists( root + options_str + ".pysig" ):
 			sigpath = root + options_str + ".pysig"
-			the_sigs = cls.NewFromSigFile( imagepath, sigpath, options_str )
+			the_sigs = cls.NewFromSigFile( sigpath, imagepath, options_str )
 		elif os.path.exists( root + options_str + ".sig" ):
 			sigpath = root + options_str + ".sig" 
-			the_sigs = cls.NewFromSigFile( imagepath, sigpath, options_str )
+			the_sigs = cls.NewFromSigFile( sigpath, imagepath, options_str )
 		else:
 			sigpath = root + options_str + ".pysig"
 
@@ -671,6 +680,7 @@ class Signatures( FeatureVector ):
 		# instantiate an empty Signatures object
 		signatures = cls()
 		signatures.source_file = path_to_image
+		signatures.path_to_image = path_to_image
 		signatures.options = options
 
 		for fg in feature_groups:
@@ -712,7 +722,7 @@ class Signatures( FeatureVector ):
 
 	#================================================================
 	@classmethod
-	def NewFromSigFile( cls, image_path, sigfile_path, options = None ):
+	def NewFromSigFile( cls, sigfile_path, image_path = None, options = None ):
 		"""@argument sigfile_path must be a .sig or a .pysig file
 		
 		@return  - An instantiated signature class with feature names translated from
@@ -737,6 +747,7 @@ class Signatures( FeatureVector ):
 		# FIXME: Do we care about the .tif?
 
 		signatures.source_file = sigfile_path
+		signatures.path_to_image = image_path
 		signatures.options = options
  
 		with open( sigfile_path ) as infile:
@@ -779,8 +790,12 @@ class Signatures( FeatureVector ):
 			outfile_path = self.source_file
 
 			path, filename = os.path.split( outfile_path )
-			if not os.path.exists( path ):
-				raise ValueError( 'Invalid path {0}'.format( path ) )
+			
+			# if the filepath is None, you don't have to check if it exists,
+			# it's gonna be created right here
+			if not filepath == None:
+				if not os.path.exists( path ):
+					raise ValueError( 'Invalid path {0}'.format( path ) )
 
 			filename_parts = filename.rsplit( '.', 1 )
 			if self.options and self.options is not "":
@@ -837,21 +852,22 @@ class Signatures( FeatureVector ):
 		FIXME: should there be some flag that gets set if this sig has 
 		already been normalized??
 		
-		@return: a newly instantiated Signatures
+		@return: None
 		"""
 
 		if training_set.featurenames_list != self.names:
 			raise ValueError("Can't normalize signature for {0} against training_set {1}: Features don't match."\
 		  .format( self.source_file, training_set.source_path ) )
 	
-		new_sig = copy.deepcopy( self )
-		for i in range( len( self.values ) ):
-			new_sig.values[i] -= training_set.feature_minima[i]
-			new_sig.values[i] /= (training_set.feature_maxima[i] -training_set.feature_minima[i])
-			new_sig.values[i] *= 100
+		my_features = np.array( self.values )
+		mins = np.array( training_set.feature_minima )
+		maxes = np.array( training_set.feature_maxima )
 
-		return new_sig
-		
+		my_features -= mins
+		my_features /= ( maxes - mins )
+		my_features *= 100
+	
+		self.values = my_features.tolist()
 
 # end definition class Signatures
 
@@ -992,8 +1008,8 @@ class TrainingSet( object ):
 	#  source_path is essentially a name
 	# might want to make separate name member in the future
 	source_path = ""
-	num_features = -1
-	num_images = -1
+	num_features = None
+	num_images = None
 
 	#: A list of strings length M
 	featurenames_list = None
@@ -1225,7 +1241,7 @@ class DiscreteTrainingSet( TrainingSet ):
 	"""
   """
 
-	num_classes = -1
+	num_classes = None
 
 	# For C classes, each with Ni images and M features:
 	# If the dataset is contiguous, C = 1
@@ -1492,7 +1508,7 @@ class DiscreteTrainingSet( TrainingSet ):
 				if file_path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ): 
 					sig = Signatures.NewFromTiffFile( file_path, options )
 				elif file_path.endswith( (".sig", "pysig" ) ): 
-					sig = Signatures.NewFromSigFile( image_path = None, sigfile_path = file_path, options  = options )
+					sig = Signatures.NewFromSigFile( file_path, options = options )
 				else:
 					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
 				new_ts.AddSignature( sig, class_id_index )
@@ -1552,8 +1568,8 @@ class DiscreteTrainingSet( TrainingSet ):
 				feature_max = np.max( full_stack[:,i] )
 				feature_min = np.min( full_stack[:,i] )
 				if feature_min >= feature_max:
-					self.feature_maxima[ i ] = -1
-					self.feature_minima[ i ] = -1
+					self.feature_maxima[ i ] = None 
+					self.feature_minima[ i ] = None
 					for class_matrix in self.data_list:
 						class_matrix[:,i] = 0
 				else:
@@ -1978,7 +1994,7 @@ class ContinuousTrainingSet( TrainingSet ):
 				if file_path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ): 
 					sig = Signatures.NewFromTiffFile( file_path, options )
 				elif file_path.endswith( (".sig", "pysig" ) ): 
-					sig = Signatures.NewFromSigFile( image_path = None, sigfile_path = file_path, options  = options )
+					sig = Signatures.NewFromSigFile( file_path, options = options )
 				else:
 					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
 				new_ts.AddSignature( sig, ground_truth_val )
@@ -2035,8 +2051,8 @@ class ContinuousTrainingSet( TrainingSet ):
 				feature_max = np.max( self.data_matrix[:,i] )
 				feature_min = np.min( self.data_matrix[:,i] )
 				if feature_min >= feature_max:
-					self.feature_maxima[ i ] = -1
-					self.feature_minima[ i ] = -1
+					self.feature_maxima[ i ] = None
+					self.feature_minima[ i ] = None
 					self.data_matrix[:,i] = 0
 				else:
 					self.feature_maxima[ i ] = feature_max
@@ -2082,7 +2098,7 @@ class ContinuousTrainingSet( TrainingSet ):
 			err_str += "The training set '{0}' is missing ".format( self.source_path )
 			err_str += "{0}/{1} features that were requested in the feature reduction list.".format(\
 					len( missing_features_from_req ), len( requested_features ) )
-			err_str += "\nDid you forget to convert the feature names into their modern counterparts?"
+			err_str += "\nDid you forget to convert the feature names from the C++ implementation style into their modern counterparts using FeatureNameMap.TranslateToNewStyle()?"
 
 			raise ValueError( err_str )
 
@@ -2243,8 +2259,10 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 	@classmethod
 	def _WND5( cls, trainingset, testimg, feature_weights ):
 		"""
-		Don't call this function directly, use the wrapper functions ClassifyTestSetWND5() or
-		ClassifyOneSignatureWND5(), both of which have dummyproofing.
+		Don't call this function directly, use the wrapper functions 
+		DiscreteBatchClassificationResult.New()  (for test sets) or
+		DiscreteImageClassificationResult.NewWND5() (for single images)
+		Both of these functions have dummyproofing.
 
 		If you're using this function, your training set data is not continuous
 		for N images and M features:
@@ -2303,12 +2321,23 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 
 	#=================================================================================
 	@classmethod
-	def NewWND5( cls, training_set, test_sig, feature_weights ):
+	def NewWND5( cls, training_set, feature_weights, test_sig, quiet = False ):
 		"""
 		@brief: A wrapper function for _ClassifyOneImageWND5 that does dummyproofing
 		@return: classification result
 		@returntype: ImageClassificationResult()
 		"""
+
+		import pdb; pdb.set_trace()
+
+		if not isinstance( training_set, DiscreteTrainingSet):
+			raise ValueError( 'First argument to NewWND5 must be of type "DiscreteTrainingSet", you gave a {0}'.format( type( training_set ).__name__ ) )
+		
+		if not isinstance( feature_weights, FeatureWeights ):
+			raise ValueError( 'Second argument to NewWND5 must be of type "FeatureWeights" or derived class, you gave a {0}'.format( type( feature_weights ).__name__ ) )
+
+		if not isinstance( test_sig, Signatures ):
+			raise ValueError( 'Third argument to NewWND5 must be of type "Signatures", you gave a {0}'.format( type( test_sig ).__name__ ) )
 
 		# check to see if sig is valid
 		test_sig.is_valid()
@@ -2336,6 +2365,14 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 		if training_set.interpolation_coefficients is not None:
 			interp_val = np.sum( marg_probs * training_set.interpolation_coefficients )
 			result.predicted_value = interp_val
+
+		if not quiet:
+			column_header = "image\tnorm. fact.\t"
+			column_header +=\
+			 "".join( [ "p(" + class_name + ")\t" for class_name in training_set.classnames_list ] )
+			column_header += "act. class\tpred. class\tpred. val."
+			print column_header
+			result.PrintToSTDOUT( line_item = True )
 
 		return result
 
@@ -2546,8 +2583,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		if not quiet:
 			column_header = "image\tnorm. fact.\t"
 			column_header +=\
-					"".join( [ "p(" + class_name + ")\t" for class_name in training_set.classnames_list ] )
-	
+				"".join( [ "p(" + class_name + ")\t" for class_name in training_set.classnames_list ] )
 			column_header += "act. class\tpred. class\tpred. val."
 			print column_header
 
@@ -2727,7 +2763,7 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 			print 'File "' + filename + '"'
 			for result in self.accumulated_individual_results[ filename ]:
 
-				if result.__class__.__name__ == "DiscreteImageClassificationResult":
+				if isinstance( result, DiscreteImageClassificationResult ):
 					marg_probs = [ "{0:0.3f}".format( num ) for num in result.marginal_probabilities ]
 					print discrlineoutstr.format( split_num = result.batch_number, \
 				                         batch_name = result.name, \
@@ -2735,14 +2771,14 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 				                         actual_class = result.ground_truth_value, \
 				                         norm_dists = mp.join( marg_probs ), \
 				                         pred_val = result.predicted_value )
-				elif result.__class__.__name__ == "ContinuousImageClassificationResult":
+				elif isinstance( result, ContinuousImageClassificationResult ):
 					print contlineoutstr.format( split_num = result.batch_number, \
 				                         batch_name = result.name, \
 				                         actual_class = result.ground_truth_value, \
 				                         pred_val = result.predicted_value )
 				else:
 					raise ValueError( 'expected an ImageClassification result but got a {0} class'.\
-				  	       format( result.__class__.__name__ ) )
+				  	       format( type( result ).__name__ ) ) 
 			print outstr.format( *self.individual_stats[ filename ] )
 
 	#=====================================================================
@@ -2982,9 +3018,9 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 			reduced_fw = feature_weights.Threshold( number_of_features_to_use )
 			sig = Signatures.NewFromFeatureNameList( test_image_path, reduced_fw.names )
 			reduced_ts = training_set.FeatureReduce( reduced_fw.names )
-			norm_sig = sig.Normalize( reduced_ts )
+			sig.Normalize( reduced_ts )
 	
-			result = DiscreteImageClassificationResult.NewWND5( reduced_ts, norm_sig, reduced_fw )
+			result = DiscreteImageClassificationResult.NewWND5( reduced_ts, reduced_fw, sig )
 			result.PrintToSTDOUT()
 			# FIXME: save intermediates just in case of interruption or parallization
 			# result.PickleMe()
