@@ -847,6 +847,7 @@ class Signatures( FeatureVector ):
 		
 		return reduced_sigs
 
+	#================================================================
 	def Normalize( self, training_set ):
 		"""
 		FIXME: should there be some flag that gets set if this sig has 
@@ -1034,7 +1035,7 @@ class TrainingSet( object ):
 	feature_options = None
 
 	#==============================================================
-	def __init__( self, data_dict = None):
+	def __init__( self, data_dict = None ):
 		"""
 		TrainingSet constructor
 		"""
@@ -1556,9 +1557,13 @@ class DiscreteTrainingSet( TrainingSet ):
 		"""
 
 		if self.normalized_against and training_set:
-			raise ValueError( "You can't normalize a training set against another training set once it's already been normalized." )
+			# I've already been normalized, and you want to normalize me again?
+			raise ValueError( "Set {0} has already been normalized against {1}."\
+						.format( self.source_path, self.normalized_against ) )
 		elif not self.normalized_against and not training_set:
-
+			# Normalize me against myself
+			print 'Normaling set "{0}" ({1} images) against itself'.format( \
+                                               self.source_path, self.num_images )
 			full_stack = np.vstack( self.data_list )
 			total_num_imgs, num_features = full_stack.shape
 			self.feature_maxima = [None] * num_features
@@ -1580,23 +1585,20 @@ class DiscreteTrainingSet( TrainingSet ):
 						class_matrix[:,i] /= (feature_max - feature_min)
 						class_matrix[:,i] *= 100
 			self.normalized_against = "itself"
-
 		else:
-			# sanity checks
-			if self.normalized_against:
-				raise ValueError( "Test set {0} has already been normalized against {1}."\
-						.format( self.source_path, self.normalized_against ) )
+			# Normalize me against the given training set
 			if training_set.featurenames_list != self.featurenames_list:
 				raise ValueError("Can't normalize test_set {0} against training_set {1}: Features don't match."\
 						.format( self.source_path, training_set.source_path ) )
 
+			print 'Normaling set "{0}" ({1} images) against set "{2}" ({3} images)'.format( \
+			  self.source_path, self.num_images, training_set.source_path, training_set.num_images )
+			
 			if not training_set.normalized_against:
 				training_set.Normalize()
 
-			if self.num_features <= 0:
-				err_str = "member 'num_features' in training set {0} not set."
-				raise ValueError( err_str.format( self.source_path ) )
-			
+			assert self.num_features > 0
+	
 			for i in range( self.num_features ):
 				for class_matrix in self.data_list:
 					class_matrix[:,i] -= training_set.feature_minima[i]
@@ -1733,7 +1735,6 @@ class DiscreteTrainingSet( TrainingSet ):
 		if self.interpolation_coefficients:
 			new_ts.interpolation_coefficients = self.interpolation_coefficients
 
-
 		if fine_grained_scramble:
 			# Dump out all the images into one big pool, and reassign them
 			# back to the classes randomly
@@ -1780,41 +1781,48 @@ class DiscreteTrainingSet( TrainingSet ):
 	def Split( self, randomize = True, balanced_classes = False, training_set_fraction = 0.75,\
 	           i = None, j = None, training_set_only = False ):
 		
-		import random
+
+		if training_set_fraction <= 0 or training_set_fraction >= 1:
+			raise ValueError( "Training set fraction must be a number between 0 and 1" )
+
+		if randomize:
+			import random
+
+		training_set = None
+		test_set = None
 
 		training_set = self.__class__()
-		test_set = self.__class__()
-
-		# initialize
 		training_set.data_list = [ None ] * self.num_classes
-		test_set.data_list = [ None ] * self.num_classes
-
 		training_set.num_images = 0
-		test_set.num_images = 0
-
 		training_set.num_classes = self.num_classes
-		test_set.num_classes = self.num_classes
-
-		training_set.classnames_list = test_set.classnames_list = self.classnames_list
-		training_set.featurenames_list = test_set.featurenames_list = self.featurenames_list
-		training_set.num_features = test_set.num_features = len( self.featurenames_list )
-
+		training_set.classnames_list = self.classnames_list
+		training_set.featurenames_list = self.featurenames_list
+		training_set.num_features = len( self.featurenames_list )
 		training_set.imagenames_list = [ [] for j in range( self.num_classes ) ]
-		test_set.imagenames_list = [ [] for j in range( self.num_classes ) ]
-
 		training_set.source_path = self.source_path + " (subset)"
-		test_set.source_path = self.source_path + " (subset)"
-
 		if self.interpolation_coefficients:
 			training_set.interpolation_coefficients = self.interpolation_coefficients
-			test_set.interpolation_coefficients = self.interpolation_coefficients
+	
+		if not training_set_only:
+			test_set = self.__class__()
+			test_set.data_list = [ None ] * self.num_classes
+			test_set.num_images = 0
+			test_set.num_classes = self.num_classes
+			test_set.classnames_list = self.classnames_list
+			test_set.featurenames_list = self.featurenames_list
+			test_set.num_features = len( self.featurenames_list )
+			test_set.imagenames_list = [ [] for j in range( self.num_classes ) ]
+			test_set.source_path = self.source_path + " (subset)"
+			if self.interpolation_coefficients:
+				test_set.interpolation_coefficients = self.interpolation_coefficients
 	
 		# assemble training and test sets
 		for class_index in range( self.num_classes ):
 
 			num_images = len( self.imagenames_list[ class_index] )
 			image_lottery = range( num_images )
-			random.shuffle( image_lottery )
+			if randomize:
+				random.shuffle( image_lottery )
 
 			num_images_in_training_set = int( training_set_fraction * num_images )
 
@@ -1973,6 +1981,10 @@ class ContinuousTrainingSet( TrainingSet ):
 		"""
 		"""
 
+		if not os.path.exists( fof_path ):
+			raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( fof_path ) )
+
+		print 'Loading {0} from file of files "{1}"'.format( cls.__name__, fof_path )
 		new_ts = cls()
 		new_ts.num_images = 0
 		new_ts.source_path = fof_path
@@ -1985,12 +1997,12 @@ class ContinuousTrainingSet( TrainingSet ):
 				file_path, ground_truth_val = line.strip().split( "\t" )
 				if not os.path.exists( file_path ):
 					raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( file_path ) )
-					m = re.search( r'(\d*\.?\d+)', ground_truth_val )
-					if not m:
-						raise ValueError( "Can't create continuous training set, one of the class names " \
-								"'{0}' is not able to be interpreted as a number.".format( line ) )
-					else:
-						ground_truth_val = float( m.group(1) )
+				m = re.search( r'(\d*\.?\d+)', ground_truth_val )
+				if not m:
+					raise ValueError( "Can't create continuous training set, one of the class names " \
+							"'{0}' is not able to be interpreted as a number.".format( line ) )
+				else:
+					ground_truth_val = float( m.group(1) )
 				if file_path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ): 
 					sig = Signatures.NewFromTiffFile( file_path, options )
 				elif file_path.endswith( (".sig", "pysig" ) ): 
@@ -1998,7 +2010,7 @@ class ContinuousTrainingSet( TrainingSet ):
 				else:
 					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
 				new_ts.AddSignature( sig, ground_truth_val )
-	
+
 		new_ts.PrintInfo()
 		return new_ts
 
@@ -2039,7 +2051,14 @@ class ContinuousTrainingSet( TrainingSet ):
 		in classification because they don't vary at all.
 		"""
 
-		if not( self.normalized_against ):
+		if self.normalized_against and training_set:
+			# I've already been normalized, and you want to normalize me again?
+			raise ValueError( "Set {0} has already been normalized against {1}."\
+						.format( self.source_path, self.normalized_against ) )
+		elif not self.normalized_against and not training_set:
+			# Normalize me against myself
+			print 'Normaling set "{0}" ({1} images) against itself'.format( self.source_path,\
+			                       self.num_images)
 
 			# FIXME: This will fail if there's only one image or one feature
 			# because the .shape function won't return a tuple
@@ -2061,15 +2080,18 @@ class ContinuousTrainingSet( TrainingSet ):
 					self.data_matrix[:,i] /= (feature_max - feature_min)
 					self.data_matrix[:,i] *= 100
 			self.normalized_against = "itself"
-
-		if training_set:
-			# sanity checks
-			if self.normalized_against:
-				raise ValueError( "Test set {0} has already been normalized against {1}."\
-						.format( self.source_path, self.normalized_against ) )
+		else:
+			# Normalize me against the given training set
 			if training_set.featurenames_list != self.featurenames_list:
 				raise ValueError("Can't normalize test_set {0} against training_set {1}: Features don't match."\
-						.format( self.source_path, training_set.source_path ) )
+						.format( self.source_path, training_set.source_path ) )	
+			assert self.num_features > 0
+
+			print 'Normaling set "{0}" ({1} images) against set "{2}" ({3} images)'.format( \
+			  self.source_path, self.num_images, training_set.source_path, training_set.num_images )
+
+			if not training_set.normalized_against:
+				training_set.Normalize()
 
 			for i in range( self.num_features ):
 				self.data_matrix[:,i] -= training_set.feature_minima[i]
@@ -2172,10 +2194,116 @@ class ContinuousTrainingSet( TrainingSet ):
 		random.shuffle( self.ground_truths )
 
 	#==============================================================
-	def Split( self, randomize = False, balanced_classes = False, i = None, j = None,\
-	           training_set_only = False ):
+	def Split( self, randomize = True, training_set_fraction = 0.75,\
+	           i = None, j = None, training_set_only = False ):
+		"""Number of images in training and test sets are allocated by i and j, respectively
+		Otherwise they are given by training_set fraction.
+		"""
+
+		# Figure out how many images will be in which class
+		if i and j:
+			if (i + j) > self.num_images:
+				raise ValueError( 'Values for i and j cannot add up to more than total number of images in parent set ({0})'.format( self.num_images ) )
+
+		if i:
+			if i <= 0 or i > self.num_images:
+				raise ValueError( 'i must be greater than zero and less than total number of images'\
+				    + ' in parent set ({0})'.format( self.num_images ) )
+				num_images_in_training_set = i
+		else:
+			if training_set_fraction <= 0 or training_set_fraction >= 1:
+				raise ValueError( "Training set fraction must be a number between 0 and 1" )
+			num_images_in_training_set = int( training_set_fraction * self.num_images )
+
+		if j:
+			if j <= 0:
+				training_set_only = True
+			elif j > ( self.num_images - num_images_in_training_set ):
+				raise ValueError( 'j must be less than total number of images in parent set ({0}) minus # images in training set ({1})'.format( self.num_images, num_images_in_training_set ) )
+			training_set_only = False
+			num_images_in_test_set = j
+		else:
+			num_images_in_test_set = self.num_images - num_images_in_training_set
+
+		# Say what we're gonna do:
+		out_str = ''
+		if randomize:
+			out_str += 'Randomly splitting '
+		else:
+			out_str += 'Splitting '
+		out_str += '{0} "{1}" ({2} images) into '.format( type( self ).__name__, \
+		   self.source_path, self.num_images )
+		out_str += "training set ({0} images)".format( num_images_in_training_set )
+		if not training_set_only:
+			out_str += " and test set ({0} images)".format( num_images_in_test_set )
+		print out_str
+
+		# initialize everything
+		training_set = None
+		test_set = None
+		training_set = self.__class__()
+		training_set.num_images = num_images_in_training_set
+		training_set.featurenames_list = self.featurenames_list
+		training_set.num_features = len( self.featurenames_list )
+		training_set.imagenames_list = []
+		training_set.source_path = self.source_path + " (subset)"
+		if self.interpolation_coefficients:
+			training_set.interpolation_coefficients = self.interpolation_coefficients
+	
+		if not training_set_only:
+			test_set = self.__class__()
+			test_set.num_images = num_images_in_test_set
+			test_set.featurenames_list = self.featurenames_list
+			test_set.num_features = len( self.featurenames_list )
+			test_set.imagenames_list = []
+			test_set.source_path = self.source_path + " (subset)"
+			if self.interpolation_coefficients:
+				test_set.interpolation_coefficients = self.interpolation_coefficients
+
+		image_lottery = range( self.num_images )
+		if randomize:
+			import random
+			random.shuffle( image_lottery )
+
+		train_image_lottery = image_lottery[:num_images_in_training_set]
+		test_image_lottery = image_lottery[num_images_in_training_set: \
+		                                   num_images_in_training_set + num_images_in_test_set ]
+
+		# build the training and test sets such that their ground truths are sorted in 
+		# ascending order.
+		sort_func = lambda A, B: cmp( self.ground_truths[A], self.ground_truths[B] ) if self.ground_truths[A] != self.ground_truths[B] else cmp( self.imagenames_list[A], self.imagenames_list[B] )
+		# I guess we really don't have to sort the training set, do we?
+		# train_image_lottery = sorted( train_image_lottery, sort_func )
+		test_image_lottery = sorted( test_image_lottery, sort_func )
+
+		# Training Set first
+		train_image_count = 0
+		training_matrix = np.empty( ( num_images_in_training_set, len( self.featurenames_list ) ) ) 
+		while train_image_count < num_images_in_training_set:
+			image_index = train_image_lottery[ train_image_count ]
+			image_name = self.imagenames_list[ image_index ]
+			training_set.imagenames_list.append( image_name )
+			training_matrix[ train_image_count ] = self.data_matrix[ image_index ]
+			training_set.ground_truths.append( self.ground_truths[ image_index ] )
+			train_image_count += 1
+		training_set.data_matrix = training_matrix
+
+		# Now Test Set, if applicable
+		test_matrix = None
+		if not training_set_only:
+			test_matrix = np.empty( ( num_images_in_test_set, len( self.featurenames_list ) ) )
+			test_image_count = 0
+			while test_image_count < num_images_in_test_set:
+				image_index = test_image_lottery[ test_image_count ]
+				image_name = self.imagenames_list[ image_index ]
+				test_set.imagenames_list.append( image_name )
+				test_matrix[ test_image_count ] = self.data_matrix[ image_index ]
+				test_set.ground_truths.append( self.ground_truths[ image_index ] )
+				test_image_count += 1
+			test_set.data_matrix = test_matrix
 		
-		raise NotImplementedError()
+		return training_set, test_set
+
 # END ContinuousTrainingSet class definition
 
 #=================================================================================
@@ -2328,7 +2456,7 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 		@returntype: ImageClassificationResult()
 		"""
 
-		if not isinstance( training_set, DiscreteTrainingSet):
+		if not isinstance( training_set, DiscreteTrainingSet ):
 			raise ValueError( 'First argument to NewWND5 must be of type "DiscreteTrainingSet", you gave a {0}'.format( type( training_set ).__name__ ) )
 		
 		if not isinstance( feature_weights, FeatureWeights ):
@@ -2344,12 +2472,11 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 		test_set_len = len( test_sig.names )
 		feature_weights_len = len( feature_weights.names )
 
-		if train_set_len != test_set_len or \
-			 train_set_len != feature_weights_len or \
-			 test_set_len  != feature_weights_len:
-			raise ValueError( "Can't classify: one or more of the inputs has a different number of" \
-			 " features than the others: training set={0}, test set={1}, feature weights={2}".format( \
-					train_set_len, test_set_len, feature_weights_len ) + ". Perform a feature reduce." )
+		if test_sig.names != feature_weights.names:
+			raise ValueError("Can't classify, features in signature don't match features in weights." )
+
+		if test_sig.names != training_set.featurenames_list:
+			raise ValueError("Can't classify, features in signature don't match features in training_set." )
 
 		print "Classifying image '{0}' ({1} features) against test set '{2}' ({3} features)".\
 			 format( test_sig.source_file, train_set_len, training_set.source_path, test_set_len )
@@ -2403,8 +2530,8 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 	@classmethod
 	def _LinearRegression( cls, one_image_features, feature_weights ):
 		"""
-		Don't call this function directly, use the wrapper function ClassifyContinuousTestSet()
-		which has dummyproofing.
+		Don't call this function directly, use the wrapper function
+		ContinuousBatchClassificationResult.New( ... ) which has dummyproofing.
 		"""
 
 		per_feature_predicted_vals = []
@@ -2464,9 +2591,11 @@ class BatchClassificationResult( ClassificationResult ):
 	#==============================================================
 	def GenerateStats( self ):
 		#FIXME: how to calculate p-value???
+
 		self.num_classifications = len( self.individual_results )
+
 		if self.ground_truth_values is not None and \
-		        len( self.ground_truth_values ) == len( self.predicted_values):
+		        len( self.ground_truth_values ) == len( self.predicted_values ):
 
 			gt = np.array( self.ground_truth_values )
 			pv = np.array( self.predicted_values )
@@ -2553,27 +2682,32 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 		print ""
 
-	#=====================================================================
+	#==============================================================
 	@classmethod
 	def New( cls, training_set, test_set, feature_weights, batch_number = None, batch_name = None, quiet = False):
 		"""
-		@remarks - all three input arguments must have the same number of features,
-		and in the same order for this to work properly
 		FIXME: What happens when the ground truth is not known? Currently they would all be shoved
 					 into class 1, might not be a big deal since class name should be something
 					 like "UNKNOWN"
 		"""
 
+		# type checking
+		if not isinstance( training_set, DiscreteTrainingSet ):
+			raise ValueError( 'First argument to New must be of type "DiscreteTrainingSet", you gave a {0}'.format( type( test_set ).__name__ ) )	
+		if not isinstance( test_set, DiscreteTrainingSet ):
+			raise ValueError( 'Second argument to New must be of type "DiscreteTrainingSet", you gave a {0}'.format( type( test_set ).__name__ ) )	
+		if not isinstance( feature_weights, FeatureWeights ):
+			raise ValueError( 'Third argument to New must be of type "FeatureWeights" or derived class, you gave a {0}'.format( type( feature_weights ).__name__ ) )
+	
+		# feature comparison
+		if test_set.names != feature_weights.names:
+			raise ValueError( "Can't classify, features in test set don't match features in weights. Try translating feature names from old style to new, or performing a FeatureReduce()" )
+		if test_sig.names != training_set.featurenames_list:
+			raise ValueError( "Can't classify, features in test set don't match features in training set. Try translating feature names from old style to new, or performing a FeatureReduce()" )
+
 		train_set_len = len( training_set.featurenames_list )
 		test_set_len = len( test_set.featurenames_list )
 		feature_weights_len = len( feature_weights.names )
-
-		if train_set_len != test_set_len or \
-			 train_set_len != feature_weights_len or \
-			 test_set_len  != feature_weights_len:
-			raise ValueError( "Can't classify: one or more of the inputs has a different number of" \
-					"features than the others: training set={0}, test set={1}, feature weights={2}".format( \
-					train_set_len, test_set_len, feature_weights_len ) + ". Perform a feature reduce." )
 
 		print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
 					format( test_set.source_path, test_set_len, training_set.source_path, train_set_len )
@@ -2658,28 +2792,32 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 	@classmethod
 	def New( cls, test_set, feature_weights, quiet = False, batch_number = None, batch_name = None):
 		"""
-		@remarks - all three input arguments must have the same number of features,
-		and in the same order for this to work properly
 		"""
 
-		test_set_len = len( test_set.featurenames_list )
-		feature_weights_len = len( feature_weights.values )
+		# type checking
+		if not isinstance( test_set, ContinuousTrainingSet ):
+			raise ValueError( 'First argument to New must be of type "ContinuousTrainingSet", you gave a {0}'.format( type( test_set ).__name__ ) )	
+		if not isinstance( feature_weights, FeatureWeights ):
+			raise ValueError( 'Second argument to New must be of type "FeatureWeights" or derived class, you gave a {0}'.format( type( feature_weights ).__name__ ) )
 
-		if test_set_len != feature_weights_len:
-			raise ValueError( "Can't classify: one or more of the inputs has a different number of" \
-					"features than the others: test set={0}, feature weights={1}".format( \
-					test_set_len, feature_weights_len ) + ". Perform a feature reduce." )
+		# feature comparison
+		if test_set.featurenames_list != feature_weights.names:
+			raise ValueError("Can't classify, features don't match. Try a FeatureReduce()" )
 
+		# say what we're gonna do
 		if not quiet:
-			print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
-						format( test_set.source_path, test_set_len, \
-						feature_weights.associated_training_set.source_path, feature_weights_len )
+			out_str = 'Classifying test set "{0}" ({1} images, {2} features)\n\tagainst training set "{3}" ({4} images)'
+			print out_str.format( test_set.source_path, \
+			                      test_set.num_images, \
+			                      len( test_set.featurenames_list ), \
+			                      feature_weights.associated_training_set.source_path, \
+			                      feature_weights.associated_training_set.num_images )
 
 		if not quiet:
 			column_header = "image\tground truth\tpred. val."
 			print column_header
 
-		batch_result = cls( feature_weights.associated_training_set, test_set, feature_weights)
+		batch_result = cls( feature_weights.associated_training_set, test_set, feature_weights )
 		batch_result.name = batch_name
 
 		if test_set.ground_truths is not None and len( test_set.ground_truths ) != 0:
@@ -2912,7 +3050,7 @@ class PredictedValuesGraph( BaseGraph ):
 	classnames_list = None
 	class_values = None
 
-	#=====================================================================
+	#=================================================================
 	def __init__( self, result ):
 
 		self.batch_result = result
@@ -3058,7 +3196,7 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 			tl.set_color('r')	
 
 	def SaveToFile( self, filepath ):
-		super(FeatureTimingVersusAccuracyGraph, self).SaveToFile( filepath )
+		super( FeatureTimingVersusAccuracyGraph, self ).SaveToFile( filepath )
 
 #============================================================================
 class Dendrogram( object ):
@@ -3088,6 +3226,10 @@ class Dendrogram( object ):
 # Implement ScrambleGroundTruths
 # Overhaul PrintToSTDOUT to be able to take a filename and write output to that file instead
 #     of STDOUT
+# DO NOT DO: high speed c++ implementation of wndchrm train -l, let multiprocessing do it
+# implementation of Chebyshev coefficients, which is the slowest algorithm
+# Feature analysis. how to get highest accuracy using least amount of feature groups
+
 
 
 #============================================================================
@@ -3161,10 +3303,26 @@ def UnitTest5( max_features = 3 ):
 
 #================================================================
 def UnitTest6():
-	"""test file of files functionality"""
-	ts = ContinuousTrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/continuous_data_set.fof" )
-	ts.PickleMe()
-	pass
+	"""test of various Continuous classification functionality"""
+
+	full_set = ContinuousTrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof" )	
+	full_set.PickleMe()
+	#full_set = ContinuousTrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof.fit.pickled" )
+
+	full_training_set, full_test_set = full_set.Split()
+	full_training_set.Normalize()
+	full_test_set.Normalize( full_training_set )
+
+	full_weights = ContinuousFeatureWeights.NewFromTrainingSet( full_training_set )
+	weights_subset = full_weights.Slice( 20, 30 )
+
+	reduced_training_set = full_training_set.FeatureReduce( weights_subset.names )
+	reduced_test_set = full_test_set.FeatureReduce( weights_subset.names )
+
+	batch_result = ContinuousBatchClassificationResult.New( reduced_test_set, weights_subset )
+
+	batch_result.PrintToSTDOUT()
+
 
 
 #================================================================
@@ -3440,9 +3598,10 @@ if __name__=="__main__":
 	# UnitTest3()
 	#UnitTest4()
 	#UnitTest5()
+	UnitTest6()
 	#UnitTest7()
 	#UnitTest8()
 	#UnitTest9()
-	UnitTest10()
+	#UnitTest10()
 	#UnitTest11()
 	# pass
