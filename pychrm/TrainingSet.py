@@ -1034,6 +1034,16 @@ class TrainingSet( object ):
 	# FIXME: expand to have all options kept track of individually
 	feature_options = None
 
+	#: These members are for discrete training sets, or for continuous training sets
+	#: that have some discrete characteristics
+
+	#: A list of strings, length C
+	classnames_list = None
+
+	# A list of floats against which marg probs can be multiplied
+	# to obtain an interpolated value
+	interpolation_coefficients = None
+
 	#==============================================================
 	def __init__( self, data_dict = None ):
 		"""
@@ -1042,6 +1052,8 @@ class TrainingSet( object ):
 
 		self.featurenames_list = []
 		self.imagenames_list = []
+		self.classnames_list = []
+		self.interpolation_coefficients = []
 
 		if data_dict != None:
 			if "source_path" in data_dict:
@@ -1099,10 +1111,6 @@ class TrainingSet( object ):
 
 	#==============================================================
 	def PickleMe( self, pathname = None ):
-		"""
-		FIXME: pathname needs to end with suffix '.fit.pickled'
-		       or TrainingSet.FromPickleFile() won't read it.
-		"""
 
 		outfile_pathname = ""
 		if pathname != None:
@@ -1135,6 +1143,7 @@ class TrainingSet( object ):
 			print "Overwriting {0}".format( outfile_pathname )
 		else:
 			print "Writing {0}".format( outfile_pathname )
+
 		with open( outfile_pathname, 'wb') as outfile:
 			pickle.dump( self.__dict__, outfile, pickle.HIGHEST_PROTOCOL )
 
@@ -1167,9 +1176,54 @@ class TrainingSet( object ):
 
 	#==============================================================
 	@classmethod
-	def NewFromFileOfFiles( cls, fof_path, options = None ):#, feature_set = "large", write_sig_files_todisk = True ):
+	def NewFromFileOfFiles( cls, fof_path, options = None ):
+		"""
+		FIXME: add ability to specify which features are wanted if none have been calculated yet
+		"""
 
-		raise NotImplementedError()
+		if not os.path.exists( fof_path ):
+			raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( fof_path ) )
+
+		print 'Loading {0} from file of files "{1}"'.format( cls.__name__, fof_path )
+		
+		new_ts = cls()
+		new_ts.num_images = 0
+		new_ts.source_path = fof_path
+
+		classnames_set = set()
+
+		with open( fof_path ) as fof:
+			for line in fof:
+				class_id_index = None
+				file_path, class_name = line.strip().split( "\t" )
+				if not os.path.exists( file_path ):
+					raise ValueError(\
+					    "The file '{0}' doesn't exist, maybe you need to specify the full path?".\
+					    format( file_path ) )
+				
+				if not class_name in classnames_set:
+					classnames_set.add( class_name )
+					new_ts.classnames_list.append( class_name )
+					class_id_index = len( new_ts.classnames_list ) - 1
+					m = re.search( r'(\d*\.?\d+)', class_name )
+					if m:
+						new_ts.interpolation_coefficients.append( float( m.group(1) ) )
+				else:
+					class_id_index = new_ts.classnames_list.index( class_name )
+
+				if file_path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ): 
+					sig = Signatures.NewFromTiffFile( file_path, options )
+				elif file_path.endswith( (".sig", "pysig" ) ): 
+					sig = Signatures.NewFromSigFile( file_path, options = options )
+				else:
+					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
+				new_ts.AddSignature( sig, class_id_index )
+		
+		if isinstance( new_ts, DiscreteTrainingSet ):
+			new_ts.num_classes = len( new_ts.data_list )
+
+		new_ts.PrintInfo()
+		return new_ts
 
 		
 	#==============================================================
@@ -1252,20 +1306,12 @@ class DiscreteTrainingSet( TrainingSet ):
 	# across an image class excluding the other classes
 	data_list = None
 
-	#: A list of strings, length C
-	classnames_list = None
-
-	# A list of floats against which marg probs can be multiplied
-	# to obtain an interpolated value
-	interpolation_coefficients = None
-
 	#==============================================================
 	def __init__( self, data_dict = None):
 		"""
 		TrainingSet constructor
 		"""
 		self.data_list = []
-		self.classnames_list = []
 		
 		super( DiscreteTrainingSet, self ).__init__( data_dict )
 
@@ -1473,50 +1519,6 @@ class DiscreteTrainingSet( TrainingSet ):
 			new_ts.feature_options = "-l"
 		return new_ts
 
-	#==============================================================
-	@classmethod
-	def NewFromFileOfFiles( cls, fof_path, options = None, feature_list = None, write_sig_files_todisk = False ):
-		"""
-		"""
-
-		new_ts = cls()
-		new_ts.num_images = 0
-		new_ts.source_path = fof_path
-
-		classnames_set = set()
-
-		with open( fof_path ) as fof:
-			for line in fof:
-				class_id_index = None
-				file_path, class_name = line.strip().split( "\t" )
-				if not os.path.exists( file_path ):
-					raise ValueError(\
-					    "The file '{0}' doesn't exist, maybe you need to specify the full path?".\
-					    format( file_path ) )
-				
-				if not class_name in classnames_set:
-					classnames_set.add( class_name )
-					new_ts.classnames_list.append( class_name )
-					class_id_index = len( new_ts.classnames_list ) - 1
-					m = re.search( r'(\d*\.?\d+)', class_name )
-					if m:
-						if new_ts.interpolation_coefficients == None:
-							new_ts.interpolation_coefficients = []
-						new_ts.interpolation_coefficients.append( float( m.group(1) ) )
-				else:
-					class_id_index = new_ts.classnames_list.index( class_name )
-
-				if file_path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ): 
-					sig = Signatures.NewFromTiffFile( file_path, options )
-				elif file_path.endswith( (".sig", "pysig" ) ): 
-					sig = Signatures.NewFromSigFile( file_path, options = options )
-				else:
-					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
-				new_ts.AddSignature( sig, class_id_index )
-		
-		new_ts.num_classes = len( new_ts.data_list )
-		return new_ts
-
 
 	#==============================================================
 	def _ProcessSigCalculationSerially( self, feature_set = "large", write_sig_files_to_disk = True, options = None ):
@@ -1545,7 +1547,6 @@ class DiscreteTrainingSet( TrainingSet ):
 					sig.WriteFeaturesToASCIISigFile()
 				self.AddSignature( sig, class_id )
 			class_id += 1
-
 
 	#==============================================================
 	def Normalize( self, training_set = None ):
@@ -1877,11 +1878,6 @@ class ContinuousTrainingSet( TrainingSet ):
 	#: Ground truth numerical values accociated with each image
 	ground_truths = None
 
-	#: For continuous training sets that were created from discrete data
-	#FIXME: put these in the base class??
-	classnames_list = None
-	interpolation_coefficients = None
-
 	def __init__( self, data_dict = None):
 		"""
 		ContinuousTrainingSet constructor
@@ -1929,9 +1925,6 @@ class ContinuousTrainingSet( TrainingSet ):
 			num_classes = 0
 			num_features = 0
 
-			new_ts.classnames_list = []
-			new_ts.interpolation_coefficients = []
-
 			for line in fitfile:
 				if line_num is 0:
 					num_classes = int( line )
@@ -1973,45 +1966,6 @@ class ContinuousTrainingSet( TrainingSet ):
 		print "parsing text into a numpy matrix"
 		new_ts.data_matrix = np.genfromtxt( StringIO( string_data.join( tmp_string_data_list ) ) )
 		
-		return new_ts
-
-	#==============================================================
-	@classmethod
-	def NewFromFileOfFiles( cls, fof_path, options = None, feature_list = None, write_sig_files_todisk = False ):
-		"""
-		"""
-
-		if not os.path.exists( fof_path ):
-			raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( fof_path ) )
-
-		print 'Loading {0} from file of files "{1}"'.format( cls.__name__, fof_path )
-		new_ts = cls()
-		new_ts.num_images = 0
-		new_ts.source_path = fof_path
-
-		# ground truths is a continuous-specific member
-		new_ts.ground_truths = []
-
-		with open( fof_path ) as fof:
-			for line in fof:
-				file_path, ground_truth_val = line.strip().split( "\t" )
-				if not os.path.exists( file_path ):
-					raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( file_path ) )
-				m = re.search( r'(\d*\.?\d+)', ground_truth_val )
-				if not m:
-					raise ValueError( "Can't create continuous training set, one of the class names " \
-							"'{0}' is not able to be interpreted as a number.".format( line ) )
-				else:
-					ground_truth_val = float( m.group(1) )
-				if file_path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ): 
-					sig = Signatures.NewFromTiffFile( file_path, options )
-				elif file_path.endswith( (".sig", "pysig" ) ): 
-					sig = Signatures.NewFromSigFile( file_path, options = options )
-				else:
-					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
-				new_ts.AddSignature( sig, ground_truth_val )
-
-		new_ts.PrintInfo()
 		return new_ts
 
 	#==============================================================
@@ -2247,6 +2201,8 @@ class ContinuousTrainingSet( TrainingSet ):
 		training_set.num_features = len( self.featurenames_list )
 		training_set.imagenames_list = []
 		training_set.source_path = self.source_path + " (subset)"
+		if self.classnames_list:
+			training_set.classnames_list = self.classnames_list
 		if self.interpolation_coefficients:
 			training_set.interpolation_coefficients = self.interpolation_coefficients
 	
@@ -2257,6 +2213,8 @@ class ContinuousTrainingSet( TrainingSet ):
 			test_set.num_features = len( self.featurenames_list )
 			test_set.imagenames_list = []
 			test_set.source_path = self.source_path + " (subset)"
+			if self.classnames_list:
+				test_set.classnames_list = self.classnames_list
 			if self.interpolation_coefficients:
 				test_set.interpolation_coefficients = self.interpolation_coefficients
 
@@ -2700,9 +2658,9 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 			raise ValueError( 'Third argument to New must be of type "FeatureWeights" or derived class, you gave a {0}'.format( type( feature_weights ).__name__ ) )
 	
 		# feature comparison
-		if test_set.names != feature_weights.names:
+		if test_set.featurenames_list != feature_weights.names:
 			raise ValueError( "Can't classify, features in test set don't match features in weights. Try translating feature names from old style to new, or performing a FeatureReduce()" )
-		if test_sig.names != training_set.featurenames_list:
+		if test_set.featurenames_list != training_set.featurenames_list:
 			raise ValueError( "Can't classify, features in test set don't match features in training set. Try translating feature names from old style to new, or performing a FeatureReduce()" )
 
 		train_set_len = len( training_set.featurenames_list )
@@ -3076,7 +3034,6 @@ class PredictedValuesGraph( BaseGraph ):
 	def SaveToFile( self, filepath ):
 		super( PredictedValuesGraph, self ).SaveToFile( filepath )
 
-
 	#=====================================================================
 	def RankOrderedPredictedValuesGraph( self, chart_title = None ):
 
@@ -3305,25 +3262,42 @@ def UnitTest5( max_features = 3 ):
 def UnitTest6():
 	"""test of various Continuous classification functionality"""
 
-	full_set = ContinuousTrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof" )	
-	full_set.PickleMe()
-	#full_set = ContinuousTrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof.fit.pickled" )
+	#full_set = ContinuousTrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof" )	
+	#full_set = DiscreteTrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof" )	
+	#full_set.PickleMe()
+	full_set = ContinuousTrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof.fit.pickled" )
 
-	full_training_set, full_test_set = full_set.Split()
-	full_training_set.Normalize()
-	full_test_set.Normalize( full_training_set )
+	whole_experiment = ClassificationExperimentResult()
 
-	full_weights = ContinuousFeatureWeights.NewFromTrainingSet( full_training_set )
-	weights_subset = full_weights.Slice( 20, 30 )
+	num_splits = 10
+	for i in range( num_splits ):
 
-	reduced_training_set = full_training_set.FeatureReduce( weights_subset.names )
-	reduced_test_set = full_test_set.FeatureReduce( weights_subset.names )
+		full_training_set, full_test_set = full_set.Split()
+		full_training_set.Normalize()
+		full_test_set.Normalize( full_training_set )
 
-	batch_result = ContinuousBatchClassificationResult.New( reduced_test_set, weights_subset )
+		full_weights = ContinuousFeatureWeights.NewFromTrainingSet( full_training_set )
+		#full_weights = FisherFeatureWeights.NewFromTrainingSet( full_training_set )
+		weights_subset = full_weights.Slice( 20, 30 )
 
-	batch_result.PrintToSTDOUT()
+		reduced_training_set = full_training_set.FeatureReduce( weights_subset.names )
+		reduced_test_set = full_test_set.FeatureReduce( weights_subset.names )
 
+		batch_result = ContinuousBatchClassificationResult.New( reduced_test_set, \
+		#batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, reduced_test_set, 
+		                   weights_subset, batch_number = i )
 
+		batch_result.PrintToSTDOUT()
+		whole_experiment.individual_results.append( batch_result )
+
+		grapher = PredictedValuesGraph( batch_result )
+		grapher.RankOrderedPredictedValuesGraph( "synthetic data set, scrambled training set" )
+		grapher.SaveToFile( "rank_ordered_synthetic_scrambled_graph{0}".format( i ) )
+
+		grapher.KernelSmoothedDensityGraph( "synthetic data set, scrambled training set" )
+		grapher.SaveToFile( "ks_density_synthetic_scrambled_graph{0}".format( i ) )
+
+	whole_experiment.PredictedValueAnalysis()
 
 #================================================================
 def UnitTest7(max_features = 50):
