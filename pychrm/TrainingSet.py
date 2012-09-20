@@ -561,8 +561,11 @@ class Signatures( FeatureVector ):
 	"""
 	"""
 
+	# in the future, signatures can be loaded from be from a database as well.
 	source_file = None
 	path_to_image = None
+	path_to_sigfile = None
+
 	options = ""
 
 	#================================================================
@@ -747,6 +750,7 @@ class Signatures( FeatureVector ):
 		# FIXME: Do we care about the .tif?
 
 		signatures.source_file = sigfile_path
+		signatures.path_to_sigfile = sigfile_path
 		signatures.path_to_image = image_path
 		signatures.options = options
  
@@ -810,6 +814,8 @@ class Signatures( FeatureVector ):
 		else:
 			print 'Writing signature file "{0}"'.format( outfile_path )
 
+		self.path_to_sigfile = outfile_path
+
 		with open( outfile_path, "w" ) as out_file:
 			# FIXME: line 2 contains class membership, just hardcode a number for now
 			out_file.write( "0\n" )
@@ -839,6 +845,8 @@ class Signatures( FeatureVector ):
 		dictionary = dict( zip( self.names, self.values ) )
 		reduced_sigs = Signatures()
 		reduced_sigs.source_file = self.source_file
+		reduced_sigs.path_to_image = self.path_to_image
+		reduced_sigs.path_to_sigfile = self.path_to_sigfile
 		reduced_sigs.options = self.options
 			
 		for new_name in requested_features:
@@ -2005,7 +2013,7 @@ class ContinuousTrainingSet( TrainingSet ):
 		in classification because they don't vary at all.
 		"""
 
-		if self.normalized_against and training_set:
+		if self.normalized_against:
 			# I've already been normalized, and you want to normalize me again?
 			raise ValueError( "Set {0} has already been normalized against {1}."\
 						.format( self.source_path, self.normalized_against ) )
@@ -3186,6 +3194,7 @@ class Dendrogram( object ):
 # DO NOT DO: high speed c++ implementation of wndchrm train -l, let multiprocessing do it
 # implementation of Chebyshev coefficients, which is the slowest algorithm
 # Feature analysis. how to get highest accuracy using least amount of feature groups
+# Leave one out
 
 
 
@@ -3266,38 +3275,45 @@ def UnitTest6():
 	#full_set = DiscreteTrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof" )	
 	#full_set.PickleMe()
 	full_set = ContinuousTrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof.fit.pickled" )
+	full_set.Normalize()
+	full_weights = ContinuousFeatureWeights.NewFromTrainingSet( full_set )
 
 	whole_experiment = ClassificationExperimentResult()
 
-	num_splits = 10
-	for i in range( num_splits ):
+	#num_splits = 10
+	#for i in range( num_splits ):
 
-		full_training_set, full_test_set = full_set.Split()
-		full_training_set.Normalize()
-		full_test_set.Normalize( full_training_set )
+	feature_rank = 5
+	while( feature_rank <= 50 ):
+		#full_training_set, full_test_set = full_set.Split()
+		full_training_set = full_set
+		full_test_set = full_set
+		#full_training_set.Normalize()
+		#full_test_set.Normalize( full_training_set )
 
-		full_weights = ContinuousFeatureWeights.NewFromTrainingSet( full_training_set )
+		#full_weights = ContinuousFeatureWeights.NewFromTrainingSet( full_training_set )
 		#full_weights = FisherFeatureWeights.NewFromTrainingSet( full_training_set )
-		weights_subset = full_weights.Slice( 20, 30 )
+		weights_subset = full_weights.Slice( feature_rank, feature_rank - 5 )
 
 		reduced_training_set = full_training_set.FeatureReduce( weights_subset.names )
 		reduced_test_set = full_test_set.FeatureReduce( weights_subset.names )
 
 		batch_result = ContinuousBatchClassificationResult.New( reduced_test_set, \
 		#batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, reduced_test_set, 
-		                   weights_subset, batch_number = i )
+		                   weights_subset, quiet = True )
 
 		batch_result.PrintToSTDOUT()
 		whole_experiment.individual_results.append( batch_result )
 
 		grapher = PredictedValuesGraph( batch_result )
-		grapher.RankOrderedPredictedValuesGraph( "synthetic data set, scrambled training set" )
-		grapher.SaveToFile( "rank_ordered_synthetic_scrambled_graph{0}".format( i ) )
+		grapher.RankOrderedPredictedValuesGraph( "synthetic data set, {0}-{1}".format( feature_rank - 5, feature_rank)  )
+		grapher.SaveToFile( "rank_ordered_synthetic_features_{0:02d}-{1}".format( feature_rank - 5, feature_rank)  )
 
-		grapher.KernelSmoothedDensityGraph( "synthetic data set, scrambled training set" )
-		grapher.SaveToFile( "ks_density_synthetic_scrambled_graph{0}".format( i ) )
+		grapher.KernelSmoothedDensityGraph( "synthetic data set,  {0}-{1}".format( feature_rank - 5, feature_rank)  )
+		grapher.SaveToFile( "ks_density_synthetic_features_{0:02d}-{1}".format( feature_rank - 5, feature_rank)  )
+		feature_rank += 5
 
-	whole_experiment.PredictedValueAnalysis()
+	#whole_experiment.PredictedValueAnalysis()
 
 #================================================================
 def UnitTest7(max_features = 50):
