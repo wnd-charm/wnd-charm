@@ -2153,7 +2153,9 @@ class ContinuousTrainingSet( TrainingSet ):
 		Produce an instant negative control training set
 		"""
 
+		import random
 		random.shuffle( self.ground_truths )
+		self.source_path += " (scrambled)"
 
 	#==============================================================
 	def Split( self, randomize = True, training_set_fraction = 0.75,\
@@ -2935,7 +2937,6 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 			line_item += "{0:.4f}\t".format( result.spearman_p_value ) # ASP
 			print line_item
 
-		
 
 #============================================================================
 class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
@@ -2987,6 +2988,62 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 				batch_result.GenerateStats()
 			print "{0}\t\"{1}\"\t{2:0.4f}".format( count, batch_result.name, batch_result.figure_of_merit )
 			count += 1
+
+#============================================================================
+class ContinuousClassificationExperimentResult( ClassificationExperimentResult ):
+	"""A container object for BatchClassificationResults and their associated statistics
+
+	In this subclass, the figure of merit is the average standard error arcoss batches"""
+
+	#=====================================================================
+	def GenerateStats( self ):
+
+		from itertools import chain
+
+		lists_of_ground_truths = []
+		lists_of_predicted_values = []
+
+		self.figure_of_merit = 0
+		for batch_result in self.individual_results:
+			self.num_classifications += len( batch_result.individual_results )
+			if batch_result.figure_of_merit == None:
+				batch_result.GenerateStats()
+			lists_of_ground_truths.append( batch_result.ground_truth_values )
+			lists_of_predicted_values.append( batch_result.predicted_values )
+
+		self.ground_truth_values = list( chain( *lists_of_ground_truths ) )
+		self.predicted_values = list( chain( *lists_of_predicted_values ) )
+	
+		gt = np.array( self.ground_truth_values )
+		pv = np.array( self.predicted_values )
+		
+		diffs = gt - pv
+		diffs = np.square( diffs )
+		err_sum = np.sum( diffs )
+
+		import math; from scipy import stats
+		self.figure_of_merit = math.sqrt( err_sum / self.num_classifications )
+
+		slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
+								 stats.linregress( self.ground_truth_values, self.predicted_values )
+
+		self.spearman_coeff, self.spearman_p_value =\
+					 stats.spearmanr( self.ground_truth_values, self.predicted_values )
+
+
+	#=====================================================================
+	def PrintToSTDOUT( self ):
+		if self.figure_of_merit == None:
+			self.GenerateStats()
+
+		print "==========================================="
+		print "Experiment name: {0}".format( self.name )
+		print "Summary:"
+		print "Number of batches: {0}".format( len( self.individual_results ) )
+		print "Total number of classifications: {0}".format( self.num_classifications )
+		print "Total standard error: {0}".format( self.figure_of_merit )
+		print "Pearson corellation coefficient: {0}".format( self.pearson_coeff )
+		print "Pearson p-value: {0}".format( self.pearson_p_value )		
 
 
 #============================================================================
@@ -3275,45 +3332,45 @@ def UnitTest6():
 	#full_set = DiscreteTrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof" )	
 	#full_set.PickleMe()
 	full_set = ContinuousTrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof.fit.pickled" )
-	full_set.Normalize()
-	full_weights = ContinuousFeatureWeights.NewFromTrainingSet( full_set )
+	#full_set.Normalize()
+	#full_weights = ContinuousFeatureWeights.NewFromTrainingSet( full_set )
 
-	whole_experiment = ClassificationExperimentResult()
 
 	#num_splits = 10
 	#for i in range( num_splits ):
 
 	feature_rank = 5
 	while( feature_rank <= 50 ):
-		#full_training_set, full_test_set = full_set.Split()
-		full_training_set = full_set
-		full_test_set = full_set
-		#full_training_set.Normalize()
-		#full_test_set.Normalize( full_training_set )
+		experiment = ContinuousClassificationExperimentResult()
+		for i in range( 30 ):
 
-		#full_weights = ContinuousFeatureWeights.NewFromTrainingSet( full_training_set )
-		#full_weights = FisherFeatureWeights.NewFromTrainingSet( full_training_set )
-		weights_subset = full_weights.Slice( feature_rank, feature_rank - 5 )
+			full_training_set, full_test_set = full_set.Split()
+			full_training_set.Normalize()
+			full_test_set.Normalize( full_training_set )
 
-		reduced_training_set = full_training_set.FeatureReduce( weights_subset.names )
-		reduced_test_set = full_test_set.FeatureReduce( weights_subset.names )
+			full_training_set.ScrambleGroundTruths()
 
-		batch_result = ContinuousBatchClassificationResult.New( reduced_test_set, \
-		#batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, reduced_test_set, 
-		                   weights_subset, quiet = True )
+			full_weights = ContinuousFeatureWeights.NewFromTrainingSet( full_training_set )
+			weights_subset = full_weights.Threshold(50)
+			weights_subset = weights_subset.Slice( feature_rank, feature_rank - 5 )
 
-		batch_result.PrintToSTDOUT()
-		whole_experiment.individual_results.append( batch_result )
+			reduced_training_set = full_training_set.FeatureReduce( weights_subset.names )
+			reduced_test_set = full_test_set.FeatureReduce( weights_subset.names )
 
-		grapher = PredictedValuesGraph( batch_result )
-		grapher.RankOrderedPredictedValuesGraph( "synthetic data set, {0}-{1}".format( feature_rank - 5, feature_rank)  )
-		grapher.SaveToFile( "rank_ordered_synthetic_features_{0:02d}-{1}".format( feature_rank - 5, feature_rank)  )
+			batch_result = ContinuousBatchClassificationResult.New( reduced_test_set, \
+												 weights_subset, quiet = True, batch_number = i )
 
-		grapher.KernelSmoothedDensityGraph( "synthetic data set,  {0}-{1}".format( feature_rank - 5, feature_rank)  )
-		grapher.SaveToFile( "ks_density_synthetic_features_{0:02d}-{1}".format( feature_rank - 5, feature_rank)  )
+			experiment.individual_results.append( batch_result )
+		experiment.PrintToSTDOUT()
 		feature_rank += 5
 
-	#whole_experiment.PredictedValueAnalysis()
+#		grapher = PredictedValuesGraph( batch_result )
+#		grapher.RankOrderedPredictedValuesGraph( "synthetic data set, {0}-{1}".format( feature_rank - 5, feature_rank)  )
+#		grapher.SaveToFile( "rank_ordered_synthetic_features_{0:02d}-{1}".format( feature_rank - 5, feature_rank)  )
+#
+#		grapher.KernelSmoothedDensityGraph( "synthetic data set,  {0}-{1}".format( feature_rank - 5, feature_rank)  )
+#		grapher.SaveToFile( "ks_density_synthetic_features_{0:02d}-{1}".format( feature_rank - 5, feature_rank)  )
+
 
 #================================================================
 def UnitTest7(max_features = 50):
