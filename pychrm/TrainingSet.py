@@ -116,11 +116,13 @@ class FeatureWeights( FeatureVector ):
 	"""
 	"""
 
+	name = None
 	associated_training_set = None
 
-	def __init__( self, data_dict = None ):
+	def __init__( self, data_dict = None, name = None ):
 		# call parent constructor
 		super( FeatureWeights, self ).__init__( data_dict )
+		self.name = name
 
 	#================================================================
 	@classmethod
@@ -188,9 +190,10 @@ class FeatureWeights( FeatureVector ):
 class FisherFeatureWeights( FeatureWeights ):
 	"""
 	"""
-	def __init__( self, data_dict = None ):
+	def __init__( self, data_dict = None, name = None):
 		# call parent constructor
-		super( FisherFeatureWeights, self ).__init__( data_dict )
+		super( FisherFeatureWeights, self ).__init__( data_dict, name )
+
 
 	#================================================================
 	@classmethod
@@ -355,7 +358,7 @@ class FisherFeatureWeights( FeatureWeights ):
 	#================================================================
 	def PrintToSTDOUT( self ):
 		"""@breif Prints out feature values and statistics"""
-		print "Fisher Feature Weight analysis:"
+		print "Fisher Feature Weight set {0}:".format( self.name )
 		print "Rank\tValue\tName"
 		print "====\t=====\t===="
 		for i in range( 0, len( self.names ) ):
@@ -408,6 +411,8 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		new_fw = cls()
 
 		new_fw.associated_training_set = training_set
+		if training_set.source_path:
+			new_fw.name = cls.__name__ + ' from training set "' + training_set.source_path + '"'
 
 		#r_val_squared_sum = 0
 		r_val_cubed_sum = 0
@@ -452,7 +457,13 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			raise ValueError('Cannot reduce a set of {0} feature weights to requested {1} features.'.\
 			                      format( len( self.values ), num_features_to_be_used ) ) 
 
-		new_weights = ContinuousFeatureWeights()
+		new_weights = self.__class__()
+		if self.name:
+			if num_features_to_be_used == len( self.names ):
+				new_weights.name = self.name + " (rank-ordered)"
+			else:
+				new_weights.name = self.name + " (top {0} features)".format( num_features_to_be_used )
+
 
 		abs_val_pearson_coeffs = [ abs( val ) for val in self.pearson_coeffs ]
 		raw_featureweights = zip( self.names, abs_val_pearson_coeffs, self.pearson_coeffs, \
@@ -486,7 +497,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 
 	#================================================================
 	def Slice( self, start_index, stop_index):
-		"""@breif return a chunk of middle-ranked features"""
+		"""@brief return a chunk of middle-ranked features"""
 		
 		min_index = None
 		max_index = None
@@ -502,6 +513,8 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			raise ValueError( 'Cannot slice, check your start and stop indices.' )
 
 		new_weights = self.__class__()
+		if self.name:
+			new_weights.name = self.name + " (sliced {0}-{1})".format( min_index, max_index )
 
 		abs_val_pearson_coeffs = [ abs( val ) for val in self.pearson_coeffs ]
 		raw_featureweights = zip( self.names, abs_val_pearson_coeffs, self.pearson_coeffs, \
@@ -526,20 +539,26 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		return new_weights
 
 	#================================================================
-	def PrintToSTDOUT( self ):
+	def PrintToSTDOUT( self, print_legend = True ):
 		"""@breif Prints out feature values and statistics"""
 
+		header_str = "Continuous feature weight set"
+		if self.name:
+			header_str += ' "{0}"'.format( self.name )
+		header_str += ":"
+		print header_str
 		print "Total num features: {0}".format( len( self.values ) )
-		print "Individual feature weight analysis:"
 		print "-----------------------------------"
-		print "Legend:"
-		print "IFW - Feature weight applied to the individual feature"
-		print "IPC - Pearson correlation coefficient of feature values vs ground truth"
-		print "IPE - Standard Error of IPC"
-		print "IPP - P-value of IPC"
-		print "ISC - Spearman correlation coefficient of feature values vs ground truth"
-		print "IPP - P-value of ISC"
-		print ""
+
+		if print_legend:
+			print "Legend:"
+			print "IFW - Feature weight applied to the individual feature"
+			print "IPC - Pearson correlation coefficient of feature values vs ground truth"
+			print "IPE - Standard Error of IPC"
+			print "IPP - P-value of IPC"
+			print "ISC - Spearman correlation coefficient of feature values vs ground truth"
+			print "IPP - P-value of ISC"
+			print ""
 		print "NUM\tIFW\tIPC\tIPE\tIPP\tISC\tIPP\tNAME"
 		print "===\t===\t===\t===\t===\t===\t===\t===="	
 		for i in range( len( self.values ) ):
@@ -1557,7 +1576,7 @@ class DiscreteTrainingSet( TrainingSet ):
 			class_id += 1
 
 	#==============================================================
-	def Normalize( self, training_set = None ):
+	def Normalize( self, training_set = None, quiet = False ):
 		"""
 		By convention, the range of values are normalized on an interval [0,100].
 		Normalizing is useful in making the variation of features human readable
@@ -1571,7 +1590,8 @@ class DiscreteTrainingSet( TrainingSet ):
 						.format( self.source_path, self.normalized_against ) )
 		elif not self.normalized_against and not training_set:
 			# Normalize me against myself
-			print 'Normaling set "{0}" ({1} images) against itself'.format( \
+			if not quiet:
+				print 'Normaling set "{0}" ({1} images) against itself'.format( \
                                                self.source_path, self.num_images )
 			full_stack = np.vstack( self.data_list )
 			total_num_imgs, num_features = full_stack.shape
@@ -1600,11 +1620,12 @@ class DiscreteTrainingSet( TrainingSet ):
 				raise ValueError("Can't normalize test_set {0} against training_set {1}: Features don't match."\
 						.format( self.source_path, training_set.source_path ) )
 
-			print 'Normaling set "{0}" ({1} images) against set "{2}" ({3} images)'.format( \
+			if not quiet:
+				print 'Normaling set "{0}" ({1} images) against set "{2}" ({3} images)'.format( \
 			  self.source_path, self.num_images, training_set.source_path, training_set.num_images )
 			
 			if not training_set.normalized_against:
-				training_set.Normalize()
+				training_set.Normalize( )
 
 			assert self.num_features > 0
 	
@@ -1788,7 +1809,7 @@ class DiscreteTrainingSet( TrainingSet ):
 
 	#==============================================================
 	def Split( self, randomize = True, balanced_classes = False, training_set_fraction = 0.75,\
-	           i = None, j = None, training_set_only = False ):
+	           i = None, j = None, training_set_only = False, quiet = False ):
 		
 
 		if training_set_fraction <= 0 or training_set_fraction >= 1:
@@ -2005,7 +2026,7 @@ class ContinuousTrainingSet( TrainingSet ):
 			class_id += 1
 			
 	#==============================================================
-	def Normalize( self, training_set = None ):
+	def Normalize( self, training_set = None, quiet = False ):
 		"""
 		By convention, the range of values are normalized on an interval [0,100].
 		Normalizing is useful in making the variation of features human readable
@@ -2019,7 +2040,8 @@ class ContinuousTrainingSet( TrainingSet ):
 						.format( self.source_path, self.normalized_against ) )
 		elif not self.normalized_against and not training_set:
 			# Normalize me against myself
-			print 'Normaling set "{0}" ({1} images) against itself'.format( self.source_path,\
+			if not quiet:
+				print 'Normaling set "{0}" ({1} images) against itself'.format( self.source_path,\
 			                       self.num_images)
 
 			# FIXME: This will fail if there's only one image or one feature
@@ -2049,7 +2071,8 @@ class ContinuousTrainingSet( TrainingSet ):
 						.format( self.source_path, training_set.source_path ) )	
 			assert self.num_features > 0
 
-			print 'Normaling set "{0}" ({1} images) against set "{2}" ({3} images)'.format( \
+			if not quiet:
+				print 'Normaling set "{0}" ({1} images) against set "{2}" ({3} images)'.format( \
 			  self.source_path, self.num_images, training_set.source_path, training_set.num_images )
 
 			if not training_set.normalized_against:
@@ -2159,7 +2182,7 @@ class ContinuousTrainingSet( TrainingSet ):
 
 	#==============================================================
 	def Split( self, randomize = True, training_set_fraction = 0.75,\
-	           i = None, j = None, training_set_only = False ):
+	           i = None, j = None, training_set_only = False, quiet = False ):
 		"""Number of images in training and test sets are allocated by i and j, respectively
 		Otherwise they are given by training_set fraction.
 		"""
@@ -2190,17 +2213,18 @@ class ContinuousTrainingSet( TrainingSet ):
 			num_images_in_test_set = self.num_images - num_images_in_training_set
 
 		# Say what we're gonna do:
-		out_str = ''
-		if randomize:
-			out_str += 'Randomly splitting '
-		else:
-			out_str += 'Splitting '
-		out_str += '{0} "{1}" ({2} images) into '.format( type( self ).__name__, \
-		   self.source_path, self.num_images )
-		out_str += "training set ({0} images)".format( num_images_in_training_set )
-		if not training_set_only:
-			out_str += " and test set ({0} images)".format( num_images_in_test_set )
-		print out_str
+		if not quiet:
+			out_str = ''
+			if randomize:
+				out_str += 'Randomly splitting '
+			else:
+				out_str += 'Splitting '
+			out_str += '{0} "{1}" ({2} images) into '.format( type( self ).__name__, \
+				 self.source_path, self.num_images )
+			out_str += "training set ({0} images)".format( num_images_in_training_set )
+			if not training_set_only:
+				out_str += " and test set ({0} images)".format( num_images_in_test_set )
+			print out_str
 
 		# initialize everything
 		training_set = None
@@ -2995,6 +3019,10 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 
 	In this subclass, the figure of merit is the average standard error arcoss batches"""
 
+	def __init__( self, name = None ):
+		self.name = name
+		super( ContinuousClassificationExperimentResult, self ).__init__()
+
 	#=====================================================================
 	def GenerateStats( self ):
 
@@ -3339,20 +3367,24 @@ def UnitTest6():
 	#num_splits = 10
 	#for i in range( num_splits ):
 
-	feature_rank = 5
+	feature_rank = 10
 	while( feature_rank <= 50 ):
-		experiment = ContinuousClassificationExperimentResult()
-		for i in range( 30 ):
+		name = "synthetic features, scrambled ground truth, features {0}-{1}".format(\
+		         feature_rank - 10, feature_rank )
+		print name
+		experiment = ContinuousClassificationExperimentResult( name )
+		for i in range( 100 ):
 
-			full_training_set, full_test_set = full_set.Split()
-			full_training_set.Normalize()
-			full_test_set.Normalize( full_training_set )
+			full_training_set, full_test_set = full_set.Split( quiet = True )
+			full_training_set.Normalize( quiet = True )
+			full_test_set.Normalize( full_training_set, quiet = True )
 
 			full_training_set.ScrambleGroundTruths()
 
 			full_weights = ContinuousFeatureWeights.NewFromTrainingSet( full_training_set )
-			weights_subset = full_weights.Threshold(50)
-			weights_subset = weights_subset.Slice( feature_rank, feature_rank - 5 )
+			weights_subset = full_weights.Threshold(200)
+			weights_subset = weights_subset.Slice( feature_rank, feature_rank - 10 )
+			#weights_subset.PrintToSTDOUT( print_legend = False )
 
 			reduced_training_set = full_training_set.FeatureReduce( weights_subset.names )
 			reduced_test_set = full_test_set.FeatureReduce( weights_subset.names )
@@ -3362,7 +3394,7 @@ def UnitTest6():
 
 			experiment.individual_results.append( batch_result )
 		experiment.PrintToSTDOUT()
-		feature_rank += 5
+		feature_rank += 10
 
 #		grapher = PredictedValuesGraph( batch_result )
 #		grapher.RankOrderedPredictedValuesGraph( "synthetic data set, {0}-{1}".format( feature_rank - 5, feature_rank)  )
