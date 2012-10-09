@@ -2632,9 +2632,12 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 	"""@brief This class's "figure_of_merit" is classification accuracy"""
 	num_correct_classifications = None
 	classification_accuracy = None
+	
+	num_classifications_per_class = None
+	num_correct_classifications_per_class = None
 
 	confusion_matrix = None
-	average_similarity_matrix = None
+	similarity_matrix = None
 	average_class_probability_matrix = None
 
 	#==============================================================
@@ -2644,13 +2647,76 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 	#==============================================================
 	def GenerateStats( self ):
+		"""fill out the confusion matrix, similarity matrix, and class probability matrix"""
+
+		num_classes = self.training_set.num_classes
+
+		# initialize the matrices
+
+		# Remember! Dicts are not guaranteed to maintain key order but lists are
+		# When cycling through the matrix, iterate over the lists, and not the keys of the dict
+		self.confusion_matrix = {}
+		self.average_class_probability_matrix = {}
+
+		# initialize the rows
+		# Does the test set have ground truth?
+		if self.test_set.classnames_list:
+			for test_set_class_name in self.test_set.classnames_list:
+				self.confusion_matrix[ test_set_class_name ] = {}
+				self.average_class_probability_matrix[ test_set_class_name ] = {}
+		else:
+			self.confusion_matrix[ "UNKNOWN" ] = {}
+			self.average_class_probability_matrix[ "UNKNOWN" ] = {}
+		# now the columns:
+		for training_set_class_name in self.training_set.classnames_list:
+			for test_set_class_name in self.test_set.classnames_list:
+				self.confusion_matrix[ test_set_class_name ][ training_set_class_name ] = 0
+				self.average_class_probability_matrix[ test_set_class_name ][ training_set_class_name ] = 0
+
 		self.num_correct_classifications = 0
+
+		from collections import defaultdict
+		self.num_classifications_per_class = defaultdict( int )
+		self.num_correct_classifications_per_class = defaultdict( int )
+
 		for indiv_result in self.individual_results:
 			self.num_classifications += 1
+
+			self.num_classifications_per_class[ indiv_result.ground_truth_class_name ] += 1
+
 			if indiv_result.ground_truth_class_name == indiv_result.predicted_class_name:
 				self.num_correct_classifications += 1
-		
-		#FIXME: Create confusion, similarity, and class probability matrices
+				self.num_correct_classifications_per_class[ indiv_result.ground_truth_class_name ] += 1
+
+			test_set_class = indiv_result.ground_truth_class_name
+			if test_set_class == None: test_set_class = "UNKNOWN"
+
+			self.confusion_matrix[ test_set_class ][ indiv_result.predicted_class_name ] += 1
+
+			# FIXME: is there any possibility that the order of the values in the marginal
+			# probability array don't correspond with the order of the training set classes?
+			index = 0
+			for training_set_class_name in self.training_set.classnames_list:
+				val = indiv_result.marginal_probabilities[ index ]
+				self.average_class_probability_matrix[ test_set_class ][ training_set_class_name ] += val
+				index += 1
+
+		# Do the averaging for the similarity and avg prob matrices.
+		for row in self.test_set.classnames_list:
+			for col in self.training_set.classnames_list:
+				self.average_class_probability_matrix[ row ][ col ] /= \
+				   self.num_classifications_per_class[ row ]
+
+		# The similarity matrix is just the average class probability matrix
+		# normalized to have 1's in the diagonal.
+		# Doesn't make sense to do this unless the matrix is square
+		# if row labels == column labels:
+		if self.test_set.classnames_list == self.training_set.classnames_list:
+			from copy import deepcopy
+			self.similarity_matrix = deepcopy( self.average_class_probability_matrix )
+			for row in self.test_set.classnames_list:
+				for col in self.training_set.classnames_list:
+					self.similarity_matrix[ row ][ col ] /= self.similarity_matrix[ row ][ row ]
 
 		# Run a standard error analysis if ground_truth/predicted vals exist (call base method ):
 		super( DiscreteBatchClassificationResult, self ).GenerateStats()
@@ -2659,7 +2725,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 	#==============================================================
 	def PrintToSTDOUT( self ):
-		if self.figure_of_merit == None:
+		if self.classification_accuracy == None:
 			self.GenerateStats()
 
 		print "==========================================="
@@ -2674,6 +2740,41 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 		print ""
 
+		column_headers = "\t".join( self.training_set.classnames_list )
+		column_headers += "\n"
+		column_headers += "\t".join( [ '-'*len(name) for name in self.training_set.classnames_list ] )
+
+		print "Confusion Matrix:"
+		print column_headers
+		# Remember: iterate over the list of names, not the keys in the dict,
+		# because the dict keys aren't guaranteed to be ordered.
+		for row in self.test_set.classnames_list:
+			line = ""
+			for col in self.test_set.classnames_list:
+				line += '{0}\t'.format( self.confusion_matrix[row][col] )
+			print line
+
+		print ""
+
+		if self.similarity_matrix:
+			print "Similarity Matrix:"
+			print column_headers
+			for row in self.test_set.classnames_list:
+				line = ""
+				for col in self.test_set.classnames_list:
+					line += '{0:0.4f}\t'.format( self.similarity_matrix[row][col] )
+				print line
+			print ""
+
+		print "Average Class Probability Matrix:"
+		print column_headers
+		for row in self.test_set.classnames_list:
+			line = ""
+			for col in self.test_set.classnames_list:
+				line += '{0:0.4f}\t'.format( self.average_class_probability_matrix[row][col] )
+			print line
+		print ""
+	
 	#==============================================================
 	@classmethod
 	def New( cls, training_set, test_set, feature_weights, batch_number = None, batch_name = None, quiet = False):
@@ -3257,9 +3358,9 @@ class Dendrogram( object ):
 # Pychrm roadmap:
 # Confirmation/validation/ biology experiments
 # Use scipy.optimize.curve_fit (http://www.scipy.org/Cookbook/FittingData)
-# Implement dendrogram using scipy.cluster
+# Implement dendrogram using scipy.cluster/Biopython
 # Wha's up with continuous averages averaging to sum N
-# Classify images against multiple classifiers
+# Classify images against multiple classifiers, e.g., filter for confluence, then classify.
 # Break out classes into their own modules
 # (low) Establish and implement is_valid() criteria for all objects
 # Flush out docstrings
@@ -3272,14 +3373,15 @@ class Dendrogram( object ):
 # Implement database hookup
 # OMERO integration
 # Implement Channels.
-# Implement TrainingSet::Split
-# Implement ScrambleGroundTruths
 # Overhaul PrintToSTDOUT to be able to take a filename and write output to that file instead
 #     of STDOUT
 # DO NOT DO: high speed c++ implementation of wndchrm train -l, let multiprocessing do it
 # implementation of Chebyshev coefficients, which is the slowest algorithm
-# Feature analysis. how to get highest accuracy using least amount of feature groups
+# Feature family analysis. how to get highest accuracy using least amount of feature groups:
+#    generate time to calculate numbers for feature families,
+#    and how they're a function of image dimension
 # Leave one out
+# Wndchrm backend c++ cleanup - potential use of ctypes to facilitate shared memory, construction of new sharable ImageMatrices
 
 
 
@@ -3536,7 +3638,9 @@ def UnitTest10():
 
 	experiment = DiscreteClassificationExperimentResult( training_set = full_ts )
 
-	num_splits = 10
+	scramble = False
+
+	num_splits = 3
 	for i in range( num_splits ):
 
 		training_set, test_set = full_ts.Split()
@@ -3545,30 +3649,31 @@ def UnitTest10():
 		test_set.Normalize( training_set )
 
 		fisher_weights = FisherFeatureWeights.NewFromTrainingSet( training_set )
-		fisher_weights = fisher_weights.Threshold(50)
-		#fisher_weights = fisher_weights.Slice( 20, 30 )
+		#fisher_weights = fisher_weights.Threshold(50)
+		fisher_weights = fisher_weights.Threshold( 50 )
+		fisher_weights = fisher_weights.Slice( 40, 49 )
 
-		print "Fisher weights before:"
+		if scramble: print "Fisher weights before:"
 		fisher_weights.PrintToSTDOUT()
 		reduced_test_set = test_set.FeatureReduce( fisher_weights.names )
 		reduced_training_set = training_set.FeatureReduce( fisher_weights.names )
 
-		scrambled_training_set = reduced_training_set.ScrambleGroundTruths()
-		scrambled_training_set.Normalize()
-		scrambled_fisher_weights = FisherFeatureWeights.NewFromTrainingSet( scrambled_training_set)
-		scrambled_fisher_weights = scrambled_fisher_weights.Threshold( 50 )
-		print "Fisher weights after:"
-		scrambled_fisher_weights.PrintToSTDOUT()
+		if scramble:
+			scrambled_training_set = reduced_training_set.ScrambleGroundTruths()
+			scrambled_training_set.Normalize()
+			scrambled_fisher_weights = FisherFeatureWeights.NewFromTrainingSet( scrambled_training_set)
+			scrambled_fisher_weights = scrambled_fisher_weights.Threshold( 50 )
+			print "Fisher weights after:"
+			scrambled_fisher_weights.PrintToSTDOUT()
 
-		scrambled_fisher_weights = scrambled_fisher_weights.Threshold()
-		scrambled_training_set = scrambled_training_set.FeatureReduce( scrambled_fisher_weights.names )
-
-		reduced_test_set = reduced_test_set.FeatureReduce( scrambled_fisher_weights.names )
-
-		#batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, \
-		#                  reduced_test_set, fisher_weights, batch_number = i, quiet = True )
-		batch_result = DiscreteBatchClassificationResult.New( scrambled_training_set, \
+			scrambled_fisher_weights = scrambled_fisher_weights.Threshold()
+			scrambled_training_set = scrambled_training_set.FeatureReduce( scrambled_fisher_weights.names )
+			reduced_test_set = reduced_test_set.FeatureReduce( scrambled_fisher_weights.names )
+			batch_result = DiscreteBatchClassificationResult.New( scrambled_training_set, \
 		               reduced_test_set, scrambled_fisher_weights, batch_number = i, quiet = True )
+		else:
+			batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, \
+		                  reduced_test_set, fisher_weights, batch_number = i, quiet = True )
 
 		batch_result.PrintToSTDOUT()
 
@@ -3677,10 +3782,10 @@ if __name__=="__main__":
 	# UnitTest3()
 	#UnitTest4()
 	#UnitTest5()
-	UnitTest6()
+	#UnitTest6()
 	#UnitTest7()
 	#UnitTest8()
 	#UnitTest9()
-	#UnitTest10()
+	UnitTest10()
 	#UnitTest11()
 	# pass
