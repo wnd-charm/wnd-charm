@@ -75,6 +75,33 @@ def initialize_module():
 		if fg:
 			large_featureset_featuregroup_list.append( fg )
 
+################################################################
+def output_railroad_switch( method_that_prints_output ):
+	"""this is a decorator that optionally lets the user specify a file to which to redirect
+	STDOUT. To use, you must use the keyword argument "output_filepath" and optionally
+	the keyword argument "mode" """
+
+	def print_method_wrapper( *args, **kwargs ):
+		
+		if "output_filepath" in kwargs:
+			output_filepath = kwargs[ "output_filepath" ]
+			del kwargs[ "output_filepath" ]
+			if "mode" in kwargs:
+				mode = kwargs[ "mode" ]
+				del kwargs[ "mode" ]
+			else:
+				mode = 'w'
+			import sys
+			backup = sys.stdout
+			sys.stdout = open( output_filepath, mode )
+			method_that_prints_output( *args, **kwargs )
+			sys.stdout.close()
+			sys.stdout = backup
+		else:
+			method_that_prints_output( *args, **kwargs )
+
+	return print_method_wrapper
+
 #############################################################################
 # class definition of FeatureVector
 #############################################################################
@@ -178,7 +205,8 @@ class FeatureWeights( FeatureVector ):
 		return weights
 
 	#================================================================
-	def PrintToSTDOUT( self ):
+	@output_railroad_switch
+	def Print( self ):
 		"""@breif Prints out feature values and statistics"""
 		raise NotImplementedError
 
@@ -356,7 +384,8 @@ class FisherFeatureWeights( FeatureWeights ):
 		return new_weights
 
 	#================================================================
-	def PrintToSTDOUT( self ):
+	@output_railroad_switch
+	def Print( self ):
 		"""@breif Prints out feature values and statistics"""
 		print "Fisher Feature Weight set {0}:".format( self.name )
 		print "Rank\tValue\tName"
@@ -539,7 +568,8 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		return new_weights
 
 	#================================================================
-	def PrintToSTDOUT( self, print_legend = True ):
+	@output_railroad_switch
+	def Print( self, print_legend = True ):
 		"""@breif Prints out feature values and statistics"""
 
 		header_str = "Continuous feature weight set"
@@ -2305,7 +2335,8 @@ class ClassificationResult( object ):
 	def GenerateStats( self ):
 		raise NotImplementedError
 	
-	def PrintToSTDOUT( self ):
+	@output_railroad_switch
+	def Print( self ):
 		raise NotImplementedError
 
 	def GenerateHTML( self ):
@@ -2324,7 +2355,8 @@ class ImageClassificationResult( ClassificationResult ):
 	#: For the future:
 	kernel_location = None
 
-	def PrintToSTDOUT():
+	@output_railroad_switch
+	def Print():
 		raise NotImplementedError
 
 #=================================================================================
@@ -2341,7 +2373,8 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 		self.marginal_probabilities = []
 
 	#==============================================================
-	def PrintToSTDOUT( self, line_item = False ):
+	@output_railroad_switch
+	def Print( self, line_item = False ):
 		"""
 		"""
 		if line_item:
@@ -2489,7 +2522,7 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 			 "".join( [ "p(" + class_name + ")\t" for class_name in training_set.classnames_list ] )
 			column_header += "act. class\tpred. class\tpred. val."
 			print column_header
-			result.PrintToSTDOUT( line_item = True )
+			result.Print( line_item = True )
 
 		return result
 
@@ -2498,7 +2531,8 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 class ContinuousImageClassificationResult( ImageClassificationResult ):
 
 	#==============================================================
-	def PrintToSTDOUT( self, line_item = False ):
+	@output_railroad_switch
+	def Print( self, line_item = False ):
 		"""
 		"""
 		if line_item:
@@ -2584,6 +2618,9 @@ class BatchClassificationResult( ClassificationResult ):
 	def GenerateStats( self ):
 		#FIXME: how to calculate p-value???
 
+		if len( self.individual_results ) == 0:
+			raise ValueError( 'No individual results in this batch with which to generate statistics.' )
+
 		self.num_classifications = len( self.individual_results )
 
 		if self.ground_truth_values is not None and \
@@ -2648,6 +2685,9 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 	#==============================================================
 	def GenerateStats( self ):
 		"""fill out the confusion matrix, similarity matrix, and class probability matrix"""
+
+		# Run a standard error analysis if ground_truth/predicted vals exist (call base method ):
+		super( DiscreteBatchClassificationResult, self ).GenerateStats()
 
 		num_classes = self.training_set.num_classes
 
@@ -2718,13 +2758,12 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 				for col in self.training_set.classnames_list:
 					self.similarity_matrix[ row ][ col ] /= self.similarity_matrix[ row ][ row ]
 
-		# Run a standard error analysis if ground_truth/predicted vals exist (call base method ):
-		super( DiscreteBatchClassificationResult, self ).GenerateStats()
 
 		self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
 
 	#==============================================================
-	def PrintToSTDOUT( self ):
+	@output_railroad_switch
+	def Print( self ):
 		if self.classification_accuracy == None:
 			self.GenerateStats()
 
@@ -2775,6 +2814,84 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 			print line
 		print ""
 	
+	#==============================================================
+	@output_railroad_switch
+	def PrintDistanceMatrix( self, method = 'mps' ):
+		"""methods can be {'max', 'mean', 'top', 'bottom', 'mps'}
+		
+		To generate a distance matrix using marginal probability space ('mps'), it is legal for
+		the test set and training set to have a different number of classes, since the coefficients
+		in the average class probability matrix are used as coordinates, but otherwise
+		the the input (similarity) matrix must be square."""
+
+		# The source matrix is a numpy matrix of coefficients from which the 
+		# distances will be derived
+		source_matrix = np.empty( (self.test_set.num_classes, self.test_set.num_classes) ) #initialize
+		row_index = 0
+		for row in self.test_set.classnames_list:
+			col_index = 0
+			for col in self.training_set.classnames_list:
+				source_matrix[ row_index ][ col_index ] = self.average_class_probability_matrix[row][col]
+				col_index += 1
+			row_index += 1
+
+		output_matrix = {}
+
+		# initialize the rows
+		for test_set_class_name in self.test_set.classnames_list:
+			output_matrix[ test_set_class_name ] = {}
+		# now the columns:
+		for training_set_class_name in self.training_set.classnames_list:
+			for test_set_class_name in self.test_set.classnames_list:
+				output_matrix[ test_set_class_name ][ training_set_class_name ] = 0
+
+		if method == 'mps':
+			if self.average_class_probability_matrix == None:
+				self.GenerateStats()
+
+			for row in range( self.test_set.num_classes ):
+				for col in range( self.test_set.num_classes ):
+					if row == col:
+						output_matrix[ row, col ] = 0
+					else:
+						output_matrix[ row, col ] = np.sum( np.square( source_matrix[row]-source_matrix[col] ) )
+
+		else:
+			if self.similarity_matrix == None:
+				self.GenerateStats()
+			# Have to check again, since for some experiments it doesn't make sense to have a 
+			# similarity matrix, e.g., when test set ground truth is not known.
+			if self.similarity_matrix == None:
+				raise ValueError( 'Similarity matrix is not possible with this data set. ' + \
+				                  'Possible reason for this is that your test set does not have ' + \
+				                  'ground truth defined.' )
+			
+
+			if method == 'max':
+				raise NotImplementedError
+			elif method == 'mean':
+				raise NotImplementedError
+			elif method == 'top':
+				raise NotImplementedError
+			elif method == 'bottom':
+				raise NotImplementedError
+			else:
+				raise ValueError( "Distance matrix method {0} not recognized. Valid options are ".format(\
+													method ) + "'max', 'mean', 'top', 'bottom', 'mps'" )
+
+		column_headers = "\t".join( self.test_set.classnames_list )
+		column_headers += "\n"
+		column_headers += "\t".join( [ '-'*len(name) for name in self.test_set.classnames_list ] )
+		print "Distance Matrix (method = '{0}'):".format( method )
+		print column_headers
+		for row in range( self.test_set.num_classes ):
+			line = ""
+			for col in range( self.test_set.num_classes ):
+				line += '{0:0.4f}\t'.format( output_matrix[ row, col ] )
+			print line
+		print ""
+
+
 	#==============================================================
 	@classmethod
 	def New( cls, training_set, test_set, feature_weights, batch_number = None, batch_name = None, quiet = False):
@@ -2849,7 +2966,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 					batch_result.ground_truth_values.append( test_set_interp_coeffs[ test_class_index ] )
 
 				if not quiet:
-					result.PrintToSTDOUT( line_item = True )
+					result.Print( line_item = True )
 				batch_result.individual_results.append( result )
 
 		return batch_result
@@ -2869,7 +2986,8 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		super( ContinuousBatchClassificationResult, self ).GenerateStats()
 
 	#=====================================================================
-	def PrintToSTDOUT( self ):
+	@output_railroad_switch
+	def Print( self ):
 		if self.figure_of_merit == None:
 			self.GenerateStats()
 
@@ -2926,7 +3044,7 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 			batch_result.predicted_values.append( result.predicted_value )
 
 			if not quiet:
-				result.PrintToSTDOUT( line_item = True )
+				result.Print( line_item = True )
 			batch_result.individual_results.append( result )
 
 		batch_result.GenerateStats()
@@ -2949,6 +3067,7 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 	individual_stats = None
 
 	#=====================================================================
+	@output_railroad_switch
 	def PredictedValueAnalysis( self ):
 		"""This only works if the ImageClassificationResults contain predicted/interpolated values"""
 
@@ -3011,6 +3130,7 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 			print outstr.format( *self.individual_stats[ filename ] )
 
 	#=====================================================================
+	@output_railroad_switch
 	def WeightsOptimizationAnalysis( self ):
 		"""input myself, with a bunch of batch_results in tow,
 		    each with different feature weights
@@ -3035,8 +3155,8 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 				opt_number_features = num_features
 
 		print "Optimum number of features: {0}".format( opt_number_features )
-		best_classification_result.PrintToSTDOUT()
-		best_weights.PrintToSTDOUT()
+		best_classification_result.Print()
+		best_weights.Print()
 		print ""
 		print "Aggregate feature weight analysis:"
 		print "-----------------------------------"
@@ -3091,7 +3211,8 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 
 
 	#=====================================================================
-	def PrintToSTDOUT( self ):
+	@output_railroad_switch
+	def Print( self ):
 		if self.figure_of_merit == None:
 			self.GenerateStats()
 
@@ -3161,7 +3282,8 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 
 
 	#=====================================================================
-	def PrintToSTDOUT( self ):
+	@output_railroad_switch
+	def Print( self ):
 		if self.figure_of_merit == None:
 			self.GenerateStats()
 
@@ -3308,7 +3430,7 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 			sig.Normalize( reduced_ts )
 	
 			result = DiscreteImageClassificationResult.NewWND5( reduced_ts, reduced_fw, sig )
-			result.PrintToSTDOUT()
+			result.Print()
 			# FIXME: save intermediates just in case of interruption or parallization
 			# result.PickleMe()
 			t2 = time.time()
@@ -3317,7 +3439,7 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 
 			# now, do a fit-on-fit test to measure classification accuracy
 			batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, reduced_fw )
-			batch_result.PrintToSTDOUT()
+			batch_result.Print()
 			experiment.individual_results.append( batch_result )
 
 		from matplotlib import pyplot
@@ -3373,8 +3495,6 @@ class Dendrogram( object ):
 # Implement database hookup
 # OMERO integration
 # Implement Channels.
-# Overhaul PrintToSTDOUT to be able to take a filename and write output to that file instead
-#     of STDOUT
 # DO NOT DO: high speed c++ implementation of wndchrm train -l, let multiprocessing do it
 # implementation of Chebyshev coefficients, which is the slowest algorithm
 # Feature family analysis. how to get highest accuracy using least amount of feature groups:
@@ -3382,6 +3502,7 @@ class Dendrogram( object ):
 #    and how they're a function of image dimension
 # Leave one out
 # Wndchrm backend c++ cleanup - potential use of ctypes to facilitate shared memory, construction of new sharable ImageMatrices
+# Change to import packages (both internal & external on demand rather than all at once at the top
 
 
 
@@ -3449,10 +3570,10 @@ def UnitTest5( max_features = 3 ):
 
 		split_result = DiscreteBatchClassificationResult.New( reduced_training_set, reduced_training_set,\
 																			 reduced_feature_weights )
-		split_result.PrintToSTDOUT()
+		split_result.Print()
 		experiment.individual_results.results.append( split_result )
 
-	experiment.PrintToSTDOUT()
+	experiment.Print()
 
 #================================================================
 def UnitTest6():
@@ -3486,7 +3607,7 @@ def UnitTest6():
 			full_weights = ContinuousFeatureWeights.NewFromTrainingSet( full_training_set )
 			weights_subset = full_weights.Threshold(200)
 			weights_subset = weights_subset.Slice( feature_rank, feature_rank - 10 )
-			#weights_subset.PrintToSTDOUT( print_legend = False )
+			#weights_subset.Print( print_legend = False )
 
 			reduced_training_set = full_training_set.FeatureReduce( weights_subset.names )
 			reduced_test_set = full_test_set.FeatureReduce( weights_subset.names )
@@ -3495,7 +3616,7 @@ def UnitTest6():
 												 weights_subset, quiet = True, batch_number = i )
 
 			experiment.individual_results.append( batch_result )
-		experiment.PrintToSTDOUT()
+		experiment.Print()
 		feature_rank += 10
 
 #		grapher = PredictedValuesGraph( batch_result )
@@ -3528,7 +3649,7 @@ def UnitTest7(max_features = 50):
 	reduced_ts = ts.FeatureReduce( reduced_weights.names )
 
 	batch_result = ContinuousBatchClassificationResult.New( reduced_ts, reduced_weights )
-	batch_result.PrintToSTDOUT()
+	batch_result.Print()
 
 	grapher = PredictedValuesGraph( batch_result )
 	grapher.RankOrderedPredictedValuesGraph( \
@@ -3537,7 +3658,6 @@ def UnitTest7(max_features = 50):
 	grapher.KernelSmoothedDensityGraph( \
 	               "Josiah Terminal Bulb Interp Vals using continuous classifier" )
 	grapher.SaveToFile( "KS_DENSITY_josiah_continuous")
-
 
 
 #================================================================
@@ -3592,7 +3712,7 @@ def UnitTest8():
 		#batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, \
 		batch_result = ContinuousBatchClassificationResult.New( reduced_ts, \
 		               weights_subset, batch_number = i, batch_name = name, quiet = True)
-		batch_result.PrintToSTDOUT()
+		batch_result.Print()
 		grapher = PredictedValuesGraph( batch_result )
 
 		grapher.RankOrderedPredictedValuesGraph( \
@@ -3606,7 +3726,7 @@ def UnitTest8():
 		experiment.individual_results.append( batch_result )
 		i += 1
 	
-	#experiment.PrintToSTDOUT()
+	#experiment.Print()
 	experiment.PredictedValueAnalysis()
 	experiment.WeightsOptimizationAnalysis()
 
@@ -3622,7 +3742,7 @@ def UnitTest9():
 	full_ts.Normalize()
 	fisher_weights = FisherFeatureWeights.NewFromTrainingSet( full_ts )
 	#fisher_weights = fisher_weights.Threshold(2873)
-	fisher_weights.PrintToSTDOUT()
+	fisher_weights.Print()
 
 
 #================================================================
@@ -3651,10 +3771,10 @@ def UnitTest10():
 		fisher_weights = FisherFeatureWeights.NewFromTrainingSet( training_set )
 		#fisher_weights = fisher_weights.Threshold(50)
 		fisher_weights = fisher_weights.Threshold( 50 )
-		fisher_weights = fisher_weights.Slice( 40, 49 )
+		fisher_weights = fisher_weights.Slice( 20, 30 )
 
 		if scramble: print "Fisher weights before:"
-		fisher_weights.PrintToSTDOUT()
+		fisher_weights.Print()
 		reduced_test_set = test_set.FeatureReduce( fisher_weights.names )
 		reduced_training_set = training_set.FeatureReduce( fisher_weights.names )
 
@@ -3664,7 +3784,7 @@ def UnitTest10():
 			scrambled_fisher_weights = FisherFeatureWeights.NewFromTrainingSet( scrambled_training_set)
 			scrambled_fisher_weights = scrambled_fisher_weights.Threshold( 50 )
 			print "Fisher weights after:"
-			scrambled_fisher_weights.PrintToSTDOUT()
+			scrambled_fisher_weights.Print()
 
 			scrambled_fisher_weights = scrambled_fisher_weights.Threshold()
 			scrambled_training_set = scrambled_training_set.FeatureReduce( scrambled_fisher_weights.names )
@@ -3675,13 +3795,16 @@ def UnitTest10():
 			batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, \
 		                  reduced_test_set, fisher_weights, batch_number = i, quiet = True )
 
-		batch_result.PrintToSTDOUT()
+		batch_result.Print()
+		batch_result.PrintDistanceMatrix( \
+		         output_filepath = "/Users/chris/src/fake_signatures/classes/dend_file.txt",
+		         mode = "a")
 
 		experiment.individual_results.append( batch_result )
 
-		grapher = PredictedValuesGraph( batch_result )
-		grapher.RankOrderedPredictedValuesGraph( "synthetic data set, scrambled training set" )
-		grapher.SaveToFile( "rank_ordered_synthetic_scrambled_graph{0}".format( i ) )
+		#grapher = PredictedValuesGraph( batch_result )
+		#grapher.RankOrderedPredictedValuesGraph( "synthetic data set, scrambled training set" )
+		#grapher.SaveToFile( "rank_ordered_synthetic_scrambled_graph{0}".format( i ) )
 	
 	experiment.PredictedValueAnalysis()
 
@@ -3690,7 +3813,7 @@ def UnitTest10():
 #
 #	fisher_weights = FisherFeatureWeights.NewFromTrainingSet( full_ts )
 #	fisher_weights = fisher_weights.Threshold(50)
-#	fisher_weights.PrintToSTDOUT()
+#	fisher_weights.Print()
 #
 #
 #	training_set, test_set = full_ts.Split()
@@ -3701,13 +3824,10 @@ def UnitTest10():
 #
 #	batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, \
 #	               reduced_test_set, fisher_weights, quiet = True )
-#	batch_result.PrintToSTDOUT()
+#	batch_result.Print()
 #	grapher = PredictedValuesGraph( batch_result )
 #	grapher.RankOrderedPredictedValuesGraph( "one split normalized first" )
 #	grapher.SaveToFile( "one_split_normalized_first" )
-
-
-
 
 
 #================================================================
@@ -3725,7 +3845,6 @@ def UnitTest11():
 	experiment = DiscreteClassificationExperimentResult( training_set = full_training_set,\
 	                                             test_set = full_test_set, \
 	                                             feature_weights = full_feature_weights )
-
 
 	max_num_features = 750
 	num_graphs = 20
@@ -3748,7 +3867,7 @@ def UnitTest11():
 		name = "{0:03d} Features".format( num_features_used )
 		batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, reduced_test_set, \
 		               weights_subset, batch_number = i, batch_name = name, quiet = True)
-		batch_result.PrintToSTDOUT()
+		batch_result.Print()
 
 		
 		grapher = PredictedValuesGraph( batch_result )
@@ -3765,7 +3884,7 @@ def UnitTest11():
 		experiment.individual_results.append( batch_result )
 		i += 1
 	
-	experiment.PrintToSTDOUT()
+	experiment.Print()
 	experiment.PredictedValueAnalysis()
 	experiment.WeightsOptimizationAnalysis()
 
