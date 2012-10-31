@@ -857,6 +857,8 @@ class Signatures( FeatureVector ):
 			else:
 				outfile_path = "{0}.pysig".format( filename_parts[0] )
 			outfile_path = os.path.join( path, outfile_path )
+		else:
+			outfile_path = filepath
 
 		if os.path.exists( outfile_path ):
 			print "Overwriting {0}".format( outfile_path )
