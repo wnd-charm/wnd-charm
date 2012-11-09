@@ -1,5 +1,61 @@
-#!/usr/bin/env python
+""" module for Pychrm intermediates.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                                               
+ Copyright (C) 2012 National Institutes of Health 
 
+    This library is free software; you can redistribute it and/or              
+    modify it under the terms of the GNU Lesser General Public                 
+    License as published by the Free Software Foundation; either               
+    version 2.1 of the License, or (at your option) any later version.         
+                                                                               
+    This library is distributed in the hope that it will be useful,            
+    but WITHOUT ANY WARRANTY; without even the implied warranty of             
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU          
+    Lesser General Public License for more details.                            
+                                                                               
+    You should have received a copy of the GNU Lesser General Public           
+    License along with this library; if not, write to the Free Software        
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA  
+                                                                               
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                                               
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ Written by:  Christopher Coletta <christopher.coletta [at] nih [dot] gov>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Pychrm TODO (in no particular order):
+* Implement multiprocessing
+* Implement kernel classifier
+* Implement database hookup
+* OMERO integration
+* Use scipy.optimize.curve_fit (http://www.scipy.org/Cookbook/FittingData) to
+  further refine continuous classifiers.
+* Implement dendrogram using scipy.cluster or Biopython.Phylo, including the ability
+  to create dendrograms for individual images as well as entire image classes.
+* Classify images against multiple classifiers, e.g., filter for confluence, then classify.
+* Break out classes into their own modules.
+* Generate documantation, getting started, tutorials, examples.
+  Use some model-building module to map out object model (Pylint/Pyreverse)
+* Migrate over to using the unittest module, and check in unit test related files 
+* Implement Channels.
+* Replace/optimize current slow implementation of Chebyshev coefficients
+  which is the biggest pig of the algorithms
+* Feature family analysis. how to get highest accuracy using least amount of feature groups:
+* Leave one out analysis
+* Wndchrm backend c++ cleanup - potential use of ctypes to facilitate shared memory,
+  construction of new sharable ImageMatrix's.
+* Import feature calculation modules only if required
+* Implement ability to define continuous classification bin walls, based on which
+  classification (i.e., predicted value) can be called "correct" or "incorrect"
+  and consequently confusion/similarity matrices can be built.
+"""
+
+# ===========================================================
+# The following are some Pychrm-specific module imports:
+
+# pychrm.py has the definitions of all the SWIG-wrapped primitive
+# C++ WND_CHARM objects.
 try:
 	from . import pychrm
 except:
@@ -19,22 +75,23 @@ try:
 except:
 	import FeatureNameMap
 
+# ============================================================
+# Imports from Python core or other installed packages
 import numpy as np
-from StringIO import StringIO
 try:
 	import cPickle as pickle
 except:
 	import pickle
 
-# os module has function os.walk( ... )
 import os
 import os.path 
-import re
 import itertools
 import copy
 
 
-# Initialize module level globals
+
+# ============================================================
+# BEGIN: Initialize module level globals
 Algorithms = None
 Transforms = None
 small_featureset_featuregroup_strings = None
@@ -45,8 +102,9 @@ large_featureset_featuregroup_list = None
 error_banner = "\n*************************************************************************\n"
 
 def initialize_module(): 
-	# If you're going to calculate any signatures, you need this stuff
-	# FIXME: Maybe rig something up using a load on demand?
+	"""If you're going to calculate any signatures, you need this stuff.
+	FIXME: Rig this stuff to load only on demand."""
+	
 	global Algorithms
 	global Transforms
 	global small_featureset_featuregroup_strings
@@ -75,9 +133,8 @@ def initialize_module():
 		if fg:
 			large_featureset_featuregroup_list.append( fg )
 
-################################################################
 def output_railroad_switch( method_that_prints_output ):
-	"""this is a decorator that optionally lets the user specify a file to which to redirect
+	"""This is a decorator that optionally lets the user specify a file to which to redirect
 	STDOUT. To use, you must use the keyword argument "output_filepath" and optionally
 	the keyword argument "mode" """
 
@@ -91,6 +148,8 @@ def output_railroad_switch( method_that_prints_output ):
 				del kwargs[ "mode" ]
 			else:
 				mode = 'w'
+			print 'Saving output of function "{0}()" to file "{1}", mode "{2}"'.format(\
+			      method_that_prints_output.__name__, output_filepath, mode )
 			import sys
 			backup = sys.stdout
 			sys.stdout = open( output_filepath, mode )
@@ -102,21 +161,29 @@ def output_railroad_switch( method_that_prints_output ):
 
 	return print_method_wrapper
 
+# END: Initialize module level globals
+#===============================================================
+
+
+# BEGIN: Class definitions for WND-CHARM intermediate objects
+
 #############################################################################
 # class definition of FeatureVector
 #############################################################################
-# FeatureVector inherits from class object and is thus a Python "new-style" class
+# FeatureVector inherits from class "object" and is thus a Python "new-style" class
 class FeatureVector(object):
-	"""
-	FIXME: Would be nice to define a [] operator that returns
-	       a tuple = (self.names[n], self.values[n])
-	"""
+	"""A FeatureVector is simply a list of doubles and a list of corresponding strings (i.e., names).
+	The lengths of the two lists must always be equal. A FeatureVector may be rendered 
+	corrupted if the order of one list is changed but not the other. In the future,
+	we might consider Python tuples instead of Python lists to store data since 
+	tuples are immutable."""
+
 	names = None
 	values = None
 	#================================================================
 	def __init__( self, data_dict = None):
-		"""@brief: constructor
-		"""
+		"""@brief: constructor"""
+
 		self.names = []
 		self.values = []
 
@@ -127,9 +194,7 @@ class FeatureVector(object):
 				self.names = data_dict[ "names" ]
 	#================================================================
 	def is_valid( self ):
-		"""
-		@brief: an instance should know all the criteria for being a valid FeatureVector
-		"""
+		"""@brief: an instance should know all the criteria for being a valid FeatureVector"""
 		if len( self.values ) != len( self.names ):
 			raise RuntimeError( "Instance of {0} is invalid: ".format( self.__class__ ) + \
 			  "different number of values ({0}) and names ({1}).".format( \
@@ -140,8 +205,16 @@ class FeatureVector(object):
 # class definition of FeatureWeights
 #############################################################################
 class FeatureWeights( FeatureVector ):
-	"""
-	"""
+	"""FeatureWeights is an abstract base class inheriting from "FeatureVector"
+	that comprises one-half of a WND-CHARM classifier (the other being a TrainingSet).
+	
+	It is a list of strings which are the names of
+	individual image descriptors (features) and a corresponding list of doubles which
+	are the weights assigned to those features. Since WND-CHARM is a generalized
+	pattern recognition algorithm that calculates the same image descriptors for all
+	images, it is through features weights that trained classifiers can zero-in on only
+	those features which provide distinctiveness across classes and ignore noisy features.
+	Thus any instance of a FeatureWeights class is context-specific."""
 
 	name = None
 	associated_training_set = None
@@ -154,7 +227,8 @@ class FeatureWeights( FeatureVector ):
 	#================================================================
 	@classmethod
 	def NewFromFile( cls, weights_filepath ):
-		"""load from a text file"""
+		"""Load feature weights from a C++ WND-CHARM-sytle feature weights text file,
+		i.e., the one created by using the command line "wndchrm train -vw/path/to/weights.txt"""
 		raise NotImplementedError
 
 	#================================================================
@@ -170,6 +244,7 @@ class FeatureWeights( FeatureVector ):
 
 	#================================================================
 	def PickleMe( self, pathname = None ):
+		"""Creates a Python pickle of this class and saves it to a file specified by pathname"""
 
 		outfile_pathname = ""
 		if pathname != None:
@@ -217,16 +292,25 @@ class FeatureWeights( FeatureVector ):
 #############################################################################
 class FisherFeatureWeights( FeatureWeights ):
 	"""
+	FisherFeatureWeights is a concrete class using feature weighting that uses the
+	Fisher Discriminant as a weight for image descriptors. Features that have a high
+	Fisher score have high inter-class variability and low intra-class variability.
+
+	This type of feature weight is one result of training an image classifier from a 
+	training set that has distinct discrete classes, e.g., is a cell mono- or binucleate.
+	Fisher classifiers can be used on a continuous morphology regime if the user creates
+	groups or bins for the training images.
 	"""
+
 	def __init__( self, data_dict = None, name = None):
-		# call parent constructor
+		"""Simply calls parent constructor"""
 		super( FisherFeatureWeights, self ).__init__( data_dict, name )
 
 
 	#================================================================
 	@classmethod
 	def NewFromFile( cls, weights_filepath ):
-		"""@brief written to read in files created by wndchrm -vw/path/to/weightsfile.txt"""
+		"""Written to read in files created by wndchrm -vw/path/to/weightsfile.txt"""
 
 		weights = cls()
 		with open( weights_filepath, 'r' ) as weights_file:
@@ -241,7 +325,9 @@ class FisherFeatureWeights( FeatureWeights ):
 	#================================================================
 	@classmethod
 	def NewFromTrainingSet( cls, training_set ):
-		"""
+		"""Takes a DiscreteTrainingSet as input and calculates a Fisher score for 
+		each feature. Returns a newly instantiated instance of FisherFeatureWeights.
+
 		For:
 		N = number of classes
 		F = number of features
@@ -312,7 +398,8 @@ class FisherFeatureWeights( FeatureWeights ):
 
 	#================================================================
 	def EliminateZeros( self ):
-		"""@breif Good for Fisher scores, N/A for Pearson or continuous scores"""
+		"""Eliminates any features with a weight of zero, and returns a new instance of
+		FisherFeatureWeights without those features."""
 
 		new_weights = FisherFeatureWeights()
 		scores = zip( self.names, self.values )
@@ -322,7 +409,8 @@ class FisherFeatureWeights( FeatureWeights ):
 
 	#================================================================
 	def Threshold( self, num_features_to_be_used = None ):
-		"""@breif Returns an instance of a FeatureWeights class with the top n relevant features in that order"""
+		"""Returns an instance of a FisherFeatureWeights class with the top n relevant features 
+		in order."""
 
 		# Default is top 15% of features
 		if num_features_to_be_used is None:
@@ -354,7 +442,8 @@ class FisherFeatureWeights( FeatureWeights ):
 
 	#================================================================
 	def Slice( self, start_index, stop_index):
-		"""@breif return a chunk of middle-ranked features"""
+		"""Return a new instance of FisherFeatureWeights containing a chunk
+		of middle-ranked features."""
 		
 		min_index = None
 		max_index = None
@@ -386,7 +475,7 @@ class FisherFeatureWeights( FeatureWeights ):
 	#================================================================
 	@output_railroad_switch
 	def Print( self ):
-		"""@breif Prints out feature values and statistics"""
+		"""Prints out feature weight values and statistics."""
 		print "Fisher Feature Weight set {0}:".format( self.name )
 		print "Rank\tValue\tName"
 		print "====\t=====\t===="
@@ -400,10 +489,13 @@ class FisherFeatureWeights( FeatureWeights ):
 # class definition of ContinuousFeatureWeights
 #############################################################################
 class ContinuousFeatureWeights( FeatureWeights ):
-	"""Used to perform linear regressions
+	"""A concrete class that calculates correlation coefficients as well as 
+	regression parameters for each feature. Features are weighted based on how well
+	they linearly correlate (i.e., high Pearson correlation coefficient) with an experimental 
+	variable.
 
-	IMPORTANT DISTINCTION BETWEEN the pearson_coeffs array, and the weights (values) list:
-	"""
+	An example system where a continuous classifier could be used could be
+	would be defining a spectrum of morphology across age or dose response."""
 
 	slopes = None
 	intercepts = None
@@ -414,7 +506,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 	spearman_p_values = None
 	
 	def __init__( self, data_dict = None ):
-		# call parent constructor
+		"""Constructor"""
 		super( ContinuousFeatureWeights, self ).__init__( data_dict )
 		self.slopes = []
 		self.intercepts = []
@@ -428,9 +520,11 @@ class ContinuousFeatureWeights( FeatureWeights ):
 	#================================================================
 	@classmethod
 	def NewFromTrainingSet( cls, training_set ):
-		"""@breif Calculate FeatureWeights from a TrainingSet
-		
-		feature weights are proportional to the square of the R-value"""
+		"""Calculate regression parameters and correlation statistics that fully define
+		a continuous classifier.
+
+		At present the feature weights are proportional the Pearson correlation coefficient
+		for each given feature."""
 		
 		from scipy import stats
 
@@ -474,10 +568,9 @@ class ContinuousFeatureWeights( FeatureWeights ):
 
 	#================================================================
 	def Threshold( self, num_features_to_be_used = None  ):
-		"""@breif Returns an instance of a FeatureWeights class with the top n relevant features in that order
-
-		Sorts on the absolute value of the Pearson coefficients
-		Default is top 15% of features"""
+		"""Returns a new instance of a ContinuousFeatureWeights class derived from this
+		instance where the number of features has been reduced to only the top n features,
+		where n is specified by the num_features_to_be_used argument."""
 
 		# Default is top 15% of features
 		if num_features_to_be_used is None:
@@ -526,7 +619,8 @@ class ContinuousFeatureWeights( FeatureWeights ):
 
 	#================================================================
 	def Slice( self, start_index, stop_index):
-		"""@brief return a chunk of middle-ranked features"""
+		"""Return a new instance of ContinuousFeatureWeights populated with a
+		chunk of middle-ranked features specified by arguments start_index and stop_index."""
 		
 		min_index = None
 		max_index = None
@@ -608,6 +702,15 @@ class ContinuousFeatureWeights( FeatureWeights ):
 #############################################################################
 class Signatures( FeatureVector ):
 	"""
+	Signatures is a concrete class inheriting from FeatureVector
+	that contains the image descriptor values, a.k.a. "Signatures", 
+	for a single image or ROI. It is the values contained in 
+	Signatures that are grouped together to form TrainingSets.
+
+	This class is mostly agnostic w.r.t. the types of image descriptors contained herein.
+	Previous implementations of WND-CHARM have defined a "small feature set" of
+	1025 specific image descriptors as well as a "large feature set" of 2885 features.
+	These specific lists have been preserved here for convenience and interchangeability.
 	"""
 
 	# in the future, signatures can be loaded from be from a database as well.
@@ -615,12 +718,15 @@ class Signatures( FeatureVector ):
 	path_to_image = None
 	path_to_sigfile = None
 
+	#: Captures some of the image descriptor meta-data, such as whether we
+	#: used the large feature set to generate these features ("-l")
+
 	options = ""
 
 	#================================================================
 	def __init__( self ):
-		"""@brief: constructor
-		"""
+		"""@brief: constructor"""
+
 		# call parent constructor
 		super( Signatures, self ).__init__()
 
@@ -713,9 +819,7 @@ class Signatures( FeatureVector ):
 	#================================================================
 	@classmethod
 	def NewFromFeatureGroupList( cls, path_to_image, feature_groups, options = None ):
-		"""@brief calculates signatures
-
-		"""
+		"""@brief calculates signatures"""
 
 		if not os.path.exists( path_to_image ):
 			raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( outfile_pathname ) )
@@ -749,9 +853,7 @@ class Signatures( FeatureVector ):
 	#================================================================
 	@classmethod
 	def NewFromFeatureNameList( cls, path_to_image, feature_names, options = None ):
-		"""@brief calculates signatures
-
-		"""
+		"""@brief calculates signatures"""
 
 		work_order, num_features = GenerateWorkOrderFromListOfFeatureStrings( feature_names )
 		sig = cls.NewFromFeatureGroupList( path_to_image, work_order, options )
@@ -760,16 +862,12 @@ class Signatures( FeatureVector ):
 	#================================================================
 	@classmethod
 	def FromPickle( cls, path ):
-		"""
-		FIXME: Implement!
-		"""
+		"""Not implemented."""
 		raise NotImplementedError()
 
 	#================================================================
 	def PickleMe( self ):
-		"""
-		FIXME: Implement!
-		"""
+		"""Not implemented."""
 		raise NotImplementedError()
 
 	#================================================================
@@ -828,7 +926,7 @@ class Signatures( FeatureVector ):
 	
 	#================================================================
 	def WriteFeaturesToASCIISigFile( self, filepath = None ):
-		"""Write a sig file.
+		"""Write features to a .pysig file, in the same format as a .sig file created 
 		
 		If filepath is specified, you get to name it whatever you want and put it
 		wherever you want. Otherwise, it's named according to convention and placed 
@@ -876,6 +974,8 @@ class Signatures( FeatureVector ):
 
 	#================================================================
 	def FeatureReduce( self, requested_features ):
+		"""Returns a new instance of Signatures that contains only those features specified
+		by name via the argument requested_features."""
 
 		if self.names == requested_features:
 			return self
@@ -934,14 +1034,26 @@ class Signatures( FeatureVector ):
 #############################################################################
 # class definition of FeatureGroup
 #############################################################################
-class FeatureGroup:
-	"""
-	Attributes name, algorithm and transform_list are references to the SWIG objects
-	"""
+class FeatureGroup( object ):
+	"""A FeatureGroup is a concrete class that fully defines a family of image features. 
 
-	name = ""
+	Its member function CalculateFeatures() is the interface which receives a pixel plane
+	as input and returns a vector of doubles which are the image descriptor values 
+	derived from that input pixel plane.
+
+	In the WND-CHARM sense, a FeatureGroup is composed of: 1. A list of transforms to apply 
+	sequentially to an input image/ROI/pixel plane, and 2. The algorithm to apply to 
+	that transformed pixel plane which produces the image descriptor values.
+
+	The member "algorithm" is a reference to the SWIG-wrapped C++ class FeatureAlgorithm.
+	The member "transform_list" is a list of references to the SWIG-wrapped C++ class
+	FeatureTransform.
+	The member "name" is a string representation of the algorithm and transform list,
+	following the convention "AlgorithmName ( [Transform A ( [Transform B (] )] )."""
+
+	name = None
 	algorithm = None
-	transform_list = []
+	transform_list = None
 	def __init__( self, name_str = "", algorithm = None, tform_list = [] ):
 		#print "Creating new FeatureGroup for string {0}:".format(name_str)
 		#print "\talgorithm: {0}, transform list: {1}".format( algorithm, tform_list )
@@ -962,9 +1074,8 @@ class FeatureGroup:
 	@classmethod
 	def NewFromString( cls, name ):
 		"""Takes a string input, parses, and returns an instance of a FeatureGroup class"""
-		# get the algorithm
 
-		# The ability to comment out lines with a hashmark
+		# The ability to comment out lines with a hashmark at the beginning of the line
 		if name.startswith( '#' ):
 			return None
 		global Algorithms
@@ -991,7 +1102,7 @@ class FeatureGroup:
 		return cls( name, Algorithms[ alg ], tform_swig_obj_list )
 
 #############################################################################
-# global functions
+# Some more global functions related to Signatures and FeatureGroups:
 #############################################################################
 def RetrievePixelPlane( image_matrix_cache, tform_list ):
 	"""
@@ -1035,7 +1146,7 @@ def GenerateWorkOrderFromListOfFeatureStrings( feature_list ):
 
 	WARNING, RETURNS A TUPLE OF TWO THINGS!
 
-	@return work_order - list of FeatureGroup objects
+	@return work_order - list of FeatureGroup instances
 	@return output_features_count - total number of individual features contained in work_order
 	"""
 
@@ -1060,14 +1171,24 @@ def GenerateWorkOrderFromListOfFeatureStrings( feature_list ):
 # class definition of TrainingSet
 #############################################################################
 class TrainingSet( object ):
-	"""@breif Base class for DiscreteTrainingSet and ContinuousTrainingSet
-  """
+	"""An abstract base class inherited by DiscreteTrainingSet (used with FisherFeatureWeights)
+	and ContinuousTrainingSet (used with Pearson Corellation Coefficient-weighted 
+	ContinuousFeatureWeights).
+
+	An instance of TrainingSet is one-half of a WND-CHARM classifier, the other half being the 
+	FeatureWeights instance.
+
+	The TrainingSet class is a container for sets of image descriptors, which are collected
+	into Numpy matrices organized by image class or ground truth. TrainingSets are also used
+	as containers for test images which have yet to be classified. TrainingSets can also be
+	randomly Split() into two subset TrainingSets to be used for cross-validation of a 
+	classifier, one for training the other for testing."""
 
 	# source_path - could be the name of a .fit, or pickle file from which this
 	# instance was generated, could be a directory
 	#  source_path is essentially a name
 	# might want to make separate name member in the future
-	source_path = ""
+	source_path = None
 	num_features = None
 	num_images = None
 
@@ -1099,15 +1220,13 @@ class TrainingSet( object ):
 	#: A list of strings, length C
 	classnames_list = None
 
-	# A list of floats against which marg probs can be multiplied
-	# to obtain an interpolated value
+	# A list of floats against which an image's marginal probaility values can be multiplied
+	# to obtain an interpolated value.
 	interpolation_coefficients = None
 
 	#==============================================================
 	def __init__( self, data_dict = None ):
-		"""
-		TrainingSet constructor
-		"""
+		"""TrainingSet constructor"""
 
 		self.featurenames_list = []
 		self.imagenames_list = []
@@ -1137,7 +1256,11 @@ class TrainingSet( object ):
 				self.interpolation_coefficients = data_dict[ 'interpolation_coefficients' ]
 
 	#==============================================================
-	def PrintInfo( self ):
+	@output_railroad_switch
+	def Print( self ):
+		"""Prints out basic attributes about this training set, including name, path to
+		source data, number and composition of image classes, number of features, etc."""
+
 		print 'Training Set "{0}"'.format( self.source_path )
 		print 'Type: {0}'.format( self.__class__.__name__ )
 		print 'Total number of images: {0}'.format( self.num_images )
@@ -1146,10 +1269,9 @@ class TrainingSet( object ):
 	#==============================================================
 	@classmethod
 	def NewFromPickleFile( cls, pathname ):
-		"""
-		The pickle is in the form of a dict
-		FIXME: Shouldn't call Normalize if feature_maxima/minima are in the data_dict
-		"""
+		"""Returns new instance of TrainingSet build from a saved pickle file,
+		with a filename ending in .fit.pickle"""
+
 		path, filename = os.path.split( pathname )
 		if filename == "":
 			raise ValueError( 'Invalid pathname: {0}'.format( pathname ) )
@@ -1170,6 +1292,8 @@ class TrainingSet( object ):
 
 	#==============================================================
 	def PickleMe( self, pathname = None ):
+		"""Pickle this instance of TrainingSet and write to file whose path is optionally
+		specified by argument "pathname" """
 
 		outfile_pathname = ""
 		if pathname != None:
@@ -1209,36 +1333,26 @@ class TrainingSet( object ):
 	#==============================================================
 	@classmethod
 	def NewFromFitFile( cls, pathname ):
-		"""
-		Helper function which reads in a c-chrm fit file, builds a dict with the info
-		Then calls the constructor and passes the dict as an argument
-		"""
+		"""Helper function which reads in a c-chrm fit file, builds a dict with the info
+		Then calls the constructor and passes the dict as an argument."""
 		raise NotImplementedError()
 
 	#==============================================================
 	@classmethod
 	def NewFromSignature( cls, signature, ts_name = "TestSet", ):
-		"""@brief Creates a new TrainingSet from a single signature
-		Was written with performing a real-time classification in mind.
-		"""
-
+		"""@brief Creates a new TrainingSet from a single signature."""
 		raise NotImplementedError()
 
 	#==============================================================
 	@classmethod
 	def NewFromDirectory( cls, top_level_dir_path, feature_set = "large", write_sig_files_todisk = True ):
-		"""
-		@brief A quick and dirty implementation of the wndchrm train command
-		Build up the self.imagenames_list, then pass it off to a sig classifier function
-		"""
+		"""The equivalent of the C++ implementation of the command "wndchrm train" """
 		raise NotImplementedError()
 
 	#==============================================================
 	@classmethod
 	def NewFromFileOfFiles( cls, fof_path, options = None ):
-		"""
-		FIXME: add ability to specify which features are wanted if none have been calculated yet
-		"""
+		"""FIXME: add ability to specify which features are wanted if none have been calculated yet"""
 
 		if not os.path.exists( fof_path ):
 			raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( fof_path ) )
@@ -1250,6 +1364,8 @@ class TrainingSet( object ):
 		new_ts.source_path = fof_path
 
 		classnames_set = set()
+
+		import re
 
 		with open( fof_path ) as fof:
 			for line in fof:
@@ -1281,70 +1397,48 @@ class TrainingSet( object ):
 		if isinstance( new_ts, DiscreteTrainingSet ):
 			new_ts.num_classes = len( new_ts.data_list )
 
-		new_ts.PrintInfo()
+		new_ts.Print()
 		return new_ts
-
-		
+	
 	#==============================================================
 	@classmethod
 	def NewFromSQLiteFile(cls, path):
+		"""Not implemented."""
 		raise NotImplementedError()
 
 	#==============================================================
 	def _ProcessSigCalculationSerially( self, feature_set = "large", write_sig_files_to_disk = True, options = None ):
-		"""
-		Work off the self.imagenames_list
-		"""
+		"""Virtual method."""
 		raise NotImplementedError()
 
 	#==============================================================
 	def _ProcessSigCalculationParallelly( self, feature_set = "large", write_sig_files_todisk = True ):
-		"""
-		FIXME: When we figure out concurrency
-		"""
+		"""Virtual Method."""
 		raise NotImplementedError()
 
 	#==============================================================
 	def Normalize( self, training_set = None ):
-		"""
-		By convention, the range of values are normalized on an interval [0,100]
-		FIXME: edge cases, clipping, etc
-		"""
-
+		"""Virtual Method."""
 		raise NotImplementedError()			
 
 	#==============================================================
 	def FeatureReduce( self, requested_features ):
-		"""
-		Returns a new TrainingSet that contains a subset of the features
-		arg requested_features is a tuple of features
-		the returned TrainingSet will have features in the same order as they appear in
-		     requested_features
-		"""
-
+		"""Virtual method."""
 		raise NotImplementedError()
 
 	#==============================================================
 	def AddSignature( self, signature, class_id_index = None ):
-		"""
-		@argument signature is a valid signature
-		@argument class_id_index identifies the class to which the signature belongs
-		"""
-		
+		"""Virtual method."""
 		raise NotImplementedError()
-
 
 	#==============================================================
 	def ScrambleGroundTruths( self ):
-		"""
-		Produce an instant negative control training set
-		"""
+		"""Virtual method. Produce an instant negative control training set"""
 
 	#==============================================================
 	def Split( self ):
+		"""Virtual method"""
 		raise NotImplementedError()
-
-
 
 # END TrainingSet class definition
 
@@ -1352,8 +1446,14 @@ class TrainingSet( object ):
 # class definition of DiscreteTrainingSet
 #############################################################################
 class DiscreteTrainingSet( TrainingSet ):
-	"""
-  """
+	"""One of two (thus far) concrete classes that inherit from the "TrainingSet" base class.
+
+	The difference in structure between "DiscreteTrainingSet" and "ContinuousTrainingSet"
+	is that the former has the member "data_list", a Python list, in which the image
+	decompositions collected into a list of separate Numpy matrices,
+	one for each discrete class. The latter has the members "data_matix" and ground_truths,
+	which are single Numpy matrix into which all image descriptors are collected,
+	and a list of ground truth values associated with each image, respectively."""
 
 	num_classes = None
 
@@ -1367,9 +1467,7 @@ class DiscreteTrainingSet( TrainingSet ):
 
 	#==============================================================
 	def __init__( self, data_dict = None):
-		"""
-		TrainingSet constructor
-		"""
+		"""constructor"""
 		self.data_list = []
 		
 		super( DiscreteTrainingSet, self ).__init__( data_dict )
@@ -1379,8 +1477,9 @@ class DiscreteTrainingSet( TrainingSet ):
 				self.data_list = data_dict[ 'data_list' ]
 
 	#==============================================================
-	def PrintInfo( self ):
-		super( DiscreteTrainingSet, self ).PrintInfo()
+	def Print( self ):
+		"""Print basic info about this DiscreteTrainingSet"""
+		super( DiscreteTrainingSet, self ).Print()
 		class_index = 0
 		for class_name in self.classnames_list:
 			print '\tClass {0} "{1}": {2} images'.format( \
@@ -1390,10 +1489,11 @@ class DiscreteTrainingSet( TrainingSet ):
 	#==============================================================
 	@classmethod
 	def NewFromFitFile( cls, pathname ):
-		"""
-		Helper function which reads in a c-chrm fit file, builds a dict with the info
-		Then calls the constructor and passes the dict as an argument
-		"""
+		"""Helper function which reads in a c-chrm fit file, builds a dict with the info
+		Then calls the constructor and passes the dict as an argument"""
+
+		from StringIO import StringIO
+		
 		path, filename = os.path.split( pathname )
 		if filename == "":
 			raise ValueError( 'Invalid pathname: {0}'.format( pathname ) )
@@ -1468,6 +1568,7 @@ class DiscreteTrainingSet( TrainingSet ):
 
 		# Can the class names be interpolated?
 		tmp_vals = []
+		import re
 		for class_index in range( num_classes ):
 			m = re.search( r'(\d*\.?\d+)', data_dict[ 'classnames_list' ][class_index] )
 			if m:
@@ -1490,9 +1591,7 @@ class DiscreteTrainingSet( TrainingSet ):
 	#==============================================================
 	@classmethod
 	def NewFromSignature( cls, signature, ts_name = "TestSet", ):
-		"""@brief Creates a new TrainingSet from a single signature
-		Was written with performing a real-time classification in mind.
-		"""
+		"""@brief Creates a new TrainingSet from a single signature"""
 
 		try:
 			signature.is_valid()
@@ -1515,10 +1614,11 @@ class DiscreteTrainingSet( TrainingSet ):
 	#==============================================================
 	@classmethod
 	def NewFromDirectory( cls, top_level_dir_path, feature_set = "large", write_sig_files_todisk = True ):
-		"""
-		@brief A quick and dirty implementation of the wndchrm train command
-		Build up the self.imagenames_list, then pass it off to a sig classifier function
-		"""
+		"""@brief Equivalent to the "wndchrm train" command from the C++ implementation by Shamir.
+		Read the the given directory, parse its structure, and populate the member
+		self.imagenames_list. Then call another function to farm out the calculation of each 
+		image's features to child processes (or at least it will in the future!)"""
+
 		print "Creating Training Set from directories of images {0}".format( top_level_dir_path )
 		if not( os.path.exists( top_level_dir_path ) ):
 			raise ValueError( 'Path "{0}" doesn\'t exist'.format( top_level_dir_path ) )
@@ -1581,9 +1681,8 @@ class DiscreteTrainingSet( TrainingSet ):
 
 	#==============================================================
 	def _ProcessSigCalculationSerially( self, feature_set = "large", write_sig_files_to_disk = True, options = None ):
-		"""
-		Work off the self.imagenames_list
-		"""
+		"""Calculate image descriptors for all the images contained in self.imagenames_list"""
+
 		# FIXME: check to see if any .sig, or .pysig files exist that match our
 		#        Signature calculation criteria, and if so read them in and incorporate them
 
@@ -1609,12 +1708,10 @@ class DiscreteTrainingSet( TrainingSet ):
 
 	#==============================================================
 	def Normalize( self, training_set = None, quiet = False ):
-		"""
-		By convention, the range of values are normalized on an interval [0,100].
+		"""By convention, the range of values are normalized on an interval [0,100].
 		Normalizing is useful in making the variation of features human readable
 		and also lets us know which features to exclude from consideration
-		in classification because they don't vary at all.
-		"""
+		in classification because they don't vary at all."""
 
 		if self.normalized_against and training_set:
 			# I've already been normalized, and you want to normalize me again?
@@ -1672,12 +1769,11 @@ class DiscreteTrainingSet( TrainingSet ):
 
 	#==============================================================
 	def FeatureReduce( self, requested_features ):
-		"""
-		Returns a new TrainingSet that contains a subset of the features
-		arg requested_features is a tuple of features
-		the returned TrainingSet will have features in the same order as they appear in
-		     requested_features
-		"""
+		"""Returns a new TrainingSet that contains a subset of the features
+		arg requested_features is a tuple of features.
+		The returned TrainingSet will have features in the same order as they appear in
+		requested_features"""
+
 		# FIXME: Roll this function into parent class!!!!!!!!!
 
 		# Check that self's faturelist contains all the features in requested_features
@@ -1735,11 +1831,9 @@ class DiscreteTrainingSet( TrainingSet ):
 
 	#==============================================================
 	def AddSignature( self, signature, class_id_index ):
-		"""
-		@argument signature is a valid signature
+		"""@argument signature is a valid signature
 		@argument class_id_index identifies the class to which the signature belongs
-		          class_id_index is zero-indexed
-		"""
+		          class_id_index is zero-indexed"""
 
 		if None == class_id_index:
 			raise ValueError( 'Must specify either a class_index' )
@@ -1779,12 +1873,9 @@ class DiscreteTrainingSet( TrainingSet ):
 
 	#==============================================================
 	def ScrambleGroundTruths( self, fine_grained_scramble = True ):
-		"""
-		Produce an instant negative control training set
-		"""
+		"""Produce an instant negative control training set"""
 
 		import random
-		import itertools
 
 		new_ts = self.__class__()
 		new_ts.data_list = [ None ] * self.num_classes
@@ -1842,7 +1933,11 @@ class DiscreteTrainingSet( TrainingSet ):
 	#==============================================================
 	def Split( self, randomize = True, balanced_classes = False, training_set_fraction = 0.75,\
 	           i = None, j = None, training_set_only = False, quiet = False ):
+		"""Used for dividing the current TrainingSet into two subsets used for classifier
+		cross-validation (i.e., training set and test set).
 		
+		Number of images in training and test sets are allocated by i and j, respectively
+		Otherwise they are given by training_set fraction."""
 
 		if training_set_fraction <= 0 or training_set_fraction >= 1:
 			raise ValueError( "Training set fraction must be a number between 0 and 1" )
@@ -1930,8 +2025,14 @@ class DiscreteTrainingSet( TrainingSet ):
 # class definition of ContinuousTrainingSet
 #############################################################################
 class ContinuousTrainingSet( TrainingSet ):
-	"""
-  """
+	"""One of two (thus far) concrete classes that inherit from the "TrainingSet" base class.
+
+	The difference in structure between "DiscreteTrainingSet" and "ContinuousTrainingSet"
+	is that the former has the member "data_list", a Python list, in which the image
+	decompositions collected into a list of separate Numpy matrices,
+	one for each discrete class. The latter has the members "data_matix" and ground_truths,
+	which are single Numpy matrix into which all image descriptors are collected,
+	and a list of ground truth values associated with each image, respectively."""
 
 	#: A single numpy matrix N features x M images
 	data_matrix = None
@@ -1940,9 +2041,7 @@ class ContinuousTrainingSet( TrainingSet ):
 	ground_truths = None
 
 	def __init__( self, data_dict = None):
-		"""
-		ContinuousTrainingSet constructor
-		"""
+
 		# call parent constructor
 		self.ground_truths = []
 
@@ -1955,14 +2054,16 @@ class ContinuousTrainingSet( TrainingSet ):
 				self.ground_truths = data_dict[ 'ground_truths' ]
 
 	#==============================================================
-	def PrintInfo( self ):
-		super( ContinuousTrainingSet, self ).PrintInfo()
+	def Print( self ):
+		"""Calls parent class method"""
+		super( ContinuousTrainingSet, self ).Print()
 
 	#==============================================================
 	@classmethod
 	def NewFromFitFile( cls, pathname ):
-		"""
-		"""
+		"""Construct a ContinuousTrainingSet from a ".fit" training set file created by 
+		the C++ implentation of WND-CHARM."""
+
 		path, filename = os.path.split( pathname )
 		if filename == "":
 			raise ValueError( 'Invalid pathname: {0}'.format( pathname ) )
@@ -1985,6 +2086,8 @@ class ContinuousTrainingSet( TrainingSet ):
 			image_pathname = ""
 			num_classes = 0
 			num_features = 0
+
+			import re
 
 			for line in fitfile:
 				if line_num is 0:
@@ -2025,15 +2128,18 @@ class ContinuousTrainingSet( TrainingSet ):
 
 		string_data = "\n"
 		print "parsing text into a numpy matrix"
+
+		from StringIO import StringIO
 		new_ts.data_matrix = np.genfromtxt( StringIO( string_data.join( tmp_string_data_list ) ) )
 		
 		return new_ts
 
 	#==============================================================
 	def _ProcessSigCalculationSerially( self, feature_set = "large", write_sig_files_to_disk = True, options = None ):
-		"""
-		Work off the self.imagenames_list
-		"""
+		"""Begin calculation of image features for the images listed in self.imagenames_list,
+		but do not use parallel computing/ create child processes to do so.
+		
+		This function is to be deprecated ASAP in favor of parallel feature calculation"""
 		# FIXME: check to see if any .sig, or .pysig files exist that match our
 		#        Signature calculation criteria, and if so read them in and incorporate them
 
@@ -2059,12 +2165,10 @@ class ContinuousTrainingSet( TrainingSet ):
 			
 	#==============================================================
 	def Normalize( self, training_set = None, quiet = False ):
-		"""
-		By convention, the range of values are normalized on an interval [0,100].
+		"""By convention, the range of values are normalized on an interval [0,100].
 		Normalizing is useful in making the variation of features human readable
 		and also lets us know which features to exclude from consideration
-		in classification because they don't vary at all.
-		"""
+		in classification because they don't vary at all."""
 
 		if self.normalized_against:
 			# I've already been normalized, and you want to normalize me again?
@@ -2119,15 +2223,13 @@ class ContinuousTrainingSet( TrainingSet ):
 
 	#==============================================================
 	def FeatureReduce( self, requested_features ):
-		"""
-		Returns a new TrainingSet that contains a subset of the features
+		"""Returns a new TrainingSet that contains a subset of the features
 		arg requested_features is a tuple of features
 		the returned TrainingSet will have features in the same order as they appear in
-		     requested_features
-		"""
+		     requested_features"""
+
 		# FIXME: Roll this function into parent class
 		# Check that self's faturelist contains all the features in requested_features
-
 
 		selfs_features = set( self.featurenames_list )
 		their_features = set( requested_features )
@@ -2181,10 +2283,8 @@ class ContinuousTrainingSet( TrainingSet ):
 
 	#==============================================================
 	def AddSignature( self, signature, ground_truth = None ):
-		"""
-		@argument signature is a valid signature
-		@argument class_id_index identifies the class to which the signature belongs
-		"""
+		"""@argument signature is a valid signature
+		@argument class_id_index identifies the class to which the signature belongs"""
 		
 		if (self.data_matrix == None) or ( len( self.data_matrix ) == 0 ) :
 			self.data_matrix = np.array( signature.values )
@@ -2204,9 +2304,7 @@ class ContinuousTrainingSet( TrainingSet ):
 
 	#==============================================================
 	def ScrambleGroundTruths( self ):
-		"""
-		Produce an instant negative control training set
-		"""
+		"""Produce an instant negative control training set"""
 
 		import random
 		random.shuffle( self.ground_truths )
@@ -2215,7 +2313,10 @@ class ContinuousTrainingSet( TrainingSet ):
 	#==============================================================
 	def Split( self, randomize = True, training_set_fraction = 0.75,\
 	           i = None, j = None, training_set_only = False, quiet = False ):
-		"""Number of images in training and test sets are allocated by i and j, respectively
+		"""Used for dividing the current TrainingSet into two subsets used for classifier
+		cross-validation (i.e., training set and test set).
+		
+		Number of images in training and test sets are allocated by i and j, respectively
 		Otherwise they are given by training_set fraction.
 		"""
 
@@ -2332,21 +2433,26 @@ class ContinuousTrainingSet( TrainingSet ):
 
 #=================================================================================
 class ClassificationResult( object ):
-	"""All Result classes inherit from this base"""
+	"""Interface class which all Result classes inherit"""
 
 	def GenerateStats( self ):
+		"""Virtual method"""
 		raise NotImplementedError
 	
 	@output_railroad_switch
 	def Print( self ):
+		"""Virtual method"""
 		raise NotImplementedError
 
 	def GenerateHTML( self ):
+		"""Virtual method"""
 		raise NotImplementedError
 
 
 #=================================================================================
 class ImageClassificationResult( ClassificationResult ):
+	"""Abstract base class that is meant to contain the information from a single
+	classification of a single image/ROI."""
 
 	name = None
 	source_file = None
@@ -2354,7 +2460,7 @@ class ImageClassificationResult( ClassificationResult ):
 	predicted_value = None
 	batch_number = None
 
-	#: For the future:
+	#: For the future: a member to indicate the position of the ROI within an image
 	kernel_location = None
 
 	@output_railroad_switch
@@ -2363,6 +2469,8 @@ class ImageClassificationResult( ClassificationResult ):
 
 #=================================================================================
 class DiscreteImageClassificationResult( ImageClassificationResult ):
+	"""Concrete class that contains the result of a classification for a single image/ROI.
+	which includes predicted class, marginal probabilities, etc."""
 
 	normalization_factor = None
 	marginal_probabilities = None
@@ -2377,8 +2485,9 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 	#==============================================================
 	@output_railroad_switch
 	def Print( self, line_item = False ):
-		"""
-		"""
+		"""Output classification line item data, including predicted class and marginal
+		probabilities"""
+		
 		if line_item:
 			# img name:
 			output_str = self.source_file
@@ -2477,11 +2586,8 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 	#=================================================================================
 	@classmethod
 	def NewWND5( cls, training_set, feature_weights, test_sig, quiet = False ):
-		"""
-		@brief: A wrapper function for _ClassifyOneImageWND5 that does dummyproofing
-		@return: classification result
-		@returntype: ImageClassificationResult()
-		"""
+		"""@brief: A wrapper function for _ClassifyOneImageWND5 that does dummyproofing
+		@return: An instance of a DiscreteBatchClassificationResult"""
 
 		if not isinstance( training_set, DiscreteTrainingSet ):
 			raise ValueError( 'First argument to NewWND5 must be of type "DiscreteTrainingSet", you gave a {0}'.format( type( training_set ).__name__ ) )
@@ -2531,12 +2637,15 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 
 #=================================================================================
 class ContinuousImageClassificationResult( ImageClassificationResult ):
+	"""Concrete class that contains the result of a classification for a single image/ROI.
+	The primary result is a predicted value for the given image based on the regression
+	parameters obtained when generating a continuous classifier."""
 
 	#==============================================================
 	@output_railroad_switch
 	def Print( self, line_item = False ):
-		"""
-		"""
+		"""Output results."""
+
 		if line_item:
 			# img name:
 			output_str = self.source_file
@@ -2557,10 +2666,11 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 	#==============================================================
 	@classmethod
 	def _LinearRegression( cls, one_image_features, feature_weights ):
-		"""
-		Don't call this function directly, use the wrapper function
-		ContinuousBatchClassificationResult.New( ... ) which has dummyproofing.
-		"""
+		"""Produce a predicted value for a single image based on the regression parameters
+		contained in the ContinuousFeatureWeights argument "feature_weights".
+		
+		Don't call this function directly, but instead use the member function
+		New() on the ContinuousBatchClassificationResult class which has dummyproofing."""
 
 		per_feature_predicted_vals = []
 
@@ -2582,7 +2692,12 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 
 #=================================================================================
 class BatchClassificationResult( ClassificationResult ):
-	"""A container object for individual ImageClassificationResult instances"""
+	"""An abstract base class which serves as container for individual 
+	ImageClassificationResult instances.
+	
+	The equivalent concept to a BatchClassificationResult in the C++ implementation
+	of WND-CHARM is the split, i.e., command line arg of -n10 would generate 10 
+	train/test splits."""
 
 	name = None
 	training_set = None
@@ -2608,6 +2723,8 @@ class BatchClassificationResult( ClassificationResult ):
 
 	#==============================================================
 	def __init__( self, training_set = None, test_set = None, feature_weights = None ):
+		"""BatchClassificationResult constructor"""
+
 		self.training_set = training_set
 		self.test_set = test_set
 		self.feature_weights = feature_weights
@@ -2618,14 +2735,21 @@ class BatchClassificationResult( ClassificationResult ):
 
 	#==============================================================
 	def GenerateStats( self ):
-		#FIXME: how to calculate p-value???
+		"""Base method that's called by daughter classes.
+		
+		If this BatchClassificationResult contains ImageClassificationResults that
+		has known ground truth as well as predicted values, this method will calculate
+		statistics describing how well predicted values correlate with ground truth.
+
+		Requires scipy.stats package to be installed"""
+		#FIXME: Calculate p-value of our standard error figure of merit.
 
 		if len( self.individual_results ) == 0:
 			raise ValueError( 'No individual results in this batch with which to generate statistics.' )
 
 		self.num_classifications = len( self.individual_results )
 
-		if self.ground_truth_values is not None and \
+		if self.ground_truth_values and self.predicted_values and \
 		        len( self.ground_truth_values ) == len( self.predicted_values ):
 
 			gt = np.array( self.ground_truth_values )
@@ -2647,6 +2771,9 @@ class BatchClassificationResult( ClassificationResult ):
 
 	#==============================================================
 	def RankOrderSort( self ):
+		"""Rank-order sorts ground truth/predicted value data points for purposes of 
+		being graphed."""
+
 		value_pairs = zip( self.ground_truth_values, self.predicted_values )
 
 		# sort by ground_truth value first, predicted value second
@@ -2659,16 +2786,20 @@ class BatchClassificationResult( ClassificationResult ):
 			[ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_pairs ) ]	
 
 	#==============================================================
-	# FIXME: Implement these!
 	def PickleMe( self ):
+		"""Not Implemented"""
 		raise NotImplementedError
 	def NewFromPickleFile( self ):
+		"""Not Implemented"""
 		raise NotImplementedError
 
 
 #=================================================================================
 class DiscreteBatchClassificationResult( BatchClassificationResult ):
-	"""@brief This class's "figure_of_merit" is classification accuracy"""
+	"""Concrete class that is a container for DiscreteImageClassificationResult instances.
+	Use this class to run classification experiments and to generate statistics on their results.
+	For discrete (Fisher) classifiers, the figure_of_merit is classification accuracy."""
+
 	num_correct_classifications = None
 	classification_accuracy = None
 	
@@ -2681,14 +2812,15 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 	#==============================================================
 	def __init__( self, training_set = None, test_set = None, feature_weights = None ):
-		# call parent constructor
+		"""Simply calls parent constructor."""
 		super( DiscreteBatchClassificationResult, self ).__init__( training_set, test_set, feature_weights)
 
 	#==============================================================
 	def GenerateStats( self ):
-		"""fill out the confusion matrix, similarity matrix, and class probability matrix"""
+		"""Fills out the confusion matrix, similarity matrix, and class probability matrix."""
 
 		# Run a standard error analysis if ground_truth/predicted vals exist (call base method ):
+		# This also sets self.num_classifications
 		super( DiscreteBatchClassificationResult, self ).GenerateStats()
 
 		num_classes = self.training_set.num_classes
@@ -2722,8 +2854,6 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		self.num_correct_classifications_per_class = defaultdict( int )
 
 		for indiv_result in self.individual_results:
-			self.num_classifications += 1
-
 			self.num_classifications_per_class[ indiv_result.ground_truth_class_name ] += 1
 
 			if indiv_result.ground_truth_class_name == indiv_result.predicted_class_name:
@@ -2766,6 +2896,10 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 	#==============================================================
 	@output_railroad_switch
 	def Print( self ):
+		"""Prints out statistics from this batch's image classifications, which include 
+		classification accuracy, confusion matrix, similarity matrix, and average class 
+		probability matrix."""
+
 		if self.classification_accuracy == None:
 			self.GenerateStats()
 
@@ -2819,7 +2953,10 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 	#==============================================================
 	@output_railroad_switch
 	def PrintDistanceMatrix( self, method = 'mps' ):
-		"""methods can be {'max', 'mean', 'top', 'bottom', 'mps'}
+		"""Generate a distance matrix indicating similarity of image classes to one another.
+		The output can be fed into the PHYLIP or other program to create a dendrogram.
+
+		Methods can be {'max', 'mean', 'top', 'bottom', 'mps'}.
 		
 		To generate a distance matrix using marginal probability space ('mps'), it is legal for
 		the test set and training set to have a different number of classes, since the coefficients
@@ -2881,23 +3018,28 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 				raise ValueError( "Distance matrix method {0} not recognized. Valid options are ".format(\
 													method ) + "'max', 'mean', 'top', 'bottom', 'mps'" )
 
-		column_headers = "\t".join( self.test_set.classnames_list )
-		column_headers += "\n"
-		column_headers += "\t".join( [ '-'*len(name) for name in self.test_set.classnames_list ] )
-		print "Distance Matrix (method = '{0}'):".format( method )
-		print column_headers
+		#column_headers = "\t".join( self.test_set.classnames_list )
+		#column_headers += "\n"
+		#column_headers += "\t".join( [ '-'*len(name) for name in self.test_set.classnames_list ] )
+		#print "Distance Matrix (method = '{0}'):".format( method )
+		#print column_headers
+		print self.test_set.num_classes
 		for row in range( self.test_set.num_classes ):
-			line = ""
+			line = "{0}\t".format( self.test_set.classnames_list[ row ] )
 			for col in range( self.test_set.num_classes ):
 				line += '{0:0.4f}\t'.format( output_matrix[ row, col ] )
 			print line
-		print ""
+		#print ""
 
 
 	#==============================================================
 	@classmethod
 	def New( cls, training_set, test_set, feature_weights, batch_number = None, batch_name = None, quiet = False):
-		"""
+		"""The equivalent of the "wndcharm classify" command in the command line implementation
+		of WND-CHARM. Input a training set, a test set, and feature weights, and returns a
+		new instance of a DiscreteBatchClassificationResult, with self.individual_results
+		filled with a new instances of DiscreteImageClassificationResult.
+
 		FIXME: What happens when the ground truth is not known? Currently they would all be shoved
 					 into class 1, might not be a big deal since class name should be something
 					 like "UNKNOWN"
@@ -2975,21 +3117,27 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 #=================================================================================
 class ContinuousBatchClassificationResult( BatchClassificationResult ):
-	"""@brief This class's "figure_of_merit" is the standard error betw predicted and ground truth"""
+	"""Concrete class that is a container for ContinuousImageClassificationResult instances.
+	Use this class to run classification experiments and to generate statistics on their results.
+	For continuous (Pearson) classifiers, the figure_of_merit is the standard error between
+	predicted and ground truth."""
 
 	def __init__( self, training_set, test_set, feature_weights ):
-		# call parent constructor
+		"""constructor"""
 		super( ContinuousBatchClassificationResult, self ).__init__( training_set, test_set, feature_weights )
 		self.predicted_values = []
 
 	#=====================================================================
 	def GenerateStats( self ):
-		# Run a standard error analysis if ground_truth/predicted vals exist (call base method):
+		"""Calls base class method to run a standard error analysis if ground_truth/
+		predicted vals exist."""
 		super( ContinuousBatchClassificationResult, self ).GenerateStats()
 
 	#=====================================================================
 	@output_railroad_switch
 	def Print( self ):
+		"""Calculates and outputs batch-level statistics based on the
+		ContinuousImageClassificationResults contained in self.individualresults."""
 		if self.figure_of_merit == None:
 			self.GenerateStats()
 
@@ -3004,14 +3152,14 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 	#=====================================================================
 	@classmethod
 	def New( cls, test_set, feature_weights, quiet = False, batch_number = None, batch_name = None):
-		"""
-		"""
+		"""The equivalent of "wndchrm classify -C" in the command line implenentation of
+		WND-CHARM. """
 
 		# type checking
 		if not isinstance( test_set, ContinuousTrainingSet ):
 			raise ValueError( 'First argument to New must be of type "ContinuousTrainingSet", you gave a {0}'.format( type( test_set ).__name__ ) )	
-		if not isinstance( feature_weights, FeatureWeights ):
-			raise ValueError( 'Second argument to New must be of type "FeatureWeights" or derived class, you gave a {0}'.format( type( feature_weights ).__name__ ) )
+		if not isinstance( feature_weights, ContinuousFeatureWeights ):
+			raise ValueError( 'Second argument to New must be of type "ContinuousFeatureWeights", you gave a {0}'.format( type( feature_weights ).__name__ ) )
 
 		# feature comparison
 		if test_set.featurenames_list != feature_weights.names:
@@ -3055,23 +3203,41 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 
 #============================================================================
 class ClassificationExperimentResult( BatchClassificationResult ):
-	"""A container object for BatchClassificationResults and their associated statistics
-
-	N.B. Here, the list self.individual_results that is inherited from
-	BatchClassificationResult is of type BatchClassificationResult, not of
-	ImageClassificationResult
-	"""
+	"""Abstract base class which serves as a container for BatchClassificationResult instances
+	and their associated statistics.
+	
+	N.B. This is a container for batches, not for individual results, i.e.,
+	the list self.individual_results contains instances of type BatchClassificationResult."""
 
 	#: A dictionary where the name is the key, and the value is a list of individual results
 	accumulated_individual_results = None
 
 	#: keep track of stats related to predicted values for reporting purposes
 	individual_stats = None
+	#=====================================================================
+	def GenerateStats( self ):
+		"""Not yet implemented.
+		
+		Considerations for future implementation.
+		1. The test set may or may not have ground truth (discrete and continuous)
+		2. The results may not have a predicted value (discrete only)
+		3. Continuous classifications do not have marginal probabilities
+		4. Hybrid test sets (discrete test sets loaded into a continuous test set)
+		   have "pseudo-classes," i.e., easily binnable ground truth values."""
+
+		#Step 1: aggregate all results across splits for individual images
+		raise NotImplementedError
+
 
 	#=====================================================================
 	@output_railroad_switch
 	def PredictedValueAnalysis( self ):
-		"""This only works if the ImageClassificationResults contain predicted/interpolated values"""
+		"""For use in only those classification experiments where predicted values are generated
+		as part of the classification.
+		
+		This function is meant to elucidate the amount of variability of classifications 
+		across batches. ImageClassificationResult imformation is aggregated for each individual
+		image/ROI encountered, and statistics are generated for each image/ROI and printed out."""
 
 		if self.individual_results == 0:
 			raise ValueError( 'No batch results to analyze' )
@@ -3103,7 +3269,7 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 		outstr = "\t---> Tested {0} times, low {1:0.3f}, mean {2:0.3f}, high {3:0.3f}, std dev {4:0.3f}"
 
 		#create view
-		res_dict =  self.accumulated_individual_results
+		res_dict = self.accumulated_individual_results
 
 		# sort by ground truth, then alphanum
 		sort_func = lambda A, B: cmp( A, B ) if res_dict[A][0].ground_truth_value == res_dict[B][0].ground_truth_value else cmp( res_dict[A][0].ground_truth_value, res_dict[B][0].ground_truth_value  ) 
@@ -3134,11 +3300,14 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 	#=====================================================================
 	@output_railroad_switch
 	def WeightsOptimizationAnalysis( self ):
-		"""input myself, with a bunch of batch_results in tow,
-		    each with different feature weights
+		"""For use in only those classification experiments where predicted values are generated
+		as part of the classification.
+		
+		This function is used when the user has varied the number/composition of image features
+		in each of the batches and wants to figure out which classifier results in the best
+		figure of merit. This function evaluates which of the batches was created using
+		the optimal classifier configuration and outputs that."""
 
-				Note: this works only for experiments with ground truth values!!!
-		"""
 		print "Calculating optimized continuous classifier for training set {0}".\
 				format( self.training_set.source_path )
 
@@ -3187,9 +3356,11 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 
 #============================================================================
 class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
-	"""A container object for BatchClassificationResults and their associated statistics
+	"""Concrete class which serves as a container for DiscreteBatchClassificationResults
+	and their associated statistics. The information contained here comprises everything
+	that would appear in a HTML file generated by the C++ implementation of WND-CHARM.
 
-	In this subclass, the figure of merit is classification accuracy"""
+	In this subclass, the figure of merit is self.classification_accuracy"""
 
 	num_correct_classifications = None
 
@@ -3199,6 +3370,8 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 
 	#=====================================================================
 	def GenerateStats( self ):
+		"""Not fully implemented yet. Need to implement generation of confusion, similarity, and
+		average class probability matrices from constituent batches."""
 
 		self.num_correct_classifications = 0
 		for batch_result in self.individual_results:
@@ -3215,6 +3388,9 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 	#=====================================================================
 	@output_railroad_switch
 	def Print( self ):
+		"""Generate and output statistics across all batches, as well as the figures of merit
+		for each individual batch."""
+		
 		if self.figure_of_merit == None:
 			self.GenerateStats()
 
@@ -3239,9 +3415,11 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 
 #============================================================================
 class ContinuousClassificationExperimentResult( ClassificationExperimentResult ):
-	"""A container object for BatchClassificationResults and their associated statistics
+	"""Concrete class which serves as a container for ContinuousBatchClassificationResult instances
+	and their associated statistics. The information contained here comprises everything
+	that would appear in a HTML file generated by the C++ implementation of WND-CHARM.
 
-	In this subclass, the figure of merit is the average standard error arcoss batches"""
+	In this subclass, the figure of merit is the average standard error arcoss batches."""
 
 	def __init__( self, name = None ):
 		self.name = name
@@ -3249,6 +3427,10 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 
 	#=====================================================================
 	def GenerateStats( self ):
+		"""Calculates statistics describing how well predicted values
+		correlate with ground truth across all batches.
+
+		Requires scipy.stats package to be installed"""
 
 		from itertools import chain
 
@@ -3286,6 +3468,7 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 	#=====================================================================
 	@output_railroad_switch
 	def Print( self ):
+		"""Output statistics from this experiment."""
 		if self.figure_of_merit == None:
 			self.GenerateStats()
 
@@ -3301,6 +3484,9 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 
 #============================================================================
 class BaseGraph( object ):
+	"""An abstract base class that is supposed to hold onto objects on which to call
+	matplotlib.pyplot API methods."""
+
 	# general stuff:
 	chart_title = None
 	file_name = None
@@ -3319,7 +3505,9 @@ class BaseGraph( object ):
 			
 #============================================================================
 class PredictedValuesGraph( BaseGraph ):
-
+	"""This is a concrete class that can produce two types of graphs that are produced
+	from ImageClassificationResult data stored in a BatchClassificationResult."""
+	
 	# members concerned with class-dependent figures 
 	grouped_coords = None
 	num_classes = None
@@ -3328,6 +3516,8 @@ class PredictedValuesGraph( BaseGraph ):
 
 	#=================================================================
 	def __init__( self, result ):
+		"""Constructor sorts ground truth values contained in BatchClassificationResult
+		and loads them into self.grouped_coords"""
 
 		self.batch_result = result
 		self.grouped_coords = {}
@@ -3350,10 +3540,17 @@ class PredictedValuesGraph( BaseGraph ):
 
 	#=====================================================================
 	def SaveToFile( self, filepath ):
+		"""Calls base class function"""
 		super( PredictedValuesGraph, self ).SaveToFile( filepath )
 
 	#=====================================================================
 	def RankOrderedPredictedValuesGraph( self, chart_title = None ):
+		"""This graph visualizes the distribution of predicted values generated by classification.
+		For each individual ImageClassificationResult with ground truth value (i.e., class id) and
+		predicted value, all results are grouped within their class, sorted by predicted value
+		in ascending order, then ploted side-by-side.
+		
+		Required the package matplotlib to be installed."""
 
 		from matplotlib import pyplot
 
@@ -3381,7 +3578,12 @@ class PredictedValuesGraph( BaseGraph ):
 		
 	#=====================================================================
 	def KernelSmoothedDensityGraph( self, chart_title = None ):
-		"""Uses scipy.stats.gaussian_kde """
+		"""This graph visualizes the distribution of predicted values generated by classification.
+		A kernel-smoothed probability density function is plotted for each image class on
+		the same chart allowing comparison of distribution of predicted values amoung image class.
+		
+		Requires the packages matplotlib and scipy. Uses scipy.stats.gaussian_kde to
+		generate kernel-smoothed probability density functions."""
 
 		from matplotlib import pyplot
 
@@ -3475,37 +3677,11 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 
 #============================================================================
 class Dendrogram( object ):
-	"""Uses scipy.cluster"""
+	"""Not implemented. In the future might use scipy.cluster (no unrooted dendrograms though!)
+	or Biopython.Phylo to visualize. Perhaps could continue c++ implementation's use of PHYLIP's
+	Fitch-Margoliash program "fitch" to generate Newick phylogeny, and visualize using
+	native python tools."""
 	pass
-
-
-# Pychrm roadmap:
-# Confirmation/validation/ biology experiments
-# Use scipy.optimize.curve_fit (http://www.scipy.org/Cookbook/FittingData)
-# Implement dendrogram using scipy.cluster/Biopython
-# Wha's up with continuous averages averaging to sum N
-# Classify images against multiple classifiers, e.g., filter for confluence, then classify.
-# Break out classes into their own modules
-# (low) Establish and implement is_valid() criteria for all objects
-# Flush out docstrings
-# API documentation generation using pydoc
-# Further documentation, getting started, tutorials, examples
-# Use some model-building module to map out object model (Pylint/Pyreverse)
-# Migrate over to using the unittest module, and check in unit test related files 
-# Implement the multiprocessing
-# Implement kernel classifier
-# Implement database hookup
-# OMERO integration
-# Implement Channels.
-# DO NOT DO: high speed c++ implementation of wndchrm train -l, let multiprocessing do it
-# implementation of Chebyshev coefficients, which is the slowest algorithm
-# Feature family analysis. how to get highest accuracy using least amount of feature groups:
-#    generate time to calculate numbers for feature families,
-#    and how they're a function of image dimension
-# Leave one out
-# Wndchrm backend c++ cleanup - potential use of ctypes to facilitate shared memory, construction of new sharable ImageMatrices
-# Change to import packages (both internal & external on demand rather than all at once at the top
-
 
 
 #============================================================================
@@ -3755,7 +3931,7 @@ def UnitTest10():
 	#full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/eckley_state_classifier/FOFSimpleState.fit" )
 	#full_ts = DiscreteTrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof.fit.pickled" )
 	full_ts = DiscreteTrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof" )
-	full_ts.PrintInfo()
+	full_ts.Print()
 	#full_ts.Normalize()
 
 	experiment = DiscreteClassificationExperimentResult( training_set = full_ts )
@@ -3841,15 +4017,16 @@ def UnitTest11():
 	full_training_set.Normalize()
 	full_feature_weights = FisherFeatureWeights.NewFromTrainingSet( full_training_set )
 
-	full_test_set = DiscreteTrainingSet.NewFromFitFile(  "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
-	full_test_set.Normalize()
+	#full_test_set = DiscreteTrainingSet.NewFromFitFile(  "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
+	#full_test_set.Normalize()
+	full_test_set = full_training_set
 
 	experiment = DiscreteClassificationExperimentResult( training_set = full_training_set,\
 	                                             test_set = full_test_set, \
 	                                             feature_weights = full_feature_weights )
 
-	max_num_features = 750
-	num_graphs = 20
+	max_num_features = 1000
+	num_graphs = 50
 	feature_numbers = set() 
 
 	# sample a wide variety of numbers of features
@@ -3872,23 +4049,23 @@ def UnitTest11():
 		batch_result.Print()
 
 		
-		grapher = PredictedValuesGraph( batch_result )
+		#grapher = PredictedValuesGraph( batch_result )
 
-		chart_title = "FacingL7class against FOF ({0} features)".format( num_features_used )
-		base_file_name = "_FOF_on_Facing_{0:03d}_features".format( num_features_used )
+		#chart_title = "FacingL7class against FOF ({0} features)".format( num_features_used )
+		#base_file_name = "_FOF_on_Facing_{0:03d}_features".format( num_features_used )
 
-		grapher.RankOrderedPredictedValuesGraph( chart_title )
-		grapher.SaveToFile( "RANK_ORDERED" + base_file_name )
+		#grapher.RankOrderedPredictedValuesGraph( chart_title )
+		#grapher.SaveToFile( "RANK_ORDERED" + base_file_name )
 
-		grapher.KernelSmoothedDensityGraph( chart_title )
-		grapher.SaveToFile( "KS_DENSITY" + base_file_name )
+		#grapher.KernelSmoothedDensityGraph( chart_title )
+		#grapher.SaveToFile( "KS_DENSITY" + base_file_name )
 
 		experiment.individual_results.append( batch_result )
 		i += 1
 	
-	experiment.Print()
-	experiment.PredictedValueAnalysis()
-	experiment.WeightsOptimizationAnalysis()
+	experiment.Print( output_filepath = "/Users/chris/projects/eckley_state_classifier/1000_features_sampled_50_times.txt")
+	experiment.WeightsOptimizationAnalysis( output_filepath = "/Users/chris/projects/eckley_state_classifier/1000_features_sampled_50_times.txt", mode = 'a')
+	experiment.PredictedValueAnalysis(  output_filepath = "/Users/chris/projects/eckley_state_classifier/1000_features_sampled_50_times.txt", mode = 'a')
 
 	
 #================================================================
@@ -3907,6 +4084,6 @@ if __name__=="__main__":
 	#UnitTest7()
 	#UnitTest8()
 	#UnitTest9()
-	UnitTest10()
-	#UnitTest11()
+	#UnitTest10()
+	UnitTest11()
 	# pass
