@@ -20,56 +20,8 @@ except:
 # We'll be using numpy to work with image masks
 import numpy as np
 
-class SampleImageTiles (object):
-	def __init__( self, image_in, x, y, is_fixed = False):
-		if isinstance (image_in, str):
-			if not os.path.exists( image_in ):
-				raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( image_in ) )
-			self.image = pychrm.ImageMatrix()
-			if 1 != self.image.OpenImage( image_in, 0, None, 0, 0 ):
-				raise ValueError( 'Could not build an ImageMatrix from {0}, check the file.'.format( image_in ) )
-		elif isinstance (image_in, pychrm.ImageMatrix):
-			self.image = image_in
-		else:
-			raise ValueError("image parameter 'image_in' is not a string or a pychrm.ImageMatrix")
-
-		if (is_fixed):
-			self.tile_width = x
-			self.tile_height = y
-			self.tiles_x = int (self.image.width / x)
-			self.tiles_y = int (self.image.height / y)
-		else:
-			self.tile_width = int (self.image.width / x)
-			self.tile_height = int (self.image.height / y)
-			self.tiles_x = x
-			self.tiles_y = y
-
-		self.samples = self.tiles_x * self.tiles_y
-
-	def sample(self):
-		width = self.tile_width
-		height = self.tile_height
-		max_x = self.image.width
-		max_y = self.image.height
-		original = self.image
-		current_y = 0
-		self.current_y = current_y
-		while current_y + height <= max_y:
-			current_x = 0
-			self.current_x = current_x
-			while current_x + width <= max_x:
-				yield pychrm.ImageMatrix (original, current_x, current_y, current_x+width-1, current_y+height-1,0,0)
-				current_x = current_x + width
-				self.current_x = current_x
-			current_y = current_y + height
-			self.current_y = current_y
-
-
-
-
-# Pull the input image's filename from the command line
-
-if ( len(sys.argv) < 3 ):
+# We're doing manual parameter processing, which is probably not a great idea...
+if ( len(sys.argv) < 4 ):
 	print "Generate mask images by running a classifier over an input image."
 	print "Specify a classifier (.fit file and number of features or pickled features and weights),"
 	print "the size of the window to scan, and an input tiff file"
@@ -78,8 +30,6 @@ if ( len(sys.argv) < 3 ):
 	print "Usage:"
 	print "\t"+sys.argv[0]+" (classifier.fit [num features] | train_features.pickled feature_weights.pickled) size_xXsize_y input.tif"
 	sys.exit(0)
-input_filename = sys.argv[1]
-next_arg=2
 
 from_scratch = False
 pickled_features = None
@@ -87,6 +37,8 @@ pickled_weights = None
 num_features = 200
 
 # Get the classifier parameter(s)
+input_filename = sys.argv[1]
+next_arg=2
 if ( input_filename.endswith (".fit") ):
 	from_scratch = True
 	if ( len (sys.argv) > 2 and sys.argv[next_arg].isdigit() ):
@@ -173,7 +125,6 @@ else:
 
 
 # create the tile image iterator
-# we need the number of samples (tiles) to create the tiff masks
 image_iter = SampleImageTiles (input_image, scan_x, scan_y, True)
 print "Number of samples = "+str (image_iter.samples)
 
@@ -184,9 +135,7 @@ for i in range( reduced_training_set.num_classes ):
 
 
 # iterate over the image, classifying each tile
-count = 1
 for sample in image_iter.sample():
-	count = count + 1
 	test_image_signatures = Signatures.NewFromFeatureNameList( sample, reduced_fisher_weights.names )
 	test_image_signatures.Normalize( reduced_training_set )
 	result = DiscreteImageClassificationResult.NewWND5( reduced_training_set, reduced_fisher_weights, test_image_signatures )
@@ -199,8 +148,7 @@ for sample in image_iter.sample():
 			i, image_iter.current_x, image_iter.current_y, reduced_training_set.classnames_list[i], mask_val)
 
 # 
-# Create tiff file names and numpys for image masks - one per class
-# masks is a list of touples, each containing the path and a zero'd out, image-sized, 2-D byte numpy
+# Create tiff files from the numpys
 mask_dir = os.path.abspath(os.path.dirname(input_filename))
 print "mask tiff files will be saved in '{0}{1}'".format(mask_dir, os.sep)
 for i in range( reduced_training_set.num_classes ):
