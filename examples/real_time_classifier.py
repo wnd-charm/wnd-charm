@@ -29,12 +29,64 @@ to classify a single image.
 
 """
 
-# Pull the input image's filename from the command line
 import sys
-input_filename = sys.argv[1]
+import os
+import re 
 
 # import pychrm
-from pychrm import *
+from pychrm.TrainingSet import *
+
+
+# We're doing manual parameter processing, which is probably not a great idea...
+if ( len(sys.argv) < 3 ):
+	print "Generate mask images by running a classifier over an input image."
+	print "Specify a classifier (.fit file and number of features or pickled features and weights),"
+	print "the size of the window to scan, and an input tiff file"
+	print "The output will be a set of masks stored as tiff files (one per class), where the pixel values are"
+	print "the marginal probabilities of that class in the corresponding window location"
+	print "Usage:"
+	print "\t"+sys.argv[0]+" (classifier.fit [num features] | train_features.pickled feature_weights.pickled) input.tif"
+	sys.exit(0)
+
+from_scratch = False
+pickled_features = None
+pickled_weights = None
+num_features = 200
+
+
+# Get the classifier parameter(s)
+input_filename = sys.argv[1]
+next_arg=2
+if ( input_filename.endswith (".fit") ):
+	from_scratch = True
+	if ( len (sys.argv) > 2 and sys.argv[next_arg].isdigit() ):
+		num_features = int (sys.argv[next_arg])
+		next_arg = next_arg + 1
+	print "using top "+str (num_features)+" features"
+elif ( input_filename.endswith (".fit.pickled") ):
+	from_scratch = False
+	pickled_features = input_filename
+	try:
+		if (sys.argv[next_arg].endswith (".weights.pickled")):
+			pickled_weights = sys.argv[next_arg]
+			next_arg = next_arg + 1
+		else:
+			raise Exception("expecting second argument to be pickled weights")
+	except:
+		print "expecting second argument to be pickled weights"
+		sys.exit(0)
+else:
+	print "first argument is either a .fit file or pickled features and weights"
+
+# Get the input image
+if re.search(r"\.tiff?$", sys.argv[next_arg], re.IGNORECASE):
+	image_path = sys.argv[next_arg]
+	if not os.path.exists( image_path ):
+		raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( image_path ) )
+	next_arg = next_arg + 1
+else:
+	print "expecting an input image file (.tif, .tiff, .TIF, .TIFF)"
+	sys.exit(0)
 
 # For real time classification, it is best practice to preprocess your FeaturesSet and
 # feature weights and pickle them for speed.
@@ -42,15 +94,14 @@ from pychrm import *
 # You don't need to use a pickle file though, you can make one from scratch
 # Here's how:
 
-from_scratch = False
 if from_scratch:
 	 
 	# 1a. Instantiate a FeaturesSet from a file, perhaps a ".fit" file from the
 	#    legacy C++ WND-CHARM implementation (a.k.a. "C-charm")
-	full_training_set = FeaturesSet_Discrete.NewFromFitFile( "OfficialState.fit" )
+	full_training_set = DiscreteTrainingSet.NewFromFitFile( input_filename )
 
 	# 1b. Translate feature names from C-chrm style, to Pychrm style
-	FeatureNameMap.TranslateToNewStyle( full_training_set )
+	full_training_set.featurenames_list = FeatureNameMap.TranslateToNewStyle( full_training_set.featurenames_list )
 
 	# 2. Normalize the features:
 	full_training_set.Normalize()
@@ -59,23 +110,23 @@ if from_scratch:
 	full_fisher_weights = FisherFeatureWeights.NewFromTrainingSet( full_training_set )
 
 	# 4. Take only the top 200 features
-	fisher_weights_subset = full_fisher_weights.Threshold( 200 )
+	reduced_fisher_weights = full_fisher_weights.Threshold( num_features )
 
 	# 5. Reduce the training set feature space to contain only those top 200 features
-	reduced_training_set = fisher_weights_subset.FeatureReduce( full_training_set )
+	reduced_training_set = full_training_set.FeatureReduce( reduced_fisher_weights.names )
 
 	# 6. Save your work:
-	reduced_training_set.PickleMe( "OfficialState_normalized_200_features.fit.pickled" )
-	fisher_weights_subset.PickleMe( "feature_weights_len_200.weights.pickled" )
+	reduced_training_set.PickleMe( os.path.splitext(input_filename)[0] + ".fit.pickled" )
+	reduced_fisher_weights.PickleMe( os.path.splitext(input_filename)[0] + "_w"+str(num_features)+".weights.pickled" )
 
-
-# If you've already done all that, just proceed from here:
-reduced_training_set = FeaturesSet_Discrete.NewFromPickleFile( "OfficialState_normalized_200_features.fit.pickled" )
-fisher_weights_subset = FisherFeatureWeights.NewFromPickleFile( "feature_weights_len_200.weights.pickled" )
+else:
+	# If you've already done all that, just proceed from here:
+	reduced_training_set = DiscreteTrainingSet.NewFromPickleFile( pickled_features )
+	reduced_fisher_weights = FisherFeatureWeights.NewFromPickleFile( pickled_weights )
 
 
 # Calculate features for the test image, but only those features we need 
-test_image_signatures = Signatures.NewFromFeatureWeights( input_filename, fisher_weights_subset )
+test_image_signatures = Signatures.NewFromFeatureNameList( image_path, reduced_fisher_weights.names )
 
 # It might be useful to hold onto the sigs, so write them out to a file
 test_image_signatures.WriteFeaturesToASCIISigFile()
@@ -91,7 +142,7 @@ test_image_signatures.Normalize( reduced_training_set )
 
 # Classify away! Return all the pertinent results including marginal probabilities,
 # normalization factor, and interpolated value inside the variable "result"
-result = DiscreteImageClassificationResult.NewWND5( reduced_training_set, fisher_weights_subset, test_image_signatures )
+result = DiscreteImageClassificationResult.NewWND5( reduced_training_set, reduced_fisher_weights, test_image_signatures )
 
 # See what we got... Print out the results to STDOUT
 result.Print()
