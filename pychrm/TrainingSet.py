@@ -818,18 +818,26 @@ class Signatures( FeatureVector ):
 
 	#================================================================
 	@classmethod
-	def NewFromFeatureGroupList( cls, path_to_image, feature_groups, options = None ):
-		"""@brief calculates signatures"""
+	def NewFromFeatureGroupList( cls, image_path_or_mat, feature_groups, options = None ):
+		"""@brief calculates signatures
+		@argument image_path_or_mat - path to a tiff file as a string or a pychrm.ImageMatrix object
+		"""
 
-		if not os.path.exists( path_to_image ):
-			raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( outfile_pathname ) )
+		if isinstance (image_path_or_mat, str):
+			path_to_image = image_path_or_mat
+			if not os.path.exists( path_to_image ):
+				raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( outfile_pathname ) )
+			original = pychrm.ImageMatrix()
+			if 1 != original.OpenImage( path_to_image, 0, None, 0, 0 ):
+				raise ValueError( 'Could not build an ImageMatrix from {0}, check the file.'.\
+					format( path_to_image ) )
+		elif isinstance (image_path_or_mat, pychrm.ImageMatrix):
+			original = image_path_or_mat
+			path_to_image = "sample" # should really get this from ImageMatrix
+		else:
+			raise ValueError("image parameter 'image_path_or_mat' is not a string or a pychrm.ImageMatrix")
 
 		print path_to_image
-		original = pychrm.ImageMatrix()
-		if 1 != original.OpenImage( path_to_image, 0, None, 0, 0 ):
-			raise ValueError( 'Could not build an ImageMatrix from {0}, check the file.'.\
-			    format( path_to_image ) )
-
 		im_cache = {}
 		im_cache[ '' ] = original
 
@@ -2620,7 +2628,7 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 		marg_probs = np.array( result.marginal_probabilities )
 		result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
 		# interpolated value, if applicable
-		if training_set.interpolation_coefficients is not None:
+		if len (training_set.interpolation_coefficients) == len (marg_probs):
 			interp_val = np.sum( marg_probs * training_set.interpolation_coefficients )
 			result.predicted_value = interp_val
 
