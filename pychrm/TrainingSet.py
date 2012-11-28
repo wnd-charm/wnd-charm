@@ -168,6 +168,71 @@ def output_railroad_switch( method_that_prints_output ):
 # BEGIN: Class definitions for WND-CHARM intermediate objects
 
 #############################################################################
+# class definition of SampleImageTiles
+#############################################################################
+
+class SampleImageTiles (object):
+	"""SampleImageTiles is an image iterator wrapper (the iterator is the sample method).
+	The iterator is wrapped to provide additional information such as the number of samples that will
+	be extracted from the image, as well as information about each sample after calling the sample method.
+	Each call to sample returns the next pychrm.ImageMatrix in the sample set.
+	The constructor has three required parameters.
+	The image parameter can be a path to an image file or a pychrm.ImageMatrix
+	The x and y parameters can specify the number of non-overlapping samples in each dimension (is_fixed parameter is False),
+	or the dimentions of each sample (is_fixed parameter is True).
+	Example usage:
+		image_iter = SampleImageTiles (input_image, size_x, size_y, True)
+		print "Number of samples = "+str (image_iter.samples)
+		for sample in image_iter.sample():
+			print "({0},{1}) : ({2},{3})".format (
+				image_iter.current_x, image_iter.current_y, sample.width, sample.height)
+	"""
+
+	def __init__( self, image_in, x, y, is_fixed = False):
+		if isinstance (image_in, str):
+			if not os.path.exists( image_in ):
+				raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( image_in ) )
+			self.image = pychrm.ImageMatrix()
+			if 1 != self.image.OpenImage( image_in, 0, None, 0, 0 ):
+				raise ValueError( 'Could not build an ImageMatrix from {0}, check the file.'.format( image_in ) )
+		elif isinstance (image_in, pychrm.ImageMatrix):
+			self.image = image_in
+		else:
+			raise ValueError("image parameter 'image_in' is not a string or a pychrm.ImageMatrix")
+
+		if (is_fixed):
+			self.tile_width = x
+			self.tile_height = y
+			self.tiles_x = int (self.image.width / x)
+			self.tiles_y = int (self.image.height / y)
+		else:
+			self.tile_width = int (self.image.width / x)
+			self.tile_height = int (self.image.height / y)
+			self.tiles_x = x
+			self.tiles_y = y
+
+		self.samples = self.tiles_x * self.tiles_y
+
+	def sample(self):
+		width = self.tile_width
+		height = self.tile_height
+		max_x = self.image.width
+		max_y = self.image.height
+		original = self.image
+		current_y = 0
+		self.current_y = current_y
+		while current_y + height <= max_y:
+			current_x = 0
+			self.current_x = current_x
+			while current_x + width <= max_x:
+				yield pychrm.ImageMatrix (original, current_x, current_y, current_x+width-1, current_y+height-1,0,0)
+				current_x = current_x + width
+				self.current_x = current_x
+			current_y = current_y + height
+			self.current_y = current_y
+
+
+#############################################################################
 # class definition of FeatureVector
 #############################################################################
 # FeatureVector inherits from class "object" and is thus a Python "new-style" class
