@@ -24,7 +24,7 @@ if not (test_dir):
 	sys.exit(0)
 # -------- END preamble to get the test data --------------------
 
-test_name = "Feature calculation"
+test_name = "WND5 Classification"
 max_diff_pass = 0.000001
 max_mean_pass = 0.000001
 test_sig = os.path.join (test_dir,'t1_s01_c05_ij-l_precalculated.sig')
