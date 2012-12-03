@@ -136,16 +136,30 @@ for i in range( reduced_training_set.num_classes ):
 
 # iterate over the image, classifying each tile
 for sample in image_iter.sample():
-	test_image_signatures = Signatures.NewFromFeatureNameList( sample, reduced_fisher_weights.names )
-	test_image_signatures.Normalize( reduced_training_set )
-	result = DiscreteImageClassificationResult.NewWND5( reduced_training_set, reduced_fisher_weights, test_image_signatures )
-	for i in range( reduced_training_set.num_classes ):
-		mask_val = int (result.marginal_probabilities[i] * 255.0)
-		# Write the mask value into the numpy
-		masks[i][image_iter.current_y:image_iter.current_y + image_iter.tile_height,
-			image_iter.current_x:image_iter.current_x + image_iter.tile_width] = mask_val
-		print "{0} ({1},{2}) {3}: {4}".format (
-			i, image_iter.current_x, image_iter.current_y, reduced_training_set.classnames_list[i], mask_val)
+	try:
+		test_image_signatures = Signatures.NewFromFeatureNameList( sample, reduced_fisher_weights.names )
+		test_image_signatures.Normalize( reduced_training_set )
+		result = DiscreteImageClassificationResult.NewWND5( reduced_training_set, reduced_fisher_weights, test_image_signatures )
+		for i in range( reduced_training_set.num_classes ):
+			mask_val = int (result.marginal_probabilities[i] * 255.0)
+			# Write the mask value into the numpy
+			masks[i][image_iter.current_y:image_iter.current_y + image_iter.tile_height,
+				image_iter.current_x:image_iter.current_x + image_iter.tile_width] = mask_val
+			print "{0} ({1},{2}) {3}: {4}".format (
+				i, image_iter.current_x, image_iter.current_y, reduced_training_set.classnames_list[i], mask_val)
+	except:
+		x_y_str = "{0}_{1}".format (image_iter.current_x, image_iter.current_y)
+		tif_path = os.path.join (os.path.abspath(os.path.dirname(input_filename)), os.path.splitext(os.path.basename(image_path))[0] + "_" + x_y_str + ".tiff")
+		print "Could not classify sample at ({0},{1}), saving tiff file {2}".format (
+			image_iter.current_x, image_iter.current_y, tif_path)
+		sample.SaveTiff (tif_path)
+		for i in  range ( len(test_image_signatures.values) ):
+			val = test_image_signatures.values[i]
+			if np.isinf(val):
+				print test_image_signatures.names[i]+" is INF"
+			elif np.isnan(val):
+				print test_image_signatures.names[i]+" is NAN"
+		sys.exit(0)
 
 # 
 # Create tiff files from the numpys

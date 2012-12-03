@@ -45,6 +45,8 @@ ts.Normalize()
 test_wghts = FisherFeatureWeights.NewFromFile (test_fit_wght)
 test_wghts.names = FeatureNameMap.TranslateToNewStyle( test_wghts.names )
 ts = ts.FeatureReduce( test_wghts.names )
+test_sigs.Normalize( ts )
+
 
 test_wghts_431 = test_wghts.Threshold( 431 )
 ts_431 = ts.FeatureReduce( test_wghts_431.names )

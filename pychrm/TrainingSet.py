@@ -161,6 +161,45 @@ def output_railroad_switch( method_that_prints_output ):
 
 	return print_method_wrapper
 
+def normalize_by_columns ( full_stack, mins = None, maxs = None ):
+	"""This is a global function to normalize a matrix by columns.
+	If numpy 1D arrays of mins and maxs are provided, the matrix will be normalized against these ranges
+	Otherwise, the mins and maxs will be determined from the matrix, and the matrix will be normalized
+	against itself. The mins and maxs will be returned as a tuple.
+	Out of range matrix values will be clipped to min and max (including +/- INF)
+	zero-range columns will be set to 0.
+	NANs in the columns will be set to 0.
+	The normalized output range is hard-coded to 0-100
+	"""
+# Edge cases to deal with:
+#   Range determination:
+#     1. features that are nan, inf, -inf
+#        max and min determination must ignore invalid numbers
+#        nan -> 0, inf -> max, -inf -> min
+#   Normalization:
+#     2. feature values outside of range
+#        values clipped to range (-inf to min -> min, max to inf -> max) - leaves nan as nan
+#     3. feature ranges that are 0
+#        normalized value will be 0
+
+	if (mins is None or maxs is None):
+		# mask out NANs and +/-INFs to compute min/max
+		full_stack_m = np.ma.masked_invalid (full_stack, copy=False)
+		maxs = full_stack_m.max (axis=0)
+		mins = full_stack_m.min (axis=0)
+
+	# clip the values to the min-max range (NANs are left, but +/- INFs are taken care of)
+	full_stack.clip (mins, maxs, full_stack)
+	# remake a mask to account for NANs and divide-by-zero from max == min
+	full_stack_m = np.ma.masked_invalid (full_stack, copy=False)
+
+	# Normalize
+	full_stack_m -= mins
+	full_stack_m /= (maxs - mins)
+	# Left over NANs and divide-by-zero from max == min become 0
+	full_stack = full_stack_m.filled (0) * 100 # nans, divide by zeros become 0
+
+	return (mins,maxs)
 # END: Initialize module level globals
 #===============================================================
 
@@ -407,11 +446,8 @@ class FisherFeatureWeights( FeatureWeights ):
 		if not training_set.__class__.__name__ == "DiscreteTrainingSet":
 			raise ValueError( "Cannot create Fisher weights from anything other than a DiscreteTrainingSet." )
 
-		# 2D matrix It * F
-		all_images_combined_classes = np.vstack( training_set.data_list )
-
 		# 1D matrix 1 * F
-		population_means = np.mean( all_images_combined_classes, axis = 0 )
+		population_means = np.mean( training_set.data_matrix, axis = 0 )
 
 		# WARNING, this only works in python27:
 		# ====================================
@@ -1091,15 +1127,10 @@ class Signatures( FeatureVector ):
 		if training_set.featurenames_list != self.names:
 			raise ValueError("Can't normalize signature for {0} against training_set {1}: Features don't match."\
 		  .format( self.source_file, training_set.source_path ) )
-	
+		
+		print "Normalizing features"
 		my_features = np.array( self.values )
-		mins = np.array( training_set.feature_minima )
-		maxes = np.array( training_set.feature_maxima )
-
-		my_features -= mins
-		my_features /= ( maxes - mins )
-		my_features *= 100
-	
+		normalize_by_columns (my_features, training_set.feature_minima, training_set.feature_maxima)
 		self.values = my_features.tolist()
 
 # end definition class Signatures
@@ -1291,11 +1322,17 @@ class TrainingSet( object ):
 	#: that have some discrete characteristics
 
 	#: A list of strings, length C
+	#: FIXME: these two belong in DiscreteTrainingSet
 	classnames_list = None
+	classsizes_list = None
 
 	# A list of floats against which an image's marginal probaility values can be multiplied
 	# to obtain an interpolated value.
 	interpolation_coefficients = None
+	
+	#: A single numpy matrix N features (columns) x M images (rows)
+	data_matrix = None
+	data_matrix_is_contiguous = False
 
 	#==============================================================
 	def __init__( self, data_dict = None ):
@@ -1303,7 +1340,9 @@ class TrainingSet( object ):
 
 		self.featurenames_list = []
 		self.imagenames_list = []
+		#: FIXME: these two belong in DiscreteTrainingSet
 		self.classnames_list = []
+		self.classsizes_list = []
 		self.interpolation_coefficients = []
 
 		if data_dict != None:
@@ -1323,10 +1362,15 @@ class TrainingSet( object ):
 				self.feature_maxima = data_dict[ 'feature_maxima' ]
 			if "feature_minima" in data_dict:
 				self.feature_minima = data_dict[ 'feature_minima' ]
+			#: FIXME: these two belong in DiscreteTrainingSet
 			if "classnames_list" in data_dict:
 				self.classnames_list = data_dict[ 'classnames_list' ]
+			if "classsizes_list" in data_dict:
+				self.classsizes_list = data_dict[ 'classsizes_list' ]
 			if "interpolation_coefficients" in data_dict:
 				self.interpolation_coefficients = data_dict[ 'interpolation_coefficients' ]
+			if "data_matrix" in data_dict:
+				self.data_matrix = data_dict[ 'data_matrix' ]
 
 	#==============================================================
 	@output_railroad_switch
@@ -1356,6 +1400,15 @@ class TrainingSet( object ):
 		the_training_set = None
 		with open( pathname, "rb" ) as pkled_in:
 			the_training_set = cls( pickle.load( pkled_in ) )
+
+		# re-generate data_list views from data_matrix and classsizes_list
+		if ("data_list" in the_training_set.__dict__):
+			the_training_set.data_list = [0] * num_classes
+			sample_row = 0
+			for i in range( num_classes ):
+				nrows = the_training_set.classsizes_list[i]
+				the_training_set.data_list[i] = the_training_set.data_matrix[sample_row : sample_row + nrows]
+				sample_row += nrows
 
 		# it might already be normalized!
 		# FIXME: check for that
@@ -1400,8 +1453,21 @@ class TrainingSet( object ):
 		else:
 			print "Writing {0}".format( outfile_pathname )
 
+		# Since we may have both a data_matrix and views into it (data_list), we only want to store
+		# one or the other.  Pickle is not smart enough to store numpy views as references.
+		# We chose to store the data_matrix, setting data_list to [] if we have it
+		# The views have to be reconstructed from the un-pickle using the classsizes_list
+		self.ContiguousDataMatrix()
+		data_list_copy = None
+		if ("data_list" in self.__dict__):
+			data_list_copy = self.data_list
+			self.data_list = []
 		with open( outfile_pathname, 'wb') as outfile:
 			pickle.dump( self.__dict__, outfile, pickle.HIGHEST_PROTOCOL )
+
+		# Restore the data_list
+		if (data_list_copy):
+			self.data_list = data_list_copy
 
 	#==============================================================
 	@classmethod
@@ -1490,9 +1556,56 @@ class TrainingSet( object ):
 		raise NotImplementedError()
 
 	#==============================================================
-	def Normalize( self, training_set = None ):
-		"""Virtual Method."""
-		raise NotImplementedError()			
+	def ContiguousDataMatrix( self ):
+		"""This method should be called to access the class data_matrix field.
+		In the case where there are both views into this matrix (e.g. data_list) as well as the matrix itself,
+		this method ensures that the data_matrix is a vstack of all data_lists
+		After this call, the self.data_matrix field will be contiguous, and all of the views in data_list
+		are consistent with it.
+		In the base class, just returns the data_matrix
+		"""
+		return (self.data_matrix)
+
+	#==============================================================
+	def Normalize( self, training_set = None, quiet = False ):
+		"""By convention, the range of values are normalized on an interval [0,100].
+		Normalizing is useful in making the variation of features human readable
+		and that all samples are comprable if they've been normalized against
+		the same ranges of feature values.
+		Raw features computed during training are normalized in the training set.
+		These training ranges are then used to normalize raw features computed for test images.
+		"""
+
+		if self.normalized_against and training_set:
+			# I've already been normalized, and you want to normalize me again?
+			raise ValueError( "Set {0} has already been normalized against {1}.".format (
+				self.source_path, self.normalized_against ) )
+
+		elif not self.normalized_against and not training_set:
+			# Normalize me against myself
+			if not quiet:
+				print 'Normaling set "{0}" ({1} images) against itself'.format (
+					self.source_path, self.num_images )
+
+			(self.feature_minima, self.feature_maxima) = normalize_by_columns (self.ContiguousDataMatrix())
+			self.normalized_against = "itself"
+		else:
+			# Normalize me against the given training set
+			if training_set.featurenames_list != self.featurenames_list:
+				raise ValueError("Can't normalize test_set {0} against training_set {1}: Features don't match.".format (
+					self.source_path, training_set.source_path ) )
+
+			if not quiet:
+				print 'Normaling set "{0}" ({1} images) against set "{2}" ({3} images)'.format(
+					self.source_path, self.num_images, training_set.source_path, training_set.num_images )
+
+			if not training_set.normalized_against:
+				training_set.Normalize( )
+
+			assert self.num_features > 0
+			(self.feature_minima, self.feature_maxima) = normalize_by_columns (self.ContiguousDataMatrix(), training_set.feature_minima, training_set.feature_maxima)
+			self.normalized_against = training_set.source_path
+			
 
 	#==============================================================
 	def FeatureReduce( self, requested_features ):
@@ -1555,9 +1668,59 @@ class DiscreteTrainingSet( TrainingSet ):
 		super( DiscreteTrainingSet, self ).Print()
 		class_index = 0
 		for class_name in self.classnames_list:
-			print '\tClass {0} "{1}": {2} images'.format( \
-			        class_index, class_name, len( self.imagenames_list[ class_index ] ) )
+			print '\tClass {0} "{1}": {2} images'.format(
+				class_index, class_name, len( self.imagenames_list[ class_index ] ) )
 			class_index += 1
+
+	#==============================================================
+	def ContiguousDataMatrix( self ):
+		"""This method should be called to access the class data_matrix field.
+		In the case where there are both views into this matrix (e.g. data_list) as well as the matrix itself,
+		this method ensures that the data_matrix is a vstack of all data_lists
+		After this call, the self.data_matrix field will be contiguous, and all of the views in data_list
+		are consistent with it.
+		"""
+
+		# If its already contiguous, or there are no data_lists, just return it
+		if (self.data_matrix_is_contiguous or not self.data_list or not len (self.data_list) ):
+			return self.data_matrix
+		
+		num_features = 0
+		copy_class = 0
+		copy_row = 0
+		for class_mat in self.data_list:
+			# Make sure all classes have the same number of features
+			if (num_features and class_mat.shape[1] != num_features):
+				raise ValueError ( "class index {0}:'{1}' has a different number of features than other classes ({3}).".format (
+					copy_class, self.classnames_list[i], num_features) )
+			else:
+				num_features = class_mat.shape[1]
+			# if this flag is set in the numpy, then it is not a view.
+			if class_mat.flags.owndata:
+				# We don't need to keep going, all we need is the startpoint for the copy
+				break
+			copy_row += class_mat.shape[0]
+			copy_class += 1
+
+		# resize the matrix
+		if self.data_matrix is not None:
+			self.data_matrix.resize (self.num_images, self.num_features)
+		else:
+			print "called with empty data_matrix"
+			self.data_matrix = np.empty ([ self.num_images, self.num_features ], dtype='double')
+			copy_class = 0
+			copy_row = 0
+
+		# We need to start copying at the first non-view class mat to the end.
+		for class_index in range (copy_class, len (self.data_list)):
+			print "copy class"+str(class_index)
+			nrows = self.data_list[class_index].shape[0]
+			self.data_matrix[copy_row : copy_row + nrows] = np.copy (self.data_list[class_index])
+			self.data_list[class_index] = self.data_matrix[copy_row : copy_row + nrows]
+			copy_row += nrows
+
+		self.data_matrix_is_contiguous = True
+		return self.data_matrix
 
 	#==============================================================
 	@classmethod
@@ -1580,11 +1743,12 @@ class DiscreteTrainingSet( TrainingSet ):
 		with open( pathname ) as fitfile:
 			data_dict = {}
 			data_dict[ 'source_path' ] = pathname
-			data_dict[ 'data_list' ] = []
 			data_dict[ 'imagenames_list' ] = []
 			data_dict[ 'featurenames_list' ] = []
 			data_dict[ 'classnames_list' ] = []
+			data_dict[ 'classsizes_list' ] = []
 			data_dict[ 'imagenames_list' ] = []
+			data_dict[ 'data_matrix' ] = None
 			data_dict[ 'data_list' ] = []
 			tmp_string_data_list = []
 
@@ -1594,6 +1758,7 @@ class DiscreteTrainingSet( TrainingSet ):
 			image_pathname = ""
 			num_classes = 0
 			num_features = 0
+			num_images = 0
 
 			for line in fitfile:
 				if line_num is 0:
@@ -1624,6 +1789,7 @@ class DiscreteTrainingSet( TrainingSet ):
 						#print "class {0}".format( split_line[1] )
 						zero_indexed_class_id = int( split_line[1] ) - 1
 						tmp_string_data_list[ zero_indexed_class_id ].append( split_line[0] )
+						num_images += 1
 					else:
 						image_pathname = line.strip()
 						data_dict[ 'imagenames_list' ][ zero_indexed_class_id ].append( image_pathname )
@@ -1632,17 +1798,27 @@ class DiscreteTrainingSet( TrainingSet ):
 
 		string_data = "\n"
 		
+		data_matrix = np.empty ([ num_images, num_features ], dtype='double')
+		sample_row = 0
+		data_dict[ 'data_list' ] = [0] * num_classes
+		data_dict[ 'classsizes_list' ] = [0] * num_classes
 		for i in range( num_classes ):
-			print 'generating matrix for class {0} "{1}" ({2} images)'.\
-			   format( i, data_dict['classnames_list'][i], len(data_dict['imagenames_list'][i]) )
+			# alt: nrows = len(tmp_string_data_list[i])
+			nrows = len(data_dict['imagenames_list'][i])
+			print 'generating matrix for class {0} "{1}" ({2} images)'.format(
+				i, data_dict['classnames_list'][i], nrows)
 			#print "{0}".format( tmp_string_data_list[i] )
-			npmatr = np.genfromtxt( StringIO( string_data.join( tmp_string_data_list[i] ) ) )
-			data_dict[ 'data_list' ].append( npmatr )
+			data_matrix[sample_row : sample_row + nrows] = np.genfromtxt( StringIO( string_data.join( tmp_string_data_list[i] ) ) )
+			data_dict[ 'data_list' ][i] =  data_matrix[sample_row : sample_row + nrows]
+			data_dict[ 'classsizes_list' ][i] = nrows
+			sample_row += nrows
+		data_dict[ 'data_matrix' ] = data_matrix
 
 		# Can the class names be interpolated?
 		tmp_vals = []
 		import re
 		for class_index in range( num_classes ):
+			# FIXME: not right - should be done using float(s) wrapped in a try/except
 			m = re.search( r'(\d*\.?\d+)', data_dict[ 'classnames_list' ][class_index] )
 			if m:
 				tmp_vals.append( float( m.group(1) ) )
@@ -1677,10 +1853,12 @@ class DiscreteTrainingSet( TrainingSet ):
 		new_ts.num_features = len( signature.feature_values )
 		new_ts.num_images = 1
 		new_ts.classnames_list.append( "UNKNOWN" )
+		new_ts.classsizes_list.append( 1 )
 		new_ts.featurenames_list = signature.names
 		new_ts.imagenames_list.append( [ inputimage_filepath ] )
-		numpy_matrix = np.array( signature.values )
-		new_ts.data_list.append( numpy_matrix )
+		new_ts.data_matrix = np.array( signature.values )
+		data_list.append( new_ts.data_matrix[0:1] )
+		data_matrix_is_contiguous = True
 
 		return new_ts
 
@@ -1780,67 +1958,6 @@ class DiscreteTrainingSet( TrainingSet ):
 			class_id += 1
 
 	#==============================================================
-	def Normalize( self, training_set = None, quiet = False ):
-		"""By convention, the range of values are normalized on an interval [0,100].
-		Normalizing is useful in making the variation of features human readable
-		and also lets us know which features to exclude from consideration
-		in classification because they don't vary at all."""
-
-		if self.normalized_against and training_set:
-			# I've already been normalized, and you want to normalize me again?
-			raise ValueError( "Set {0} has already been normalized against {1}."\
-						.format( self.source_path, self.normalized_against ) )
-		elif not self.normalized_against and not training_set:
-			# Normalize me against myself
-			if not quiet:
-				print 'Normaling set "{0}" ({1} images) against itself'.format( \
-                                               self.source_path, self.num_images )
-			full_stack = np.vstack( self.data_list )
-			total_num_imgs, num_features = full_stack.shape
-			self.feature_maxima = [None] * num_features
-			self.feature_minima = [None] * num_features
-
-			for i in range( num_features ):
-				feature_max = np.max( full_stack[:,i] )
-				feature_min = np.min( full_stack[:,i] )
-				if feature_min >= feature_max:
-					self.feature_maxima[ i ] = None 
-					self.feature_minima[ i ] = None
-					for class_matrix in self.data_list:
-						class_matrix[:,i] = 0
-				else:
-					self.feature_maxima[ i ] = feature_max
-					self.feature_minima[ i ] = feature_min
-					for class_matrix in self.data_list:
-						class_matrix[:,i] -= feature_min
-						class_matrix[:,i] /= (feature_max - feature_min)
-						class_matrix[:,i] *= 100
-			self.normalized_against = "itself"
-		else:
-			# Normalize me against the given training set
-			if training_set.featurenames_list != self.featurenames_list:
-				raise ValueError("Can't normalize test_set {0} against training_set {1}: Features don't match."\
-						.format( self.source_path, training_set.source_path ) )
-
-			if not quiet:
-				print 'Normaling set "{0}" ({1} images) against set "{2}" ({3} images)'.format( \
-			  self.source_path, self.num_images, training_set.source_path, training_set.num_images )
-			
-			if not training_set.normalized_against:
-				training_set.Normalize( )
-
-			assert self.num_features > 0
-	
-			for i in range( self.num_features ):
-				for class_matrix in self.data_list:
-					class_matrix[:,i] -= training_set.feature_minima[i]
-					class_matrix[:,i] /= (training_set.feature_maxima[i] - training_set.feature_minima[i])
-					class_matrix[:,i] *= 100
-
-			self.normalized_against = training_set.source_path
-			
-
-	#==============================================================
 	def FeatureReduce( self, requested_features ):
 		"""Returns a new TrainingSet that contains a subset of the features
 		arg requested_features is a tuple of features.
@@ -1873,40 +1990,45 @@ class DiscreteTrainingSet( TrainingSet ):
 		reduced_ts.num_images = self.num_images
 		reduced_ts.imagenames_list = self.imagenames_list[:] # [:] = deepcopy
 		reduced_ts.classnames_list = self.classnames_list[:]
+		reduced_ts.classsizes_list = self.classsizes_list[:]
 		reduced_ts.featurenames_list = requested_features[:]
 		if self.interpolation_coefficients:
 			reduced_ts.interpolation_coefficients = self.interpolation_coefficients[:]
-		reduced_ts.feature_maxima = [None] * new_num_features
-		reduced_ts.feature_minima = [None] * new_num_features
+		reduced_ts.feature_maxima = np.empty (new_num_features)
+		reduced_ts.feature_minima = np.empty (new_num_features)
 
-		# copy feature minima/maxima
-		if self.feature_maxima and self.feature_minima:
-			new_index = 0
-			for featurename in requested_features:
-				old_index = self.featurenames_list.index( featurename )
+		# copy features
+		reduced_ts.data_matrix = np.empty ([ reduced_ts.num_images, reduced_ts.num_features ], dtype='double')
+		new_index = 0
+		for featurename in requested_features:
+			old_index = self.featurenames_list.index( featurename )
+			reduced_ts.data_matrix[:,new_index] = self.data_matrix[:,old_index]
+			if self.feature_maxima is not None and self.feature_minima is not None:
 				reduced_ts.feature_maxima[ new_index ] = self.feature_maxima[ old_index ]
 				reduced_ts.feature_minima[ new_index ] = self.feature_minima[ old_index ]
-				new_index += 1
+			new_index += 1
 
-		# feature reduce
-		for fat_matrix in self.data_list:
-			num_imgs_in_class, num_old_features = fat_matrix.shape
-			# NB: double parentheses required when calling numpy.zeros(), i guess it's a tuple thing
-			new_matrix = np.zeros( ( num_imgs_in_class, new_num_features ) )
-			new_column_index = 0
-			for featurename in requested_features:
-				fat_column_index = self.featurenames_list.index( featurename )
-				new_matrix[:,new_column_index] = fat_matrix[:,fat_column_index]
-				new_column_index += 1
-			reduced_ts.data_list.append( new_matrix )
+		# regenerate the class views
+		sample_row = 0
+		reduced_ts.data_list = [0] * reduced_ts.num_classes
+		for class_index in range (reduced_ts.num_classes ):
+			nrows = reduced_ts.classsizes_list[class_index]
+			reduced_ts.data_list[class_index] = reduced_ts.data_matrix[sample_row : sample_row + nrows]
+			sample_row += nrows
 
 		return reduced_ts
 
 	#==============================================================
 	def AddSignature( self, signature, class_id_index ):
-		"""@argument signature is a valid signature
+		""" AddSignature adds signatures quickly to a growing TrainingSet.
+		To be quick, the signatures must be added in class index order
+		i.e., they are appended to the class-ordered feature matrix, so the class_id_index must be the
+		last valid class index, or the one after last.
+		To add signatures in random order, use InsertSignature, which is much slower
+		@argument signature is a valid signature
 		@argument class_id_index identifies the class to which the signature belongs
-		          class_id_index is zero-indexed"""
+			class_id_index is zero-indexed
+		"""
 
 		if None == class_id_index:
 			raise ValueError( 'Must specify either a class_index' )
@@ -1929,6 +2051,10 @@ class DiscreteTrainingSet( TrainingSet ):
 			self.data_list.append( None )
 		while (len( self.imagenames_list ) ) < class_id_index + 1:
 			self.imagenames_list.append( [] )
+		while (len( self.classnames_list ) ) < class_id_index + 1:
+			self.classnames_list.append( "UNKNOWN"+str(class_id_index + 1) )
+		while (len( self.classsizes_list ) ) < class_id_index + 1:
+			self.classsizes_list.append( 0 )
 
 		self.imagenames_list[class_id_index].append( signature.source_file )
 
@@ -1940,6 +2066,7 @@ class DiscreteTrainingSet( TrainingSet ):
 					np.array( signature.values ) ) )
 
 		self.num_images += 1
+		self.classsizes_list[class_id_index] += 1
 
 		#print 'Added file "{0}" to class {1} "{2}" ({3} images)'.format( signature.source_file, \
 		#    class_id_index, self.classnames_list[class_id_index], len( self.imagenames_list[ class_id_index ] ) ) 
@@ -1955,6 +2082,7 @@ class DiscreteTrainingSet( TrainingSet ):
 		new_ts.imagenames_list = [ [] for j in range( self.num_classes ) ]
 		new_ts.num_classes = self.num_classes
 		new_ts.classnames_list = self.classnames_list
+		new_ts.classsizes_list = self.classsizes_list
 		new_ts.featurenames_list = self.featurenames_list
 		new_ts.num_features = len( self.featurenames_list )
 		new_ts.source_path = self.source_path + " (scrambled)"
@@ -2012,6 +2140,21 @@ class DiscreteTrainingSet( TrainingSet ):
 		Number of images in training and test sets are allocated by i and j, respectively
 		Otherwise they are given by training_set fraction."""
 
+		# FIXME: use np.random.shuffle(arr) - shuffles first dimension (rows) of multi-D numpy, so images in our case.
+		# If the class views are shuffled one-by-one, then the main matrix will be shuffled as well, but only within classes.
+		# then, just do the split by slicing the classes based on train/test sizes
+		# see also http://stackoverflow.com/questions/4601373/better-way-to-shuffle-two-numpy-arrays-in-unison
+		# for shuffling multiple arrays in unison
+		# 		def shuffle_in_unison(a, b):
+		# 			rng_state = numpy.random.get_state()
+		# 			numpy.random.shuffle(a)
+		# 			numpy.random.set_state(rng_state)
+		# 			numpy.random.shuffle(b)
+		# or, using a permuted vector as an index
+		#	p = numpy.random.permuation(len(a))
+		#	return a[p], b[p]
+
+
 		if training_set_fraction <= 0 or training_set_fraction >= 1:
 			raise ValueError( "Training set fraction must be a number between 0 and 1" )
 
@@ -2026,6 +2169,7 @@ class DiscreteTrainingSet( TrainingSet ):
 		training_set.num_images = 0
 		training_set.num_classes = self.num_classes
 		training_set.classnames_list = self.classnames_list
+		training_set.classsizes_list = self.classsizes_list
 		training_set.featurenames_list = self.featurenames_list
 		training_set.num_features = len( self.featurenames_list )
 		training_set.imagenames_list = [ [] for j in range( self.num_classes ) ]
@@ -2039,6 +2183,7 @@ class DiscreteTrainingSet( TrainingSet ):
 			test_set.num_images = 0
 			test_set.num_classes = self.num_classes
 			test_set.classnames_list = self.classnames_list
+			test_set.classsizes_list = self.classsizes_list
 			test_set.featurenames_list = self.featurenames_list
 			test_set.num_features = len( self.featurenames_list )
 			test_set.imagenames_list = [ [] for j in range( self.num_classes ) ]
@@ -2106,9 +2251,6 @@ class ContinuousTrainingSet( TrainingSet ):
 	one for each discrete class. The latter has the members "data_matix" and ground_truths,
 	which are single Numpy matrix into which all image descriptors are collected,
 	and a list of ground truth values associated with each image, respectively."""
-
-	#: A single numpy matrix N features x M images
-	data_matrix = None
 
 	#: Ground truth numerical values accociated with each image
 	ground_truths = None
@@ -2178,6 +2320,7 @@ class ContinuousTrainingSet( TrainingSet ):
 				elif line_num <= ( num_features + 3 + num_classes ):
 					line = line.strip()
 					new_ts.classnames_list.append( line )
+					new_ts.classsizes_list.append( 0 )
 					m = re.search( r'(\d*\.?\d+)', line )
 					if m:
 						new_ts.interpolation_coefficients.append( float( m.group(1) ) )
@@ -2193,6 +2336,7 @@ class ContinuousTrainingSet( TrainingSet ):
 						zero_indexed_class_id = int( split_line[1] ) - 1
 						tmp_string_data_list.append( split_line[0] )
 						new_ts.ground_truths.append( new_ts.interpolation_coefficients[ zero_indexed_class_id ] )
+						new_ts.classsizes_list[ zero_indexed_class_id ] += 1
 					else:
 						image_pathname = line.strip()
 						new_ts.imagenames_list.append( image_pathname )
@@ -2236,63 +2380,6 @@ class ContinuousTrainingSet( TrainingSet ):
 				self.AddSignature( sig, class_id )
 			class_id += 1
 			
-	#==============================================================
-	def Normalize( self, training_set = None, quiet = False ):
-		"""By convention, the range of values are normalized on an interval [0,100].
-		Normalizing is useful in making the variation of features human readable
-		and also lets us know which features to exclude from consideration
-		in classification because they don't vary at all."""
-
-		if self.normalized_against:
-			# I've already been normalized, and you want to normalize me again?
-			raise ValueError( "Set {0} has already been normalized against {1}."\
-						.format( self.source_path, self.normalized_against ) )
-		elif not self.normalized_against and not training_set:
-			# Normalize me against myself
-			if not quiet:
-				print 'Normaling set "{0}" ({1} images) against itself'.format( self.source_path,\
-			                       self.num_images)
-
-			# FIXME: This will fail if there's only one image or one feature
-			# because the .shape function won't return a tuple
-			total_num_imgs, num_features = self.data_matrix.shape
-			self.feature_maxima = [None] * num_features
-			self.feature_minima = [None] * num_features
-
-			for i in range( num_features ):
-				feature_max = np.max( self.data_matrix[:,i] )
-				feature_min = np.min( self.data_matrix[:,i] )
-				if feature_min >= feature_max:
-					self.feature_maxima[ i ] = None
-					self.feature_minima[ i ] = None
-					self.data_matrix[:,i] = 0
-				else:
-					self.feature_maxima[ i ] = feature_max
-					self.feature_minima[ i ] = feature_min
-					self.data_matrix[:,i] -= feature_min
-					self.data_matrix[:,i] /= (feature_max - feature_min)
-					self.data_matrix[:,i] *= 100
-			self.normalized_against = "itself"
-		else:
-			# Normalize me against the given training set
-			if training_set.featurenames_list != self.featurenames_list:
-				raise ValueError("Can't normalize test_set {0} against training_set {1}: Features don't match."\
-						.format( self.source_path, training_set.source_path ) )	
-			assert self.num_features > 0
-
-			if not quiet:
-				print 'Normaling set "{0}" ({1} images) against set "{2}" ({3} images)'.format( \
-			  self.source_path, self.num_images, training_set.source_path, training_set.num_images )
-
-			if not training_set.normalized_against:
-				training_set.Normalize()
-
-			for i in range( self.num_features ):
-				self.data_matrix[:,i] -= training_set.feature_minima[i]
-				self.data_matrix[:,i] /= (training_set.feature_maxima[i] -training_set.feature_minima[i])
-				self.data_matrix[:,i] *= 100
-
-			self.normalized_against = training_set.source_path
 
 	#==============================================================
 	def FeatureReduce( self, requested_features ):
@@ -2328,10 +2415,12 @@ class ContinuousTrainingSet( TrainingSet ):
 			reduced_ts.interpolation_coefficients= self.interpolation_coefficients[:]
 		if self.classnames_list:
 			reduced_ts.classnames_list = self.classnames_list[:]
+		if self.classsizes_list:
+			reduced_ts.classsizes_list = self.classsizes_list[:]
 		if self.ground_truths:
 			reduced_ts.ground_truths = self.ground_truths[:]
-		reduced_ts.feature_maxima = [None] * new_num_features
-		reduced_ts.feature_minima = [None] * new_num_features
+		reduced_ts.feature_maxima = np.empty (new_num_features)
+		reduced_ts.feature_minima = np.empty (new_num_features)
 
 		# copy feature minima/maxima
 		if self.feature_maxima and self.feature_minima:
@@ -2393,6 +2482,17 @@ class ContinuousTrainingSet( TrainingSet ):
 		Otherwise they are given by training_set fraction.
 		"""
 
+		# FIXME: use np.random.shuffle(arr) - shuffles first dimension (rows) of multi-D numpy, so images in our case.
+		# see also http://stackoverflow.com/questions/4601373/better-way-to-shuffle-two-numpy-arrays-in-unison
+		# for shuffling multiple arrays in unison
+		# 		def shuffle_in_unison(a, b):
+		# 			rng_state = numpy.random.get_state()
+		# 			numpy.random.shuffle(a)
+		# 			numpy.random.set_state(rng_state)
+		# 			numpy.random.shuffle(b)
+		# or, using a permuted vector as an index
+		#	p = numpy.random.permuation(len(a))
+		#	return a[p], b[p]
 		# Figure out how many images will be in which class
 		if i and j:
 			if (i + j) > self.num_images:
@@ -2443,6 +2543,8 @@ class ContinuousTrainingSet( TrainingSet ):
 		training_set.source_path = self.source_path + " (subset)"
 		if self.classnames_list:
 			training_set.classnames_list = self.classnames_list
+		if self.classsizes_list:
+			training_set.classsizes_list = self.classsizes_list
 		if self.interpolation_coefficients:
 			training_set.interpolation_coefficients = self.interpolation_coefficients
 	
@@ -2455,6 +2557,8 @@ class ContinuousTrainingSet( TrainingSet ):
 			test_set.source_path = self.source_path + " (subset)"
 			if self.classnames_list:
 				test_set.classnames_list = self.classnames_list
+			if self.classsizes_list:
+				test_set.classsizes_list = self.classsizes_list
 			if self.interpolation_coefficients:
 				test_set.interpolation_coefficients = self.interpolation_coefficients
 
@@ -2633,11 +2737,13 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 
 			#print "num tiles: {0}, num_test_img_features {1}".format( num_tiles, num_test_img_features )
 			for tile_index in range( num_tiles ):
-				#print "{0} ".format( tile_index )
 				# epsilon checking for each feature is too expensive
 				# FIXME: Do quick and dirty summation check until we can figure something else out
 				dists = np.absolute( sig_matrix[ tile_index ] - testimg )
 				w_dist = np.sum( dists )
+#				print "train img {0} dist : {1}".format( tile_index, w_dist )
+#				if (np.isinf(w_dist)):
+#					print "dists: "+str(dists)
 				if w_dist < epsilon:
 					num_collisions += 1
 					continue
@@ -2648,6 +2754,7 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 			#print "\n"
 
 			class_similarities[ class_index ] /= ( num_tiles - num_collisions )
+#			print "class_similarities: "+str(class_similarities)
 
 		result = cls()
 		norm_factor = sum( class_similarities )
