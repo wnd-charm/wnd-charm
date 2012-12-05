@@ -44,8 +44,43 @@ wndchrm_module = Extension('_pychrm',
 	libraries=['tiff','fftw3'],
 )
 
+import os
+pkg_dir = os.path.join (os.path.dirname(os.path.realpath(__file__)),'pychrm')
+
+# this sets the __version__ variable
+# the pychrm/_version.py file contains a single line assigning the __version__ variable
+# This file gets imported by __init__.py to set __version__ during package import
+# Here we do NOT want to import the package we are building to set this variable!
+# We DO want to set the version in setup() and have it all synchronized from a single place (pychrm/_version.py)
+execfile(os.path.join (pkg_dir,'_version.py'))
+
+# If we're building from svn, get the svn revision using the svnversion command
+# The svn revision (if it exists) gets appended to the version string (e.g. 0.3-r123 or 0.2-r141-local)
+# This mechanism allows for detection of locally modified (uncommitted) svn versions, and does not
+# require any action other than normal svn updates/commits to register new version numbers
+# The svn version is written to pychrm/_svn_version.py (which is not under svn control) for inclusion by __init__.py
+# If we're not building from svn, then _svn_version.py is not written, and __version__ will be as in pychrm/_version.py
+try:
+	import subprocess
+	import re
+	svn_vers = subprocess.Popen(['svnversion', pkg_dir], stdout=subprocess.PIPE).communicate()[0].strip()
+	rev_re = re.search(r'^(\d+)(.+)?$', svn_vers)
+	if rev_re:
+		if rev_re.group(2):
+			svn_vers = 'r'+rev_re.group(1)+'-local'
+		else:
+			svn_vers = 'r'+rev_re.group(1)
+		print "svn revision "+svn_vers
+		# this construction matches what is done in __init__.py by importing both _version.py and _svn_version.py
+		__version__ = __version__+'-'+svn_vers
+		f = open(os.path.join(pkg_dir,'_svn_version.py'), 'w+')
+		f.write ("__svn_version__ = '"+svn_vers+"'\n")
+		f.close()
+except:
+	pass
+
 setup (name = 'pychrm',
-	version = '0.1',
+	version = __version__,
 	author      = "Chris Coletta, Ilya Goldberg",
 	url = 'http://code.google.com/p/wnd-charm',
 	description = """Python bindings for wnd-charm""",

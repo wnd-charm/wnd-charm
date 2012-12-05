@@ -101,6 +101,7 @@ large_featureset_featuregroup_list = None
 
 error_banner = "\n*************************************************************************\n"
 
+
 def initialize_module(): 
 	"""If you're going to calculate any signatures, you need this stuff.
 	FIXME: Rig this stuff to load only on demand."""
@@ -182,6 +183,8 @@ def normalize_by_columns ( full_stack, mins = None, maxs = None ):
 #     3. feature ranges that are 0
 #        normalized value will be 0
 
+# Turn off numpy warnings, since e're taking care of invalid values explicitly
+	oldsettings = np.seterr(all='ignore')
 	if (mins is None or maxs is None):
 		# mask out NANs and +/-INFs to compute min/max
 		full_stack_m = np.ma.masked_invalid (full_stack, copy=False)
@@ -198,6 +201,9 @@ def normalize_by_columns ( full_stack, mins = None, maxs = None ):
 	full_stack_m /= (maxs - mins)
 	# Left over NANs and divide-by-zero from max == min become 0
 	full_stack = full_stack_m.filled (0) * 100 # nans, divide by zeros become 0
+
+	# return settings to original
+	np.seterr(**oldsettings)
 
 	return (mins,maxs)
 # END: Initialize module level globals
