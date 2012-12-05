@@ -134,6 +134,11 @@ def initialize_module():
 		if fg:
 			large_featureset_featuregroup_list.append( fg )
 
+	# while we're debugging, raise exceptions for numerical weirdness, since it all has to be dealt with somehow
+	# In cases where numerical weirdness is expected and dealt with explicitly, these exceptions are
+	# temporarily turned off and then restored to their previous settings.
+	np.seterr (all='raise')
+
 def output_railroad_switch( method_that_prints_output ):
 	"""This is a decorator that optionally lets the user specify a file to which to redirect
 	STDOUT. To use, you must use the keyword argument "output_filepath" and optionally
@@ -180,8 +185,8 @@ def normalize_by_columns ( full_stack, mins = None, maxs = None ):
 #   Normalization:
 #     2. feature values outside of range
 #        values clipped to range (-inf to min -> min, max to inf -> max) - leaves nan as nan
-#     3. feature ranges that are 0
-#        normalized value will be 0
+#     3. feature ranges that are 0 result in nan feature values
+#     4. all nan feature values set to 0
 
 # Turn off numpy warnings, since e're taking care of invalid values explicitly
 	oldsettings = np.seterr(all='ignore')
@@ -200,7 +205,7 @@ def normalize_by_columns ( full_stack, mins = None, maxs = None ):
 	full_stack_m -= mins
 	full_stack_m /= (maxs - mins)
 	# Left over NANs and divide-by-zero from max == min become 0
-	full_stack = full_stack_m.filled (0) * 100 # nans, divide by zeros become 0
+	full_stack = full_stack_m.filled (0) * 100
 
 	# return settings to original
 	np.seterr(**oldsettings)
@@ -488,17 +493,25 @@ class FisherFeatureWeights( FeatureWeights ):
 
 
 		# 1D matrix 1 * F
-		feature_weights =  np.square( population_means - intra_class_means ).sum( axis = 0 ) / \
-		    (training_set.num_classes - 1) / np.mean( intra_class_variances, axis = 0 ) 
-		
-		# remove nan's
-		# np.isnan( feature_weights ) returns a boolean array
-		# which numpy uses "fancy indexing" to assign 0's
-		feature_weights[ np.isnan(feature_weights) ] = 0
+		# we deal with NANs/INFs separately, so turn off numpy warnings about invalid floats.
+		# for the record, in numpy:
+		#     1./0. = inf, 0./inf = 0., 1./inf = 0. inf/0. = inf, inf/inf = nan
+		#     0./0. = nan,  nan/0. = nan, 0/nan = nan, nan/nan = nan, nan/inf = nan, inf/nan = nan
+		# We can't deal with NANs only, must also deal with pos/neg infs
+		# The masked array allows for dealing with "invalid" floats, which includes nan and +/-inf
+		oldsettings = np.seterr(invalid='ignore')
+		feature_weights_m =  np.ma.masked_invalid (
+			np.square( population_means - intra_class_means ).sum( axis = 0 ) /
+		    (training_set.num_classes - 1) / np.mean( intra_class_variances, axis = 0 )
+		    )
+		# return numpy error settings to original
+		np.seterr(**oldsettings)
+
 
 		new_fw = cls()
 		new_fw.names = training_set.featurenames_list[:]
-		new_fw.values = feature_weights.tolist()
+		# the filled(0) method of the masked array sets all nan and infs to 0
+		new_fw.values = feature_weights_m.filled(0).tolist()
 		new_fw.associated_training_set = training_set
 	
 		return new_fw
