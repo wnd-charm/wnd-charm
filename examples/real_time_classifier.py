@@ -35,7 +35,8 @@ import re
 
 # import pychrm
 from pychrm.TrainingSet import *
-
+from pychrm import __version__ as pychrm_version
+print "pychrm "+pychrm_version
 
 # We're doing manual parameter processing, which is probably not a great idea...
 if ( len(sys.argv) < 3 ):
