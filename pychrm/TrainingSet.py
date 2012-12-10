@@ -321,7 +321,7 @@ class FeatureVector(object):
 #############################################################################
 class FeatureWeights( FeatureVector ):
 	"""FeatureWeights is an abstract base class inheriting from "FeatureVector"
-	that comprises one-half of a WND-CHARM classifier (the other being a TrainingSet).
+	that comprises one-half of a WND-CHARM classifier (the other being a FeatureSet).
 	
 	It is a list of strings which are the names of
 	individual image descriptors (features) and a corresponding list of doubles which
@@ -353,8 +353,8 @@ class FeatureWeights( FeatureVector ):
 
 	#================================================================
 	@classmethod
-	def NewFromTrainingSet( cls, num_features_to_be_used  ):
-		"""@breif Calculate FeatureWeights from a TrainingSet"""
+	def NewFromFeatureSet( cls, num_features_to_be_used  ):
+		"""@breif Calculate FeatureWeights from a FeatureSet"""
 		raise NotImplementedError
 
 	#================================================================
@@ -439,8 +439,8 @@ class FisherFeatureWeights( FeatureWeights ):
 
 	#================================================================
 	@classmethod
-	def NewFromTrainingSet( cls, training_set ):
-		"""Takes a DiscreteTrainingSet as input and calculates a Fisher score for 
+	def NewFromFeatureSet( cls, training_set ):
+		"""Takes a FeatureSet_Discrete as input and calculates a Fisher score for 
 		each feature. Returns a newly instantiated instance of FisherFeatureWeights.
 
 		For:
@@ -454,8 +454,8 @@ class FisherFeatureWeights( FeatureWeights ):
 			import inspect
 			form_str = 'You passed in a None as a training set to the function {0}.{1}'	
 			raise ValueError( form_str.format( cls.__name__, inspect.stack()[1][3] ) )
-		if not training_set.__class__.__name__ == "DiscreteTrainingSet":
-			raise ValueError( "Cannot create Fisher weights from anything other than a DiscreteTrainingSet." )
+		if not training_set.__class__.__name__ == "FeatureSet_Discrete":
+			raise ValueError( "Cannot create Fisher weights from anything other than a FeatureSet_Discrete." )
 
 		# 1D matrix 1 * F
 		population_means = np.mean( training_set.data_matrix, axis = 0 )
@@ -639,7 +639,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 
 	#================================================================
 	@classmethod
-	def NewFromTrainingSet( cls, training_set ):
+	def NewFromFeatureSet( cls, training_set ):
 		"""Calculate regression parameters and correlation statistics that fully define
 		a continuous classifier.
 
@@ -647,6 +647,12 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		for each given feature."""
 		
 		from scipy import stats
+
+		# Known issue: running stats.linregress() with np.seterr (all='raise') has caused
+		# arithmetic underflow (FloatingPointError: 'underflow encountered in stdtr' )
+		# I think this is something we can safely ignore in this function, and return settings
+		# back to normal at the end. -CEC
+		np.seterr (under='ignore')
 
 		matrix = training_set.data_matrix
 		#FIXME: maybe add some dummyproofing to constrain incoming array size
@@ -657,12 +663,13 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		if training_set.source_path:
 			new_fw.name = cls.__name__ + ' from training set "' + training_set.source_path + '"'
 
-		#r_val_squared_sum = 0
-		r_val_cubed_sum = 0
+		r_val_squared_sum = 0
+		#r_val_cubed_sum = 0
+
+		ground_truths = np.array( [float(val) for val in training_set.ground_truths] )
 
 		for feature_index in range( training_set.num_features ):
 			feature_values = matrix[:,feature_index]
-			ground_truths = [float(val) for val in training_set.ground_truths]
 
 			slope, intercept, pearson_coeff, p_value, std_err = \
 			             stats.linregress( ground_truths, feature_values )
@@ -674,15 +681,18 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			new_fw.pearson_stderrs.append( std_err )
 			new_fw.pearson_p_values.append( p_value )
 
-			#r_val_squared_sum += pearson_coeff * pearson_coeff
-			r_val_cubed_sum += pearson_coeff * pearson_coeff * pearson_coeff
+			r_val_squared_sum += pearson_coeff * pearson_coeff
+			#r_val_cubed_sum += pearson_coeff * pearson_coeff * pearson_coeff
 
 			spearman_coeff, spearman_p_val = stats.spearmanr( ground_truths, feature_values )
 			new_fw.spearman_coeffs.append( spearman_coeff )
 			new_fw.spearman_p_values.append( spearman_p_val )
 
-		#new_fw.values = [val*val / r_val_squared_sum for val in new_fw.pearson_coeffs ]
-		new_fw.values = [val*val*val / r_val_cubed_sum for val in new_fw.pearson_coeffs ]
+		new_fw.values = [val*val / r_val_squared_sum for val in new_fw.pearson_coeffs ]
+		#new_fw.values = [val*val*val / r_val_cubed_sum for val in new_fw.pearson_coeffs ]
+		
+		# Reset numpy 
+		np.seterr (all='raise')
 
 		return new_fw
 
@@ -825,7 +835,7 @@ class Signatures( FeatureVector ):
 	Signatures is a concrete class inheriting from FeatureVector
 	that contains the image descriptor values, a.k.a. "Signatures", 
 	for a single image or ROI. It is the values contained in 
-	Signatures that are grouped together to form TrainingSets.
+	Signatures that are grouped together to form FeatureSets.
 
 	This class is mostly agnostic w.r.t. the types of image descriptors contained herein.
 	Previous implementations of WND-CHARM have defined a "small feature set" of
@@ -1291,20 +1301,20 @@ def GenerateWorkOrderFromListOfFeatureStrings( feature_list ):
 	return work_order, output_features_count
 
 #############################################################################
-# class definition of TrainingSet
+# class definition of FeatureSet
 #############################################################################
-class TrainingSet( object ):
-	"""An abstract base class inherited by DiscreteTrainingSet (used with FisherFeatureWeights)
-	and ContinuousTrainingSet (used with Pearson Corellation Coefficient-weighted 
+class FeatureSet( object ):
+	"""An abstract base class inherited by FeatureSet_Discrete (used with FisherFeatureWeights)
+	and FeatureSet_Continuous (used with Pearson Corellation Coefficient-weighted 
 	ContinuousFeatureWeights).
 
-	An instance of TrainingSet is one-half of a WND-CHARM classifier, the other half being the 
+	An instance of FeatureSet is one-half of a WND-CHARM classifier, the other half being the 
 	FeatureWeights instance.
 
-	The TrainingSet class is a container for sets of image descriptors, which are collected
-	into Numpy matrices organized by image class or ground truth. TrainingSets are also used
-	as containers for test images which have yet to be classified. TrainingSets can also be
-	randomly Split() into two subset TrainingSets to be used for cross-validation of a 
+	The FeatureSet class is a container for sets of image descriptors, which are collected
+	into Numpy matrices organized by image class or ground truth. FeatureSets are also used
+	as containers for test images which have yet to be classified. FeatureSets can also be
+	randomly Split() into two subset FeatureSets to be used for cross-validation of a 
 	classifier, one for training the other for testing."""
 
 	# source_path - could be the name of a .fit, or pickle file from which this
@@ -1341,7 +1351,7 @@ class TrainingSet( object ):
 	#: that have some discrete characteristics
 
 	#: A list of strings, length C
-	#: FIXME: these two belong in DiscreteTrainingSet
+	#: FIXME: these two belong in FeatureSet_Discrete
 	classnames_list = None
 	classsizes_list = None
 
@@ -1355,11 +1365,11 @@ class TrainingSet( object ):
 
 	#==============================================================
 	def __init__( self, data_dict = None ):
-		"""TrainingSet constructor"""
+		"""FeatureSet constructor"""
 
 		self.featurenames_list = []
 		self.imagenames_list = []
-		#: FIXME: these two belong in DiscreteTrainingSet
+		#: FIXME: these two belong in FeatureSet_Discrete
 		self.classnames_list = []
 		self.classsizes_list = []
 		self.interpolation_coefficients = []
@@ -1381,7 +1391,7 @@ class TrainingSet( object ):
 				self.feature_maxima = data_dict[ 'feature_maxima' ]
 			if "feature_minima" in data_dict:
 				self.feature_minima = data_dict[ 'feature_minima' ]
-			#: FIXME: these two belong in DiscreteTrainingSet
+			#: FIXME: these two belong in FeatureSet_Discrete
 			if "classnames_list" in data_dict:
 				self.classnames_list = data_dict[ 'classnames_list' ]
 			if "classsizes_list" in data_dict:
@@ -1405,7 +1415,7 @@ class TrainingSet( object ):
 	#==============================================================
 	@classmethod
 	def NewFromPickleFile( cls, pathname ):
-		"""Returns new instance of TrainingSet build from a saved pickle file,
+		"""Returns new instance of FeatureSet build from a saved pickle file,
 		with a filename ending in .fit.pickle"""
 
 		path, filename = os.path.split( pathname )
@@ -1413,7 +1423,7 @@ class TrainingSet( object ):
 			raise ValueError( 'Invalid pathname: {0}'.format( pathname ) )
 
 		if not filename.endswith( ".fit.pickled" ):
-			raise ValueError( 'Not a pickled TrainingSet file: {0}'.format( pathname ) )
+			raise ValueError( 'Not a pickled FeatureSet file: {0}'.format( pathname ) )
 
 		print "Loading Training Set from pickled file {0}".format( pathname )
 		the_training_set = None
@@ -1422,9 +1432,9 @@ class TrainingSet( object ):
 
 		# re-generate data_list views from data_matrix and classsizes_list
 		if ("data_list" in the_training_set.__dict__):
-			the_training_set.data_list = [0] * num_classes
+			the_training_set.data_list = [0] * the_training_set.num_classes
 			sample_row = 0
-			for i in range( num_classes ):
+			for i in range( the_training_set.num_classes ):
 				nrows = the_training_set.classsizes_list[i]
 				the_training_set.data_list[i] = the_training_set.data_matrix[sample_row : sample_row + nrows]
 				sample_row += nrows
@@ -1437,7 +1447,7 @@ class TrainingSet( object ):
 
 	#==============================================================
 	def PickleMe( self, pathname = None ):
-		"""Pickle this instance of TrainingSet and write to file whose path is optionally
+		"""Pickle this instance of FeatureSet and write to file whose path is optionally
 		specified by argument "pathname" """
 
 		outfile_pathname = ""
@@ -1498,7 +1508,7 @@ class TrainingSet( object ):
 	#==============================================================
 	@classmethod
 	def NewFromSignature( cls, signature, ts_name = "TestSet", ):
-		"""@brief Creates a new TrainingSet from a single signature."""
+		"""@brief Creates a new FeatureSet from a single signature."""
 		raise NotImplementedError()
 
 	#==============================================================
@@ -1552,7 +1562,7 @@ class TrainingSet( object ):
 					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
 				new_ts.AddSignature( sig, class_id_index )
 		
-		if isinstance( new_ts, DiscreteTrainingSet ):
+		if isinstance( new_ts, FeatureSet_Discrete ):
 			new_ts.num_classes = len( new_ts.data_list )
 
 		new_ts.Print()
@@ -1645,15 +1655,15 @@ class TrainingSet( object ):
 		"""Virtual method"""
 		raise NotImplementedError()
 
-# END TrainingSet class definition
+# END FeatureSet class definition
 
 #############################################################################
-# class definition of DiscreteTrainingSet
+# class definition of FeatureSet_Discrete
 #############################################################################
-class DiscreteTrainingSet( TrainingSet ):
-	"""One of two (thus far) concrete classes that inherit from the "TrainingSet" base class.
+class FeatureSet_Discrete( FeatureSet ):
+	"""One of two (thus far) concrete classes that inherit from the "FeatureSet" base class.
 
-	The difference in structure between "DiscreteTrainingSet" and "ContinuousTrainingSet"
+	The difference in structure between "FeatureSet_Discrete" and "FeatureSet_Continuous"
 	is that the former has the member "data_list", a Python list, in which the image
 	decompositions collected into a list of separate Numpy matrices,
 	one for each discrete class. The latter has the members "data_matix" and ground_truths,
@@ -1675,7 +1685,7 @@ class DiscreteTrainingSet( TrainingSet ):
 		"""constructor"""
 		self.data_list = []
 		
-		super( DiscreteTrainingSet, self ).__init__( data_dict )
+		super( FeatureSet_Discrete, self ).__init__( data_dict )
 
 		if data_dict != None:
 			if "data_list" in data_dict:
@@ -1683,8 +1693,8 @@ class DiscreteTrainingSet( TrainingSet ):
 
 	#==============================================================
 	def Print( self ):
-		"""Print basic info about this DiscreteTrainingSet"""
-		super( DiscreteTrainingSet, self ).Print()
+		"""Print basic info about this FeatureSet_Discrete"""
+		super( FeatureSet_Discrete, self ).Print()
 		class_index = 0
 		for class_name in self.classnames_list:
 			print '\tClass {0} "{1}": {2} images'.format(
@@ -1725,14 +1735,14 @@ class DiscreteTrainingSet( TrainingSet ):
 		if self.data_matrix is not None:
 			self.data_matrix.resize (self.num_images, self.num_features)
 		else:
-			print "called with empty data_matrix"
+			#print "called with empty data_matrix"
 			self.data_matrix = np.empty ([ self.num_images, self.num_features ], dtype='double')
 			copy_class = 0
 			copy_row = 0
 
 		# We need to start copying at the first non-view class mat to the end.
 		for class_index in range (copy_class, len (self.data_list)):
-			print "copy class"+str(class_index)
+			#print "copy class"+str(class_index)
 			nrows = self.data_list[class_index].shape[0]
 			self.data_matrix[copy_row : copy_row + nrows] = np.copy (self.data_list[class_index])
 			self.data_list[class_index] = self.data_matrix[copy_row : copy_row + nrows]
@@ -1859,7 +1869,7 @@ class DiscreteTrainingSet( TrainingSet ):
 	#==============================================================
 	@classmethod
 	def NewFromSignature( cls, signature, ts_name = "TestSet", ):
-		"""@brief Creates a new TrainingSet from a single signature"""
+		"""@brief Creates a new FeatureSet from a single signature"""
 
 		try:
 			signature.is_valid()
@@ -1978,9 +1988,9 @@ class DiscreteTrainingSet( TrainingSet ):
 
 	#==============================================================
 	def FeatureReduce( self, requested_features ):
-		"""Returns a new TrainingSet that contains a subset of the features
+		"""Returns a new FeatureSet that contains a subset of the features
 		arg requested_features is a tuple of features.
-		The returned TrainingSet will have features in the same order as they appear in
+		The returned FeatureSet will have features in the same order as they appear in
 		requested_features"""
 
 		# FIXME: Roll this function into parent class!!!!!!!!!
@@ -2000,7 +2010,7 @@ class DiscreteTrainingSet( TrainingSet ):
 			raise ValueError( err_str )
 
 		# copy everything but the signature data
-		reduced_ts = DiscreteTrainingSet()
+		reduced_ts = FeatureSet_Discrete()
 		reduced_ts.source_path = self.source_path + "(feature reduced)"
 		reduced_ts.num_classes = self.num_classes
 		assert reduced_ts.num_classes == len( self.data_list )
@@ -2039,7 +2049,7 @@ class DiscreteTrainingSet( TrainingSet ):
 
 	#==============================================================
 	def AddSignature( self, signature, class_id_index ):
-		""" AddSignature adds signatures quickly to a growing TrainingSet.
+		""" AddSignature adds signatures quickly to a growing FeatureSet.
 		To be quick, the signatures must be added in class index order
 		i.e., they are appended to the class-ordered feature matrix, so the class_id_index must be the
 		last valid class index, or the one after last.
@@ -2153,7 +2163,7 @@ class DiscreteTrainingSet( TrainingSet ):
 	#==============================================================
 	def Split( self, randomize = True, balanced_classes = False, training_set_fraction = 0.75,\
 	           i = None, j = None, training_set_only = False, quiet = False ):
-		"""Used for dividing the current TrainingSet into two subsets used for classifier
+		"""Used for dividing the current FeatureSet into two subsets used for classifier
 		cross-validation (i.e., training set and test set).
 		
 		Number of images in training and test sets are allocated by i and j, respectively
@@ -2188,7 +2198,7 @@ class DiscreteTrainingSet( TrainingSet ):
 		training_set.num_images = 0
 		training_set.num_classes = self.num_classes
 		training_set.classnames_list = self.classnames_list
-		training_set.classsizes_list = self.classsizes_list
+		training_set.classsizes_list = [ 0 ] * self.num_classes
 		training_set.featurenames_list = self.featurenames_list
 		training_set.num_features = len( self.featurenames_list )
 		training_set.imagenames_list = [ [] for j in range( self.num_classes ) ]
@@ -2202,7 +2212,7 @@ class DiscreteTrainingSet( TrainingSet ):
 			test_set.num_images = 0
 			test_set.num_classes = self.num_classes
 			test_set.classnames_list = self.classnames_list
-			test_set.classsizes_list = self.classsizes_list
+			test_set.classsizes_list = [ 0 ] * self.num_classes
 			test_set.featurenames_list = self.featurenames_list
 			test_set.num_features = len( self.featurenames_list )
 			test_set.imagenames_list = [ [] for j in range( self.num_classes ) ]
@@ -2219,6 +2229,9 @@ class DiscreteTrainingSet( TrainingSet ):
 				random.shuffle( image_lottery )
 
 			num_images_in_training_set = int( training_set_fraction * num_images )
+			training_set.classsizes_list[ class_index ] = num_images_in_training_set
+			if test_set:
+				test_set.classsizes_list[ class_index ] = num_images - num_images_in_training_set
 
 			training_matrix = None
 			test_matrix = None
@@ -2255,16 +2268,16 @@ class DiscreteTrainingSet( TrainingSet ):
 		return training_set, test_set
 
 
-# END DiscreteTrainingSet class definition
+# END FeatureSet_Discrete class definition
 
 
 #############################################################################
-# class definition of ContinuousTrainingSet
+# class definition of FeatureSet_Continuous
 #############################################################################
-class ContinuousTrainingSet( TrainingSet ):
-	"""One of two (thus far) concrete classes that inherit from the "TrainingSet" base class.
+class FeatureSet_Continuous( FeatureSet ):
+	"""One of two (thus far) concrete classes that inherit from the "FeatureSet" base class.
 
-	The difference in structure between "DiscreteTrainingSet" and "ContinuousTrainingSet"
+	The difference in structure between "FeatureSet_Discrete" and "FeatureSet_Continuous"
 	is that the former has the member "data_list", a Python list, in which the image
 	decompositions collected into a list of separate Numpy matrices,
 	one for each discrete class. The latter has the members "data_matix" and ground_truths,
@@ -2279,7 +2292,7 @@ class ContinuousTrainingSet( TrainingSet ):
 		# call parent constructor
 		self.ground_truths = []
 
-		super( ContinuousTrainingSet, self ).__init__( data_dict )
+		super( FeatureSet_Continuous, self ).__init__( data_dict )
 
 		if data_dict != None:
 			if "data_matrix" in data_dict:
@@ -2290,12 +2303,12 @@ class ContinuousTrainingSet( TrainingSet ):
 	#==============================================================
 	def Print( self ):
 		"""Calls parent class method"""
-		super( ContinuousTrainingSet, self ).Print()
+		super( FeatureSet_Continuous, self ).Print()
 
 	#==============================================================
 	@classmethod
 	def NewFromFitFile( cls, pathname ):
-		"""Construct a ContinuousTrainingSet from a ".fit" training set file created by 
+		"""Construct a FeatureSet_Continuous from a ".fit" training set file created by 
 		the C++ implentation of WND-CHARM."""
 
 		path, filename = os.path.split( pathname )
@@ -2402,9 +2415,9 @@ class ContinuousTrainingSet( TrainingSet ):
 
 	#==============================================================
 	def FeatureReduce( self, requested_features ):
-		"""Returns a new TrainingSet that contains a subset of the features
+		"""Returns a new FeatureSet that contains a subset of the features
 		arg requested_features is a tuple of features
-		the returned TrainingSet will have features in the same order as they appear in
+		the returned FeatureSet will have features in the same order as they appear in
 		     requested_features"""
 
 		# FIXME: Roll this function into parent class
@@ -2423,7 +2436,7 @@ class ContinuousTrainingSet( TrainingSet ):
 			raise ValueError( err_str )
 
 		# copy everything but the signature data
-		reduced_ts = ContinuousTrainingSet()
+		reduced_ts = FeatureSet_Continuous()
 		new_num_features = len( requested_features )
 		reduced_ts.source_path = self.source_path + "({0} features)".format( new_num_features )
 		reduced_ts.num_features = new_num_features
@@ -2442,7 +2455,9 @@ class ContinuousTrainingSet( TrainingSet ):
 		reduced_ts.feature_minima = np.empty (new_num_features)
 
 		# copy feature minima/maxima
-		if self.feature_maxima and self.feature_minima:
+		# Have to explicitly check for "is not None" due to exception:
+		# ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()
+		if (not self.feature_maxima == None) and (not self.feature_minima == None):
 			new_index = 0
 			for featurename in requested_features:
 				old_index = self.featurenames_list.index( featurename )
@@ -2494,7 +2509,7 @@ class ContinuousTrainingSet( TrainingSet ):
 	#==============================================================
 	def Split( self, randomize = True, training_set_fraction = 0.75,\
 	           i = None, j = None, training_set_only = False, quiet = False ):
-		"""Used for dividing the current TrainingSet into two subsets used for classifier
+		"""Used for dividing the current FeatureSet into two subsets used for classifier
 		cross-validation (i.e., training set and test set).
 		
 		Number of images in training and test sets are allocated by i and j, respectively
@@ -2563,7 +2578,7 @@ class ContinuousTrainingSet( TrainingSet ):
 		if self.classnames_list:
 			training_set.classnames_list = self.classnames_list
 		if self.classsizes_list:
-			training_set.classsizes_list = self.classsizes_list
+			training_set.classsizes_list = [ 0 ] * self.num_classes
 		if self.interpolation_coefficients:
 			training_set.interpolation_coefficients = self.interpolation_coefficients
 	
@@ -2577,7 +2592,7 @@ class ContinuousTrainingSet( TrainingSet ):
 			if self.classnames_list:
 				test_set.classnames_list = self.classnames_list
 			if self.classsizes_list:
-				test_set.classsizes_list = self.classsizes_list
+				test_set.classsizes_list = [ 0 ] * self.num_classes
 			if self.interpolation_coefficients:
 				test_set.interpolation_coefficients = self.interpolation_coefficients
 
@@ -2625,7 +2640,7 @@ class ContinuousTrainingSet( TrainingSet ):
 		
 		return training_set, test_set
 
-# END ContinuousTrainingSet class definition
+# END FeatureSet_Continuous class definition
 
 #=================================================================================
 class ClassificationResult( object ):
@@ -2788,8 +2803,8 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 		"""@brief: A wrapper function for _ClassifyOneImageWND5 that does dummyproofing
 		@return: An instance of a DiscreteBatchClassificationResult"""
 
-		if not isinstance( training_set, DiscreteTrainingSet ):
-			raise ValueError( 'First argument to NewWND5 must be of type "DiscreteTrainingSet", you gave a {0}'.format( type( training_set ).__name__ ) )
+		if not isinstance( training_set, FeatureSet_Discrete ):
+			raise ValueError( 'First argument to NewWND5 must be of type "FeatureSet_Discrete", you gave a {0}'.format( type( training_set ).__name__ ) )
 		
 		if not isinstance( feature_weights, FeatureWeights ):
 			raise ValueError( 'Second argument to NewWND5 must be of type "FeatureWeights" or derived class, you gave a {0}'.format( type( feature_weights ).__name__ ) )
@@ -2961,11 +2976,14 @@ class BatchClassificationResult( ClassificationResult ):
 			import math; from scipy import stats
 			self.figure_of_merit = math.sqrt( err_sum / self.num_classifications )
 
+			# For now, ignore "FloatingPointError: 'underflow encountered in stdtr'"
+			np.seterr (under='ignore')
 			slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
 			             stats.linregress( self.ground_truth_values, self.predicted_values )
 
 			self.spearman_coeff, self.spearman_p_value =\
 			       stats.spearmanr( self.ground_truth_values, self.predicted_values )
+			np.seterr (all='raise')
 
 
 	#==============================================================
@@ -3245,10 +3263,10 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		"""
 
 		# type checking
-		if not isinstance( training_set, DiscreteTrainingSet ):
-			raise ValueError( 'First argument to New must be of type "DiscreteTrainingSet", you gave a {0}'.format( type( test_set ).__name__ ) )	
-		if not isinstance( test_set, DiscreteTrainingSet ):
-			raise ValueError( 'Second argument to New must be of type "DiscreteTrainingSet", you gave a {0}'.format( type( test_set ).__name__ ) )	
+		if not isinstance( training_set, FeatureSet_Discrete ):
+			raise ValueError( 'First argument to New must be of type "FeatureSet_Discrete", you gave a {0}'.format( type( test_set ).__name__ ) )	
+		if not isinstance( test_set, FeatureSet_Discrete ):
+			raise ValueError( 'Second argument to New must be of type "FeatureSet_Discrete", you gave a {0}'.format( type( test_set ).__name__ ) )	
 		if not isinstance( feature_weights, FeatureWeights ):
 			raise ValueError( 'Third argument to New must be of type "FeatureWeights" or derived class, you gave a {0}'.format( type( feature_weights ).__name__ ) )
 	
@@ -3355,8 +3373,8 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		WND-CHARM. """
 
 		# type checking
-		if not isinstance( test_set, ContinuousTrainingSet ):
-			raise ValueError( 'First argument to New must be of type "ContinuousTrainingSet", you gave a {0}'.format( type( test_set ).__name__ ) )	
+		if not isinstance( test_set, FeatureSet_Continuous ):
+			raise ValueError( 'First argument to New must be of type "FeatureSet_Continuous", you gave a {0}'.format( type( test_set ).__name__ ) )	
 		if not isinstance( feature_weights, ContinuousFeatureWeights ):
 			raise ValueError( 'Second argument to New must be of type "ContinuousFeatureWeights", you gave a {0}'.format( type( feature_weights ).__name__ ) )
 
@@ -3609,7 +3627,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		for batch_result in self.individual_results:
 			if batch_result.figure_of_merit == None:
 				batch_result.GenerateStats()
-			print "{0}\t\"{1}\"\t{2:0.4f}".format( count, batch_result.name, batch_result.figure_of_merit )
+			print "{0}\t\"{1}\"\t{2:0.4f}".format( count, batch_result.name, batch_result.classification_accuracy )
 			count += 1
 
 #============================================================================
@@ -3657,11 +3675,14 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 		import math; from scipy import stats
 		self.figure_of_merit = math.sqrt( err_sum / self.num_classifications )
 
+		# For now, ignore "FloatingPointError: 'underflow encountered in stdtr'"
+		np.seterr (under='ignore')
 		slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
 								 stats.linregress( self.ground_truth_values, self.predicted_values )
 
 		self.spearman_coeff, self.spearman_p_value =\
 					 stats.spearmanr( self.ground_truth_values, self.predicted_values )
+		np.seterr (all='raise')
 
 
 	#=====================================================================
@@ -3877,412 +3898,13 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 #============================================================================
 class Dendrogram( object ):
 	"""Not implemented. In the future might use scipy.cluster (no unrooted dendrograms though!)
-	or Biopython.Phylo to visualize. Perhaps could continue c++ implementation's use of PHYLIP's
+	or Biopython.Phylo to visualize. Perhaps could continue C++ implementation's use of PHYLIP's
 	Fitch-Margoliash program "fitch" to generate Newick phylogeny, and visualize using
 	native python tools."""
 	pass
 
 
-#============================================================================
-def UnitTest1():
-	
-	weights_filepath = '/home/colettace/projects/eckley_worms/feature_weights.txt'
-
-	weights = FisherFeatureWeights.NewFromFile( weights_filepath )
-	weights.EliminateZeros()
-	weights.names = FeatureNameMap.TranslateToNewStyle( weights.names )
-
-	#big_ts = TrainingSet.NewFromFitFile( '/Users/chris/projects/josiah_worms_subset/trunk_train.fit' )
-	#big_ts.PickleMe()
-	big_ts = DiscreteTrainingSet.NewFromPickleFile( '/Users/chris/projects/josiah_worms_subset/trunk_train.fit.pickled' )
-	big_ts.featurenames_list = FeatureNameMap.TranslateToNewStyle( big_ts.featurenames_list )
-
-	reduced_ts = big_ts.FeatureReduce( weights.names )
-	reduced_ts.Normalize()
-	
-	result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, weights )
-
-#=========================================================================
-def UnitTest2():
-
-	ts = DiscreteTrainingSet.NewFromDirectory( '/home/colettace/projects/eckley_worms/TimeCourse',
-	                                   feature_set = "large" )
-	ts.PickleMe()
-	
-#================================================================
-def UnitTest3():
-
-	path = "Y24-2-2_GREEN.tif"
-	sigs = Signatures.LargeFeatureSet( path )
-	sigs.WriteFeaturesToASCIISigFile( "pychrm_calculated.sig" )
-
-#================================================================
-def UnitTest4( ):
-	"""testing FeatureTimingVersusAccuracy class"""
-
-	ts = DiscreteTrainingSet.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class_normalized_2873_features.fit.pickled" )
-	fw = FisherFeatureWeights.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/feature_weights_len_2873.weights.pickled" )
-	
-	path_to_image = "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/2012-03-20_13:40:34.tif"
-	
-	graph = FeatureTimingVersusAccuracyGraph( ts, fw, path_to_image )
-	graph.SaveToFile( "feature_timing_graph" )
-
-
-#================================================================
-def UnitTest5( max_features = 3 ):
-	"""Generate an accuracy curve as a function of number of features used in classification."""
-
-	mommy_feature_weights = FisherFeatureWeights.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/feature_weights_len_2873.weights.pickled" )
-	mommy_training_set = DiscreteTrainingSet.NewFromPickleFile( "/home/eckleyd/RealTimeClassification/FacingL7class_normalized.fit.pickled" )
-
-	experiment = DiscreteClassificationExperimentResult( training_set = mommy_training_set,\
-	                                             test_set = mommy_training_set, \
-	                                             feature_weights = mommy_feature_weights )
-
-	for number_of_features_to_use in range( 1, max_features ):
-
-		reduced_feature_weights = mommy_feature_weights.Threshold( number_of_features_to_use )
-		reduced_training_set = mommy_training_set.FeatureReduce( reduced_feature_weights.names )
-
-		split_result = DiscreteBatchClassificationResult.New( reduced_training_set, reduced_training_set,\
-																			 reduced_feature_weights )
-		split_result.Print()
-		experiment.individual_results.results.append( split_result )
-
-	experiment.Print()
-
-#================================================================
-def UnitTest6():
-	"""test of various Continuous classification functionality"""
-
-	#full_set = ContinuousTrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof" )	
-	#full_set = DiscreteTrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof" )	
-	#full_set.PickleMe()
-	full_set = ContinuousTrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof.fit.pickled" )
-	#full_set.Normalize()
-	#full_weights = ContinuousFeatureWeights.NewFromTrainingSet( full_set )
-
-
-	#num_splits = 10
-	#for i in range( num_splits ):
-
-	feature_rank = 10
-	while( feature_rank <= 50 ):
-		name = "synthetic features, scrambled ground truth, features {0}-{1}".format(\
-		         feature_rank - 10, feature_rank )
-		print name
-		experiment = ContinuousClassificationExperimentResult( name )
-		for i in range( 100 ):
-
-			full_training_set, full_test_set = full_set.Split( quiet = True )
-			full_training_set.Normalize( quiet = True )
-			full_test_set.Normalize( full_training_set, quiet = True )
-
-			full_training_set.ScrambleGroundTruths()
-
-			full_weights = ContinuousFeatureWeights.NewFromTrainingSet( full_training_set )
-			weights_subset = full_weights.Threshold(200)
-			weights_subset = weights_subset.Slice( feature_rank, feature_rank - 10 )
-			#weights_subset.Print( print_legend = False )
-
-			reduced_training_set = full_training_set.FeatureReduce( weights_subset.names )
-			reduced_test_set = full_test_set.FeatureReduce( weights_subset.names )
-
-			batch_result = ContinuousBatchClassificationResult.New( reduced_test_set, \
-												 weights_subset, quiet = True, batch_number = i )
-
-			experiment.individual_results.append( batch_result )
-		experiment.Print()
-		feature_rank += 10
-
-#		grapher = PredictedValuesGraph( batch_result )
-#		grapher.RankOrderedPredictedValuesGraph( "synthetic data set, {0}-{1}".format( feature_rank - 5, feature_rank)  )
-#		grapher.SaveToFile( "rank_ordered_synthetic_features_{0:02d}-{1}".format( feature_rank - 5, feature_rank)  )
-#
-#		grapher.KernelSmoothedDensityGraph( "synthetic data set,  {0}-{1}".format( feature_rank - 5, feature_rank)  )
-#		grapher.SaveToFile( "ks_density_synthetic_features_{0:02d}-{1}".format( feature_rank - 5, feature_rank)  )
-
-
-#================================================================
-def UnitTest7(max_features = 50):
-	"""try to find the number of features at which the predicted and ground truth values
-	correllates most"""
-
-	#ts = ContinuousTrainingSet.NewFromFileOfFiles( "/home/colettace/projects/kimmeljc_interp_stuff/Frames_CA3/mmu_list_01.txt", options = "-l" )
-	#ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
-	#ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/src/fake_signatures/classes/test_classes.fit" )
-	ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )
-	#ts = ContinuousTrainingSet.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/mmu_list_01.txt.fit.pickled" )
-	ts.Normalize()
-	#ts = ContinuousTrainingSet.NewFromFileOfFiles( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
-	#ts.PickleMe()
-	#ts = ContinuousTrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/continuous_data_set.fof.fit.pickled" )
-	#weights = ContinuousFeatureWeights.NewOptimizedFromTrainingSet( ts )	
-
-	weights = ContinuousFeatureWeights.NewFromTrainingSet( ts )
-	reduced_weights = weights.Threshold( 10 )
-
-	reduced_ts = ts.FeatureReduce( reduced_weights.names )
-
-	batch_result = ContinuousBatchClassificationResult.New( reduced_ts, reduced_weights )
-	batch_result.Print()
-
-	grapher = PredictedValuesGraph( batch_result )
-	grapher.RankOrderedPredictedValuesGraph( \
-	               "Josiah Terminal Bulb Interp vals using continuous classifier" )
-	grapher.SaveToFile( "RANK_ORDERED_josiah_continuous" )
-	grapher.KernelSmoothedDensityGraph( \
-	               "Josiah Terminal Bulb Interp Vals using continuous classifier" )
-	grapher.SaveToFile( "KS_DENSITY_josiah_continuous")
-
-
-#================================================================
-def UnitTest8():
-	"""Generate a series of graphs which show how interpolated values change
-	as a function of the number of features used in classification"""
-
-	#full_ts = DiscreteTrainingSet.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class_normalized_2873_features.fit.pickled" )
-	#full_fisher_weights = FisherFeatureWeights.NewFromPickleFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/feature_weights_len_2873.weights.pickled" )
-
-	#full_ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )	
-	#full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )
-
-	#full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
-	#full_ts.PickleMe()
-	discrete_full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
-	full_ts = ContinuousTrainingSet.NewFromFitFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
-
-	discrete_full_ts.Normalize()
-	full_ts.Normalize()
-
-	full_f_weights = FisherFeatureWeights.NewFromTrainingSet( discrete_full_ts )
-	full_weights = full_f_weights.EliminateZeros()
-	max_num_features = len( full_weights.names )
-	print "Max number of features: {0}".format( max_num_features )
-
-	#full_ts = discrete_full_ts.FeatureReduce( full_weights.names )
-	full_weights =  ContinuousFeatureWeights.NewFromTrainingSet( full_ts )
-
-	#experiment = DiscreteClassificationExperimentResult( training_set = full_ts,\
-	experiment = ClassificationExperimentResult( training_set = full_ts,\
-	                                             test_set = full_ts, \
-	                                             feature_weights = full_weights )
-
-	num_graphs = 50
-	feature_numbers = set() 
-
-	# sample a wide variety of numbers of features
-	for i in range( 1, num_graphs/2 + 1 ):
-		feature_numbers.add( int( float( i * 2 ) / num_graphs * max_num_features * 0.1) )
-		feature_numbers.add( int( float( i * 2 ) / num_graphs * max_num_features ) )
-
-	i = 1
-
-	for num_features_used in sorted( feature_numbers ):
-		print "\n\n==============================================================="
-		print "==============================================================="
-		print "New batch, number of features: {0}".format( num_features_used )
-		weights_subset = full_weights.Threshold( num_features_used )
-		reduced_ts = full_ts.FeatureReduce( weights_subset.names )
-		name = "{0:03d} Features".format( num_features_used )
-		#batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, \
-		batch_result = ContinuousBatchClassificationResult.New( reduced_ts, \
-		               weights_subset, batch_number = i, batch_name = name, quiet = True)
-		batch_result.Print()
-		grapher = PredictedValuesGraph( batch_result )
-
-		grapher.RankOrderedPredictedValuesGraph( \
-		  "FacingL7class Pred. Vals (cont-3 classifier, {0} features)".format( num_features_used ) )
-		grapher.SaveToFile( "RANK_ORDERED_term_bulb_cont3_{0:04d}_features".format( num_features_used ))
-
-		grapher.KernelSmoothedDensityGraph( \
-		  "FacingL7class Pred. Vals (cont-3 classifier, {0} features)".format( num_features_used ) )
-		grapher.SaveToFile( "KS_DENSITY_term_bulb_cont3_{0:04d}_features".format( num_features_used ) )
-
-		experiment.individual_results.append( batch_result )
-		i += 1
-	
-	#experiment.Print()
-	experiment.PredictedValueAnalysis()
-	experiment.WeightsOptimizationAnalysis()
-
-
-#================================================================
-
-def UnitTest9():
-
-	#full_ts = DiscreteTrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof" )	
-	full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/josiah_worms/terminal_bulb.fit" )	
-	#full_ts.PickleMe()
-	#full_ts = DiscreteTrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof.fit.pickled" )
-	full_ts.Normalize()
-	fisher_weights = FisherFeatureWeights.NewFromTrainingSet( full_ts )
-	#fisher_weights = fisher_weights.Threshold(2873)
-	fisher_weights.Print()
-
-
-#================================================================
-
-def UnitTest10():
-	"""Meant to exercize train/test/split functionality"""
-
-	#full_ts = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/eckley_state_classifier/FOFSimpleState.fit" )
-	#full_ts = DiscreteTrainingSet.NewFromPickleFile( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof.fit.pickled" )
-	full_ts = DiscreteTrainingSet.NewFromFileOfFiles( "/Users/chris/src/fake_signatures/classes/new_fake_sigs.fof" )
-	full_ts.Print()
-	#full_ts.Normalize()
-
-	experiment = DiscreteClassificationExperimentResult( training_set = full_ts )
-
-	scramble = False
-
-	num_splits = 3
-	for i in range( num_splits ):
-
-		training_set, test_set = full_ts.Split()
-
-		training_set.Normalize()
-		test_set.Normalize( training_set )
-
-		fisher_weights = FisherFeatureWeights.NewFromTrainingSet( training_set )
-		#fisher_weights = fisher_weights.Threshold(50)
-		fisher_weights = fisher_weights.Threshold( 50 )
-		fisher_weights = fisher_weights.Slice( 20, 30 )
-
-		if scramble: print "Fisher weights before:"
-		fisher_weights.Print()
-		reduced_test_set = test_set.FeatureReduce( fisher_weights.names )
-		reduced_training_set = training_set.FeatureReduce( fisher_weights.names )
-
-		if scramble:
-			scrambled_training_set = reduced_training_set.ScrambleGroundTruths()
-			scrambled_training_set.Normalize()
-			scrambled_fisher_weights = FisherFeatureWeights.NewFromTrainingSet( scrambled_training_set)
-			scrambled_fisher_weights = scrambled_fisher_weights.Threshold( 50 )
-			print "Fisher weights after:"
-			scrambled_fisher_weights.Print()
-
-			scrambled_fisher_weights = scrambled_fisher_weights.Threshold()
-			scrambled_training_set = scrambled_training_set.FeatureReduce( scrambled_fisher_weights.names )
-			reduced_test_set = reduced_test_set.FeatureReduce( scrambled_fisher_weights.names )
-			batch_result = DiscreteBatchClassificationResult.New( scrambled_training_set, \
-		               reduced_test_set, scrambled_fisher_weights, batch_number = i, quiet = True )
-		else:
-			batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, \
-		                  reduced_test_set, fisher_weights, batch_number = i, quiet = True )
-
-		batch_result.Print()
-		batch_result.PrintDistanceMatrix( \
-		         output_filepath = "/Users/chris/src/fake_signatures/classes/dend_file.txt",
-		         mode = "a")
-
-		experiment.individual_results.append( batch_result )
-
-		#grapher = PredictedValuesGraph( batch_result )
-		#grapher.RankOrderedPredictedValuesGraph( "synthetic data set, scrambled training set" )
-		#grapher.SaveToFile( "rank_ordered_synthetic_scrambled_graph{0}".format( i ) )
-	
-	experiment.PredictedValueAnalysis()
-
-
-#	full_ts.Normalize()
-#
-#	fisher_weights = FisherFeatureWeights.NewFromTrainingSet( full_ts )
-#	fisher_weights = fisher_weights.Threshold(50)
-#	fisher_weights.Print()
-#
-#
-#	training_set, test_set = full_ts.Split()
-#
-#	reduced_training_set = training_set.FeatureReduce( fisher_weights.names )
-#	reduced_test_set = test_set.FeatureReduce( fisher_weights.names )
-#
-#
-#	batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, \
-#	               reduced_test_set, fisher_weights, quiet = True )
-#	batch_result.Print()
-#	grapher = PredictedValuesGraph( batch_result )
-#	grapher.RankOrderedPredictedValuesGraph( "one split normalized first" )
-#	grapher.SaveToFile( "one_split_normalized_first" )
-
-
-#================================================================
-
-def UnitTest11():
-	"""Meant to test the functionality when the training set has less classes than the test set"""
-
-	full_training_set = DiscreteTrainingSet.NewFromFitFile( "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FOF.fit" )
-	full_training_set.Normalize()
-	full_feature_weights = FisherFeatureWeights.NewFromTrainingSet( full_training_set )
-
-	#full_test_set = DiscreteTrainingSet.NewFromFitFile(  "/Users/chris/projects/eckley_pychrm_interp_val_as_function_of_num_features/FacingL7class.fit" )
-	#full_test_set.Normalize()
-	full_test_set = full_training_set
-
-	experiment = DiscreteClassificationExperimentResult( training_set = full_training_set,\
-	                                             test_set = full_test_set, \
-	                                             feature_weights = full_feature_weights )
-
-	max_num_features = 1000
-	num_graphs = 50
-	feature_numbers = set() 
-
-	# sample a wide variety of numbers of features
-	for i in range( 1, num_graphs/2 + 1 ):
-		feature_numbers.add( int( float( i * 2 ) / num_graphs * max_num_features * 0.1) )
-		feature_numbers.add( int( float( i * 2 ) / num_graphs * max_num_features ) )
-
-	i = 1
-
-	for num_features_used in sorted( feature_numbers ):
-		print "\n\n==============================================================="
-		print "==============================================================="
-		print "New batch, number of features: {0}".format( num_features_used )
-		weights_subset = full_feature_weights.Threshold( num_features_used )
-		reduced_training_set = full_training_set.FeatureReduce( weights_subset.names )
-		reduced_test_set = full_test_set.FeatureReduce( weights_subset.names )
-		name = "{0:03d} Features".format( num_features_used )
-		batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, reduced_test_set, \
-		               weights_subset, batch_number = i, batch_name = name, quiet = True)
-		batch_result.Print()
-
-		
-		#grapher = PredictedValuesGraph( batch_result )
-
-		#chart_title = "FacingL7class against FOF ({0} features)".format( num_features_used )
-		#base_file_name = "_FOF_on_Facing_{0:03d}_features".format( num_features_used )
-
-		#grapher.RankOrderedPredictedValuesGraph( chart_title )
-		#grapher.SaveToFile( "RANK_ORDERED" + base_file_name )
-
-		#grapher.KernelSmoothedDensityGraph( chart_title )
-		#grapher.SaveToFile( "KS_DENSITY" + base_file_name )
-
-		experiment.individual_results.append( batch_result )
-		i += 1
-	
-	experiment.Print( output_filepath = "/Users/chris/projects/eckley_state_classifier/1000_features_sampled_50_times.txt")
-	experiment.WeightsOptimizationAnalysis( output_filepath = "/Users/chris/projects/eckley_state_classifier/1000_features_sampled_50_times.txt", mode = 'a')
-	experiment.PredictedValueAnalysis(  output_filepath = "/Users/chris/projects/eckley_state_classifier/1000_features_sampled_50_times.txt", mode = 'a')
-
-	
 #================================================================
 
 initialize_module()
 
-#================================================================
-if __name__=="__main__":
-	
-	#UnitTest1()
-	# UnitTest2()
-	# UnitTest3()
-	#UnitTest4()
-	#UnitTest5()
-	#UnitTest6()
-	#UnitTest7()
-	#UnitTest8()
-	#UnitTest9()
-	#UnitTest10()
-	UnitTest11()
-	# pass

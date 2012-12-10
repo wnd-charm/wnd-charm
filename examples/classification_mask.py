@@ -101,7 +101,7 @@ if from_scratch:
 	# Here's how:
 
 	# 1. Load the raw c-charm fit file
-	full_training_set = DiscreteTrainingSet.NewFromFitFile( input_filename )
+	full_training_set = FeatureSet_Discrete.NewFromFitFile( input_filename )
 
 	# 2. C-charm uses "Lior-style" feature names. Translate them into the new "Ilya-style"
 	full_training_set.featurenames_list = FeatureNameMap.TranslateToNewStyle( full_training_set.featurenames_list )
@@ -110,7 +110,7 @@ if from_scratch:
 	full_training_set.Normalize()
 
 	# 4. Make Fisher scores based on the normalized training set
-	full_fisher_weights = FisherFeatureWeights.NewFromTrainingSet( full_training_set )
+	full_fisher_weights = FisherFeatureWeights.NewFromFeatureSet( full_training_set )
 
 	# 5. Take only the top 200 features
 	reduced_fisher_weights = full_fisher_weights.Threshold( num_features )
@@ -123,7 +123,7 @@ if from_scratch:
 	reduced_fisher_weights.PickleMe( os.path.splitext(input_filename)[0] + "_w"+str(num_features)+".weights.pickled" )
 else:
 	# I've already done all that, just proceed from here:
-	reduced_training_set = DiscreteTrainingSet.NewFromPickleFile( pickled_features )
+	reduced_training_set = FeatureSet_Discrete.NewFromPickleFile( pickled_features )
 	reduced_fisher_weights = FisherFeatureWeights.NewFromPickleFile( pickled_weights )
 
 

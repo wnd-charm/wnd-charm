@@ -99,7 +99,7 @@ if from_scratch:
 	 
 	# 1a. Instantiate a FeaturesSet from a file, perhaps a ".fit" file from the
 	#    legacy C++ WND-CHARM implementation (a.k.a. "C-charm")
-	full_training_set = DiscreteTrainingSet.NewFromFitFile( input_filename )
+	full_training_set = FeatureSet_Discrete.NewFromFitFile( input_filename )
 
 	# 1b. Translate feature names from C-chrm style, to Pychrm style
 	full_training_set.featurenames_list = FeatureNameMap.TranslateToNewStyle( full_training_set.featurenames_list )
@@ -108,7 +108,7 @@ if from_scratch:
 	full_training_set.Normalize()
 
 	# 3. Make Fisher scores based on the normalized training set
-	full_fisher_weights = FisherFeatureWeights.NewFromTrainingSet( full_training_set )
+	full_fisher_weights = FisherFeatureWeights.NewFromFeatureSet( full_training_set )
 
 	# 4. Take only the top 200 features
 	reduced_fisher_weights = full_fisher_weights.Threshold( num_features )
@@ -122,7 +122,7 @@ if from_scratch:
 
 else:
 	# If you've already done all that, just proceed from here:
-	reduced_training_set = DiscreteTrainingSet.NewFromPickleFile( pickled_features )
+	reduced_training_set = FeatureSet_Discrete.NewFromPickleFile( pickled_features )
 	reduced_fisher_weights = FisherFeatureWeights.NewFromPickleFile( pickled_weights )
 
 

@@ -40,7 +40,7 @@ test_result_200 = [0.017,0.983]
 
 test_sigs = Signatures.NewFromSigFile( test_sig, test_tif )
 
-ts = DiscreteTrainingSet.NewFromFitFile( test_fit )
+ts = FeatureSet_Discrete.NewFromFitFile( test_fit )
 ts.featurenames_list = FeatureNameMap.TranslateToNewStyle( ts.featurenames_list )
 ts.Normalize()
 test_wghts = FisherFeatureWeights.NewFromFile (test_fit_wght)

@@ -31,10 +31,10 @@ max_mean_pass = 0.000001
 test_fit = os.path.join (test_dir,'test-l.fit')
 test_fit_wght = os.path.join (test_dir,'test_fit-l.weights')
 
-ts = DiscreteTrainingSet.NewFromFitFile( test_fit )
+ts = FeatureSet_Discrete.NewFromFitFile( test_fit )
 ts.featurenames_list = FeatureNameMap.TranslateToNewStyle( ts.featurenames_list )
 ts.Normalize()
-calc_wghts = FisherFeatureWeights.NewFromTrainingSet (ts)
+calc_wghts = FisherFeatureWeights.NewFromFeatureSet (ts)
 
 
 test_wghts = FisherFeatureWeights.NewFromFile (test_fit_wght)
