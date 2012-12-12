@@ -211,6 +211,21 @@ def normalize_by_columns ( full_stack, mins = None, maxs = None ):
 	np.seterr(**oldsettings)
 
 	return (mins,maxs)
+
+
+def CheckIfClassNamesAreInterpolatable( classnames_list ):
+
+	import re
+	interp_coeffs = []
+	for class_name in classnames_list:
+		m = re.search( r'(\d*\.?\d+)', class_name )
+		if m:
+			interp_coeffs.append( float( m.group(1) ) )
+		else:
+			interp_coeffs = None
+			break
+	return interp_coeffs
+
 # END: Initialize module level globals
 #===============================================================
 
@@ -895,9 +910,6 @@ class Signatures( FeatureVector ):
 		@argument path - path to a tiff file
 		@return An instance of the class Signatures for image with sigs calculated."""
 
-		print "====================================================================="
-		print "Calculating large feature set for file:"
-
 		the_sigs = cls()
 
 		# Try to find a file that corresponds to this image with signatures in it.
@@ -910,14 +922,19 @@ class Signatures( FeatureVector ):
 		if not "-l" in options_str:
 			options_str += "-l"
 
+		read_in_sig_file = False
 		if os.path.exists( root + options_str + ".pysig" ):
 			sigpath = root + options_str + ".pysig"
-			the_sigs = cls.NewFromSigFile( sigpath, imagepath, options_str )
+			read_in_sig_file = True
 		elif os.path.exists( root + options_str + ".sig" ):
 			sigpath = root + options_str + ".sig" 
-			the_sigs = cls.NewFromSigFile( sigpath, imagepath, options_str )
+			read_in_sig_file = True
 		else:
 			sigpath = root + options_str + ".pysig"
+
+		if read_in_sig_file:
+			print "{0}: reading in signature from file: {1}".format( imagepath, sigpath )
+			the_sigs = cls.NewFromSigFile( sigpath, imagepath, options_str )
 
 
 		# Check to see what, if anything was loaded from file. The file could be corrupted
@@ -926,6 +943,7 @@ class Signatures( FeatureVector ):
 		# and see if they match what was loaded from file
 		if len( the_sigs.names ) <= 0:
 			# All hope is lost. Calculate sigs
+			print "Calculating large feature set for file: {0}".format( imagepath )
 			global large_featureset_featuregroup_list
 			if options == None:
 				the_sigs = cls.NewFromFeatureGroupList( imagepath, large_featureset_featuregroup_list, "-l" )
@@ -1533,8 +1551,6 @@ class FeatureSet( object ):
 
 		classnames_set = set()
 
-		import re
-
 		with open( fof_path ) as fof:
 			for line in fof:
 				class_id_index = None
@@ -1548,9 +1564,6 @@ class FeatureSet( object ):
 					classnames_set.add( class_name )
 					new_ts.classnames_list.append( class_name )
 					class_id_index = len( new_ts.classnames_list ) - 1
-					m = re.search( r'(\d*\.?\d+)', class_name )
-					if m:
-						new_ts.interpolation_coefficients.append( float( m.group(1) ) )
 				else:
 					class_id_index = new_ts.classnames_list.index( class_name )
 
@@ -1561,6 +1574,9 @@ class FeatureSet( object ):
 				else:
 					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
 				new_ts.AddSignature( sig, class_id_index )
+
+		new_ts.interpolation_coefficients = \
+		                    CheckIfClassNamesAreInterpolatable( new_ts.classnames_list )
 		
 		if isinstance( new_ts, FeatureSet_Discrete ):
 			new_ts.num_classes = len( new_ts.data_list )
@@ -1842,20 +1858,8 @@ class FeatureSet_Discrete( FeatureSet ):
 			data_dict[ 'classsizes_list' ][i] = nrows
 			sample_row += nrows
 		data_dict[ 'data_matrix' ] = data_matrix
-
-		# Can the class names be interpolated?
-		tmp_vals = []
-		import re
-		for class_index in range( num_classes ):
-			# FIXME: not right - should be done using float(s) wrapped in a try/except
-			m = re.search( r'(\d*\.?\d+)', data_dict[ 'classnames_list' ][class_index] )
-			if m:
-				tmp_vals.append( float( m.group(1) ) )
-			else:
-				tmp_vals = None
-				break
-		if tmp_vals:
-			data_dict[ 'interpolation_coefficients' ] = tmp_vals
+		data_dict[ 'interpolation_coefficients' ] = \
+		                CheckIfClassNamesAreInterpolatable( data_dict[ 'classnames_list' ] )
 
 		# Instantiate the class
 		the_training_set = cls( data_dict )
@@ -1952,15 +1956,17 @@ class FeatureSet_Discrete( FeatureSet ):
 		new_ts.classnames_list = classnames_list
 		#new_ts.imagenames_list = imagenames_list  #taken care of by AddSignatures()
 		new_ts.source_path = top_level_dir_path
-		new_ts._ProcessSigCalculationSerially( feature_set, write_sig_files_todisk )
+		new_ts._ProcessSigCalculationSerially( imagenames_list, feature_set, write_sig_files_todisk )
 		if feature_set == "large":
 			# FIXME: add other options
 			new_ts.feature_options = "-l"
+		new_ts.interpolation_coefficients = CheckIfClassNamesAreInterpolatable( classnames_list )
+
 		return new_ts
 
 
 	#==============================================================
-	def _ProcessSigCalculationSerially( self, feature_set = "large", write_sig_files_to_disk = True, options = None ):
+	def _ProcessSigCalculationSerially( self, imagenames_list, feature_set = "large", write_sig_files_to_disk = True, options = None ):
 		"""Calculate image descriptors for all the images contained in self.imagenames_list"""
 
 		# FIXME: check to see if any .sig, or .pysig files exist that match our
@@ -1968,14 +1974,14 @@ class FeatureSet_Discrete( FeatureSet ):
 
 		sig = None
 		class_id = 0
-		for class_filelist in self.imagenames_list:
+		for class_filelist in imagenames_list:
 			for sourcefile in class_filelist:
 				if feature_set == "large":
 					sig = Signatures.LargeFeatureSet( sourcefile, options )
 				elif feature_set == "small":
 					sig = Signatures.SmallFeatureSet( sourcefile, options )
 				else:
-					raise ValueError( "sig calculation other than small and large feature set hasn't been implemented yet." )
+					raise ValueError( "You requested '{0}' feature set... sig calculation other than small and large feature set hasn't been implemented yet.".format( feature_set ) )
 				# FIXME: add all the other options
 				# check validity
 				if not sig:
@@ -2384,7 +2390,7 @@ class FeatureSet_Continuous( FeatureSet ):
 		return new_ts
 
 	#==============================================================
-	def _ProcessSigCalculationSerially( self, feature_set = "large", write_sig_files_to_disk = True, options = None ):
+	def _ProcessSigCalculationSerially( self, imagenames_list, feature_set = "large", write_sig_files_to_disk = True, options = None ):
 		"""Begin calculation of image features for the images listed in self.imagenames_list,
 		but do not use parallel computing/ create child processes to do so.
 		
@@ -2394,7 +2400,7 @@ class FeatureSet_Continuous( FeatureSet ):
 
 		sig = None
 		class_id = 0
-		for class_filelist in self.imagenames_list:
+		for class_filelist in imagenames_list:
 			for sourcefile in class_filelist:
 				if feature_set == "large":
 					sig = Signatures.LargeFeatureSet( sourcefile, options )
@@ -3251,6 +3257,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 	#==============================================================
 	@classmethod
+	@output_railroad_switch
 	def New( cls, training_set, test_set, feature_weights, batch_number = None, batch_name = None, quiet = False):
 		"""The equivalent of the "wndcharm classify" command in the command line implementation
 		of WND-CHARM. Input a training set, a test set, and feature weights, and returns a
