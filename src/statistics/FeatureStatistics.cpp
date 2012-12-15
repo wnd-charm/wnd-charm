@@ -273,8 +273,8 @@ int EulerNumber(ImageMatrix *Im, int FeatureNumber)
      for (y=0;y<cp->height;y++)
        for (x=0;x<cp->width;x++)
          if (cp->pixel(x,y,z).intensity>0)
-           cp->set(x,y,z,0);
-         else cp->set(x,y,z,1);
+           cp->SetInt(x,y,z,0);
+         else cp->SetInt(x,y,z,1);
    HolesNumber=cp->BWlabel(8);
 
    delete cp;
