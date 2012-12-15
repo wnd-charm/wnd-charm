@@ -158,7 +158,7 @@ int bwlabel(ImageMatrix *Im, int level)
 			  }
 			  
               stack_count-=1;
-              memcpy(stack,&(stack[1]),sizeof(point)*stack_count);
+              memmove(stack,&(stack[1]),sizeof(point)*stack_count);
            }
         }
      }
@@ -273,8 +273,8 @@ int EulerNumber(ImageMatrix *Im, int FeatureNumber)
      for (y=0;y<cp->height;y++)
        for (x=0;x<cp->width;x++)
          if (cp->pixel(x,y,z).intensity>0)
-           cp->pixel(x,y,z).intensity=0;
-         else cp->pixel(x,y,z).intensity=1;
+           cp->set(x,y,z,0);
+         else cp->set(x,y,z,1);
    HolesNumber=cp->BWlabel(8);
 
    delete cp;
