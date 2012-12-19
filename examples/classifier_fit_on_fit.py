@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                                                
@@ -24,6 +25,7 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Meant to exercize train/test/split functionality"""
+
 def get_featureset (input_filename):
 	# Get the classifier parameter(s)
 	if ( input_filename.endswith (".fit") ):
