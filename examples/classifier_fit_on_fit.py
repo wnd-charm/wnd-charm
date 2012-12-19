@@ -93,7 +93,7 @@ reduced_test_set = testing_featureset.FeatureReduce( fisher_weights.names )
 reduced_training_set = training_featureset.FeatureReduce( fisher_weights.names )
 
 batch_result = DiscreteBatchClassificationResult.New( reduced_training_set,
-	reduced_test_set, fisher_weights, batch_number = i )
+	reduced_test_set, fisher_weights, batch_number = 0 )
 
 
 experiment.individual_results.append( batch_result )
