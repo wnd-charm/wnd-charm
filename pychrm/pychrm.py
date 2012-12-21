@@ -261,7 +261,7 @@ class ImageMatrix(_object):
     def centroid(self, *args): return _pychrm.ImageMatrix_centroid(self, *args)
     def FeatureStatistics(self, *args): return _pychrm.ImageMatrix_FeatureStatistics(self, *args)
     def GaborFilters2D(self, *args): return _pychrm.ImageMatrix_GaborFilters2D(self, *args)
-    def HaarlickTexture2D(self, *args): return _pychrm.ImageMatrix_HaarlickTexture2D(self, *args)
+    def HaralickTexture2D(self, *args): return _pychrm.ImageMatrix_HaralickTexture2D(self, *args)
     def TamuraTexture2D(self, *args): return _pychrm.ImageMatrix_TamuraTexture2D(self, *args)
     def zernike2D(self, *args): return _pychrm.ImageMatrix_zernike2D(self, *args)
 ImageMatrix_swigregister = _pychrm.ImageMatrix_swigregister

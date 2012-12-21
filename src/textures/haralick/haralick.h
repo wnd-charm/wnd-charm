@@ -1,11 +1,11 @@
 //---------------------------------------------------------------------------
 
-#ifndef haarlickH
-#define haarlickH
+#ifndef haralickH
+#define haralickH
 //---------------------------------------------------------------------------
 
 #include "../../cmatrix.h"
 
-void haarlick2D(ImageMatrix *Im, double distance, double *out);
+void haralick2D(ImageMatrix *Im, double distance, double *out);
 
 #endif

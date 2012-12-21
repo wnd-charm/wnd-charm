@@ -8245,7 +8245,7 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_ImageMatrix_HaarlickTexture2D(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_ImageMatrix_HaralickTexture2D(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   ImageMatrix *arg1 = (ImageMatrix *) 0 ;
   double arg2 ;
@@ -8260,23 +8260,23 @@ SWIGINTERN PyObject *_wrap_ImageMatrix_HaarlickTexture2D(PyObject *SWIGUNUSEDPAR
   PyObject * obj1 = 0 ;
   PyObject * obj2 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)"OOO:ImageMatrix_HaarlickTexture2D",&obj0,&obj1,&obj2)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OOO:ImageMatrix_HaralickTexture2D",&obj0,&obj1,&obj2)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix_HaarlickTexture2D" "', argument " "1"" of type '" "ImageMatrix *""'"); 
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix_HaralickTexture2D" "', argument " "1"" of type '" "ImageMatrix *""'"); 
   }
   arg1 = reinterpret_cast< ImageMatrix * >(argp1);
   ecode2 = SWIG_AsVal_double(obj1, &val2);
   if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "ImageMatrix_HaarlickTexture2D" "', argument " "2"" of type '" "double""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "ImageMatrix_HaralickTexture2D" "', argument " "2"" of type '" "double""'");
   } 
   arg2 = static_cast< double >(val2);
   res3 = SWIG_ConvertPtr(obj2, &argp3,SWIGTYPE_p_double, 0 |  0 );
   if (!SWIG_IsOK(res3)) {
-    SWIG_exception_fail(SWIG_ArgError(res3), "in method '" "ImageMatrix_HaarlickTexture2D" "', argument " "3"" of type '" "double *""'"); 
+    SWIG_exception_fail(SWIG_ArgError(res3), "in method '" "ImageMatrix_HaralickTexture2D" "', argument " "3"" of type '" "double *""'"); 
   }
   arg3 = reinterpret_cast< double * >(argp3);
-  (arg1)->HaarlickTexture2D(arg2,arg3);
+  (arg1)->HaralickTexture2D(arg2,arg3);
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -13620,7 +13620,7 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"ImageMatrix_centroid", _wrap_ImageMatrix_centroid, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_FeatureStatistics", _wrap_ImageMatrix_FeatureStatistics, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_GaborFilters2D", _wrap_ImageMatrix_GaborFilters2D, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix_HaarlickTexture2D", _wrap_ImageMatrix_HaarlickTexture2D, METH_VARARGS, NULL},
+	 { (char *)"ImageMatrix_HaralickTexture2D", _wrap_ImageMatrix_HaralickTexture2D, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_TamuraTexture2D", _wrap_ImageMatrix_TamuraTexture2D, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_zernike2D", _wrap_ImageMatrix_zernike2D, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_swigregister", ImageMatrix_swigregister, METH_VARARGS, NULL},

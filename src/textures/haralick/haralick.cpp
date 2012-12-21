@@ -5,15 +5,15 @@
 #ifndef WIN32
 #include <stdlib.h>
 #endif
-#include "haarlick.h"
+#include "haralick.h"
 #include "CVIPtexture.h"
 
 //---------------------------------------------------------------------------
-/* haarlick
+/* haralick
    output -array of double- a pre-allocated array of 28 doubles
 */
 
-void haarlick2D(ImageMatrix *Im, double distance, double *out)
+void haralick2D(ImageMatrix *Im, double distance, double *out)
 {  int a,x,y;
    unsigned char **p_gray;
    TEXTURE *features;

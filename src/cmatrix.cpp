@@ -47,7 +47,7 @@
 #include "statistics/FeatureStatistics.h"
 #include "textures/gabor.h"
 #include "textures/tamura.h"
-#include "textures/haarlick/haarlick.h"
+#include "textures/haralick/haralick.h"
 #include "textures/zernike/zernike.h"
 
 #include <iostream>
@@ -1517,7 +1517,7 @@ double ImageMatrix::OtsuBinaryMaskTransform()
    for (long a=0;a<width*height*depth;a++)
      if (data[a].intensity>OtsuGlobalThreshold*max) data[a].intensity=1;
      else data[a].intensity=0;
-	 
+
    return(OtsuGlobalThreshold);
 }
 
@@ -1594,7 +1594,7 @@ void ImageMatrix::FeatureStatistics(int *count, int *Euler, double *centroid_x, 
       BWImage=BWInvert;
       BWInvert=temp;
       *count=inv_count;
-      BWImage->centroid(centroid_x,centroid_y,centroid_z);	  
+      BWImage->centroid(centroid_x,centroid_y,centroid_z);
    }
    delete BWInvert;
    *Euler=EulerNumber(BWImage,*count)+1;
@@ -1664,12 +1664,12 @@ void ImageMatrix::GaborFilters2D(double *ratios)
 }
 
 
-/* haarlick
+/* haralick
    output -array of double- a pre-allocated array of 28 doubles
 */
-void ImageMatrix::HaarlickTexture2D(double distance, double *out)
+void ImageMatrix::HaralickTexture2D(double distance, double *out)
 {  if (distance<=0) distance=1;
-   haarlick2D(this,distance,out);
+   haralick2D(this,distance,out);
 }
 
 /* MultiScaleHistogram

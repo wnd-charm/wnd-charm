@@ -120,7 +120,7 @@ std::vector<double> HaralickTextures::calculate( ImageMatrix * IN_matrix )
 	int i;
 
 	for( i = 0; i < n_features; i++ ) temp_vec[i] = 0;
-	IN_matrix->HaarlickTexture2D(0,temp_vec); // Note the misspelling
+	IN_matrix->HaralickTexture2D(0,temp_vec); // Note the misspelling
 	coeffs.assign( temp_vec, temp_vec + n_features);
 	return coeffs;
 }

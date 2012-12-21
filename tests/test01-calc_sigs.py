@@ -26,15 +26,15 @@ from pychrm import __version__ as pychrm_version
 # -------- END preamble to get the test data --------------------
 
 test_name = "Feature calculation"
-max_diff_pass = 0.000001
-max_mean_pass = 0.000001
+max_diff_pass = 0.0015
+max_mean_pass = 0.00001
 sig_file = os.path.join (test_dir,'t1_s01_c05_ij-l_precalculated.sig')
 test_tif = os.path.join (test_dir,'t1_s01_c05_ij.tif')
 
 test_sigs = Signatures.NewFromSigFile( sig_file, image_path = test_tif )
 calc_sigs = Signatures.NewFromFeatureNameList ( test_tif, test_sigs.names )
 
-epsilon = 0.00001
+epsilon = max_diff_pass / 10.
 max_diff = 0.
 sum_diff = 0.
 num_diffs = 0.

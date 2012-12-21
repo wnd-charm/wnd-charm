@@ -141,7 +141,7 @@ class ImageMatrix
                                     double *AreaMean, int *AreaMedian, double *AreaVar, int *area_histogram,double *DistMin, double *DistMax,
                                     double *DistMean, double *DistMedian, double *DistVar, int *dist_histogram, int num_bins);
    void GaborFilters2D(double *ratios);
-   void HaarlickTexture2D(double distance, double *out);
+   void HaralickTexture2D(double distance, double *out);
    void TamuraTexture2D(double *vec);
    void zernike2D(double *zvalues, long *output_size);
 };
