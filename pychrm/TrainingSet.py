@@ -146,6 +146,7 @@ def output_railroad_switch( method_that_prints_output ):
 
 	def print_method_wrapper( *args, **kwargs ):
 		
+		retval = None
 		if "output_filepath" in kwargs:
 			output_filepath = kwargs[ "output_filepath" ]
 			del kwargs[ "output_filepath" ]
@@ -159,11 +160,12 @@ def output_railroad_switch( method_that_prints_output ):
 			import sys
 			backup = sys.stdout
 			sys.stdout = open( output_filepath, mode )
-			method_that_prints_output( *args, **kwargs )
+			retval = method_that_prints_output( *args, **kwargs )
 			sys.stdout.close()
 			sys.stdout = backup
 		else:
-			method_that_prints_output( *args, **kwargs )
+			retval = method_that_prints_output( *args, **kwargs )
+		return retval
 
 	return print_method_wrapper
 
@@ -225,7 +227,6 @@ def CheckIfClassNamesAreInterpolatable( classnames_list ):
 			interp_coeffs = None
 			break
 	return interp_coeffs
-
 # END: Initialize module level globals
 #===============================================================
 
@@ -1863,10 +1864,6 @@ class FeatureSet_Discrete( FeatureSet ):
 
 		# Instantiate the class
 		the_training_set = cls( data_dict )
-
-		# normalize the features
-		#the_training_set.Normalize()
-		# no wait, don't normalize until we feature reduce!
 		
 		return the_training_set
 
@@ -2044,12 +2041,7 @@ class FeatureSet_Discrete( FeatureSet ):
 			new_index += 1
 
 		# regenerate the class views
-		sample_row = 0
-		reduced_ts.data_list = [0] * reduced_ts.num_classes
-		for class_index in range (reduced_ts.num_classes ):
-			nrows = reduced_ts.classsizes_list[class_index]
-			reduced_ts.data_list[class_index] = reduced_ts.data_matrix[sample_row : sample_row + nrows]
-			sample_row += nrows
+		reduced_ts._RegenerateClassViews()
 
 		return reduced_ts
 
@@ -2167,13 +2159,38 @@ class FeatureSet_Discrete( FeatureSet ):
 		return new_ts
 
 	#==============================================================
-	def Split( self, randomize = True, balanced_classes = False, training_set_fraction = 0.75,\
+	def Split( self, randomize = True, balanced_classes = False, training_set_fraction = None,\
 	           i = None, j = None, training_set_only = False, quiet = False ):
-		"""Used for dividing the current FeatureSet into two subsets used for classifier
-		cross-validation (i.e., training set and test set).
-		
-		Number of images in training and test sets are allocated by i and j, respectively
-		Otherwise they are given by training_set fraction."""
+		"""
+Used for dividing the current FeatureSet into two subsets used for classifier
+cross-validation (i.e., training set and test set).
+
+USE CASE LOGIC CHART
+--------------------
+
+b = balanced classes
+f = training_set_fraction
+i = num imgs per class in training set specified
+j = num samples in test set specified
+o = only training set wanted, skip test set
+
+N = not specified
+Y = specified
+R = made redundant by other options
+
+b?	f?	i?	j?	o?	outcome:
+--	--	--	--	--	--------
+N 	N 	N 	N 	N 	unbalanced training and test sets, default 75-25 split in each class, i's & j's different for each class
+N 	Y 	R 	R 	N 	unbalanced training and test sets, 75-25 default replaced, i's & j's different for each class
+N 	R 	Y 	N 	N 	balanced training set, detritus goes into the unbalanced test set
+N 	R 	N 	Y 	N 	balanced test set, detritus goes into the unbalanced training set
+R 	R 	Y 	Y 	N 	balanced training and test sets as specified by i & j
+N 	N 	N 	R 	Y 	unbalanced training set only, num samples in each class determined by fraction
+R 	R 	Y 	R 	Y 	balanced training set only, num samples specified by i
+Y 	N 	N 	N 	N 	balanced training and test sets, i=0.75*smallest class, j=0.25*smallest class
+Y 	Y 	R 	R 	N 	balanced training and test sets, as above but with 75-25 default replaced
+
+		"""
 
 		# FIXME: use np.random.shuffle(arr) - shuffles first dimension (rows) of multi-D numpy, so images in our case.
 		# If the class views are shuffled one-by-one, then the main matrix will be shuffled as well, but only within classes.
@@ -2189,9 +2206,87 @@ class FeatureSet_Discrete( FeatureSet ):
 		#	p = numpy.random.permuation(len(a))
 		#	return a[p], b[p]
 
+		# Shuffle in unison perhaps not the best way since it may not be necessary to shuffle
+		# all samples in a class? Also how is p = numpy.random.permuation(len(a)) different from
+		# currently used p = random.shuffle(range(a))? - CEC
 
-		if training_set_fraction <= 0 or training_set_fraction >= 1:
+
+		# Step 0: General Dummyproofing
+		smallest_class_size = self.NumSamplesInSmallestClass()
+
+		if i and( i <= 0 or i > smallest_class ):
+			raise ValueError( 'i must be greater than zero and less than total number of images'\
+			    + ' in smallest class ({0})'.format( smallest_class ) )
+
+		if j and( j <= 0 or j > smallest_class ):
+			raise ValueError( 'j must be greater than zero and less than total number of images'\
+			    + ' in smallest class ({0})'.format( smallest_class ) )
+
+		if ( i and j ) and ( ( i + j ) > smallest_class ):
+			raise ValueError( 'Values for i and j cannot add up to more than total number of images in smallest class ({0})'.format( smallest_class ) )
+		
+		if training_set_fraction and ( training_set_fraction < 0 or training_set_fraction > 1 ):
 			raise ValueError( "Training set fraction must be a number between 0 and 1" )
+
+		if j and ( j <= 0 ) and not training_set_only == True:
+			raise UserWarning( "j value of 0 implies only training set is desired" )
+			training_set_only = True
+
+		if training_set_fraction and ( training_set_fraction == 1.0 ) and not training_set_only == True:
+			raise UserWarning( "training set fraction value of 1 implies only training set is desired" )
+			training_set_only = True
+
+		if i and j and training_set_fraction:
+			raise ValueError( 'Conflicting input: You specified i, j and training_set fraction, which is redundant.' )
+
+		if j and ( j > 0 ):
+			raise ValueError( 'Conflicting input: You specified both a non-zero value for j, but also training_set_only set to true.')
+
+		# Specify defaults here instead of in method argument for the purpose of dummyproofing
+		if not training_set_fraction:
+			training_set_fraction = 0.75
+
+		# Step 1: Number of samples in training set
+		num_samples_in_training_set = None
+		if i:
+			num_samples_in_training_set = [ i ] * self.num_classes
+		elif balanced_classes and j:
+			num_samples_in_training_set = [ smallest_class_size - j ] * self.num_classes
+		elif balanced_classes and training_set_fraction:
+			num_samples_in_training_set = \
+			       [ int(round( training_set_fraction * smallest_class_size )) ] * self.num_classes
+		elif j:
+			# you want detritus to go into training set
+			num_samples_in_training_set = [ ( num - j ) for num in self.classsizes_list ]
+		else:
+			# unbalanced
+			num_samples_in_training_set = [ int(round( training_set_fraction * num )) for num in self.classsizes_list ]
+
+		# Step 2: Number of samples in test set
+		if not training_set_only:
+			num_samples_in_test_set = None
+			if j:
+				num_samples_in_test_set = [ j ] * self.num_classes
+			elif balanced_classes and i:
+				num_samples_in_test_set = [ smallest_class_size - i ] * self.num_classes
+			elif balanced_classes and training_set_fraction:
+				num_samples_in_test_set = [ (smallest_class_size - num) for num in num_samples_in_training_set ]
+			elif i:
+				# you want detritus to go into test set
+				num_samples_in_test_set = [ ( num - i ) for num in self.classsizes_list ]
+			else:
+				# you want an unbalanced test set
+				num_samples_in_test_set = [ int(round( (1.0-training_set_fraction) * num )) for num in self.classsizes_list ]
+
+
+		# Say what we're gonna do:
+		if not quiet:
+			print "\t" + "\t".join( self.classnames_list ) + "\ttotal:"
+			print "Train Set\t" + "\t".join( [ str(num) for num in num_samples_in_training_set ] ) + "\t{0}".format( sum( num_samples_in_training_set ) )
+			if not training_set_only:
+				print "Test Set\t" + "\t".join( [ str(num) for num in num_samples_in_test_set ] ) + "\t{0}".format( sum( num_samples_in_test_set ) )
+			if randomize:
+				print "Sample membership chosen at random."
 
 		if randomize:
 			import random
@@ -2204,7 +2299,7 @@ class FeatureSet_Discrete( FeatureSet ):
 		training_set.num_images = 0
 		training_set.num_classes = self.num_classes
 		training_set.classnames_list = self.classnames_list
-		training_set.classsizes_list = [ 0 ] * self.num_classes
+		training_set.classsizes_list = num_samples_in_training_set
 		training_set.featurenames_list = self.featurenames_list
 		training_set.num_features = len( self.featurenames_list )
 		training_set.imagenames_list = [ [] for j in range( self.num_classes ) ]
@@ -2218,61 +2313,77 @@ class FeatureSet_Discrete( FeatureSet ):
 			test_set.num_images = 0
 			test_set.num_classes = self.num_classes
 			test_set.classnames_list = self.classnames_list
-			test_set.classsizes_list = [ 0 ] * self.num_classes
+			test_set.classsizes_list = num_samples_in_test_set
 			test_set.featurenames_list = self.featurenames_list
 			test_set.num_features = len( self.featurenames_list )
 			test_set.imagenames_list = [ [] for j in range( self.num_classes ) ]
 			test_set.source_path = self.source_path + " (subset)"
 			if self.interpolation_coefficients:
 				test_set.interpolation_coefficients = self.interpolation_coefficients
-	
+
 		# assemble training and test sets
 		for class_index in range( self.num_classes ):
 
-			num_images = len( self.imagenames_list[ class_index] )
-			image_lottery = range( num_images )
+			# If randomize, choose samples at random, but once they're chosen, pack them into
+			# the FeatureSets in alphanumeric order.
+			sort_func = lambda A, B: cmp( self.imagenames_list[ class_index ][ A ], self.imagenames_list[ class_index ][ B ] )
+
+			num_images = self.classsizes_list[ class_index ]
+			sample_lottery = range( num_images )
 			if randomize:
-				random.shuffle( image_lottery )
+				random.shuffle( sample_lottery )
 
-			num_images_in_training_set = int( training_set_fraction * num_images )
-			training_set.classsizes_list[ class_index ] = num_images_in_training_set
-			if test_set:
-				test_set.classsizes_list[ class_index ] = num_images - num_images_in_training_set
+			# training set:
+			training_matrix = np.empty( [ training_set.classsizes_list[ class_index ], self.num_features ], dtype='double' )
 
-			training_matrix = None
-			test_matrix = None
+			training_samples = sample_lottery[ 0 : training_set.classsizes_list[ class_index ] ]
+			training_samples = sorted( training_samples, sort_func )
 
-			class_image_count = 0
-			for image_index in image_lottery:
-
-				image_name = self.imagenames_list[ class_index ][ image_index ]
-
-				if class_image_count < num_images_in_training_set:
-					# fill out training_set:
-					if training_matrix == None:
-						training_matrix = np.array( self.data_list[ class_index ][ image_index ] )
-					else:
-						training_matrix = np.vstack( ( training_matrix, \
-						    self.data_list[ class_index ][ image_index ] ) )
-					training_set.imagenames_list[ class_index ].append( image_name )
-					training_set.num_images += 1
-				else:
-					# fill out test set:
-					if test_matrix == None:
-						test_matrix = np.array( self.data_list[ class_index ][ image_index ] )
-					else:
-						test_matrix = np.vstack( ( test_matrix, \
-						    self.data_list[ class_index ][ image_index ] ) )
-					test_set.imagenames_list[ class_index ].append( image_name )
-					test_set.num_images += 1
-
-				class_image_count += 1
-
+			train_samp_count = 0
+			for sample_index in training_samples:
+				sample_name = self.imagenames_list[ class_index ][ sample_index ]
+				training_matrix[ train_samp_count,: ] = self.data_list[ class_index ][ sample_index ]
+				training_set.imagenames_list[ class_index ].append( sample_name )
+				training_set.num_images += 1
+				train_samp_count += 1
 			training_set.data_list[ class_index ] = training_matrix
-			test_set.data_list[ class_index ] = test_matrix
+
+			# test set:
+			if not training_set_only:
+				test_samp_count = 0
+				test_matrix = np.empty( [ test_set.classsizes_list[ class_index ], self.num_features ], dtype='double' )
+
+				test_samples = sample_lottery[ training_set.classsizes_list[ class_index ] : \
+				   training_set.classsizes_list[ class_index ] + test_set.classsizes_list[ class_index ] ]
+				test_samples = sorted( test_samples, sort_func )
+
+				for sample_index in test_samples:
+					sample_name = self.imagenames_list[ class_index ][ sample_index ]
+					test_matrix[ test_samp_count,: ] = self.data_list[ class_index ][ sample_index ]
+					test_set.imagenames_list[ class_index ].append( sample_name )
+					test_set.num_images += 1
+					test_samp_count += 1
+				test_set.data_list[ class_index ] = test_matrix
+
+		if training_set_only:
+			return training_set
 
 		return training_set, test_set
 
+	#==============================================================
+	def NumSamplesInSmallestClass( self ):
+		"""Method name says it all."""
+		return np.amin( np.array( [ len(samplenames) for samplenames in self.imagenames_list ] ) )
+	#==============================================================
+	def _RegenerateClassViews( self ):
+		"""Rebuild the views in self.data_list for convenient access."""
+
+		sample_row = 0
+		self.data_list = [0] * self.num_classes
+		for class_index in range( self.num_classes ):
+			nrows = self.classsizes_list[ class_index ]
+			self.data_list[class_index] = self.data_matrix[sample_row : sample_row + nrows]
+			sample_row += nrows
 
 # END FeatureSet_Discrete class definition
 
@@ -2293,7 +2404,7 @@ class FeatureSet_Continuous( FeatureSet ):
 	#: Ground truth numerical values accociated with each image
 	ground_truths = None
 
-	def __init__( self, data_dict = None):
+	def __init__( self, data_dict = None ):
 
 		# call parent constructor
 		self.ground_truths = []
@@ -2546,7 +2657,7 @@ class FeatureSet_Continuous( FeatureSet ):
 		else:
 			if training_set_fraction <= 0 or training_set_fraction >= 1:
 				raise ValueError( "Training set fraction must be a number between 0 and 1" )
-			num_images_in_training_set = int( training_set_fraction * self.num_images )
+			num_images_in_training_set = int( round( training_set_fraction * self.num_images ) )
 
 		if j:
 			if j <= 0:
@@ -3436,6 +3547,8 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 	#: A dictionary where the name is the key, and the value is a list of individual results
 	accumulated_individual_results = None
 
+	feature_weight_statistics = None
+
 	#: keep track of stats related to predicted values for reporting purposes
 	individual_stats = None
 	#=====================================================================
@@ -3449,8 +3562,27 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 		4. Hybrid test sets (discrete test sets loaded into a continuous test set)
 		   have "pseudo-classes," i.e., easily binnable ground truth values."""
 
-		#Step 1: aggregate all results across splits for individual images
-		raise NotImplementedError
+		# Step 1: feature weight statistics:
+
+		feature_weight_lists = {}
+		for batch_result in self.individual_results:
+			weight_names_and_values = zip( batch_result.feature_weights.names, batch_result.feature_weights.values)
+			for name, weight in weight_names_and_values:
+				if not name in feature_weight_lists:
+					feature_weight_lists[ name ] = []
+				feature_weight_lists[ name ].append( weight )
+
+		for feature_name in feature_weight_lists:
+			feature_weight_lists[ feature_name ] = np.array( feature_weight_lists[ feature_name ] )
+
+		fwl = feature_weight_lists
+		feature_weight_stats = [ (np.mean(fwl[fname]), len(fwl[fname]), np.std(fwl[fname]), np.min(fwl[fname]), np.max(fwl[fname]), fname) for fname in fwl ]
+		# Sort on mean values, i.e. index 0 of tuple created above
+		sort_func = lambda A, B: cmp( A[0], B[0] )
+		self.feature_weight_statistics = sorted( feature_weight_stats, sort_func, reverse = True )
+
+		#Step 2: aggregate all results across splits for individual images
+		# FIXME: Do it!
 
 
 	#=====================================================================
@@ -3499,9 +3631,9 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 		sort_func = lambda A, B: cmp( A, B ) if res_dict[A][0].ground_truth_value == res_dict[B][0].ground_truth_value else cmp( res_dict[A][0].ground_truth_value, res_dict[B][0].ground_truth_value  ) 
 		sorted_images = sorted( self.accumulated_individual_results.iterkeys(), sort_func )
 
-		for filename in sorted_images:
-			print 'File "' + filename + '"'
-			for result in self.accumulated_individual_results[ filename ]:
+		for samplename in sorted_images:
+			print 'File "' + samplename + '"'
+			for result in self.accumulated_individual_results[ samplename ]:
 
 				if isinstance( result, DiscreteImageClassificationResult ):
 					marg_probs = [ "{0:0.3f}".format( num ) for num in result.marginal_probabilities ]
@@ -3519,7 +3651,7 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 				else:
 					raise ValueError( 'expected an ImageClassification result but got a {0} class'.\
 				  	       format( type( result ).__name__ ) ) 
-			print outstr.format( *self.individual_stats[ filename ] )
+			print outstr.format( *self.individual_stats[ samplename ] )
 
 	#=====================================================================
 	@output_railroad_switch
@@ -3597,6 +3729,9 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		"""Not fully implemented yet. Need to implement generation of confusion, similarity, and
 		average class probability matrices from constituent batches."""
 
+		# Base class does feature weight analysis
+		super( DiscreteClassificationExperimentResult, self ).GenerateStats()
+		
 		self.num_correct_classifications = 0
 		for batch_result in self.individual_results:
 			for indiv_result in batch_result.individual_results:
@@ -3636,6 +3771,17 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 				batch_result.GenerateStats()
 			print "{0}\t\"{1}\"\t{2:0.4f}".format( count, batch_result.name, batch_result.classification_accuracy )
 			count += 1
+
+		outstr = "{0}\t{1:0.3f}\t{2}\t{3:0.3f}\t{4:0.3f}\t{5:0.3f}\t{6}"
+		print "Feature Weight Analysis:"
+		print "Rank\tmean\tcount\tStdDev\tMin\tMax\tName"
+		print "----\t----\t-----\t------\t---\t---\t----"
+		count = 1
+		for fw_stat in self.feature_weight_statistics:
+			print outstr.format( count, *fw_stat )
+			count += 1
+
+
 
 #============================================================================
 class ContinuousClassificationExperimentResult( ClassificationExperimentResult ):
@@ -3909,7 +4055,6 @@ class Dendrogram( object ):
 	Fitch-Margoliash program "fitch" to generate Newick phylogeny, and visualize using
 	native python tools."""
 	pass
-
 
 #================================================================
 
