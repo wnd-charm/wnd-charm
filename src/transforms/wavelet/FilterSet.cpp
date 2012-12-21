@@ -5,7 +5,6 @@ FilterSet::FilterSet (int symmetric,
 	     double *synLow, double *synHigh, int synLowSize, int synLowFirst, int synHighFirst  ) : 
              symmetric(symmetric) 
 {
-  int i, sign;
 
   analysisLow = new Filter (anLowSize, anLowFirst, anLow);
   analysisHigh = new Filter (anLowSize, anHighFirst, anHigh);

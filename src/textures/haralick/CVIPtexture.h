@@ -30,23 +30,23 @@
 typedef unsigned char u_int8_t;
    
 typedef struct  {
-	float ASM;          /*  (1) Angular Second Moment */
-	float contrast;     /*  (2) Contrast */
-	float correlation;  /*  (3) Correlation */
-	float variance;     /*  (4) Variance */
-	float IDM;		    /*  (5) Inverse Diffenence Moment */
-	float sum_avg;	    /*  (6) Sum Average */
-	float sum_var;	    /*  (7) Sum Variance */
-	float sum_entropy;	/*  (8) Sum Entropy */
-	float entropy;	    /*  (9) Entropy */
-	float diff_var;	    /* (10) Difference Variance */
-	float diff_entropy;	/* (11) Diffenence Entropy */
-	float meas_corr1;	/* (12) Measure of Correlation 1 */
-	float meas_corr2;	/* (13) Measure of Correlation 2 */
-	float max_corr_coef; /* (14) Maximal Correlation Coefficient */
+	double ASM;          /*  (1) Angular Second Moment */
+	double contrast;     /*  (2) Contrast */
+	double correlation;  /*  (3) Correlation */
+	double variance;     /*  (4) Variance */
+	double IDM;		    /*  (5) Inverse Diffenence Moment */
+	double sum_avg;	    /*  (6) Sum Average */
+	double sum_var;	    /*  (7) Sum Variance */
+	double sum_entropy;	/*  (8) Sum Entropy */
+	double entropy;	    /*  (9) Entropy */
+	double diff_var;	    /* (10) Difference Variance */
+	double diff_entropy;	/* (11) Diffenence Entropy */
+	double meas_corr1;	/* (12) Measure of Correlation 1 */
+	double meas_corr2;	/* (13) Measure of Correlation 2 */
+	double max_corr_coef; /* (14) Maximal Correlation Coefficient */
 	} TEXTURE;
 
 TEXTURE * Extract_Texture_Features(int distance, int angle,
-		 		register u_int8_t **grays, int rows, int cols, int max_val);
+		 		register u_int8_t **grays, unsigned int nrows, unsigned int ncols);
 
 #endif

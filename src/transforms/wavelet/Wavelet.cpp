@@ -197,7 +197,7 @@ void Wavelet::transform2D(DataGrid * data) {
 
 /* added here **********************************************************************/
 
-/* horizontal cooeficients */
+// horizontal cooeficients
 /*
 delete approx;
 delete detail;
@@ -252,7 +252,9 @@ delete tempGrid4;
 delete approx;
 delete detail;
 return;
-/* added here (end) **********************************************************************/
+
+added here (end) *********************************************************************
+*/
 
 
 
@@ -714,7 +716,6 @@ void Wavelet::transform3D(DataGrid * data) {
 	int oldx = indexx;
 	int oldy = indexy;
 	int oldz = indexz;
-	int count = 0;
 
 	// we need some fancy footwork here to store
 	// the data properly in a recursive manner and

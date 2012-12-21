@@ -32,7 +32,7 @@
 #define CombFirst4MomentsH
 //---------------------------------------------------------------------------
 
-#include "../cmatrix.h"
+#include "cmatrix.h"
 
 double kurtosis(double *vec, double avg, double std, int length);
 int CombFirst4Moments2D(ImageMatrix *Im, double *vec);

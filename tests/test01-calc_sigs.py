@@ -23,6 +23,16 @@ if not (test_dir):
 	print "{0} tests".format (sys.argv[0])
 	sys.exit(0)
 from pychrm import __version__ as pychrm_version
+def roundToSigFigs(num, n):
+	from math import log10, ceil, pow, fabs
+	if(num == 0):
+		return 0;
+	d = ceil(log10(fabs(num)));
+	power = n - int(d);
+	magnitude = pow(10, power);
+	shifted = round(num*magnitude);
+	return shifted/magnitude;
+
 # -------- END preamble to get the test data --------------------
 
 test_name = "Feature calculation"
@@ -43,6 +53,7 @@ for idx in range (len(calc_sigs.names)):
 	test_val = test_sigs.values[idx]
 	calc_val = calc_sigs.values[idx]
 	diff = abs(calc_val - test_val)
+# 	diff = abs(roundToSigFigs (calc_val,sig_figs) - roundToSigFigs (test_val,sig_figs))
 	sum_diff += diff
 	num_diffs += 1.0
 	if diff > max_diff:

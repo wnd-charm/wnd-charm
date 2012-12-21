@@ -173,26 +173,26 @@ typedef struct trapez_FUNCTION
 }trapez_function;
 
 /* membership functions */
-float hue_red_value(float value);
-float hue_dark_orange_value(float value);
-float hue_light_orange_value(float value);
-float hue_yellow_value(float value);
+double hue_red_value(double value);
+double hue_dark_orange_value(double value);
+double hue_light_orange_value(double value);
+double hue_yellow_value(double value);
 
-float grey_value(float value);
-float almost_grey_value(float value);
-float tend_grey_value(float value);
-float medium_grey_value(float value);
-float tend_clear_value(float value);
-float clear_value(float value);
+double grey_value(double value);
+double almost_grey_value(double value);
+double tend_grey_value(double value);
+double medium_grey_value(double value);
+double tend_clear_value(double value);
+double clear_value(double value);
 
-float dark_value(float value);
-float almost_dark_value(float value);
-float tend_dark_value(float value);
-float tend_light_value(float value);
-float light_value(float value);
+double dark_value(double value);
+double almost_dark_value(double value);
+double tend_dark_value(double value);
+double tend_light_value(double value);
+double light_value(double value);
 
-float CalculateRules2(float hue,float saturation,float value);
-long FindColor(short hue, short saturation, short value, float *certainties);
+double CalculateRules2(double hue,double saturation,double value);
+long FindColor(short hue, short saturation, short value, double *certainties);
 int color2num(char *color);
 int saturation2num(char *saturation);
 int value2num(char *value);
@@ -201,7 +201,7 @@ TColor num2tcolor(int color);
 void SetColors();
 int LoadRules(char *filename);
 int LoadColorsFunctions(char *filename);
-float color_value(int color_index, double color);
+double color_value(int color_index, double color);
 //---------------------------------------------------------------------------
 #endif
 

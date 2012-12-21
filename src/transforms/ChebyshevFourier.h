@@ -32,9 +32,9 @@
 #define ChebishevFourierH
 //---------------------------------------------------------------------------
 
-#include "../cmatrix.h"
+#include "cmatrix.h"
 
 #include <vector>
-void ChebyshevFourier2D(ImageMatrix *Im, long N, double *coeff_packed, int packingOrder);
+void ChebyshevFourier2D(ImageMatrix *Im, unsigned long N, double *coeff_packed, unsigned int packingOrder);
 
 #endif

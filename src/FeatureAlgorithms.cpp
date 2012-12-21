@@ -60,10 +60,9 @@ std::vector<double> ChebyshevCoefficients::calculate( ImageMatrix * IN_matrix )
 	coeffs.reserve(n_features-1);
 	double temp_vec [32];
 
-	ImageMatrix * temp = IN_matrix->duplicate();
+	ImageMatrix temp (*IN_matrix);
 	for( int i = 0; i < n_features; i++ ) temp_vec[i] = 0;
-	temp->ChebyshevStatistics2D(temp_vec, 0, 32);
-	delete temp;
+	temp.ChebyshevStatistics2D(temp_vec, 0, 32);
 	coeffs.assign( temp_vec, temp_vec + n_features);
 
 	return coeffs;
@@ -120,7 +119,7 @@ std::vector<double> HaralickTextures::calculate( ImageMatrix * IN_matrix )
 	int i;
 
 	for( i = 0; i < n_features; i++ ) temp_vec[i] = 0;
-	IN_matrix->HaralickTexture2D(0,temp_vec); // Note the misspelling
+	IN_matrix->HaralickTexture2D(0,temp_vec);
 	coeffs.assign( temp_vec, temp_vec + n_features);
 	return coeffs;
 }
@@ -265,9 +264,10 @@ std::vector<double> FractalFeatures::calculate( ImageMatrix * IN_matrix )
 	int bins = n_features;
 	int width = IN_matrix->width;
 	int height = IN_matrix->height;
+	readOnlyPixels IN_matrix_pix_plane = IN_matrix->ReadOnlyPixels();
 	int x, y, k, bin = 0;
 	int K = ( ( width > height ) ? height : width) / 5; // MIN
-	int step = (long) floor ( K / bins );
+	int step = (int) floor ( K / bins );
 	if( step < 1 )
 		step = 1;   // avoid an infinite loop if the image is small
 	for( k = 1; k < K; k = k + step )
@@ -275,10 +275,10 @@ std::vector<double> FractalFeatures::calculate( ImageMatrix * IN_matrix )
 		double sum = 0.0;
 		for( x = 0; x < width; x++ )
 			for( y = 0; y < height - k; y++ )
-				sum += fabs( IN_matrix->pixel( x, y, 0 ).intensity - IN_matrix->pixel( x, y+k, 0 ).intensity );
+				sum += fabs( IN_matrix_pix_plane(y,x) - IN_matrix_pix_plane(y+k,x) );
 		for( x = 0; x < width - k; x++ )
 			for( y = 0; y < height; y++ )
-				sum += fabs( IN_matrix->pixel( x, y, 0 ).intensity - IN_matrix->pixel( x + k, y, 0 ).intensity );
+				sum += fabs( IN_matrix_pix_plane(y,x) - IN_matrix_pix_plane(y,x + k) );
 		if( bin < bins )
 			temp_vec[ bin++ ] = sum / ( width * ( width - k ) + height * ( height - k ) );    
 	}
@@ -335,9 +335,8 @@ std::vector<double> EdgeFeatures::calculate( ImageMatrix * IN_matrix )
 	}
 	coeffs.reserve(n_features-1);
 
-	long EdgeArea = 0;
+	unsigned long EdgeArea = 0;
 	double MagMean=0, MagMedian=0, MagVar=0, MagHist[8]={0,0,0,0,0,0,0,0}, DirecMean=0, DirecMedian=0, DirecVar=0, DirecHist[8]={0,0,0,0,0,0,0,0}, DirecHomogeneity=0, DiffDirecHist[4]={0,0,0,0};
-
 	IN_matrix->EdgeStatistics(&EdgeArea, &MagMean, &MagMedian, &MagVar, MagHist, &DirecMean, &DirecMedian, &DirecVar, DirecHist, &DirecHomogeneity, DiffDirecHist, 8);
 
 	int j;
@@ -391,7 +390,9 @@ std::vector<double> ObjectFeatures::calculate( ImageMatrix * IN_matrix )
 	}
 	coeffs.reserve(n_features-1);
 
-	int feature_count=0, Euler=0, AreaMin=0, AreaMax=0, AreaMedian=0,
+	unsigned long feature_count=0, AreaMin=0, AreaMax=0;
+	long Euler=0;
+	unsigned int AreaMedian=0,
 			area_histogram[10]={0,0,0,0,0,0,0,0,0,0},
 			dist_histogram[10]={0,0,0,0,0,0,0,0,0,0};
 
@@ -399,7 +400,7 @@ std::vector<double> ObjectFeatures::calculate( ImageMatrix * IN_matrix )
 				 DistMax=0, DistMean=0, DistMedian=0, DistVar=0;
 
 	IN_matrix->FeatureStatistics(&feature_count, &Euler, &centroid_x, &centroid_y,
-			NULL, &AreaMin, &AreaMax, &AreaMean, &AreaMedian,
+			&AreaMin, &AreaMax, &AreaMean, &AreaMedian,
 			&AreaVar, area_histogram, &DistMin, &DistMax,
 			&DistMean, &DistMedian, &DistVar, dist_histogram, 10);
 
@@ -482,8 +483,7 @@ GiniCoefficient::GiniCoefficient() {
 	//cout << "Instantiating new " << name << " object." << endl;
 }
 
-std::vector<double> GiniCoefficient::calculate( ImageMatrix * IN_matrix )
-{
+std::vector<double> GiniCoefficient::calculate( ImageMatrix * IN_matrix ) {
 	std::vector<double> coeffs;
 	std::cout << "calculating " << name << std::endl;
 	if( IN_matrix == NULL ) {
@@ -498,17 +498,20 @@ std::vector<double> GiniCoefficient::calculate( ImageMatrix * IN_matrix )
 	long pixel_index, num_pixels;
 	double *pixels, mean = 0.0, g = 0.0;
 	long i, count = 0;
+	double val;
 
-	num_pixels = IN_matrix->height * IN_matrix->width * IN_matrix->depth;
+	num_pixels = IN_matrix->height * IN_matrix->width;
 	pixels = new double[ num_pixels ];
 
-	for( pixel_index = 0; pixel_index < num_pixels; pixel_index++ )
-		if( IN_matrix->data[ pixel_index ].intensity > 0 )
-		{
-			pixels[ count ] = IN_matrix->data[ pixel_index ].intensity;
-			mean += IN_matrix->data[ pixel_index ].intensity;
+	readOnlyPixels IN_matrix_pix_plane = IN_matrix->ReadOnlyPixels();
+	for( pixel_index = 0; pixel_index < num_pixels; pixel_index++ ) {
+		val = IN_matrix_pix_plane.array().coeff(pixel_index);
+		if( val > 0 ) {
+			pixels[ count ] = val;
+			mean += val;
 			count++;
 		}
+	}
 	if( count > 0 )
 		mean = mean / count;
 	qsort( pixels, count, sizeof(double), compare_doubles );

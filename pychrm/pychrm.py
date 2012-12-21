@@ -67,24 +67,23 @@ except AttributeError:
     _newclass = 0
 
 
-cmRGB = _pychrm.cmRGB
-cmHSV = _pychrm.cmHSV
 INF = _pychrm.INF
+EPSILON = _pychrm.EPSILON
 class RGBcolor(_object):
     __swig_setmethods__ = {}
     __setattr__ = lambda self, name, value: _swig_setattr(self, RGBcolor, name, value)
     __swig_getmethods__ = {}
     __getattr__ = lambda self, name: _swig_getattr(self, RGBcolor, name)
     __repr__ = _swig_repr
-    __swig_setmethods__["red"] = _pychrm.RGBcolor_red_set
-    __swig_getmethods__["red"] = _pychrm.RGBcolor_red_get
-    if _newclass:red = _swig_property(_pychrm.RGBcolor_red_get, _pychrm.RGBcolor_red_set)
-    __swig_setmethods__["green"] = _pychrm.RGBcolor_green_set
-    __swig_getmethods__["green"] = _pychrm.RGBcolor_green_get
-    if _newclass:green = _swig_property(_pychrm.RGBcolor_green_get, _pychrm.RGBcolor_green_set)
-    __swig_setmethods__["blue"] = _pychrm.RGBcolor_blue_set
-    __swig_getmethods__["blue"] = _pychrm.RGBcolor_blue_get
-    if _newclass:blue = _swig_property(_pychrm.RGBcolor_blue_get, _pychrm.RGBcolor_blue_set)
+    __swig_setmethods__["r"] = _pychrm.RGBcolor_r_set
+    __swig_getmethods__["r"] = _pychrm.RGBcolor_r_get
+    if _newclass:r = _swig_property(_pychrm.RGBcolor_r_get, _pychrm.RGBcolor_r_set)
+    __swig_setmethods__["g"] = _pychrm.RGBcolor_g_set
+    __swig_getmethods__["g"] = _pychrm.RGBcolor_g_get
+    if _newclass:g = _swig_property(_pychrm.RGBcolor_g_get, _pychrm.RGBcolor_g_set)
+    __swig_setmethods__["b"] = _pychrm.RGBcolor_b_set
+    __swig_getmethods__["b"] = _pychrm.RGBcolor_b_get
+    if _newclass:b = _swig_property(_pychrm.RGBcolor_b_get, _pychrm.RGBcolor_b_set)
     def __init__(self): 
         this = _pychrm.new_RGBcolor()
         try: self.this.append(this)
@@ -100,15 +99,15 @@ class HSVcolor(_object):
     __swig_getmethods__ = {}
     __getattr__ = lambda self, name: _swig_getattr(self, HSVcolor, name)
     __repr__ = _swig_repr
-    __swig_setmethods__["hue"] = _pychrm.HSVcolor_hue_set
-    __swig_getmethods__["hue"] = _pychrm.HSVcolor_hue_get
-    if _newclass:hue = _swig_property(_pychrm.HSVcolor_hue_get, _pychrm.HSVcolor_hue_set)
-    __swig_setmethods__["saturation"] = _pychrm.HSVcolor_saturation_set
-    __swig_getmethods__["saturation"] = _pychrm.HSVcolor_saturation_get
-    if _newclass:saturation = _swig_property(_pychrm.HSVcolor_saturation_get, _pychrm.HSVcolor_saturation_set)
-    __swig_setmethods__["value"] = _pychrm.HSVcolor_value_set
-    __swig_getmethods__["value"] = _pychrm.HSVcolor_value_get
-    if _newclass:value = _swig_property(_pychrm.HSVcolor_value_get, _pychrm.HSVcolor_value_set)
+    __swig_setmethods__["h"] = _pychrm.HSVcolor_h_set
+    __swig_getmethods__["h"] = _pychrm.HSVcolor_h_get
+    if _newclass:h = _swig_property(_pychrm.HSVcolor_h_get, _pychrm.HSVcolor_h_set)
+    __swig_setmethods__["s"] = _pychrm.HSVcolor_s_set
+    __swig_getmethods__["s"] = _pychrm.HSVcolor_s_get
+    if _newclass:s = _swig_property(_pychrm.HSVcolor_s_get, _pychrm.HSVcolor_s_set)
+    __swig_setmethods__["v"] = _pychrm.HSVcolor_v_set
+    __swig_getmethods__["v"] = _pychrm.HSVcolor_v_get
+    if _newclass:v = _swig_property(_pychrm.HSVcolor_v_get, _pychrm.HSVcolor_v_set)
     def __init__(self): 
         this = _pychrm.new_HSVcolor()
         try: self.this.append(this)
@@ -118,48 +117,9 @@ class HSVcolor(_object):
 HSVcolor_swigregister = _pychrm.HSVcolor_swigregister
 HSVcolor_swigregister(HSVcolor)
 
-class color(_object):
-    __swig_setmethods__ = {}
-    __setattr__ = lambda self, name, value: _swig_setattr(self, color, name, value)
-    __swig_getmethods__ = {}
-    __getattr__ = lambda self, name: _swig_getattr(self, color, name)
-    __repr__ = _swig_repr
-    __swig_setmethods__["RGB"] = _pychrm.color_RGB_set
-    __swig_getmethods__["RGB"] = _pychrm.color_RGB_get
-    if _newclass:RGB = _swig_property(_pychrm.color_RGB_get, _pychrm.color_RGB_set)
-    __swig_setmethods__["HSV"] = _pychrm.color_HSV_set
-    __swig_getmethods__["HSV"] = _pychrm.color_HSV_get
-    if _newclass:HSV = _swig_property(_pychrm.color_HSV_get, _pychrm.color_HSV_set)
-    def __init__(self): 
-        this = _pychrm.new_color()
-        try: self.this.append(this)
-        except: self.this = this
-    __swig_destroy__ = _pychrm.delete_color
-    __del__ = lambda self : None;
-color_swigregister = _pychrm.color_swigregister
-color_swigregister(color)
-
-class pix_data(_object):
-    __swig_setmethods__ = {}
-    __setattr__ = lambda self, name, value: _swig_setattr(self, pix_data, name, value)
-    __swig_getmethods__ = {}
-    __getattr__ = lambda self, name: _swig_getattr(self, pix_data, name)
-    __repr__ = _swig_repr
-    __swig_setmethods__["clr"] = _pychrm.pix_data_clr_set
-    __swig_getmethods__["clr"] = _pychrm.pix_data_clr_get
-    if _newclass:clr = _swig_property(_pychrm.pix_data_clr_get, _pychrm.pix_data_clr_set)
-    __swig_setmethods__["intensity"] = _pychrm.pix_data_intensity_set
-    __swig_getmethods__["intensity"] = _pychrm.pix_data_intensity_get
-    if _newclass:intensity = _swig_property(_pychrm.pix_data_intensity_get, _pychrm.pix_data_intensity_set)
-    def __init__(self): 
-        this = _pychrm.new_pix_data()
-        try: self.this.append(this)
-        except: self.this = this
-    __swig_destroy__ = _pychrm.delete_pix_data
-    __del__ = lambda self : None;
-pix_data_swigregister = _pychrm.pix_data_swigregister
-pix_data_swigregister(pix_data)
-
+cmRGB = _pychrm.cmRGB
+cmHSV = _pychrm.cmHSV
+cmGRAY = _pychrm.cmGRAY
 class rect(_object):
     __swig_setmethods__ = {}
     __setattr__ = lambda self, name, value: _swig_setattr(self, rect, name, value)
@@ -191,15 +151,36 @@ rect_swigregister(rect)
 def compare_doubles(*args):
   return _pychrm.compare_doubles(*args)
 compare_doubles = _pychrm.compare_doubles
+
+def RGB2HSV(*args):
+  return _pychrm.RGB2HSV(*args)
+RGB2HSV = _pychrm.RGB2HSV
+
+def HSV2RGB(*args):
+  return _pychrm.HSV2RGB(*args)
+HSV2RGB = _pychrm.HSV2RGB
+
+def RGB2GRAY(*args):
+  return _pychrm.RGB2GRAY(*args)
+RGB2GRAY = _pychrm.RGB2GRAY
 class ImageMatrix(_object):
     __swig_setmethods__ = {}
     __setattr__ = lambda self, name, value: _swig_setattr(self, ImageMatrix, name, value)
     __swig_getmethods__ = {}
     __getattr__ = lambda self, name: _swig_getattr(self, ImageMatrix, name)
     __repr__ = _swig_repr
-    __swig_setmethods__["data"] = _pychrm.ImageMatrix_data_set
-    __swig_getmethods__["data"] = _pychrm.ImageMatrix_data_get
-    if _newclass:data = _swig_property(_pychrm.ImageMatrix_data_get, _pychrm.ImageMatrix_data_set)
+    __swig_setmethods__["_pix_plane"] = _pychrm.ImageMatrix__pix_plane_set
+    __swig_getmethods__["_pix_plane"] = _pychrm.ImageMatrix__pix_plane_get
+    if _newclass:_pix_plane = _swig_property(_pychrm.ImageMatrix__pix_plane_get, _pychrm.ImageMatrix__pix_plane_set)
+    __swig_setmethods__["_clr_plane"] = _pychrm.ImageMatrix__clr_plane_set
+    __swig_getmethods__["_clr_plane"] = _pychrm.ImageMatrix__clr_plane_get
+    if _newclass:_clr_plane = _swig_property(_pychrm.ImageMatrix__clr_plane_get, _pychrm.ImageMatrix__clr_plane_set)
+    __swig_setmethods__["_is_pix_writeable"] = _pychrm.ImageMatrix__is_pix_writeable_set
+    __swig_getmethods__["_is_pix_writeable"] = _pychrm.ImageMatrix__is_pix_writeable_get
+    if _newclass:_is_pix_writeable = _swig_property(_pychrm.ImageMatrix__is_pix_writeable_get, _pychrm.ImageMatrix__is_pix_writeable_set)
+    __swig_setmethods__["_is_clr_writeable"] = _pychrm.ImageMatrix__is_clr_writeable_set
+    __swig_getmethods__["_is_clr_writeable"] = _pychrm.ImageMatrix__is_clr_writeable_get
+    if _newclass:_is_clr_writeable = _swig_property(_pychrm.ImageMatrix__is_clr_writeable_get, _pychrm.ImageMatrix__is_clr_writeable_set)
     __swig_setmethods__["ColorMode"] = _pychrm.ImageMatrix_ColorMode_set
     __swig_getmethods__["ColorMode"] = _pychrm.ImageMatrix_ColorMode_get
     if _newclass:ColorMode = _swig_property(_pychrm.ImageMatrix_ColorMode_get, _pychrm.ImageMatrix_ColorMode_set)
@@ -212,32 +193,61 @@ class ImageMatrix(_object):
     __swig_setmethods__["height"] = _pychrm.ImageMatrix_height_set
     __swig_getmethods__["height"] = _pychrm.ImageMatrix_height_get
     if _newclass:height = _swig_property(_pychrm.ImageMatrix_height_get, _pychrm.ImageMatrix_height_set)
-    __swig_setmethods__["depth"] = _pychrm.ImageMatrix_depth_set
-    __swig_getmethods__["depth"] = _pychrm.ImageMatrix_depth_get
-    if _newclass:depth = _swig_property(_pychrm.ImageMatrix_depth_get, _pychrm.ImageMatrix_depth_set)
+    __swig_setmethods__["_min"] = _pychrm.ImageMatrix__min_set
+    __swig_getmethods__["_min"] = _pychrm.ImageMatrix__min_get
+    if _newclass:_min = _swig_property(_pychrm.ImageMatrix__min_get, _pychrm.ImageMatrix__min_set)
+    __swig_setmethods__["_max"] = _pychrm.ImageMatrix__max_set
+    __swig_getmethods__["_max"] = _pychrm.ImageMatrix__max_get
+    if _newclass:_max = _swig_property(_pychrm.ImageMatrix__max_get, _pychrm.ImageMatrix__max_set)
+    __swig_setmethods__["_mean"] = _pychrm.ImageMatrix__mean_set
+    __swig_getmethods__["_mean"] = _pychrm.ImageMatrix__mean_get
+    if _newclass:_mean = _swig_property(_pychrm.ImageMatrix__mean_get, _pychrm.ImageMatrix__mean_set)
+    __swig_setmethods__["_std"] = _pychrm.ImageMatrix__std_set
+    __swig_getmethods__["_std"] = _pychrm.ImageMatrix__std_get
+    if _newclass:_std = _swig_property(_pychrm.ImageMatrix__std_get, _pychrm.ImageMatrix__std_set)
+    __swig_setmethods__["_median"] = _pychrm.ImageMatrix__median_set
+    __swig_getmethods__["_median"] = _pychrm.ImageMatrix__median_get
+    if _newclass:_median = _swig_property(_pychrm.ImageMatrix__median_get, _pychrm.ImageMatrix__median_set)
+    __swig_setmethods__["has_stats"] = _pychrm.ImageMatrix_has_stats_set
+    __swig_getmethods__["has_stats"] = _pychrm.ImageMatrix_has_stats_get
+    if _newclass:has_stats = _swig_property(_pychrm.ImageMatrix_has_stats_get, _pychrm.ImageMatrix_has_stats_set)
+    __swig_setmethods__["has_median"] = _pychrm.ImageMatrix_has_median_set
+    __swig_getmethods__["has_median"] = _pychrm.ImageMatrix_has_median_get
+    if _newclass:has_median = _swig_property(_pychrm.ImageMatrix_has_median_get, _pychrm.ImageMatrix_has_median_set)
+    def WriteablePixels(self): return _pychrm.ImageMatrix_WriteablePixels(self)
+    def WriteableColors(self): return _pychrm.ImageMatrix_WriteableColors(self)
+    def ReadablePixels(self): return _pychrm.ImageMatrix_ReadablePixels(self)
+    def ReadableColors(self): return _pychrm.ImageMatrix_ReadableColors(self)
+    def ReadOnlyPixels(self): return _pychrm.ImageMatrix_ReadOnlyPixels(self)
+    def ReadOnlyColors(self): return _pychrm.ImageMatrix_ReadOnlyColors(self)
+    def WriteablePixelsFinish(self): return _pychrm.ImageMatrix_WriteablePixelsFinish(self)
+    def WriteableColorsFinish(self): return _pychrm.ImageMatrix_WriteableColorsFinish(self)
     def LoadTIFF(self, *args): return _pychrm.ImageMatrix_LoadTIFF(self, *args)
     def SaveTiff(self, *args): return _pychrm.ImageMatrix_SaveTiff(self, *args)
-    def LoadPPM(self, *args): return _pychrm.ImageMatrix_LoadPPM(self, *args)
     def OpenImage(self, *args): return _pychrm.ImageMatrix_OpenImage(self, *args)
+    def init(self): return _pychrm.ImageMatrix_init(self)
+    def allocate(self, *args): return _pychrm.ImageMatrix_allocate(self, *args)
+    def copy(self, *args): return _pychrm.ImageMatrix_copy(self, *args)
     def __init__(self, *args): 
         this = _pychrm.new_ImageMatrix(*args)
         try: self.this.append(this)
         except: self.this = this
     __swig_destroy__ = _pychrm.delete_ImageMatrix
     __del__ = lambda self : None;
-    def duplicate(self): return _pychrm.ImageMatrix_duplicate(self)
-    def pixel(self, *args): return _pychrm.ImageMatrix_pixel(self, *args)
-    def set(self, *args): return _pychrm.ImageMatrix_set(self, *args)
-    def SetInt(self, *args): return _pychrm.ImageMatrix_SetInt(self, *args)
-    def diff(self, *args): return _pychrm.ImageMatrix_diff(self, *args)
     def normalize(self, *args): return _pychrm.ImageMatrix_normalize(self, *args)
     def to8bits(self): return _pychrm.ImageMatrix_to8bits(self)
-    def flip(self): return _pychrm.ImageMatrix_flip(self)
+    def flipV(self): return _pychrm.ImageMatrix_flipV(self)
+    def flipH(self): return _pychrm.ImageMatrix_flipH(self)
     def invert(self): return _pychrm.ImageMatrix_invert(self)
     def Downsample(self, *args): return _pychrm.ImageMatrix_Downsample(self, *args)
     def Rotate(self, *args): return _pychrm.ImageMatrix_Rotate(self, *args)
     def convolve(self, *args): return _pychrm.ImageMatrix_convolve(self, *args)
     def BasicStatistics(self, *args): return _pychrm.ImageMatrix_BasicStatistics(self, *args)
+    def min(self): return _pychrm.ImageMatrix_min(self)
+    def max(self): return _pychrm.ImageMatrix_max(self)
+    def mean(self): return _pychrm.ImageMatrix_mean(self)
+    def std(self): return _pychrm.ImageMatrix_std(self)
+    def median(self): return _pychrm.ImageMatrix_median(self)
     def GetColorStatistics(self, *args): return _pychrm.ImageMatrix_GetColorStatistics(self, *args)
     def ColorTransform(self, *args): return _pychrm.ImageMatrix_ColorTransform(self, *args)
     def histogram(self, *args): return _pychrm.ImageMatrix_histogram(self, *args)
@@ -248,8 +258,6 @@ class ImageMatrix(_object):
     def ChebyshevTransform(self, *args): return _pychrm.ImageMatrix_ChebyshevTransform(self, *args)
     def ChebyshevFourierTransform2D(self, *args): return _pychrm.ImageMatrix_ChebyshevFourierTransform2D(self, *args)
     def Symlet5Transform(self): return _pychrm.ImageMatrix_Symlet5Transform(self)
-    def GradientMagnitude(self, *args): return _pychrm.ImageMatrix_GradientMagnitude(self, *args)
-    def GradientDirection2D(self, *args): return _pychrm.ImageMatrix_GradientDirection2D(self, *args)
     def PerwittMagnitude2D(self, *args): return _pychrm.ImageMatrix_PerwittMagnitude2D(self, *args)
     def PerwittDirection2D(self, *args): return _pychrm.ImageMatrix_PerwittDirection2D(self, *args)
     def ChebyshevStatistics2D(self, *args): return _pychrm.ImageMatrix_ChebyshevStatistics2D(self, *args)
@@ -267,22 +275,6 @@ class ImageMatrix(_object):
 ImageMatrix_swigregister = _pychrm.ImageMatrix_swigregister
 ImageMatrix_swigregister(ImageMatrix)
 
-
-def RGB2HSV(*args):
-  return _pychrm.RGB2HSV(*args)
-RGB2HSV = _pychrm.RGB2HSV
-
-def HSV2RGB(*args):
-  return _pychrm.HSV2RGB(*args)
-HSV2RGB = _pychrm.HSV2RGB
-
-def RGB2COLOR(*args):
-  return _pychrm.RGB2COLOR(*args)
-RGB2COLOR = _pychrm.RGB2COLOR
-
-def COLOR2GRAY(*args):
-  return _pychrm.COLOR2GRAY(*args)
-COLOR2GRAY = _pychrm.COLOR2GRAY
 WC_UNINITIALIZED = _pychrm.WC_UNINITIALIZED
 WC_NO_ERROR = _pychrm.WC_NO_ERROR
 WC_IPP_NULL = _pychrm.WC_IPP_NULL

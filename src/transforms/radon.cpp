@@ -1,8 +1,6 @@
 //---------------------------------------------------------------------------
 
 
-#pragma hdrstop
-
 #include <math.h>
 #include "radon.h"
 
@@ -115,5 +113,3 @@ void vd_RadonTextures(double *vec)
    for (a=0;a<12;a++)
      vec[a]=temp[a];
 }
-
-#pragma package(smart_init)

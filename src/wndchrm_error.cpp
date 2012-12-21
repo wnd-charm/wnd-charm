@@ -131,6 +131,7 @@ const char* translateError( WNDCHRM_ERROR return_val )
 		case WC_INPUT_IMAGEMATRIX_NULL:
 			return "pixelplane passed to transform was corrupted.";
 	}
+	return "";
 }
 
 

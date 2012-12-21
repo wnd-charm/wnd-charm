@@ -33,6 +33,6 @@
 #define chevishevH
 //---------------------------------------------------------------------------
 
-void Chebyshev2D(ImageMatrix *Im, double *out, int N);
+void Chebyshev2D(ImageMatrix *Im, double *out, unsigned int N);
 
 #endif
