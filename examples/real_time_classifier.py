@@ -117,7 +117,7 @@ if from_scratch:
 	reduced_training_set = full_training_set.FeatureReduce( reduced_fisher_weights.names )
 
 	# 6. Save your work:
-	reduced_training_set.PickleMe( os.path.splitext(input_filename)[0] + ".fit.pickled" )
+	reduced_training_set.PickleMe( os.path.splitext(input_filename)[0] + "_w"+str(num_features) + ".fit.pickled" )
 	reduced_fisher_weights.PickleMe( os.path.splitext(input_filename)[0] + "_w"+str(num_features)+".weights.pickled" )
 
 else:
