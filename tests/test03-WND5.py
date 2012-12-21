@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -------- preamble to get the test data --------------------
-from pychrm.TrainingSet import *
+from pychrm.FeatureSet import *
 import os
 import sys
 # This script is in googlecode/pychrm/trunk/tests/

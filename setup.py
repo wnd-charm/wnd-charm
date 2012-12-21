@@ -84,7 +84,7 @@ setup (name = 'pychrm',
 	url = 'http://code.google.com/p/wnd-charm',
 	description = """Python bindings for wnd-charm""",
 	ext_modules = [wndchrm_module],
-	#py_modules = ['pychrm', 'TrainingSet', 'FeatureNameMap', 'FeatureRegistration'],
+	#py_modules = ['pychrm', 'FeatureSet', 'FeatureNameMap', 'FeatureRegistration'],
 	packages = ['pychrm'],
 	install_requires=[
 		'numpy',

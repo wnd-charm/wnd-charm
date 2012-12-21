@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # import pychrm
-from pychrm.TrainingSet import *
+from pychrm.FeatureSet import *
 from pychrm import __version__ as pychrm_version
 print "pychrm "+pychrm_version
 
