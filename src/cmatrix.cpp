@@ -372,6 +372,7 @@ void ImageMatrix::invert() {
 void ImageMatrix::Downsample(double x_ratio, double y_ratio) {
 	double x,y,dx,dy,frac;
 	unsigned int new_x,new_y,a;
+	HSVcolor hsv;
 	writeablePixels pix_plane = WriteablePixels();
 	writeableColors clr_plane = WriteableColors();
 
@@ -380,110 +381,112 @@ void ImageMatrix::Downsample(double x_ratio, double y_ratio) {
 	dx=1/x_ratio;
 	dy=1/y_ratio;
 
-	if (dx==1 && dy==1) return;   /* nothing to scale */
+	if (dx == 1 && dy == 1) return;   /* nothing to scale */
 
-	/* first downsample x */
+	// first downsample x
 	for (new_y = 0; new_y < height; new_y++) {
-		x=0;
-		new_x=0;
+		x = 0;
+		new_x = 0;
 		while (x < width) {
-    	    double sum_i=0;
-			double sum_c1=0;
-			double sum_c2=0;
-			double sum_c3=0;
+			double sum_i = 0;
+			double sum_h = 0;
+			double sum_s = 0;
+			double sum_v = 0;
 
 			/* the leftmost fraction of pixel */
-			a=(int)(floor(x));
-			frac=ceil(x)-x;
-			if (frac>0 && a<width) {
-				sum_i += pix_plane(new_y,a)*frac;
+			a = (unsigned int)(floor(x));
+			frac = ceil(x)-x;
+			if (frac > 0 && a < width) {
+				sum_i += pix_plane(new_y,a) * frac;
 				if (ColorMode != cmGRAY) {
-					sum_c1 += clr_plane(new_y,a).h*frac;
-					sum_c2 += clr_plane(new_y,a).s*frac;
-					sum_c3 += clr_plane(new_y,a).v*frac;
+					sum_h += clr_plane(new_y,a).h * frac;
+					sum_s += clr_plane(new_y,a).s * frac;
+					sum_v += clr_plane(new_y,a).v * frac;
 				}
 			} 
+
 			/* the middle full pixels */
-			for (a=(int)(ceil(x));a<floor(x+dx);a=a+1) {
-				if (a<width) {
-					sum_i += pix_plane(new_y,a)*frac;
+			for (a = (unsigned int)(ceil(x)); a < floor(x+dx); a++) {
+				if (a < width) {
+					sum_i += pix_plane(new_y,a);
 					if (ColorMode != cmGRAY) {
-						sum_c1 += clr_plane(new_y,a).h*frac;
-						sum_c2 += clr_plane(new_y,a).s*frac;
-						sum_c3 += clr_plane(new_y,a).v*frac;
+						sum_h += clr_plane(new_y,a).h;
+						sum_s += clr_plane(new_y,a).s;
+						sum_v += clr_plane(new_y,a).v;
 					}
 				}
 			}
 			/* the right fraction of pixel */
-			frac=x+dx-floor(x+dx);
-			if (frac>0 && a<width) {
-				sum_i += pix_plane(new_y,a)*frac;
+			frac = x+dx - floor(x+dx);
+			if (frac > 0 && a < width) {
+				sum_i += pix_plane(new_y,a) * frac;
 				if (ColorMode != cmGRAY) {
-					sum_c1 += clr_plane(new_y,a).h*frac;
-					sum_c2 += clr_plane(new_y,a).s*frac;
-					sum_c3 += clr_plane(new_y,a).v*frac;
+					sum_h += clr_plane(new_y,a).h * frac;
+					sum_s += clr_plane(new_y,a).s * frac;
+					sum_v += clr_plane(new_y,a).v * frac;
 				}
 			}
 
-			pix_plane (new_y, new_x) = sum_i/(dx);
+			pix_plane (new_y,new_x) = sum_i/(dx);
 			if (ColorMode != cmGRAY) {
-					sum_c1 += clr_plane(new_y,a).h*frac;
-					sum_c2 += clr_plane(new_y,a).s*frac;
-					sum_c3 += clr_plane(new_y,a).v*frac;
-				clr_plane(new_y, new_x).h = (byte)(sum_c1/(dx));
-				clr_plane(new_y, new_x).s = (byte)(sum_c2/(dx));
-				clr_plane(new_y, new_x).v = (byte)(sum_c3/(dx));
+				hsv.h = (byte)(sum_h/(dx));
+				hsv.s = (byte)(sum_s/(dx));
+				hsv.v = (byte)(sum_v/(dx));
+				clr_plane(new_y, new_x) = hsv;
 			}
+
 			x+=dx;
 			new_x++;
 		}
 	}
  
-      /* downsample y */
-	for (new_x=0;new_x<x_ratio*width;new_x++) {
-		y=0;
-		new_y=0;
-		while (y<height) {
-			double sum_i=0;
-			double sum_c1=0;
-			double sum_c2=0;
-			double sum_c3=0;
+	/* downsample y */
+	for (new_x = 0; new_x < x_ratio*width; new_x++) {
+		y = 0;
+		new_y = 0;
+		while (y < height) {
+			double sum_i = 0;
+			double sum_h = 0;
+			double sum_s = 0;
+			double sum_v = 0;
 
-			a=(int)(floor(y));
-			frac=ceil(y)-y;
-			if (frac>0 && a<height) {   /* take also the part of the leftmost pixel (if needed) */
-				sum_i += pix_plane(a,new_x)*frac;
+			a = (unsigned int)(floor(y));
+			frac = ceil(y) - y;
+			// take also the part of the leftmost pixel (if needed)
+			if (frac > 0 && a < height) {
+				sum_i += pix_plane(a,new_x) * frac;
 				if (ColorMode != cmGRAY) {
-					sum_c1 += clr_plane(a,new_x).h*frac;
-					sum_c2 += clr_plane(a,new_x).s*frac;
-					sum_c3 += clr_plane(a,new_x).v*frac;
+					sum_h += clr_plane(a,new_x).h * frac;
+					sum_s += clr_plane(a,new_x).s * frac;
+					sum_v += clr_plane(a,new_x).v * frac;
 				}
 			}
-			for (a=(int)(ceil(y));a<floor(y+dy);a=a+1) {
-				if (a<height) {
-					sum_i += pix_plane(a,new_x)*frac;
+			for (a = (unsigned int)(ceil(y)); a < floor(y+dy); a++) {
+				if (a < height) {
+					sum_i += pix_plane(a,new_x);
 					if (ColorMode != cmGRAY) {
-						sum_c1 += clr_plane(a,new_x).h*frac;
-						sum_c2 += clr_plane(a,new_x).s*frac;
-						sum_c3 += clr_plane(a,new_x).v*frac;
+						sum_h += clr_plane(a,new_x).h;
+						sum_s += clr_plane(a,new_x).s;
+						sum_v += clr_plane(a,new_x).v;
 					}
 				}
 			}
 			frac=y+dy-floor(y+dy);
-			if (frac>0 && a<height) {
-				sum_i += pix_plane(a,new_x)*frac;
+			if (frac > 0 && a < height) {
+				sum_i += pix_plane(a,new_x) * frac;
 				if (ColorMode != cmGRAY) {
-					sum_c1 += clr_plane(a,new_x).h*frac;
-					sum_c2 += clr_plane(a,new_x).s*frac;
-					sum_c3 += clr_plane(a,new_x).v*frac;
+					sum_h += clr_plane(a,new_x).h * frac;
+					sum_s += clr_plane(a,new_x).s * frac;
+					sum_v += clr_plane(a,new_x).v * frac;
 				}
 			}
 
-			pix_plane (new_y, new_x) = sum_i/(dy);
+			pix_plane (new_y,new_x) = sum_i/(dy);
 			if (ColorMode != cmGRAY) {
-				clr_plane(new_y, new_x).h = (byte)(sum_c1/(dy));
-				clr_plane(new_y, new_x).s = (byte)(sum_c2/(dy));
-				clr_plane(new_y, new_x).v = (byte)(sum_c3/(dy));
+				hsv.h = (byte)(sum_h/(dy));
+				hsv.s = (byte)(sum_s/(dy));
+				hsv.v = (byte)(sum_v/(dy));
+				clr_plane(new_y, new_x) = hsv;
 			}
 
 			y+=dy;
@@ -491,8 +494,11 @@ void ImageMatrix::Downsample(double x_ratio, double y_ratio) {
 		}
 	}
 
-	width=(int)(x_ratio*width);
-	height=(int)(y_ratio*height);
+	// resize/crop the image.
+	width = (unsigned int)(x_ratio*width);
+	height = (unsigned int)(y_ratio*height);
+	_pix_plane.conservativeResize (height, width);
+	if (ColorMode != cmGRAY) _clr_plane.conservativeResize (height, width);	
 }
 
 
@@ -980,10 +986,14 @@ void ImageMatrix::ChebyshevTransform(unsigned int N) {
    coeff -array of double- a pre-allocated array of 32 doubles
 */
 void ImageMatrix::ChebyshevFourierTransform2D(double *coeff) {
-	ImageMatrix matrix (*this);
-	if( (width * height) > (300 * 300) )
-		matrix.Downsample( MIN( 300.0/(double)width, 300.0/(double)height ), MIN( 300.0/(double)width, 300.0/(double)height ) );  /* downsample for avoiding memory problems */
-	ChebyshevFourier2D(&matrix, 0, coeff,32);
+	ImageMatrix *matrix;
+	if( (width * height) > (300 * 300) ) {
+		matrix = new ImageMatrix (*this);
+		matrix->Downsample( MIN( 300.0/(double)width, 300.0/(double)height ), MIN( 300.0/(double)width, 300.0/(double)height ) );  /* downsample for avoiding memory problems */
+	} else {
+		matrix = this;
+	}
+	ChebyshevFourier2D(matrix, 0, coeff,32);
 }
 
 
