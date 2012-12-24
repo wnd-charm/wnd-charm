@@ -38,8 +38,10 @@ def roundToSigFigs(num, n):
 test_name = "Feature calculation"
 max_diff_pass = 0.0015
 max_mean_pass = 0.00001
-sig_file = os.path.join (test_dir,'t1_s01_c05_ij-l_precalculated.sig')
-test_tif = os.path.join (test_dir,'t1_s01_c05_ij.tif')
+# sig_file = os.path.join (test_dir,'t1_s01_c05_ij-l_precalculated.sig')
+# test_tif = os.path.join (test_dir,'t1_s01_c05_ij.tif')
+sig_file = os.path.join (test_dir,'010067_301x300-l_precalculated.sig')
+test_tif = os.path.join (test_dir,'010067_301x300.tif')
 
 test_sigs = Signatures.NewFromSigFile( sig_file, image_path = test_tif )
 calc_sigs = Signatures.NewFromFeatureNameList ( test_tif, test_sigs.names )
