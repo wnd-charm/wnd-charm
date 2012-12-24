@@ -98,28 +98,18 @@ void getChCoeff1D(double *f,double *out,double *x,int N,int width) {
 		}
 		out[jj] = 0;
 		for (a = 0; a < width; a++)
-		out[jj] += f[a]*tj[a]/2;
+			out[jj] += f[a]*tj[a]/2;
 	}
 	delete [] tj;
 	delete [] Tj;
 }
 
 void getChCoeff(double *Im, double *out, double *x,int N,int width, int height) {
-	int iy,ix;
-	double *y,*y_out;
-	y = new double[width];
-	y_out = new double[N];
+	int iy;
 
 	for (iy = 0; iy < height; iy++) {
-		for (ix = 0; ix < width; ix++)
-			y[ix] = Im[iy*width+ix];
-		getChCoeff1D(y,y_out,x,N,width);
-		for (ix = 0; ix < N; ix++)
-			out[iy*N+ix] = y_out[ix];
+		getChCoeff1D(&(Im[iy*width]),&(out[iy*N]),x,N,width);
 	}
-
-	delete [] y;
-	delete [] y_out;
 }
 
 /* inputs:
