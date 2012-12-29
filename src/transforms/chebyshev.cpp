@@ -77,13 +77,11 @@ void TNx(double *x, double *out, int N, int height) {
 	delete [] temp;
 }
 
-void getChCoeff1D(double *f,double *out,double *x,int N,int width) {
-	double *Tj,*tj;
+void getChCoeff1D(double *f,double *out,double *Tj,int N,int width) {
+	double *tj;
 	int jj,a;
 
-	Tj = new double[width*N];
 	tj = new double[width];
-	TNx(x,Tj,N,width);
 	for (jj = 0; jj < N; jj++) {
 		int jx;
 		jx = jj;
@@ -101,14 +99,13 @@ void getChCoeff1D(double *f,double *out,double *x,int N,int width) {
 			out[jj] += f[a]*tj[a]/2;
 	}
 	delete [] tj;
-	delete [] Tj;
 }
 
-void getChCoeff(double *Im, double *out, double *x,int N,int width, int height) {
+void getChCoeff(double *Im, double *out, double *Tj,int N,int width, int height) {
 	int iy;
 
 	for (iy = 0; iy < height; iy++) {
-		getChCoeff1D(&(Im[iy*width]),&(out[iy*N]),x,N,width);
+		getChCoeff1D(&(Im[iy*width]),&(out[iy*N]),Tj,N,width);
 	}
 }
 
@@ -119,7 +116,7 @@ width - width of the image
 height - height of the image
 */
 void Chebyshev2D(ImageMatrix *Im, double *out, unsigned int N) {
-	double *x,*y;
+	double *TjIn,*Tj;
 	double *in;
 	unsigned int a,i,j;
 
@@ -127,13 +124,14 @@ void Chebyshev2D(ImageMatrix *Im, double *out, unsigned int N) {
 //   if (N< = 0)
 //     N = min(Im->width,Im->height);
 
-	x = new double[Im->width];
-	y = new double[Im->height];
-
+	TjIn = new double[Im->width];
 	for (a = 0; a < Im->width; a++)
-		x[a] = 2*(double)(a+1) / (double)Im->width -1;
-	for (a = 0; a < Im->height; a++)
-		y[a] = 2*(double)(a+1) / (double)Im->height -1;
+		TjIn[a] = 2*(double)(a+1) / (double)Im->width -1;
+
+// Pre-compute Tj on x
+	Tj = new double[Im->width*N];
+	TNx(TjIn,Tj,N,Im->width);
+
 
 	in = new double[Im->width*Im->height];
 	readOnlyPixels Im_pix_plane = Im->ReadablePixels();
@@ -141,19 +139,29 @@ void Chebyshev2D(ImageMatrix *Im, double *out, unsigned int N) {
 	for (j = 0; j < Im->height; j++)
 		for (i = 0; i < Im->width; i++)
 			in[j*Im->width+i] = Im_pix_plane(j,i);
-	getChCoeff(in,out,x,N,Im->width,Im->height);
+	getChCoeff(in,out,Tj,N,Im->width,Im->height);
 
 	/* transpose the matrix "out" into "in" */
 	for (j = 0; j < N; j++)
 		for (i = 0; i < Im->height/*Im->width*/; i++)
 			in[j*Im->height+i] = out[i*N+j];
 
-	getChCoeff(in,out,y,N,Im->height,N);
+// If the height is different, re-compute Tj
+	if (Im->height != Im->width) {
+		delete [] Tj;
+		delete [] TjIn;
+		TjIn = new double[Im->height];
+		for (a = 0; a < Im->height; a++)
+			TjIn[a] = 2*(double)(a+1) / (double)Im->height -1;
+	// Pre-compute Tj on y
+		Tj = new double[Im->height*N];
+		TNx(TjIn,Tj,N,Im->height);
+	}
+	getChCoeff(in,out,Tj,N,Im->height,N);
 
 	delete [] in;
-	delete [] x;
-	delete [] y;
+	delete [] TjIn;
+	delete [] Tj;
 }
-
 
 
