@@ -92,7 +92,6 @@ void ChebyshevFourier2D(ImageMatrix *Im, unsigned long N, double *coeff_packed, 
 			ind++;
 		}
 	}
-			
 
 	Nmax=(unsigned long)((min(m,n)-1)/2);
 	if (N>Nmax) N=Nmax;
@@ -128,8 +127,8 @@ void ChebyshevFourier2D(ImageMatrix *Im, unsigned long N, double *coeff_packed, 
 		}
 	}
 
-	min=INF;
-	max=-INF;
+	min =  INF;
+	max = -INF;
 	coeff = new double[NN*NN];
 	for (a = 0; a < NN*NN; a++) {
 		coeff[a]=sqrt( pow (sum_r[a], 2) + pow (sum_i[a], 2) );
