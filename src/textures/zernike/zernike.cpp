@@ -141,7 +141,7 @@ void mb_Znl(double *X, double *Y, double *P, int size, double D, double m10_m00,
 }
 
 
-void mb_zernike2D(ImageMatrix *I, double D, double R, double *zvalues, long *output_size) {
+void mb_zernike2D_OLD(ImageMatrix *I, double D, double R, double *zvalues, long *output_size) {
 	double *Y,*X,*P,psum;
 	double intensity;
 	int x,y,size;
@@ -204,7 +204,7 @@ void mb_zernike2D(ImageMatrix *I, double D, double R, double *zvalues, long *out
   better on average than the previous version, and they produce better classification in problems
   where zernike features are useful.
 */
-void mb_zernike2D_2 (ImageMatrix *I, double order, double rad, double *zvalues, long *output_size) {
+void mb_zernike2D (ImageMatrix *I, double order, double rad, double *zvalues, long *output_size) {
 	int L, N, D;
 
 // N is the smaller of I->width and I->height
