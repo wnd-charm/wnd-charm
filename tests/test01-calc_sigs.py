@@ -44,7 +44,16 @@ sig_file = os.path.join (test_dir,'010067_301x300-l_precalculated.sig')
 test_tif = os.path.join (test_dir,'010067_301x300.tif')
 
 test_sigs = Signatures.NewFromSigFile( sig_file, image_path = test_tif )
-calc_sigs = Signatures.NewFromFeatureNameList ( test_tif, test_sigs.names )
+#calc_sigs = Signatures.NewFromFeatureNameList ( test_tif, test_sigs.names )
+# include profiling for calculating sigs
+import cProfile
+import tempfile
+import pstats
+prof = tempfile.NamedTemporaryFile()
+cProfile.run('calc_sigs = Signatures.NewFromFeatureNameList ( test_tif, test_sigs.names )', prof.name, 'time')
+p = pstats.Stats(prof.name)
+p.sort_stats('time').print_stats(5)
+prof.close()
 
 epsilon = max_diff_pass / 10.
 max_diff = 0.
