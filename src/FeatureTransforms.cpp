@@ -15,7 +15,7 @@ EmptyTransform::EmptyTransform () {
 };
 
 
-ImageMatrix* EmptyTransform::transform( ImageMatrix * matrix_IN ) {
+SharedImageMatrix* EmptyTransform::transform( SharedImageMatrix * matrix_IN ) {
 	std::cout << "Empty transform." << std::endl;
 	return NULL;
 }
@@ -28,13 +28,13 @@ FourierTransform::FourierTransform () {
 
 /* fft 2 dimensional transform */
 // http://www.fftw.org/doc/
-//TODO: The ImageMatrix::duplicate() function should really be const
-ImageMatrix* FourierTransform::transform( ImageMatrix * matrix_IN ) {
+SharedImageMatrix* FourierTransform::transform( SharedImageMatrix * matrix_IN ) {
 	if( !matrix_IN )
 		return NULL;
 	
 	std::cout << "Performing transform " << name << std::endl;
-	ImageMatrix* matrix_OUT = new ImageMatrix(*matrix_IN);
+	SharedImageMatrix* matrix_OUT = new SharedImageMatrix;
+	matrix_OUT->copy(*matrix_IN);
 	matrix_OUT->fft2();
 	return matrix_OUT;
 }
@@ -50,11 +50,12 @@ ChebyshevTransform::ChebyshevTransform () {
 }
 
 
-ImageMatrix* ChebyshevTransform::transform( ImageMatrix * matrix_IN ) {
+SharedImageMatrix* ChebyshevTransform::transform( SharedImageMatrix * matrix_IN ) {
 	if( !matrix_IN )
 		return NULL;	
 	std::cout << "Performing transform " << name << std::endl;
-	ImageMatrix* matrix_OUT = new ImageMatrix(*matrix_IN);
+	SharedImageMatrix* matrix_OUT = new SharedImageMatrix;
+	matrix_OUT->copy(*matrix_IN);
 
 	matrix_OUT->ChebyshevTransform(0);
 	return matrix_OUT;
@@ -69,12 +70,13 @@ WaveletTransform::WaveletTransform () {
 };
 
 
-ImageMatrix* WaveletTransform::transform( ImageMatrix * matrix_IN ) {
+SharedImageMatrix* WaveletTransform::transform( SharedImageMatrix * matrix_IN ) {
 	if( !matrix_IN )
 		return NULL;
 	
 	std::cout << "Performing transform " << name << std::endl;
-	ImageMatrix* matrix_OUT = new ImageMatrix(*matrix_IN);
+	SharedImageMatrix* matrix_OUT = new SharedImageMatrix;
+	matrix_OUT->copy(*matrix_IN);
 	matrix_OUT->Symlet5Transform();
 	return matrix_OUT;
 }
@@ -88,12 +90,13 @@ EdgeTransform::EdgeTransform () {
 }
 
 
-ImageMatrix* EdgeTransform::transform( ImageMatrix * matrix_IN ) {
+SharedImageMatrix* EdgeTransform::transform( SharedImageMatrix * matrix_IN ) {
 	if( !matrix_IN )
 		return NULL;
 	
 	std::cout << "Performing transform " << name << std::endl;
-	ImageMatrix* matrix_OUT = new ImageMatrix(*matrix_IN);
+	SharedImageMatrix* matrix_OUT = new SharedImageMatrix;
+	matrix_OUT->copy(*matrix_IN);
 	matrix_OUT->EdgeTransform();
 	return matrix_OUT;
 }
@@ -107,14 +110,15 @@ ColorTransform::ColorTransform () {
 }
 
 
-ImageMatrix* ColorTransform::transform( ImageMatrix * matrix_IN ) {
+SharedImageMatrix* ColorTransform::transform( SharedImageMatrix * matrix_IN ) {
 	if( !matrix_IN )
 		return NULL;
 	
 	std::cout << "Performing transform " << name << std::endl;
 	double temp_vec [COLORS_NUM+1];
 
-	ImageMatrix* matrix_OUT = new ImageMatrix(*matrix_IN);
+	SharedImageMatrix* matrix_OUT = new SharedImageMatrix;
+	matrix_OUT->copy(*matrix_IN);
 	matrix_OUT->ColorTransform(temp_vec, 0);
 	histogram_vals.assign(temp_vec, temp_vec+COLORS_NUM+1);
 	return matrix_OUT;
@@ -129,12 +133,13 @@ HueTransform::HueTransform () {
 }
 
 
-ImageMatrix* HueTransform::transform( ImageMatrix * matrix_IN ) {
+SharedImageMatrix* HueTransform::transform( SharedImageMatrix * matrix_IN ) {
 	if( !matrix_IN )
 		return NULL;
 	
 	std::cout << "Performing transform " << name << std::endl;
-	ImageMatrix* matrix_OUT = new ImageMatrix(*matrix_IN);
+	SharedImageMatrix* matrix_OUT = new SharedImageMatrix;
+	matrix_OUT->copy(*matrix_IN);
 	matrix_OUT->ColorTransform(NULL,1);
 	return matrix_OUT;
 }

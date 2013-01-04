@@ -196,7 +196,8 @@ unsigned long area(ImageMatrix *Im) {
 long EulerNumber(ImageMatrix *Im, unsigned long FeatureNumber) {
 	unsigned int x,y;
 	unsigned long HolesNumber;
-	ImageMatrix cp (*Im);
+	ImageMatrix cp;
+	cp.copy (*Im);
 	pixData &cp_pix_plane = cp.WriteablePixels();
 
 	/* inverse the image */

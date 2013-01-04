@@ -233,7 +233,8 @@ void GaborTextureFilters2D(ImageMatrix *Im, double *ratios) {
 			if (max > 0) e2[x] = e2[x]/max;
 			else e2[x] = 0;
 
-		ImageMatrix bw (*Im);
+		ImageMatrix bw;
+		bw.copy (*Im);
 		pixData &bw_pix_plane = bw.WriteablePixels();
 		for (y = 0; y < bw.height; y++)
 			for (x = 0; x < bw.width; x++)

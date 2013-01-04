@@ -228,8 +228,9 @@ class ImageMatrix(_object):
     def init(self): return _pychrm.ImageMatrix_init(self)
     def allocate(self, *args): return _pychrm.ImageMatrix_allocate(self, *args)
     def copy(self, *args): return _pychrm.ImageMatrix_copy(self, *args)
-    def __init__(self, *args): 
-        this = _pychrm.new_ImageMatrix(*args)
+    def submatrix(self, *args): return _pychrm.ImageMatrix_submatrix(self, *args)
+    def __init__(self): 
+        this = _pychrm.new_ImageMatrix()
         try: self.this.append(this)
         except: self.this = this
     __swig_destroy__ = _pychrm.delete_ImageMatrix
@@ -664,6 +665,24 @@ class GiniCoefficient(FeatureAlgorithm):
     __del__ = lambda self : None;
 GiniCoefficient_swigregister = _pychrm.GiniCoefficient_swigregister
 GiniCoefficient_swigregister(GiniCoefficient)
+
+class SharedImageMatrix(ImageMatrix):
+    __swig_setmethods__ = {}
+    for _s in [ImageMatrix]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, SharedImageMatrix, name, value)
+    __swig_getmethods__ = {}
+    for _s in [ImageMatrix]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, SharedImageMatrix, name)
+    __repr__ = _swig_repr
+    def allocate(self, *args): return _pychrm.SharedImageMatrix_allocate(self, *args)
+    def __init__(self): 
+        this = _pychrm.new_SharedImageMatrix()
+        try: self.this.append(this)
+        except: self.this = this
+    __swig_destroy__ = _pychrm.delete_SharedImageMatrix
+    __del__ = lambda self : None;
+SharedImageMatrix_swigregister = _pychrm.SharedImageMatrix_swigregister
+SharedImageMatrix_swigregister(SharedImageMatrix)
 
 class Transform(_object):
     __swig_setmethods__ = {}

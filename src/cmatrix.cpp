@@ -203,12 +203,10 @@ int ImageMatrix::OpenImage(char *image_file_name, int downsample, rect *bounding
 	// add the image only if it was loaded properly
 	if (res) {
 		// compute features only from an area of the image
-		if (bounding_rect && bounding_rect->x >= 0) { 
-			ImageMatrix temp (*this,
-				bounding_rect->x, bounding_rect->y,
+		if (bounding_rect && bounding_rect->x >= 0) {
+			submatrix (*this, bounding_rect->x, bounding_rect->y,
 				bounding_rect->x+bounding_rect->w-1, bounding_rect->y+bounding_rect->h-1
 			);
-			copy (temp);
 		}
 		if (downsample>0 && downsample<100)  /* downsample by a given factor */
 			Downsample(((double)downsample)/100.0,((double)downsample)/100.0);   /* downsample the image */
@@ -220,7 +218,8 @@ int ImageMatrix::OpenImage(char *image_file_name, int downsample, rect *bounding
 	return(res);
 }
 
-// constructor helpers
+
+// pseudo-constructor helpers (see below)
 
 // This sets default values for the different constructors
 void ImageMatrix::init() {
@@ -238,28 +237,38 @@ void ImageMatrix::init() {
 }
 
 void ImageMatrix::allocate (unsigned int w, unsigned int h) {
-	width  = 0;
-	height = 0;
-	// These throw exceptions, which we don't catch (catch in main?)
-	// N.B. Eigen matrix parameter order is rows, cols, not X, Y
-	_pix_plane = pixData (h, w);
+	std::cout << "-------- called ImageMatrix::allocate (" << w << "," << h << ")" << std::endl;
+	if ((unsigned int) _pix_plane.cols() != w || (unsigned int)_pix_plane.rows() != h) {
+		width  = 0;
+		height = 0;
+		// These throw exceptions, which we don't catch (catch in main?)
+		// N.B. Eigen matrix parameter order is rows, cols, not X, Y
+		std::cout << "\t-------- allocating pixData" << std::endl;
+		_pix_plane = pixData (h, w);
+		width  = (unsigned int)_pix_plane.cols();
+		height = (unsigned int)_pix_plane.rows();
+		has_stats  = has_median = false;
+	}
 	_is_pix_writeable = true;
 	if (ColorMode != cmGRAY) {
-		_clr_plane = clrData (h, w);
+		if ((unsigned int)_clr_plane.cols() != w || (unsigned int)_clr_plane.rows() != h) {
+			width  = 0;
+			height = 0;
+			// These throw exceptions, which we don't catch (catch in main?)
+			// N.B. Eigen matrix parameter order is rows, cols, not X, Y
+			std::cout << "\t-------- allocating clrData" << std::endl;
+			_clr_plane = clrData (h, w);
+			width  = (unsigned int)_clr_plane.cols();
+			height = (unsigned int)_clr_plane.rows();
+		}
 		_is_clr_writeable = true;
 	}
-
-	width  = w;
-	height = h;
 }
 
 void ImageMatrix::copy(const ImageMatrix &copy) {
-	init();
-	width     = copy.width;
-	height    = copy.height;
+	allocate(copy.width, copy.height);
 	ColorMode = copy.ColorMode;
 	bits      = copy.bits;
-	allocate(width, height);
 	WriteablePixels() = copy.ReadablePixels();
 	if (ColorMode != cmGRAY) {
 		WriteableColors() = copy.ReadableColors();
@@ -273,44 +282,41 @@ void ImageMatrix::copy(const ImageMatrix &copy) {
 	_median    = copy._median;
 }
 
-ImageMatrix::ImageMatrix() {
-	init();
-}
-
-ImageMatrix::ImageMatrix(const unsigned int width, const unsigned int height) {  
-	init();
-	allocate (width, height);
-}
-
-ImageMatrix::ImageMatrix(const ImageMatrix &matrix) {  
-	copy (matrix);
-}
-
-/* create an image which is part of the image
-   (x1,y1) - top left
-   (x2,y2) - bottom right
-*/
-ImageMatrix::ImageMatrix(const ImageMatrix &matrix, unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2) {
-
-	init();
+void ImageMatrix::submatrix (const ImageMatrix &matrix, const unsigned int x1, const unsigned int y1, const unsigned int x2, const unsigned int y2) {
+	unsigned int x0, y0;
 	bits = matrix.bits;
 	ColorMode = matrix.ColorMode;
-	/* verify that the image size is OK */
-	if (x1 < 0) x1 = 0;
-	if (y1 < 0) y1 = 0;
-	if (x2 >= matrix.width) x2 = matrix.width-1;
-	if (y2 >= matrix.height) y2 = matrix.height-1;
+	// verify that the image size is OK
+	x0 = (x1 < 0 ? 0 : x1);
+	y0 = (y1 < 0 ? 0 : y1);
+	width  = (x2 >= matrix.width  ? matrix.width  : x2 - x0 + 1);
+	height = (y2 >= matrix.height ? matrix.height : y2 - y0 + 1);
 
-	width  = x2-x1+1;
-	height = y2-y1+1;
 	allocate (width, height);
 	// Copy the Eigen matrixes
 	// N.B. Eigen matrix parameter order is rows, cols, not X, Y
-	WriteablePixels() = matrix.ReadablePixels().block(y1,x1,height,width);
+	WriteablePixels() = matrix.ReadablePixels().block(y0,x0,height,width);
 	if (ColorMode != cmGRAY) {
-		WriteableColors() = matrix.ReadableColors().block(y1,x1,height,width);
+		WriteableColors() = matrix.ReadableColors().block(y0,x0,height,width);
 	}
 }
+
+/*
+* There is only one simple constructor implemented (no copy constructors or other constructors).
+* The reason for this is that a SharedImageMatrix subclass needs to override the allocate() method to make it shareable.
+* any fancy constructor would have to use the allocate() method to do anything fancier than the most basic initialization.
+* So, what's the problem with that?  Well, you can't use virtual methods (i.e. allocate()) in constructors, that's why.
+* So, we are forcing the use pattern of first making a bare-bones ImageMatrix, then calling the pseudo-constructor helpers above
+* to make copies, etc.  This way, we can safely sub-class ImageMatrix, and override the allocate() method.
+* A side-benefit is that if there are unintended/implicit copies being made, they will now generate a run-time assertion.
+* If there are prettier mechanisms around this limitation, feel free.
+*/
+
+ImageMatrix::ImageMatrix() {
+	std::cout << "-------- called ImageMatrix::ImageMatrix - empty" << std::endl;
+	init();
+}
+
 
 /* free the memory allocated in "ImageMatrix::LoadImage" */
 ImageMatrix::~ImageMatrix() {
@@ -523,7 +529,8 @@ ImageMatrix* ImageMatrix::Rotate(double angle) {
 	}
 
 	// Make a new image matrix
-	new_matrix = new ImageMatrix (new_width, new_height);
+	new_matrix = new ImageMatrix;
+	new_matrix->allocate (new_width, new_height);
 	new_matrix->bits=bits;
 	new_matrix->ColorMode=ColorMode;
 
@@ -695,17 +702,17 @@ void ImageMatrix::normalize(double n_min, double n_max, long n_range, double n_m
 
 /* convolve
 */
-void ImageMatrix::convolve(const ImageMatrix &filter) {
+void ImageMatrix::convolve(const pixData &filter) {
 	unsigned long x, y, xx, yy;
 	long i, j;
-	long height2=filter.height/2;
-	long width2=filter.width/2;
+	long height2=filter.rows()/2;
+	long width2=filter.cols()/2;
 	double tmp;
 
-	ImageMatrix copy (*this);
-	copy.WriteablePixelsFinish();
-	readOnlyPixels copy_pix_plane = copy.ReadablePixels();
-	readOnlyPixels filt_pix_plane = filter.ReadablePixels();
+	ImageMatrix temp;
+	temp.copy (*this);
+	temp.WriteablePixelsFinish();
+	readOnlyPixels copy_pix_plane = temp.ReadablePixels();
 	writeablePixels pix_plane = WriteablePixels();
 	for (x = 0; x < width; ++x) {
 		for (y = 0; y < height; ++y) {
@@ -716,7 +723,7 @@ void ImageMatrix::convolve(const ImageMatrix &filter) {
 					for(j = -height2; j <= height2; ++j) {
 						yy=y+j;
 						if (yy >= 0 && yy < height) {
-							tmp += filt_pix_plane (j+height2, i+width2) * copy_pix_plane(yy,xx);
+							tmp += filter (j+height2, i+width2) * copy_pix_plane(yy,xx);
 						}
 					}
 				}
@@ -988,7 +995,8 @@ void ImageMatrix::ChebyshevTransform(unsigned int N) {
 void ImageMatrix::ChebyshevFourierTransform2D(double *coeff) {
 	ImageMatrix *matrix;
 	if( (width * height) > (300 * 300) ) {
-		matrix = new ImageMatrix (*this);
+		matrix = new ImageMatrix;
+		matrix->copy (*this);
 		matrix->Downsample( MIN( 300.0/(double)width, 300.0/(double)height ), MIN( 300.0/(double)width, 300.0/(double)height ) );  /* downsample for avoiding memory problems */
 	} else {
 		matrix = this;
@@ -1042,7 +1050,8 @@ int ImageMatrix::CombFirstFourMoments2D(double *vec) {
 	int count;
 	ImageMatrix *matrix;
 	if (bits==16) {
-		matrix = new ImageMatrix (*this);
+		matrix = new ImageMatrix;
+		matrix->copy (*this);
 		matrix->to8bits();
 		matrix->WriteablePixelsFinish();
 	} else matrix = this;
@@ -1058,7 +1067,8 @@ void ImageMatrix::EdgeTransform() {
 	unsigned int x,y;
 	double max_x=0,max_y=0;
 
-	ImageMatrix TempMatrix (*this);
+	ImageMatrix TempMatrix;
+	TempMatrix.copy (*this);
 	TempMatrix.WriteablePixelsFinish();
 	readOnlyPixels tmp_pix_plane = TempMatrix.ReadablePixels();
 	writeablePixels pix_plane = WriteablePixels();
@@ -1157,10 +1167,12 @@ void ImageMatrix::EdgeStatistics(unsigned long *EdgeArea, double *MagMean, doubl
 	unsigned int a,bin_index;
 	double min,max,sum, max_range = pow((double)bits,2)-1;
 
-	ImageMatrix GradientMagnitude (*this);
+	ImageMatrix GradientMagnitude;
+	GradientMagnitude.copy (*this);
 	PerwittMagnitude2D (&GradientMagnitude);
 	readOnlyPixels GM_pix_plane = GradientMagnitude.ReadablePixels();
-	ImageMatrix GradientDirection (*this);
+	ImageMatrix GradientDirection;
+	GradientDirection.copy (*this);
 	PerwittDirection2D (&GradientDirection);
 
 	/* find gradient statistics */
@@ -1355,12 +1367,14 @@ void ImageMatrix::FeatureStatistics(unsigned long *count, long *Euler, double *c
 	unsigned long *object_areas;
 	double *centroid_dists,sum_dist;
 
-	BWInvert=new ImageMatrix (*this);   // check if the background is brighter or dimmer
+	BWInvert=new ImageMatrix;
+	BWInvert->copy (*this);   // check if the background is brighter or dimmer
 	BWInvert->invert();
 	BWInvert->OtsuBinaryMaskTransform();
 	inv_count=BWInvert->BWlabel(8);
 
-	BWImage=new ImageMatrix (*this);
+	BWImage=new ImageMatrix;
+	BWImage->copy (*this);
 	BWImage->OtsuBinaryMaskTransform();
 	BWImage->centroid(centroid_x,centroid_y);
 	*count = BWImage->BWlabel(8);

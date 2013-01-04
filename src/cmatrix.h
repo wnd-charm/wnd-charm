@@ -201,15 +201,13 @@ public:
 		int downsample, rect *bounding_rect,
 		double mean, double stddev);
 	// constructor helpers
-	void 	init();
-	void 	allocate (unsigned int w, unsigned int h);
-	void 	copy(const ImageMatrix &copy);
+	void init();
+	virtual void allocate (unsigned int w, unsigned int h);
+	void copy(const ImageMatrix &copy);
+	void submatrix(const ImageMatrix &matrix,
+		const unsigned int x1, const unsigned int y1, const unsigned int x2, const unsigned int y2);
+	// N.B.: See note in implementation
 	ImageMatrix();                                  // basic constructor
-	ImageMatrix(const ImageMatrix &matrix);               // copy constructor
-
-	ImageMatrix(const unsigned int width,const unsigned int height);              // construct a new empty, allocated matrix
-	ImageMatrix(const ImageMatrix &matrix,                // create a new matrix which is part of the original one
-		unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2);
 	~ImageMatrix();                                 // destructor
 
 	void normalize(double min, double max, long range, double mean, double stddev); // normalized an image to either min/max or mean/stddev
@@ -219,7 +217,7 @@ public:
 	void invert();                                  // invert the intensity of an image
 	void Downsample(double x_ratio, double y_ratio);// down sample an image
 	ImageMatrix *Rotate(double angle);              // rotate an image by 90,180,270 degrees
-	void convolve(const ImageMatrix &filter);
+	void convolve(const pixData &filter);
 	void BasicStatistics(double *mean, double *median, double *std, double *min, double *max, double *histogram, int bins);
 	inline double min() {
 		if (!has_stats) {
@@ -284,6 +282,11 @@ public:
 	void HaralickTexture2D(double distance, double *out);
 	void TamuraTexture2D(double *vec);
 	void zernike2D(double *zvalues, long *output_size);
+private:
+	// disable the copy constructor
+    ImageMatrix(const ImageMatrix &matrix) {
+		assert(false && "Attempt to use copy constructor");
+	}
 };
 
 #endif

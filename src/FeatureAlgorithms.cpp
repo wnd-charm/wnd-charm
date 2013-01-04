@@ -60,7 +60,8 @@ std::vector<double> ChebyshevCoefficients::calculate( ImageMatrix * IN_matrix )
 	coeffs.reserve(n_features-1);
 	double temp_vec [32];
 
-	ImageMatrix temp (*IN_matrix);
+	ImageMatrix temp;
+	temp.copy (*IN_matrix);
 	for( int i = 0; i < n_features; i++ ) temp_vec[i] = 0;
 	temp.ChebyshevStatistics2D(temp_vec, 0, 32);
 	coeffs.assign( temp_vec, temp_vec + n_features);
