@@ -107,8 +107,8 @@ double directionality(ImageMatrix *image) {
 double efficientLocalMean(const int x,const int y,const int k, const pixData &laufendeSumme) {
 	int k2 = k/2;
 
-	int dimx = laufendeSumme.cols();
-	int dimy = laufendeSumme.rows();
+	long dimx = laufendeSumme.cols();
+	long dimy = laufendeSumme.rows();
 
 	//wanting average over area: (y-k2,x-k2) ... (y+k2-1, x+k2-1)
 	int starty = y-k2;

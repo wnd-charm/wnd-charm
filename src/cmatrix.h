@@ -36,7 +36,8 @@
 #include <assert.h>
 #undef NDEBUG
 #include <vector>
-#include <string> // for what_am_i definition
+#include <string> // for source definition
+#include <sys/types.h> // for dev_t, ino_t
 #include <Eigen/Dense>
 #include "colors/FuzzyCalc.h"
 //#define min(a,b) (((a) < (b)) ? (a) : (b))
@@ -160,7 +161,8 @@ public:
 	clrData _clr_plane;                              // 3-channel color data
 	bool _is_pix_writeable;
 	bool _is_clr_writeable;
-	//std::string what_am_i;                        // informative label
+	std::string source;                             // path of image source file
+	byte sourceUID[sizeof(dev_t)+sizeof(ino_t)];    // unique ID for the source file
 	enum ColorMode ColorMode;                       // can be cmRGB, cmHSV or cmGRAY
 	unsigned short bits;                            // the number of intensity bits (8,16, etc)
 	unsigned int width,height;                               // width and height of the picture
@@ -208,8 +210,9 @@ public:
 		const unsigned int x1, const unsigned int y1, const unsigned int x2, const unsigned int y2);
 	// N.B.: See note in implementation
 	ImageMatrix();                                  // basic constructor
-	~ImageMatrix();                                 // destructor
+	virtual ~ImageMatrix();                                 // destructor
 
+	void setSourceUID (const int fildes);          // sets the sourceUID field based on a file descriptor
 	void normalize(double min, double max, long range, double mean, double stddev); // normalized an image to either min/max or mean/stddev
 	void to8bits();
 	void flipV();                                   // flip an image around a vertical axis (left to right)

@@ -54,6 +54,8 @@
 #include <sstream>
 #include <time.h>
 #include <sys/time.h>
+#include <sys/stat.h>
+#include <sys/types.h> // for dev_t, ino_t
 
 #include <stdlib.h>
 #include <string.h>
@@ -84,6 +86,8 @@ int ImageMatrix::LoadTIFF(char *filename) {
 
 	TIFFSetWarningHandler(NULL);
 	if( (tif = TIFFOpen(filename, "r")) ) {
+		source = filename;
+		setSourceUID (TIFFFileno(tif));
 		TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &w);
 		width = w;
 		TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &h);
@@ -213,6 +217,7 @@ int ImageMatrix::OpenImage(char *image_file_name, int downsample, rect *bounding
 		if (mean>0)  /* normalize to a given mean and standard deviation */
 			normalize(-1,-1,-1,mean,stddev);
 	}
+	if (! source.length() ) source = image_file_name;
 	WriteablePixelsFinish();
 	WriteableColorsFinish();
 	return(res);
@@ -225,15 +230,19 @@ int ImageMatrix::OpenImage(char *image_file_name, int downsample, rect *bounding
 void ImageMatrix::init() {
 	width      = 0;
 	height     = 0;
+	_is_pix_writeable = _is_clr_writeable = false;
+
+	has_stats  = false;
+	has_median = false;
 	_min       = 0;
 	_max       = 0;
 	_mean      = 0;
 	_std       = 0;
 	_median    = 0;
-	has_stats  = has_median = false;
-	ColorMode  = cmHSV;
-	bits       = 8;
-	_is_pix_writeable = _is_clr_writeable = false;
+	source     = "";
+	memset (sourceUID,0,sizeof(sourceUID));
+	ColorMode = cmHSV;
+	bits      = 8;
 }
 
 void ImageMatrix::allocate (unsigned int w, unsigned int h) {
@@ -266,13 +275,6 @@ void ImageMatrix::allocate (unsigned int w, unsigned int h) {
 }
 
 void ImageMatrix::copy(const ImageMatrix &copy) {
-	allocate(copy.width, copy.height);
-	ColorMode = copy.ColorMode;
-	bits      = copy.bits;
-	WriteablePixels() = copy.ReadablePixels();
-	if (ColorMode != cmGRAY) {
-		WriteableColors() = copy.ReadableColors();
-	}
 	has_stats  = copy.has_stats;
 	has_median = copy.has_median;
 	_min       = copy._min;
@@ -280,6 +282,15 @@ void ImageMatrix::copy(const ImageMatrix &copy) {
 	_mean      = copy._mean;
 	_std       = copy._std;
 	_median    = copy._median;
+	source     = copy.source;
+	memcpy (sourceUID, copy.sourceUID, sizeof (sourceUID));
+	ColorMode = copy.ColorMode;
+	bits      = copy.bits;
+	allocate(copy.width, copy.height);
+	WriteablePixels() = copy.ReadablePixels();
+	if (ColorMode != cmGRAY) {
+		WriteableColors() = copy.ReadableColors();
+	}
 }
 
 void ImageMatrix::submatrix (const ImageMatrix &matrix, const unsigned int x1, const unsigned int y1, const unsigned int x2, const unsigned int y2) {
@@ -324,6 +335,20 @@ ImageMatrix::~ImageMatrix() {
 	if (_is_clr_writeable) WriteableColorsFinish();
 }
 
+/* setSourceUID
+   using fstat() and the file descriptor parameter,
+   gets the device ID and inode, then stores them in the sourceUID byte array field
+   The size of the deviceID and inode integers is known at compile-time, which determines the size of the byte array.
+   The byte array is filled with the device ID bytes, followed by the inode bytes.
+   The byte array is not NULL-terminated, and may contain NULLs. The size is sizeof(ImageMatrix::sourceUID).
+*/
+void ImageMatrix::setSourceUID (const int fildes) {
+	struct stat the_stat;
+	fstat (fildes, &the_stat);
+
+	*((dev_t *)(&sourceUID[0])) = the_stat.st_dev;
+	*((ino_t *)(&sourceUID[0+sizeof (dev_t)])) = the_stat.st_ino;
+}
 
 /* to8bits
    convert a 16 bit matrix to 8 bits

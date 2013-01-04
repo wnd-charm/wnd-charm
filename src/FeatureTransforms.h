@@ -2,6 +2,7 @@
 #define __TRANSFORMS_H_
 
 #include <string>
+#include <iomanip>
 #include "wndchrm_error.h"
 #include "cmatrix.h"
 
@@ -11,7 +12,10 @@
 class SharedImageMatrix: public ImageMatrix {
 	public:
 		void allocate (unsigned int w, unsigned int h) {
-			std::cout << "-------- called SharedImageMatrix::allocate (" << w << "," << h << ")" << std::endl;
+			std::cout << "-------- called SharedImageMatrix::allocate (" << w << "," << h << ") on " << source << ", UID: ";
+			for (unsigned int i = 0; i < sizeof (sourceUID); i++) cout << hex << std::setfill('0') << setw(2) << (int)sourceUID[i];
+			cout << endl;
+
 			ImageMatrix::allocate (w, h);
 		}
 };
@@ -22,9 +26,10 @@ class SharedImageMatrix: public ImageMatrix {
  */
 class Transform {
 	public:
-		virtual SharedImageMatrix* transform( SharedImageMatrix * matrix_IN ) = 0;
+		virtual SharedImageMatrix* transform( const SharedImageMatrix * matrix_IN ) = 0;
 		std::string name;
 		void print_info();
+		SharedImageMatrix* getOutputIM ( const SharedImageMatrix * matrix_IN );
 	protected:
 		Transform() {};
 };
@@ -34,45 +39,45 @@ class EmptyTransform : public Transform {
 		EmptyTransform (std::string &s) { name = s;}
 		EmptyTransform (const char *s) { name = s;}
 		EmptyTransform ();
-		virtual SharedImageMatrix* transform( SharedImageMatrix * matrix_IN );
+		virtual SharedImageMatrix* transform( const SharedImageMatrix * matrix_IN );
 };
 
 
 class FourierTransform : public Transform {
 	public:
 		FourierTransform();
-		virtual SharedImageMatrix* transform( SharedImageMatrix * matrix_IN );
+		virtual SharedImageMatrix* transform( const SharedImageMatrix * matrix_IN );
 };
 
 class ChebyshevTransform: public Transform {
 	public:
 		ChebyshevTransform();
-		virtual SharedImageMatrix* transform( SharedImageMatrix * matrix_IN );
+		virtual SharedImageMatrix* transform( const SharedImageMatrix * matrix_IN );
 };
 
 class WaveletTransform : public Transform {
 	public:
 		WaveletTransform();
-		virtual SharedImageMatrix* transform( SharedImageMatrix * matrix_IN );
+		virtual SharedImageMatrix* transform( const SharedImageMatrix * matrix_IN );
 };
 
 class EdgeTransform : public Transform {
 	public:
 		EdgeTransform();
-		virtual SharedImageMatrix* transform( SharedImageMatrix * matrix_IN );
+		virtual SharedImageMatrix* transform( const SharedImageMatrix * matrix_IN );
 };
 
 class ColorTransform : public Transform {
 	public:
 		ColorTransform();
 		vector<double> histogram_vals;
-		virtual SharedImageMatrix* transform( SharedImageMatrix * matrix_IN );
+		virtual SharedImageMatrix* transform( const SharedImageMatrix * matrix_IN );
 };
 
 class HueTransform : public Transform {
 	public:
 		HueTransform();
-		virtual SharedImageMatrix* transform( SharedImageMatrix * matrix_IN );
+		virtual SharedImageMatrix* transform( const SharedImageMatrix * matrix_IN );
 };
 
 /*	

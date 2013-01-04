@@ -181,6 +181,12 @@ class ImageMatrix(_object):
     __swig_setmethods__["_is_clr_writeable"] = _pychrm.ImageMatrix__is_clr_writeable_set
     __swig_getmethods__["_is_clr_writeable"] = _pychrm.ImageMatrix__is_clr_writeable_get
     if _newclass:_is_clr_writeable = _swig_property(_pychrm.ImageMatrix__is_clr_writeable_get, _pychrm.ImageMatrix__is_clr_writeable_set)
+    __swig_setmethods__["source"] = _pychrm.ImageMatrix_source_set
+    __swig_getmethods__["source"] = _pychrm.ImageMatrix_source_get
+    if _newclass:source = _swig_property(_pychrm.ImageMatrix_source_get, _pychrm.ImageMatrix_source_set)
+    __swig_setmethods__["sourceUID"] = _pychrm.ImageMatrix_sourceUID_set
+    __swig_getmethods__["sourceUID"] = _pychrm.ImageMatrix_sourceUID_get
+    if _newclass:sourceUID = _swig_property(_pychrm.ImageMatrix_sourceUID_get, _pychrm.ImageMatrix_sourceUID_set)
     __swig_setmethods__["ColorMode"] = _pychrm.ImageMatrix_ColorMode_set
     __swig_getmethods__["ColorMode"] = _pychrm.ImageMatrix_ColorMode_get
     if _newclass:ColorMode = _swig_property(_pychrm.ImageMatrix_ColorMode_get, _pychrm.ImageMatrix_ColorMode_set)
@@ -235,6 +241,7 @@ class ImageMatrix(_object):
         except: self.this = this
     __swig_destroy__ = _pychrm.delete_ImageMatrix
     __del__ = lambda self : None;
+    def setSourceUID(self, *args): return _pychrm.ImageMatrix_setSourceUID(self, *args)
     def normalize(self, *args): return _pychrm.ImageMatrix_normalize(self, *args)
     def to8bits(self): return _pychrm.ImageMatrix_to8bits(self)
     def flipV(self): return _pychrm.ImageMatrix_flipV(self)
@@ -696,6 +703,7 @@ class Transform(_object):
     __swig_getmethods__["name"] = _pychrm.Transform_name_get
     if _newclass:name = _swig_property(_pychrm.Transform_name_get, _pychrm.Transform_name_set)
     def print_info(self): return _pychrm.Transform_print_info(self)
+    def getOutputIM(self, *args): return _pychrm.Transform_getOutputIM(self, *args)
     __swig_destroy__ = _pychrm.delete_Transform
     __del__ = lambda self : None;
 Transform_swigregister = _pychrm.Transform_swigregister
