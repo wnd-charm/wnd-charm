@@ -47,6 +47,8 @@
 #include "textures/haralick/haralick.h"
 #include "textures/zernike/zernike.h"
 
+#include "sha1/sha1.h"
+
 #include <iostream>
 #include <string>
 #include <iomanip>
@@ -56,6 +58,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/types.h> // for dev_t, ino_t
+#include <fcntl.h>     // for O_RDONLY
 
 #include <stdlib.h>
 #include <string.h>
@@ -63,6 +66,8 @@
 
 
 using namespace std;
+//-----------------------------------------------------------------------
+
 
 //-----------------------------------------------------------------------
 
@@ -88,6 +93,8 @@ int ImageMatrix::LoadTIFF(char *filename) {
 	if( (tif = TIFFOpen(filename, "r")) ) {
 		source = filename;
 		setSourceUID (TIFFFileno(tif));
+		operations.push_back ( std::string("Open_").append( (const char *)sourceUID,sizeof(sourceUID) ) );
+
 		TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &w);
 		width = w;
 		TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &h);
@@ -203,13 +210,21 @@ int ImageMatrix::OpenImage(char *image_file_name, int downsample, rect *bounding
 	if (strstr(image_file_name,".tif") || strstr(image_file_name,".TIF")) {  
 		res=LoadTIFF(image_file_name);
 	}
-	
+	if (! operations.size() > 0) {
+		int fildes = open (image_file_name, O_RDONLY);
+		if (fildes > -1) {
+			setSourceUID (fildes);
+			close (fildes);
+		}
+		operations.push_back ( std::string("Open_").append( (const char *)sourceUID,sizeof(sourceUID) ) );
+	}
+
 	// add the image only if it was loaded properly
 	if (res) {
 		// compute features only from an area of the image
 		if (bounding_rect && bounding_rect->x >= 0) {
-			submatrix (*this, bounding_rect->x, bounding_rect->y,
-				bounding_rect->x+bounding_rect->w-1, bounding_rect->y+bounding_rect->h-1
+			submatrix (*this, (unsigned int)bounding_rect->x, (unsigned int)bounding_rect->y,
+				(unsigned int)bounding_rect->x+bounding_rect->w-1, (unsigned int)bounding_rect->y+bounding_rect->h-1
 			);
 		}
 		if (downsample>0 && downsample<100)  /* downsample by a given factor */
@@ -274,7 +289,7 @@ void ImageMatrix::allocate (unsigned int w, unsigned int h) {
 	}
 }
 
-void ImageMatrix::copy(const ImageMatrix &copy) {
+void ImageMatrix::copyFields(const ImageMatrix &copy) {
 	has_stats  = copy.has_stats;
 	has_median = copy.has_median;
 	_min       = copy._min;
@@ -286,15 +301,25 @@ void ImageMatrix::copy(const ImageMatrix &copy) {
 	memcpy (sourceUID, copy.sourceUID, sizeof (sourceUID));
 	ColorMode = copy.ColorMode;
 	bits      = copy.bits;
+	operations = copy.operations;
+}
+void ImageMatrix::copyData(const ImageMatrix &copy) {
 	allocate(copy.width, copy.height);
 	WriteablePixels() = copy.ReadablePixels();
 	if (ColorMode != cmGRAY) {
 		WriteableColors() = copy.ReadableColors();
 	}
 }
+void ImageMatrix::copy(const ImageMatrix &copy) {
+	copyFields (copy);
+	// Do this stuff last - potentially virtual method calls.
+	copyData (copy);
+}
 
 void ImageMatrix::submatrix (const ImageMatrix &matrix, const unsigned int x1, const unsigned int y1, const unsigned int x2, const unsigned int y2) {
 	unsigned int x0, y0;
+	operations.push_back ( string_format ("Sub_%d_%d_%d_%d",x1,y1,x2,y2) );
+
 	bits = matrix.bits;
 	ColorMode = matrix.ColorMode;
 	// verify that the image size is OK
@@ -310,6 +335,7 @@ void ImageMatrix::submatrix (const ImageMatrix &matrix, const unsigned int x1, c
 	if (ColorMode != cmGRAY) {
 		WriteableColors() = matrix.ReadableColors().block(y0,x0,height,width);
 	}
+
 }
 
 /*
@@ -329,7 +355,10 @@ ImageMatrix::ImageMatrix() {
 }
 
 
-/* free the memory allocated in "ImageMatrix::LoadImage" */
+/* destructor
+   Ensure that the pixels are finalized.
+   Allocated pixel memory gets taken care of by the Eigen destructors.
+*/
 ImageMatrix::~ImageMatrix() {
 	if (_is_pix_writeable) WriteablePixelsFinish();
 	if (_is_clr_writeable) WriteableColorsFinish();
@@ -357,6 +386,9 @@ void ImageMatrix::setSourceUID (const int fildes) {
 void ImageMatrix::to8bits() {
 	double max_range = pow((double)2, bits)-1;
 	if (bits == 8) return;
+
+	operations.push_back ( string_format ("To8") );
+
 	bits = 8;
 	writeablePixels pix_plane = WriteablePixels();
 	pix_plane = 255.0 * (pix_plane / max_range);
@@ -368,6 +400,9 @@ void ImageMatrix::to8bits() {
 
 void ImageMatrix::flipV() {
 	bool old_has_stats = has_stats, old_has_median = has_median;
+
+	operations.push_back ( string_format ("FV") );
+
 	WriteablePixels() = ReadablePixels().rowwise().reverse();
 	if (ColorMode != cmGRAY) {
 		WriteableColors() = ReadableColors().rowwise().reverse();
@@ -381,6 +416,9 @@ void ImageMatrix::flipV() {
 */
 void ImageMatrix::flipH() {
 	bool old_has_stats = has_stats, old_has_median = has_median;
+
+	operations.push_back ( string_format ("FH") );
+
 	WriteablePixels() = ReadablePixels().colwise().reverse();
 	if (ColorMode != cmGRAY) {
 		WriteableColors() = ReadableColors().colwise().reverse();
@@ -392,6 +430,8 @@ void ImageMatrix::flipH() {
 
 void ImageMatrix::invert() {
 	double max_range = pow((double)2,bits)-1;
+	operations.push_back ( string_format ("Inv") );
+
 	WriteablePixels() = max_range - WriteablePixels().array();
 }
 
@@ -404,6 +444,9 @@ void ImageMatrix::Downsample(double x_ratio, double y_ratio) {
 	double x,y,dx,dy,frac;
 	unsigned int new_x,new_y,a;
 	HSVcolor hsv;
+
+	operations.push_back ( string_format ("DS_%lf_%lf",x_ratio,y_ratio) );
+
 	writeablePixels pix_plane = WriteablePixels();
 	writeableColors clr_plane = WriteableColors();
 
@@ -555,9 +598,10 @@ ImageMatrix* ImageMatrix::Rotate(double angle) {
 
 	// Make a new image matrix
 	new_matrix = new ImageMatrix;
+	new_matrix->copyFields (*this);
+	new_matrix->operations.push_back ( string_format ("R_%d",(int)angle) );
+
 	new_matrix->allocate (new_width, new_height);
-	new_matrix->bits=bits;
-	new_matrix->ColorMode=ColorMode;
 
 	// a 180 is simply a reverse of the matrix
 	// a 90 is m.transpose().rowwise.reverse()
@@ -575,6 +619,7 @@ ImageMatrix* ImageMatrix::Rotate(double angle) {
 			new_matrix->WriteablePixels() = ReadablePixels().transpose();
 		break;
 	}
+
 	return(new_matrix);
 }
 
@@ -706,11 +751,12 @@ void ImageMatrix::normalize(double n_min, double n_max, long n_range, double n_m
 				pix_plane (y,x) = val;
 			}
 		}
+		operations.push_back ( string_format ("Nminmax_%lf_%lf_%lf",n_min,n_max,n_range) );
 	}
 
     /* normalize to n_mean and n_std */
 	if (n_mean > 0) {
-		double d_mean = mean() - n_mean, std_fact = n_std/std();
+		double d_mean = mean() - n_mean, std_fact = (n_std > 0 ? n_std : 0)/std();
 		double max_range = pow((double)2,bits)-1;
 		for (y = 0; y < height; y++) {
 			for (x = 0; x < width; x++) {
@@ -722,6 +768,7 @@ void ImageMatrix::normalize(double n_min, double n_max, long n_range, double n_m
 				pix_plane (y,x) = val;
 			}
         }
+		operations.push_back ( string_format ("Nstd_%lf_%lf",n_mean,n_std) );
 	}	   
 }
 
@@ -734,6 +781,8 @@ void ImageMatrix::convolve(const pixData &filter) {
 	long width2=filter.cols()/2;
 	double tmp;
 
+	std::string tmp_string;
+	operations.push_back ( std::string("Conv_").append( SHA1::fromBytes((uint8_t *)filter.data(), filter.size()*sizeof(double), tmp_string ) ));
 	ImageMatrix temp;
 	temp.copy (*this);
 	temp.WriteablePixelsFinish();
@@ -856,6 +905,8 @@ void ImageMatrix::ColorTransform(double *color_hist, int use_hue) {
 	RGBcolor rgb;
 	double certainties[COLORS_NUM+1];
 
+	operations.push_back ( string_format ("CT_%d", use_hue) );
+
 	writeablePixels pix_plane = WriteablePixels();
 	writeableColors clr_plane = WriteableColors();
 
@@ -885,6 +936,7 @@ void ImageMatrix::ColorTransform(double *color_hist, int use_hue) {
 	if (color_hist) 
 		for (color_index=0;color_index<=COLORS_NUM;color_index++)
 			color_hist[color_index]/=(width*height);	 
+
 }
 
 /* get image histogram */
@@ -919,6 +971,9 @@ void ImageMatrix::histogram(double *bins,unsigned short bins_num, int imhist) {
 double ImageMatrix::fft2() {
 	fftw_plan p;
 	unsigned int half_height=height/2+1;
+
+	operations.push_back ( string_format ("FFT") );
+
 	writeablePixels pix_plane = WriteablePixels();
 
 	double *in = (double*) fftw_malloc(sizeof(double) * width*height);
@@ -999,6 +1054,8 @@ void ImageMatrix::ChebyshevTransform(unsigned int N) {
 	double *out;
 	unsigned int x,y;
 
+	operations.push_back ( string_format ("Cheb") );
+
 	if (N<2)
 		N = MIN( width, height );
 	out=new double[height*N];
@@ -1036,6 +1093,9 @@ void ImageMatrix::Symlet5Transform() {
 	DataGrid2D *grid2d=NULL;
 	DataGrid *grid;
 	Symlet5 *Sym5;
+
+	operations.push_back ( string_format ("Sym5") );
+
 	writeablePixels pix_plane = WriteablePixels();
 
 
@@ -1091,6 +1151,8 @@ int ImageMatrix::CombFirstFourMoments2D(double *vec) {
 void ImageMatrix::EdgeTransform() {
 	unsigned int x,y;
 	double max_x=0,max_y=0;
+
+	operations.push_back ( string_format ("Edge") );
 
 	ImageMatrix TempMatrix;
 	TempMatrix.copy (*this);
@@ -1324,6 +1386,9 @@ double ImageMatrix::Otsu() {
 double ImageMatrix::OtsuBinaryMaskTransform() {
 	double OtsuGlobalThreshold;
 	double max_range = pow((double)2,bits)-1;
+
+	operations.push_back ( string_format ("Otsu") );
+
 	writeablePixels pix_plane = WriteablePixels();
 
 	OtsuGlobalThreshold=Otsu();
@@ -1343,6 +1408,8 @@ double ImageMatrix::OtsuBinaryMaskTransform() {
 */
 //--------------------------------------------------------
 unsigned long ImageMatrix::BWlabel(int level) {
+	operations.push_back ( string_format ("BWlabel_%d", level) );
+
 	return(bwlabel(this,level));
 }
 

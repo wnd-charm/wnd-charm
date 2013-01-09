@@ -1,29 +1,156 @@
-
 #include <iostream> // used for debug output from instantiator methods
 #include <cmath>
+#include <fcntl.h>
+#include "sha1/sha1.h"
+#include "b64/encode.h"
 #include "cmatrix.h"
 #include "FeatureTransforms.h"
 #include "colors/FuzzyCalc.h" // for definition of compiler constant COLORS_NUM
 #include "transforms/fft/bcb_fftw3/fftw3.h"
 
+
+void SharedImageMatrix::SetShmemName ( const std::string &final_op ) {
+	SHA1::SHA1 digest;
+	uint8_t Message_Digest[SHA1::HashSize];
+
+	for(size_t op = 0; op < operations.size(); op++) {
+		digest.Input( (uint8_t *)(operations[op].data()), operations[op].length() );
+	}
+	if (final_op.length()) digest.Input( (uint8_t *)(final_op.data()), final_op.length() );
+	digest.Result(Message_Digest);
+
+	base64::encoder().encode ((char *)Message_Digest, SHA1::HashSize, shmem_name, false);
+	std::cout <<         "         SharedImageMatrix::SetShmemName: " << shmem_name << std::endl;
+	
+}
+
+void SharedImageMatrix::allocate (unsigned int w, unsigned int h) {
+// 	std::ios::fmtflags stFlags = std::cout.flags();
+// 	int stPrec = std::cout.precision();
+// 	char stFill = std::cout.fill();
+// 
+// 	std::cout << "-------- called SharedImageMatrix::allocate (" << w << "," << h << ") on " << source << ", UID: ";
+// 	for (unsigned int i = 0; i < sizeof (sourceUID); i++) cout << hex << std::setfill('0') << setw(2) << (int)sourceUID[i];
+// 	std::cout << std::endl;
+// 	std::cout.flags(stFlags);
+// 	std::cout.precision(stPrec);
+// 	std::cout.fill(stFill);
+
+	ImageMatrix::allocate (w, h);
+}
+
+SharedImageMatrix *SharedImageMatrix::fromCache ( const std::string &final_op ) {
+	std::ios::fmtflags stFlags = std::cout.flags();
+	long stPrec = std::cout.precision();
+	char stFill = std::cout.fill();
+
+	std::cout <<         "-------- called SharedImageMatrix::fromCache (" << width << "," << height << ") on " << source << ", UID: ";
+	for (unsigned int i = 0; i < sizeof (sourceUID); i++) cout << hex << std::setfill('0') << setw(2) << (int)sourceUID[i];
+	std::cout << std::endl;
+	for(size_t op = 0; op < operations.size(); op++) {
+		if (! operations[op].compare(0,5,"Open_") ) {
+			std::cout << "             Open_";
+			for (size_t i = 0; i < sizeof (sourceUID); i++) cout << hex << std::setfill('0') << setw(2) << (int)((operations[op])[5+i]);
+			std::cout << std::dec << std::endl;
+		} else {
+			std::cout << "             " << operations[op] << std::endl;
+		}
+	}
+	if (final_op.length()) std::cout <<         "      param: " << final_op << std::endl;
+	std::cout.flags(stFlags);
+	std::cout.precision(stPrec);
+	std::cout.fill(stFill);
+	SetShmemName( final_op );
+
+	return (NULL);
+}
+
+void SharedImageMatrix::Cache ( ) {
+	std::ios::fmtflags stFlags = std::cout.flags();
+	long stPrec = std::cout.precision();
+	char stFill = std::cout.fill();
+
+	std::cout <<         "-------- called SharedImageMatrix::Cache (" << width << "," << height << ") on " << source << ", UID: ";
+	for (unsigned int i = 0; i < sizeof (sourceUID); i++) cout << hex << std::setfill('0') << setw(2) << (int)sourceUID[i];
+	std::cout << std::endl;
+	for(size_t op = 0; op < operations.size(); op++) {
+		if (! operations[op].compare(0,5,"Open_") ) {
+			std::cout << "             Open_";
+			for (size_t i = 0; i < sizeof (sourceUID); i++) cout << hex << std::setfill('0') << setw(2) << (int)((operations[op])[5+i]);
+			std::cout << std::dec << std::endl;
+		} else {
+			std::cout << "             " << operations[op] << std::endl;
+		}
+	}
+	std::cout.flags(stFlags);
+	std::cout.precision(stPrec);
+	std::cout.fill(stFill);
+	SetShmemName( "" );
+}
+
+int SharedImageMatrix::OpenImage(char *image_file_name,            // load an image of any supported format
+		int downsample, rect *bounding_rect,
+		double mean, double stddev) {
+
+	int fildes = open (image_file_name, O_RDONLY);
+	if (fildes > -1) {
+		setSourceUID (fildes);
+		close (fildes);
+		operations.push_back ( std::string("Open_").append( (const char *)sourceUID,sizeof(sourceUID) ) );
+	}
+
+	// WARNING: Setting operations here seems somewhat brittle
+	if (bounding_rect && bounding_rect->x >= 0)
+		operations.push_back ( string_format ("Sub_%d_%d_%d_%d",
+			bounding_rect->x, bounding_rect->y,
+			bounding_rect->x+bounding_rect->w-1, bounding_rect->y+bounding_rect->h-1
+		));
+	if (downsample>0 && downsample<100)  /* downsample by a given factor */
+		operations.push_back ( string_format ("DS_%lf_%lf",((double)downsample)/100.0,((double)downsample)/100.0) );
+	if (mean>0)  /* normalize to a given mean and standard deviation */
+		operations.push_back ( string_format ("Nstd_%lf_%lf",mean,stddev) );
+	SharedImageMatrix *matrix_OUT = fromCache ( "" );
+	
+	if (!matrix_OUT) {
+		operations.clear();
+		int ret = ImageMatrix::OpenImage (image_file_name,downsample,bounding_rect,mean,stddev);
+		Cache();
+		return (ret);
+	}
+	return (1);
+
+}
+
+
 void Transform::print_info() {
 
 }
 
+SharedImageMatrix* Transform::transform( SharedImageMatrix * matrix_IN ) {
+	SharedImageMatrix *matrix_OUT = matrix_IN->fromCache ( name );
+	if (!matrix_OUT) {
+		matrix_OUT = execute (matrix_IN);
+		matrix_OUT->operations = matrix_IN->operations;
+		matrix_OUT->operations.push_back (name);
+		matrix_OUT->Cache();
+	}
+
+	return (matrix_OUT);
+}
+
+
 SharedImageMatrix *Transform::getOutputIM ( const SharedImageMatrix * matrix_IN ) {
 	SharedImageMatrix* matrix_OUT = new SharedImageMatrix;
 	matrix_OUT->copy(*matrix_IN);
-	matrix_OUT->source += "_" + name;
 	return matrix_OUT;
 };
-
 
 EmptyTransform::EmptyTransform () {
 	 Transform::name = "Empty";
 };
 
 
-SharedImageMatrix* EmptyTransform::transform( const SharedImageMatrix * matrix_IN ) {
+SharedImageMatrix* EmptyTransform::execute( const SharedImageMatrix * matrix_IN ) {
 	std::cout << "Empty transform." << std::endl;
 	SharedImageMatrix* matrix_OUT = getOutputIM (matrix_IN);
 	return matrix_OUT;
@@ -37,7 +164,7 @@ FourierTransform::FourierTransform () {
 
 /* fft 2 dimensional transform */
 // http://www.fftw.org/doc/
-SharedImageMatrix* FourierTransform::transform( const SharedImageMatrix * matrix_IN ) {
+SharedImageMatrix* FourierTransform::execute( const SharedImageMatrix * matrix_IN ) {
 	if( !matrix_IN )
 		return NULL;
 	
@@ -58,7 +185,7 @@ ChebyshevTransform::ChebyshevTransform () {
 }
 
 
-SharedImageMatrix* ChebyshevTransform::transform( const SharedImageMatrix * matrix_IN ) {
+SharedImageMatrix* ChebyshevTransform::execute( const SharedImageMatrix * matrix_IN ) {
 	if( !matrix_IN )
 		return NULL;	
 	std::cout << "Performing transform " << name << std::endl;
@@ -77,7 +204,7 @@ WaveletTransform::WaveletTransform () {
 };
 
 
-SharedImageMatrix* WaveletTransform::transform( const SharedImageMatrix * matrix_IN ) {
+SharedImageMatrix* WaveletTransform::execute( const SharedImageMatrix * matrix_IN ) {
 	if( !matrix_IN )
 		return NULL;
 	
@@ -96,7 +223,7 @@ EdgeTransform::EdgeTransform () {
 }
 
 
-SharedImageMatrix* EdgeTransform::transform( const SharedImageMatrix * matrix_IN ) {
+SharedImageMatrix* EdgeTransform::execute( const SharedImageMatrix * matrix_IN ) {
 	if( !matrix_IN )
 		return NULL;
 	
@@ -115,7 +242,7 @@ ColorTransform::ColorTransform () {
 }
 
 
-SharedImageMatrix* ColorTransform::transform( const SharedImageMatrix * matrix_IN ) {
+SharedImageMatrix* ColorTransform::execute( const SharedImageMatrix * matrix_IN ) {
 	if( !matrix_IN )
 		return NULL;
 	
@@ -137,7 +264,7 @@ HueTransform::HueTransform () {
 }
 
 
-SharedImageMatrix* HueTransform::transform( const SharedImageMatrix * matrix_IN ) {
+SharedImageMatrix* HueTransform::execute( const SharedImageMatrix * matrix_IN ) {
 	if( !matrix_IN )
 		return NULL;
 	

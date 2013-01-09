@@ -36,7 +36,8 @@
 #include <assert.h>
 #undef NDEBUG
 #include <vector>
-#include <string> // for source definition
+#include <string> // for source field
+#include <vector> // for operations field
 #include <sys/types.h> // for dev_t, ino_t
 #include <Eigen/Dense>
 #include "colors/FuzzyCalc.h"
@@ -72,7 +73,7 @@ typedef const clrData &readOnlyColors;
 typedef pixData &writeablePixels;
 typedef clrData &writeableColors;
 typedef struct {
-	unsigned int x,y,w,h;
+	int x,y,w,h;
 } rect;
 
 //---------------------------------------------------------------------------
@@ -153,6 +154,27 @@ static inline RGBcolor HSV2RGB(const HSVcolor hsv) {
 static inline double RGB2GRAY(const RGBcolor rgb) {
 	return((0.2989*rgb.r+0.5870*rgb.g+0.1140*rgb.b));
 }
+static inline std::string string_format(const std::string &fmt, ...) {
+    int size = 256;
+    std::string str;
+    va_list ap;
+    while (1) {
+        str.resize(size);
+        va_start(ap, fmt);
+        int n = vsnprintf((char *)str.c_str(), size, fmt.c_str(), ap);
+        va_end(ap);
+        if (n > -1 && n < size) {
+            str.resize(n);
+            return str;
+        }
+        if (n > -1)
+            size = n + 1;
+        else
+            size *= 2;
+    }
+    return str;
+}
+
 //---------------------------------------------------------------------------
 
 class ImageMatrix {
@@ -162,7 +184,8 @@ public:
 	bool _is_pix_writeable;
 	bool _is_clr_writeable;
 	std::string source;                             // path of image source file
-	byte sourceUID[sizeof(dev_t)+sizeof(ino_t)];    // unique ID for the source file
+	byte sourceUID[sizeof(dev_t)+sizeof(ino_t)];    // unique ID for the source file, composed of device ID and inode.
+	std::vector<std::string> operations;            // a sequence of operations performed on this object (audit trail).
 	enum ColorMode ColorMode;                       // can be cmRGB, cmHSV or cmGRAY
 	unsigned short bits;                            // the number of intensity bits (8,16, etc)
 	unsigned int width,height;                               // width and height of the picture
@@ -199,12 +222,14 @@ public:
 	}
 	int LoadTIFF(char *filename);                   // load from TIFF file
 	int SaveTiff(char *filename);                   // save a matrix in TIF format
-	int OpenImage(char *image_file_name,            // load an image of any supported format
+	virtual int OpenImage(char *image_file_name,            // load an image of any supported format
 		int downsample, rect *bounding_rect,
 		double mean, double stddev);
 	// constructor helpers
 	void init();
 	virtual void allocate (unsigned int w, unsigned int h);
+	void copyFields(const ImageMatrix &copy);
+	void copyData(const ImageMatrix &copy);
 	void copy(const ImageMatrix &copy);
 	void submatrix(const ImageMatrix &matrix,
 		const unsigned int x1, const unsigned int y1, const unsigned int x2, const unsigned int y2);
