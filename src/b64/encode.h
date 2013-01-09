@@ -17,14 +17,14 @@ namespace base64
 		#include "cencode.h"
 	}
 	
-	const static int BUFFERSIZE = 64;
+	const static size_t BUFFERSIZE = 64;
 
 	struct encoder
 	{
 		base64_encodestate _state;
-		int _buffersize;
+		size_t _buffersize;
 
-		encoder(int buffersize_in = BUFFERSIZE)
+		encoder(size_t buffersize_in = BUFFERSIZE)
 		: _buffersize(buffersize_in)
 		{}
 
@@ -34,17 +34,17 @@ namespace base64
 				coded_size += (((coded_size) / _state.chars_per_line) * 2) + 1;
 			return (coded_size);
 		}
-		int encode(char value_in)
+		size_t encode(char value_in)
 		{
 			return base64_encode_value(value_in);
 		}
 
-		int encode(const char* code_in, const int length_in, char* plaintext_out)
+		size_t encode(const char* code_in, const size_t length_in, char* plaintext_out)
 		{
 			return base64_encode_block(code_in, length_in, plaintext_out, &_state);
 		}
 
-		int encode_end(char* plaintext_out)
+		size_t encode_end(char* plaintext_out)
 		{
 			return base64_encode_blockend(plaintext_out, &_state);
 		}
@@ -54,7 +54,7 @@ namespace base64
 			base64_init_encodestate(&_state);
 			if (!newlines) _state.chars_per_line = 0;
 			//
-			const int N = _buffersize;
+			const size_t N = _buffersize;
 			char* plaintext = new char[N];
 			char* code = new char[calc_encoded_size (N)];
 			size_t plainlength;
@@ -85,12 +85,12 @@ namespace base64
 			base64_init_encodestate(&_state);
 			if (!newlines) _state.chars_per_line = 0;
 			//
-			int codelength = calc_encoded_size (plainlength);
+			size_t codelength = calc_encoded_size (plainlength);
 
 			// writing directly into std::string.data() is not recommended. Oh well.
 			out.resize (codelength);
 			char* code = (char *)out.data();
-			int codelength_out,codelength_end;
+			size_t codelength_out,codelength_end;
 
 			codelength_out = encode(plaintext, plainlength, code);
 			codelength_end = encode_end(code + codelength_out);			
@@ -103,12 +103,12 @@ namespace base64
 			if (!newlines) _state.chars_per_line = 0;
 			size_t plainlength = plaintext.length();
 			//
-			int codelength = calc_encoded_size (plainlength);
+			size_t codelength = calc_encoded_size (plainlength);
 
 			// writing directly into std::string.data() is not recommended. Oh well.
 			out.resize (codelength);
 			char* code = (char *)out.data();
-			int codelength_out,codelength_end;
+			size_t codelength_out,codelength_end;
 
 			codelength_out = encode(plaintext.data(), plainlength, code);
 			codelength_end = encode_end(code + codelength_out);			

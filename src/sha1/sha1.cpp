@@ -340,7 +340,7 @@ int SHA1::Input(    const uint8_t  *message_array,
  */  
 int SHA1::Result( uint8_t 	  Message_Digest[HashSize])
 {
-	int i;
+	size_t i;
 
 	if (!Message_Digest)
 	{
