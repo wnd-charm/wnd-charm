@@ -273,14 +273,11 @@ int SHA1::Reset()
 }
 
 /**
- *  @brief 	Data input.
- *
- *  		This memberfunction add data to the context.
- *
+ *  @brief 	Update context based on input.
  *  @param	message_array The data to add
  *  @param	length The length of the data to add
  */  
-int SHA1::Input(    const uint8_t  *message_array,
+int SHA1::Update(    const uint8_t  *message_array,
 			size_t   length)
 {
 	if (!length)
@@ -385,7 +382,7 @@ const std::string &fromString( const std::string &input_str, std::string &output
 	SHA1 digest;
 	uint8_t Message_Digest[HashSize];
 
-	digest.Input((unsigned char*) input_str.c_str(), input_str.length());
+	digest.Update((unsigned char*) input_str.c_str(), input_str.length());
 	digest.Result(Message_Digest);
 	output_str.assign ((char *)&Message_Digest[0],HashSize);
 	return output_str;
@@ -402,7 +399,7 @@ const std::string &fromBytes( const unsigned char *bytes, const size_t length, s
 	SHA1 digest;
 	uint8_t Message_Digest[HashSize];
 
-	digest.Input(bytes, length);
+	digest.Update(bytes, length);
 	digest.Result(Message_Digest);
 	output_str.assign ((char *)&Message_Digest[0],HashSize);
 	return output_str;

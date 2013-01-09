@@ -191,16 +191,12 @@ class SHA1
 		int Reset( );
 
 		/**
-		 *  @brief 	Data input.
-		 *
-		 *  		This memberfunction add data to the specified
-		 *  		context.
-		 *
+		 *  @brief 	Update context based on input.
 		 *  @param	message_array The data to add
 		 *  @param	length The length of the data to add
 		 */  
-		int Input(  const uint8_t *message_array,
-				size_t  length);
+		int Update(  const uint8_t *message_array,
+				const size_t  length);
 
 		/**
 		 *  @brief 	This ends the sha operation, zeroizing the context
