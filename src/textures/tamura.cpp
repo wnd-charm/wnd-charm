@@ -104,17 +104,17 @@ double directionality(ImageMatrix *image) {
 }
 
 
-double efficientLocalMean(const int x,const int y,const int k, const pixData &laufendeSumme) {
-	int k2 = k/2;
+double efficientLocalMean(const long x,const long y,const long k, const pixData &laufendeSumme) {
+	long k2 = k/2;
 
 	long dimx = laufendeSumme.cols();
 	long dimy = laufendeSumme.rows();
 
 	//wanting average over area: (y-k2,x-k2) ... (y+k2-1, x+k2-1)
-	int starty = y-k2;
-	int startx = x-k2;
-	int stopy = y+k2-1;
-	int stopx = x+k2-1;
+	long starty = y-k2;
+	long startx = x-k2;
+	long stopy = y+k2-1;
+	long stopx = x+k2-1;
 
 	if (starty < 0) starty = 0;
 	if (startx < 0) startx = 0;
@@ -135,7 +135,7 @@ double efficientLocalMean(const int x,const int y,const int k, const pixData &la
 	unten = laufendeSumme(stopy,startx);
 
 	//   cout << "obenlinks = " << obenlinks << " oben = " << oben << " links = " << links << " unten = " <<unten << endl;
-	int counter = (stopy-starty+1)*(stopx-startx+1);
+	long counter = (stopy-starty+1)*(stopx-startx+1);
 	return (unten-links-oben+obenlinks)/counter;
 }
 
