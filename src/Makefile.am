@@ -1,4 +1,5 @@
-
+# echo "noinst_HEADERS = $(find Eigen  -not -path '*.svn/*'  -type f | perl -n -e 'chomp;s/^\.\///;push (@foo,$_); END{print join(" \\\n    ",@foo)}')" > Eigen/sources.am 
+include Eigen/sources.am
 AM_YFLAGS = -d
 AM_LFLAGS = -o$(LEX_OUTPUT_ROOT).c
 AM_CPPFLAGS = -fPIC
@@ -66,7 +67,15 @@ libchrm_la_SOURCES = \
        FeatureAlgorithms.cpp \
        FeatureAlgorithms.h \
        gsl/specfunc.cpp \
-       gsl/specfunc.h
+       gsl/specfunc.h \
+       b64/cdecode.c \
+       b64/cdecode.h \
+       b64/cencode.c \
+       b64/cencode.h \
+       b64/decode.h \
+       b64/encode.h \
+       sha1/sha1.cpp \
+       sha1/sha1.h
 
 
 libchrm_la_LIBADD = -ltiff -L. -lfftw3

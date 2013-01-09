@@ -14,6 +14,7 @@
 
 @SET_MAKE@
 
+
 VPATH = @srcdir@
 am__make_dryrun = \
   { \
@@ -50,9 +51,10 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-subdir = src
-DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
+DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Eigen/sources.am \
+	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(top_srcdir)/config/depcomp
+subdir = src
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ac_pkg_swig.m4 \
 	$(top_srcdir)/m4/ax_pkg_swig.m4 \
@@ -111,7 +113,8 @@ am_libchrm_la_OBJECTS = libchrm_la-FuzzyCalc.lo \
 	libchrm_la-WaveletMedium.lo libchrm_la-wt.lo \
 	libchrm_la-cmatrix.lo libchrm_la-wndchrm_error.lo \
 	libchrm_la-FeatureTransforms.lo \
-	libchrm_la-FeatureAlgorithms.lo libchrm_la-specfunc.lo
+	libchrm_la-FeatureAlgorithms.lo libchrm_la-specfunc.lo \
+	cdecode.lo cencode.lo libchrm_la-sha1.lo
 libchrm_la_OBJECTS = $(am_libchrm_la_OBJECTS)
 libchrm_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(libchrm_la_CXXFLAGS) \
@@ -120,15 +123,6 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__depfiles_maybe = depfiles
 am__mv = mv -f
-CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
-	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
-LTCXXCOMPILE = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
-	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
-CXXLD = $(CXX)
-CXXLINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=link $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
-	$(LDFLAGS) -o $@
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
@@ -138,6 +132,15 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
+CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
+LTCXXCOMPILE = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
+	--mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
+CXXLD = $(CXX)
+CXXLINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
+	--mode=link $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
 SOURCES = $(libchrm_la_SOURCES)
 DIST_SOURCES = $(libchrm_la_SOURCES)
 am__can_run_installinfo = \
@@ -145,6 +148,7 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
+HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -286,6 +290,302 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+noinst_HEADERS = Eigen/Array \
+    Eigen/Cholesky \
+    Eigen/CholmodSupport \
+    Eigen/CMakeLists.txt \
+    Eigen/Core \
+    Eigen/Dense \
+    Eigen/Eigen \
+    Eigen/Eigen2Support \
+    Eigen/Eigenvalues \
+    Eigen/foo \
+    Eigen/Geometry \
+    Eigen/Householder \
+    Eigen/IterativeLinearSolvers \
+    Eigen/Jacobi \
+    Eigen/LeastSquares \
+    Eigen/LU \
+    Eigen/OrderingMethods \
+    Eigen/PardisoSupport \
+    Eigen/PaStiXSupport \
+    Eigen/QR \
+    Eigen/QtAlignedMalloc \
+    Eigen/sources.am \
+    Eigen/Sparse \
+    Eigen/SparseCholesky \
+    Eigen/SparseCore \
+    Eigen/src/Cholesky/CMakeLists.txt \
+    Eigen/src/Cholesky/LDLT.h \
+    Eigen/src/Cholesky/LLT.h \
+    Eigen/src/Cholesky/LLT_MKL.h \
+    Eigen/src/CholmodSupport/CholmodSupport.h \
+    Eigen/src/CholmodSupport/CMakeLists.txt \
+    Eigen/src/CMakeLists.txt \
+    Eigen/src/Core/arch/AltiVec/CMakeLists.txt \
+    Eigen/src/Core/arch/AltiVec/Complex.h \
+    Eigen/src/Core/arch/AltiVec/PacketMath.h \
+    Eigen/src/Core/arch/CMakeLists.txt \
+    Eigen/src/Core/arch/Default/CMakeLists.txt \
+    Eigen/src/Core/arch/Default/Settings.h \
+    Eigen/src/Core/arch/NEON/CMakeLists.txt \
+    Eigen/src/Core/arch/NEON/Complex.h \
+    Eigen/src/Core/arch/NEON/PacketMath.h \
+    Eigen/src/Core/arch/SSE/CMakeLists.txt \
+    Eigen/src/Core/arch/SSE/Complex.h \
+    Eigen/src/Core/arch/SSE/MathFunctions.h \
+    Eigen/src/Core/arch/SSE/PacketMath.h \
+    Eigen/src/Core/Array.h \
+    Eigen/src/Core/ArrayBase.h \
+    Eigen/src/Core/ArrayWrapper.h \
+    Eigen/src/Core/Assign.h \
+    Eigen/src/Core/Assign_MKL.h \
+    Eigen/src/Core/BandMatrix.h \
+    Eigen/src/Core/Block.h \
+    Eigen/src/Core/BooleanRedux.h \
+    Eigen/src/Core/CMakeLists.txt \
+    Eigen/src/Core/CommaInitializer.h \
+    Eigen/src/Core/CwiseBinaryOp.h \
+    Eigen/src/Core/CwiseNullaryOp.h \
+    Eigen/src/Core/CwiseUnaryOp.h \
+    Eigen/src/Core/CwiseUnaryView.h \
+    Eigen/src/Core/DenseBase.h \
+    Eigen/src/Core/DenseCoeffsBase.h \
+    Eigen/src/Core/DenseStorage.h \
+    Eigen/src/Core/Diagonal.h \
+    Eigen/src/Core/DiagonalMatrix.h \
+    Eigen/src/Core/DiagonalProduct.h \
+    Eigen/src/Core/Dot.h \
+    Eigen/src/Core/EigenBase.h \
+    Eigen/src/Core/Flagged.h \
+    Eigen/src/Core/ForceAlignedAccess.h \
+    Eigen/src/Core/Functors.h \
+    Eigen/src/Core/Fuzzy.h \
+    Eigen/src/Core/GeneralProduct.h \
+    Eigen/src/Core/GenericPacketMath.h \
+    Eigen/src/Core/GlobalFunctions.h \
+    Eigen/src/Core/IO.h \
+    Eigen/src/Core/Map.h \
+    Eigen/src/Core/MapBase.h \
+    Eigen/src/Core/MathFunctions.h \
+    Eigen/src/Core/Matrix.h \
+    Eigen/src/Core/MatrixBase.h \
+    Eigen/src/Core/NestByValue.h \
+    Eigen/src/Core/NoAlias.h \
+    Eigen/src/Core/NumTraits.h \
+    Eigen/src/Core/PermutationMatrix.h \
+    Eigen/src/Core/PlainObjectBase.h \
+    Eigen/src/Core/Product.h \
+    Eigen/src/Core/ProductBase.h \
+    Eigen/src/Core/products/CMakeLists.txt \
+    Eigen/src/Core/products/CoeffBasedProduct.h \
+    Eigen/src/Core/products/GeneralBlockPanelKernel.h \
+    Eigen/src/Core/products/GeneralMatrixMatrix.h \
+    Eigen/src/Core/products/GeneralMatrixMatrix_MKL.h \
+    Eigen/src/Core/products/GeneralMatrixMatrixTriangular.h \
+    Eigen/src/Core/products/GeneralMatrixMatrixTriangular_MKL.h \
+    Eigen/src/Core/products/GeneralMatrixVector.h \
+    Eigen/src/Core/products/GeneralMatrixVector_MKL.h \
+    Eigen/src/Core/products/Parallelizer.h \
+    Eigen/src/Core/products/SelfadjointMatrixMatrix.h \
+    Eigen/src/Core/products/SelfadjointMatrixMatrix_MKL.h \
+    Eigen/src/Core/products/SelfadjointMatrixVector.h \
+    Eigen/src/Core/products/SelfadjointMatrixVector_MKL.h \
+    Eigen/src/Core/products/SelfadjointProduct.h \
+    Eigen/src/Core/products/SelfadjointRank2Update.h \
+    Eigen/src/Core/products/TriangularMatrixMatrix.h \
+    Eigen/src/Core/products/TriangularMatrixMatrix_MKL.h \
+    Eigen/src/Core/products/TriangularMatrixVector.h \
+    Eigen/src/Core/products/TriangularMatrixVector_MKL.h \
+    Eigen/src/Core/products/TriangularSolverMatrix.h \
+    Eigen/src/Core/products/TriangularSolverMatrix_MKL.h \
+    Eigen/src/Core/products/TriangularSolverVector.h \
+    Eigen/src/Core/Random.h \
+    Eigen/src/Core/Redux.h \
+    Eigen/src/Core/Replicate.h \
+    Eigen/src/Core/ReturnByValue.h \
+    Eigen/src/Core/Reverse.h \
+    Eigen/src/Core/Select.h \
+    Eigen/src/Core/SelfAdjointView.h \
+    Eigen/src/Core/SelfCwiseBinaryOp.h \
+    Eigen/src/Core/SolveTriangular.h \
+    Eigen/src/Core/StableNorm.h \
+    Eigen/src/Core/Stride.h \
+    Eigen/src/Core/Swap.h \
+    Eigen/src/Core/Transpose.h \
+    Eigen/src/Core/Transpositions.h \
+    Eigen/src/Core/TriangularMatrix.h \
+    Eigen/src/Core/util/BlasUtil.h \
+    Eigen/src/Core/util/CMakeLists.txt \
+    Eigen/src/Core/util/Constants.h \
+    Eigen/src/Core/util/DisableStupidWarnings.h \
+    Eigen/src/Core/util/ForwardDeclarations.h \
+    Eigen/src/Core/util/Macros.h \
+    Eigen/src/Core/util/Memory.h \
+    Eigen/src/Core/util/Meta.h \
+    Eigen/src/Core/util/MKL_support.h \
+    Eigen/src/Core/util/NonMPL2.h \
+    Eigen/src/Core/util/ReenableStupidWarnings.h \
+    Eigen/src/Core/util/StaticAssert.h \
+    Eigen/src/Core/util/XprHelper.h \
+    Eigen/src/Core/VectorBlock.h \
+    Eigen/src/Core/VectorwiseOp.h \
+    Eigen/src/Core/Visitor.h \
+    Eigen/src/Eigen2Support/Block.h \
+    Eigen/src/Eigen2Support/CMakeLists.txt \
+    Eigen/src/Eigen2Support/Cwise.h \
+    Eigen/src/Eigen2Support/CwiseOperators.h \
+    Eigen/src/Eigen2Support/Geometry/AlignedBox.h \
+    Eigen/src/Eigen2Support/Geometry/All.h \
+    Eigen/src/Eigen2Support/Geometry/AngleAxis.h \
+    Eigen/src/Eigen2Support/Geometry/CMakeLists.txt \
+    Eigen/src/Eigen2Support/Geometry/Hyperplane.h \
+    Eigen/src/Eigen2Support/Geometry/ParametrizedLine.h \
+    Eigen/src/Eigen2Support/Geometry/Quaternion.h \
+    Eigen/src/Eigen2Support/Geometry/Rotation2D.h \
+    Eigen/src/Eigen2Support/Geometry/RotationBase.h \
+    Eigen/src/Eigen2Support/Geometry/Scaling.h \
+    Eigen/src/Eigen2Support/Geometry/Transform.h \
+    Eigen/src/Eigen2Support/Geometry/Translation.h \
+    Eigen/src/Eigen2Support/Lazy.h \
+    Eigen/src/Eigen2Support/LeastSquares.h \
+    Eigen/src/Eigen2Support/LU.h \
+    Eigen/src/Eigen2Support/Macros.h \
+    Eigen/src/Eigen2Support/MathFunctions.h \
+    Eigen/src/Eigen2Support/Memory.h \
+    Eigen/src/Eigen2Support/Meta.h \
+    Eigen/src/Eigen2Support/Minor.h \
+    Eigen/src/Eigen2Support/QR.h \
+    Eigen/src/Eigen2Support/SVD.h \
+    Eigen/src/Eigen2Support/TriangularSolver.h \
+    Eigen/src/Eigen2Support/VectorBlock.h \
+    Eigen/src/Eigenvalues/CMakeLists.txt \
+    Eigen/src/Eigenvalues/ComplexEigenSolver.h \
+    Eigen/src/Eigenvalues/ComplexSchur.h \
+    Eigen/src/Eigenvalues/ComplexSchur_MKL.h \
+    Eigen/src/Eigenvalues/EigenSolver.h \
+    Eigen/src/Eigenvalues/GeneralizedSelfAdjointEigenSolver.h \
+    Eigen/src/Eigenvalues/HessenbergDecomposition.h \
+    Eigen/src/Eigenvalues/MatrixBaseEigenvalues.h \
+    Eigen/src/Eigenvalues/RealSchur.h \
+    Eigen/src/Eigenvalues/RealSchur_MKL.h \
+    Eigen/src/Eigenvalues/SelfAdjointEigenSolver.h \
+    Eigen/src/Eigenvalues/SelfAdjointEigenSolver_MKL.h \
+    Eigen/src/Eigenvalues/Tridiagonalization.h \
+    Eigen/src/Geometry/AlignedBox.h \
+    Eigen/src/Geometry/AngleAxis.h \
+    Eigen/src/Geometry/arch/CMakeLists.txt \
+    Eigen/src/Geometry/arch/Geometry_SSE.h \
+    Eigen/src/Geometry/CMakeLists.txt \
+    Eigen/src/Geometry/EulerAngles.h \
+    Eigen/src/Geometry/Homogeneous.h \
+    Eigen/src/Geometry/Hyperplane.h \
+    Eigen/src/Geometry/OrthoMethods.h \
+    Eigen/src/Geometry/ParametrizedLine.h \
+    Eigen/src/Geometry/Quaternion.h \
+    Eigen/src/Geometry/Rotation2D.h \
+    Eigen/src/Geometry/RotationBase.h \
+    Eigen/src/Geometry/Scaling.h \
+    Eigen/src/Geometry/Transform.h \
+    Eigen/src/Geometry/Translation.h \
+    Eigen/src/Geometry/Umeyama.h \
+    Eigen/src/Householder/BlockHouseholder.h \
+    Eigen/src/Householder/CMakeLists.txt \
+    Eigen/src/Householder/Householder.h \
+    Eigen/src/Householder/HouseholderSequence.h \
+    Eigen/src/IterativeLinearSolvers/BasicPreconditioners.h \
+    Eigen/src/IterativeLinearSolvers/BiCGSTAB.h \
+    Eigen/src/IterativeLinearSolvers/CMakeLists.txt \
+    Eigen/src/IterativeLinearSolvers/ConjugateGradient.h \
+    Eigen/src/IterativeLinearSolvers/IncompleteLUT.h \
+    Eigen/src/IterativeLinearSolvers/IterativeSolverBase.h \
+    Eigen/src/Jacobi/CMakeLists.txt \
+    Eigen/src/Jacobi/Jacobi.h \
+    Eigen/src/LU/arch/CMakeLists.txt \
+    Eigen/src/LU/arch/Inverse_SSE.h \
+    Eigen/src/LU/CMakeLists.txt \
+    Eigen/src/LU/Determinant.h \
+    Eigen/src/LU/FullPivLU.h \
+    Eigen/src/LU/Inverse.h \
+    Eigen/src/LU/PartialPivLU.h \
+    Eigen/src/LU/PartialPivLU_MKL.h \
+    Eigen/src/misc/blas.h \
+    Eigen/src/misc/CMakeLists.txt \
+    Eigen/src/misc/Image.h \
+    Eigen/src/misc/Kernel.h \
+    Eigen/src/misc/Solve.h \
+    Eigen/src/misc/SparseSolve.h \
+    Eigen/src/OrderingMethods/Amd.h \
+    Eigen/src/OrderingMethods/CMakeLists.txt \
+    Eigen/src/PardisoSupport/CMakeLists.txt \
+    Eigen/src/PardisoSupport/PardisoSupport.h \
+    Eigen/src/PaStiXSupport/CMakeLists.txt \
+    Eigen/src/PaStiXSupport/PaStiXSupport.h \
+    Eigen/src/plugins/ArrayCwiseBinaryOps.h \
+    Eigen/src/plugins/ArrayCwiseUnaryOps.h \
+    Eigen/src/plugins/BlockMethods.h \
+    Eigen/src/plugins/CMakeLists.txt \
+    Eigen/src/plugins/CommonCwiseBinaryOps.h \
+    Eigen/src/plugins/CommonCwiseUnaryOps.h \
+    Eigen/src/plugins/MatrixCwiseBinaryOps.h \
+    Eigen/src/plugins/MatrixCwiseUnaryOps.h \
+    Eigen/src/QR/CMakeLists.txt \
+    Eigen/src/QR/ColPivHouseholderQR.h \
+    Eigen/src/QR/ColPivHouseholderQR_MKL.h \
+    Eigen/src/QR/FullPivHouseholderQR.h \
+    Eigen/src/QR/HouseholderQR.h \
+    Eigen/src/QR/HouseholderQR_MKL.h \
+    Eigen/src/SparseCholesky/CMakeLists.txt \
+    Eigen/src/SparseCholesky/SimplicialCholesky.h \
+    Eigen/src/SparseCore/AmbiVector.h \
+    Eigen/src/SparseCore/CMakeLists.txt \
+    Eigen/src/SparseCore/CompressedStorage.h \
+    Eigen/src/SparseCore/ConservativeSparseSparseProduct.h \
+    Eigen/src/SparseCore/CoreIterators.h \
+    Eigen/src/SparseCore/MappedSparseMatrix.h \
+    Eigen/src/SparseCore/SparseAssign.h \
+    Eigen/src/SparseCore/SparseBlock.h \
+    Eigen/src/SparseCore/SparseCwiseBinaryOp.h \
+    Eigen/src/SparseCore/SparseCwiseUnaryOp.h \
+    Eigen/src/SparseCore/SparseDenseProduct.h \
+    Eigen/src/SparseCore/SparseDiagonalProduct.h \
+    Eigen/src/SparseCore/SparseDot.h \
+    Eigen/src/SparseCore/SparseFuzzy.h \
+    Eigen/src/SparseCore/SparseMatrix.h \
+    Eigen/src/SparseCore/SparseMatrixBase.h \
+    Eigen/src/SparseCore/SparsePermutation.h \
+    Eigen/src/SparseCore/SparseProduct.h \
+    Eigen/src/SparseCore/SparseRedux.h \
+    Eigen/src/SparseCore/SparseSelfAdjointView.h \
+    Eigen/src/SparseCore/SparseSparseProductWithPruning.h \
+    Eigen/src/SparseCore/SparseTranspose.h \
+    Eigen/src/SparseCore/SparseTriangularView.h \
+    Eigen/src/SparseCore/SparseUtil.h \
+    Eigen/src/SparseCore/SparseVector.h \
+    Eigen/src/SparseCore/SparseView.h \
+    Eigen/src/SparseCore/TriangularSolver.h \
+    Eigen/src/StlSupport/CMakeLists.txt \
+    Eigen/src/StlSupport/details.h \
+    Eigen/src/StlSupport/StdDeque.h \
+    Eigen/src/StlSupport/StdList.h \
+    Eigen/src/StlSupport/StdVector.h \
+    Eigen/src/SuperLUSupport/CMakeLists.txt \
+    Eigen/src/SuperLUSupport/SuperLUSupport.h \
+    Eigen/src/SVD/CMakeLists.txt \
+    Eigen/src/SVD/JacobiSVD.h \
+    Eigen/src/SVD/JacobiSVD_MKL.h \
+    Eigen/src/SVD/UpperBidiagonalization.h \
+    Eigen/src/UmfPackSupport/CMakeLists.txt \
+    Eigen/src/UmfPackSupport/UmfPackSupport.h \
+    Eigen/StdDeque \
+    Eigen/StdList \
+    Eigen/StdVector \
+    Eigen/SuperLUSupport \
+    Eigen/SVD \
+    Eigen/UmfPackSupport
+
+
+# echo "noinst_HEADERS = $(find Eigen  -not -path '*.svn/*'  -type f | perl -n -e 'chomp;s/^\.\///;push (@foo,$_); END{print join(" \\\n    ",@foo)}')" > Eigen/sources.am 
 AM_YFLAGS = -d
 AM_LFLAGS = -o$(LEX_OUTPUT_ROOT).c
 AM_CPPFLAGS = -fPIC
@@ -351,15 +651,23 @@ libchrm_la_SOURCES = \
        FeatureAlgorithms.cpp \
        FeatureAlgorithms.h \
        gsl/specfunc.cpp \
-       gsl/specfunc.h
+       gsl/specfunc.h \
+       b64/cdecode.c \
+       b64/cdecode.h \
+       b64/cencode.c \
+       b64/cencode.h \
+       b64/decode.h \
+       b64/encode.h \
+       sha1/sha1.cpp \
+       sha1/sha1.h
 
 libchrm_la_LIBADD = -ltiff -L. -lfftw3
 libchrm_la_CXXFLAGS = -Wall -g -O3
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .cpp .lo .o .obj
-$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
+.SUFFIXES: .c .cpp .lo .o .obj
+$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(srcdir)/Eigen/sources.am $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -380,6 +688,7 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	    echo ' cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@ $(am__depfiles_maybe)'; \
 	    cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@ $(am__depfiles_maybe);; \
 	esac;
+$(srcdir)/Eigen/sources.am:
 
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
@@ -432,6 +741,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cdecode.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cencode.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-CVIPtexture.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-ChebyshevFourier.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-CombFirst4Moments.Plo@am__quote@
@@ -456,11 +767,47 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-gabor.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-haralick.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-radon.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-sha1.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-specfunc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-tamura.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-wndchrm_error.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-wt.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-zernike.Plo@am__quote@
+
+.c.o:
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(COMPILE) -c $<
+
+.c.obj:
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
+
+.c.lo:
+@am__fastdepCC_TRUE@	$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
+
+cdecode.lo: b64/cdecode.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cdecode.lo -MD -MP -MF $(DEPDIR)/cdecode.Tpo -c -o cdecode.lo `test -f 'b64/cdecode.c' || echo '$(srcdir)/'`b64/cdecode.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/cdecode.Tpo $(DEPDIR)/cdecode.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='b64/cdecode.c' object='cdecode.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cdecode.lo `test -f 'b64/cdecode.c' || echo '$(srcdir)/'`b64/cdecode.c
+
+cencode.lo: b64/cencode.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cencode.lo -MD -MP -MF $(DEPDIR)/cencode.Tpo -c -o cencode.lo `test -f 'b64/cencode.c' || echo '$(srcdir)/'`b64/cencode.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/cencode.Tpo $(DEPDIR)/cencode.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='b64/cencode.c' object='cencode.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cencode.lo `test -f 'b64/cencode.c' || echo '$(srcdir)/'`b64/cencode.c
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -686,6 +1033,13 @@ libchrm_la-specfunc.lo: gsl/specfunc.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_la-specfunc.lo `test -f 'gsl/specfunc.cpp' || echo '$(srcdir)/'`gsl/specfunc.cpp
 
+libchrm_la-sha1.lo: sha1/sha1.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -MT libchrm_la-sha1.lo -MD -MP -MF $(DEPDIR)/libchrm_la-sha1.Tpo -c -o libchrm_la-sha1.lo `test -f 'sha1/sha1.cpp' || echo '$(srcdir)/'`sha1/sha1.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libchrm_la-sha1.Tpo $(DEPDIR)/libchrm_la-sha1.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='sha1/sha1.cpp' object='libchrm_la-sha1.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_la-sha1.lo `test -f 'sha1/sha1.cpp' || echo '$(srcdir)/'`sha1/sha1.cpp
+
 mostlyclean-libtool:
 	-rm -f *.lo
 
@@ -790,7 +1144,7 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LTLIBRARIES)
+all-am: Makefile $(LTLIBRARIES) $(HEADERS)
 installdirs:
 	for dir in "$(DESTDIR)$(libdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
