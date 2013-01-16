@@ -43,6 +43,8 @@ max_mean_pass = 0.00001
 
 # force the cache to never read
 #pychrm.SharedImageMatrix.DisableCacheRead (True);
+# disable cache cleanup
+#pychrm.SharedImageMatrix.DisableDestructorCacheCleanup (True);
 
 sig_file = os.path.join (test_dir,'010067_301x300-l_precalculated.sig')
 test_tif = os.path.join (test_dir,'010067_301x300.tif')

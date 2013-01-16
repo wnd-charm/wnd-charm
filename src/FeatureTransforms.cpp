@@ -47,6 +47,7 @@ struct shmem_data {
 // storage and initialization for the object static storing the page size.
 size_t SharedImageMatrix::shmem_page_size = sysconf(_SC_PAGE_SIZE);
 bool SharedImageMatrix::never_read = false;
+bool SharedImageMatrix::disable_destructor_cache_cleanup = false;
 
 
 void SharedImageMatrix::SetShmemName ( ) {
@@ -432,7 +433,10 @@ std::cout << "SharedImageMatrix DESTRUCTOR for " << shmem_name << std::endl;
 	if (shmem_fd > -1) close (shmem_fd);
 	shmem_fd = -1;
 	// unlink the shmem file
-	shm_unlink (shmem_name.c_str());
+	if (!disable_destructor_cache_cleanup) {
+std::cout << "    unlinking " << shmem_name << std::endl;
+		shm_unlink (shmem_name.c_str());
+	}
 	// close the semaphore
 	sem_close (shmem_sem);
 	shmem_sem = SEM_FAILED;

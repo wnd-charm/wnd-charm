@@ -12880,6 +12880,27 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_SharedImageMatrix_DisableDestructorCacheCleanup(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  bool arg1 ;
+  bool val1 ;
+  int ecode1 = 0 ;
+  PyObject * obj0 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:SharedImageMatrix_DisableDestructorCacheCleanup",&obj0)) SWIG_fail;
+  ecode1 = SWIG_AsVal_bool(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "SharedImageMatrix_DisableDestructorCacheCleanup" "', argument " "1"" of type '" "bool""'");
+  } 
+  arg1 = static_cast< bool >(val1);
+  SharedImageMatrix::DisableDestructorCacheCleanup(arg1);
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_SharedImageMatrix_cached_source_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
@@ -14096,6 +14117,7 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"SharedImageMatrix_Cache", _wrap_SharedImageMatrix_Cache, METH_VARARGS, NULL},
 	 { (char *)"SharedImageMatrix_OpenImage", _wrap_SharedImageMatrix_OpenImage, METH_VARARGS, NULL},
 	 { (char *)"SharedImageMatrix_DisableCacheRead", _wrap_SharedImageMatrix_DisableCacheRead, METH_VARARGS, NULL},
+	 { (char *)"SharedImageMatrix_DisableDestructorCacheCleanup", _wrap_SharedImageMatrix_DisableDestructorCacheCleanup, METH_VARARGS, NULL},
 	 { (char *)"SharedImageMatrix_cached_source_set", _wrap_SharedImageMatrix_cached_source_set, METH_VARARGS, NULL},
 	 { (char *)"SharedImageMatrix_cached_source_get", _wrap_SharedImageMatrix_cached_source_get, METH_VARARGS, NULL},
 	 { (char *)"SharedImageMatrix_operation_set", _wrap_SharedImageMatrix_operation_set, METH_VARARGS, NULL},

@@ -672,6 +672,8 @@ class SharedImageMatrix(ImageMatrix):
     def OpenImage(self, *args): return _pychrm.SharedImageMatrix_OpenImage(self, *args)
     __swig_getmethods__["DisableCacheRead"] = lambda x: _pychrm.SharedImageMatrix_DisableCacheRead
     if _newclass:DisableCacheRead = staticmethod(_pychrm.SharedImageMatrix_DisableCacheRead)
+    __swig_getmethods__["DisableDestructorCacheCleanup"] = lambda x: _pychrm.SharedImageMatrix_DisableDestructorCacheCleanup
+    if _newclass:DisableDestructorCacheCleanup = staticmethod(_pychrm.SharedImageMatrix_DisableDestructorCacheCleanup)
     __swig_setmethods__["cached_source"] = _pychrm.SharedImageMatrix_cached_source_set
     __swig_getmethods__["cached_source"] = _pychrm.SharedImageMatrix_cached_source_get
     if _newclass:cached_source = _swig_property(_pychrm.SharedImageMatrix_cached_source_get, _pychrm.SharedImageMatrix_cached_source_set)
@@ -687,6 +689,10 @@ SharedImageMatrix_swigregister(SharedImageMatrix)
 def SharedImageMatrix_DisableCacheRead(*args):
   return _pychrm.SharedImageMatrix_DisableCacheRead(*args)
 SharedImageMatrix_DisableCacheRead = _pychrm.SharedImageMatrix_DisableCacheRead
+
+def SharedImageMatrix_DisableDestructorCacheCleanup(*args):
+  return _pychrm.SharedImageMatrix_DisableDestructorCacheCleanup(*args)
+SharedImageMatrix_DisableDestructorCacheCleanup = _pychrm.SharedImageMatrix_DisableDestructorCacheCleanup
 
 class Transform(_object):
     __swig_setmethods__ = {}

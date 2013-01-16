@@ -35,6 +35,7 @@ class SharedImageMatrix: public ImageMatrix {
 			int downsample, rect *bounding_rect,
 			double mean, double stddev);
 		static void DisableCacheRead (const bool status) {never_read = status;};
+		static void DisableDestructorCacheCleanup (const bool status) {disable_destructor_cache_cleanup = status;};
 
 		std::string cached_source;        // the shmem_name of the source.
 		std::string operation;            // the operation on the cached_source
@@ -42,6 +43,7 @@ class SharedImageMatrix: public ImageMatrix {
 	private:
 		static size_t shmem_page_size;
 		static bool never_read;
+		static bool disable_destructor_cache_cleanup;
 		bool was_cached;
 		size_t shmem_size;
 		int shmem_fd;
