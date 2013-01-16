@@ -16,17 +16,20 @@ enum CacheStatus { cache_unknown, cache_wait, cache_read, cache_write };
 class SharedImageMatrix: public ImageMatrix {
 	public:
 		SharedImageMatrix () : ImageMatrix () {
+			cached_source = "";
+			operation = "";
 			shmem_name = "";
+			was_cached = false;
 			shmem_size = 0;
 			shmem_fd = -1;
 			mmap_ptr = (byte *)MAP_FAILED;
 			shmem_sem = SEM_FAILED;
 		}
 		virtual ~SharedImageMatrix();                                 // destructor
-		void SetShmemName( const std::string &final_op );
+		void SetShmemName();
 		const size_t calc_shmem_size (const unsigned int w, const unsigned int h, size_t &clr_plane_offset, size_t &shmem_data_offset);
 		void allocate (unsigned int w, unsigned int h) ;
-		const CacheStatus fromCache ( const std::string &final_op );
+		const CacheStatus fromCache ();
 		void Cache ();
 		virtual int OpenImage(char *image_file_name,            // load an image of any supported format
 			int downsample, rect *bounding_rect,
@@ -34,7 +37,10 @@ class SharedImageMatrix: public ImageMatrix {
 
 		static size_t shmem_page_size;
 
-		std::string shmem_name;
+		std::string cached_source;        // the shmem_name of the source.
+		std::string operation;            // the operation on the cached_source
+		std::string shmem_name;           // concatenated cached_source + operation, MD5 digest, Base 64-encoded
+		bool was_cached;
 		size_t shmem_size;
 		int shmem_fd;
 		byte *mmap_ptr;

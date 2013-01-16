@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <unistd.h> // sysconf(), page_size
 #include <errno.h>
+#include <sys/types.h> // for dev_t, ino_t
 #include <sys/stat.h>  // fstat, stat
 #include <sys/mman.h>  // mmap, shm_open
 #include <semaphore.h> // semaphores
@@ -16,6 +17,26 @@
 #include "colors/FuzzyCalc.h" // for definition of compiler constant COLORS_NUM
 #include "transforms/fft/bcb_fftw3/fftw3.h"
 
+static inline std::string string_format(const std::string &fmt, ...) {
+    int size = 256;
+    std::string str;
+    va_list ap;
+    while (1) {
+        str.resize(size);
+        va_start(ap, fmt);
+        int n = vsnprintf((char *)str.c_str(), size, fmt.c_str(), ap);
+        va_end(ap);
+        if (n > -1 && n < size) {
+            str.resize(n);
+            return str;
+        }
+        if (n > -1)
+            size = n + 1;
+        else
+            size *= 2;
+    }
+    return str;
+}
 
 struct shmem_data {
 	uint32_t width, height;
@@ -23,17 +44,21 @@ struct shmem_data {
 	uint8_t bits;
 };
 
-void SharedImageMatrix::SetShmemName ( const std::string &final_op ) {
+// storage and initialization for the object static storing the page size.
+size_t SharedImageMatrix::shmem_page_size = sysconf(_SC_PAGE_SIZE);
+
+
+void SharedImageMatrix::SetShmemName ( ) {
 	MD5::MD5 digest;
 	uint8_t Message_Digest[MD5::HashSize];
 
-	for(size_t op = 0; op < operations.size(); op++) {
-		digest.Update( (uint8_t *)(operations[op].data()), operations[op].length() );
-	}
-	if (final_op.length()) digest.Update( (uint8_t *)(final_op.data()), final_op.length() );
+	assert ((cached_source.length() || operation.length()) && "Attempt to establish a shared memory name without a cached_source or operation field");
+	if (cached_source.length()) digest.Update( (uint8_t *)(cached_source.data()), cached_source.length() );
+	if (operation.length()) digest.Update( (uint8_t *)(operation.data()), operation.length() );
 	digest.Result(Message_Digest);
 
 	shmem_name = "/wndchrm";
+	// base64-encode without newlines or padding (last two booleans)
 	base64::encoder().encode ((char *)Message_Digest, MD5::HashSize, shmem_name, false, false);
 	std::cout <<         "         SharedImageMatrix::SetShmemName: " << shmem_name << std::endl;
 	
@@ -61,6 +86,11 @@ void SharedImageMatrix::allocate (unsigned int w, unsigned int h) {
 
 	assert (shmem_page_size && "Memory page size is undefined!");
 	assert (shmem_fd > -1 && "Shared memory file descriptor is invalid!");
+	// Additional checks:
+	//   There cannot be any allocate calls on a cached matrix - the allocation is done by fromCache()
+	//   A matrix was read from cache if shmem_name == cached_source (was_cached is true)
+	assert (!was_cached && "Attempt to call allocate on a cached object!");
+	
 
 	// calculate the size of the required shared memory block
 	size_t new_mat_size = w * h;
@@ -84,18 +114,19 @@ void SharedImageMatrix::allocate (unsigned int w, unsigned int h) {
 			std::cout << "munmap error: " << strerror(errno) << std::endl;
 			exit (-1);
 		}
+		// OS X actually forces us to delete the segment entirely because only one call to ftruncate can be made on each segment.
+		// FIXME: It may be good to escape this on non-OS X systems.
+		if (shmem_fd > -1) close (shmem_fd);
+		shmem_fd = -1;
+		shm_unlink (shmem_name.c_str());
+
+		shmem_fd = shm_open(shmem_name.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+		if (shmem_fd < 0) {
+			std::cout << "shm_open error: " << strerror(errno) << std::endl;
+			exit (-1);
+		}
+		shmem_size = 0;
 	}
-	// OS X actually forces us to delete the segment entirely because only one call to ftruncate can be made on each segment.
-	// FIXME: It may be good to escape this on non-OS X systems.
-	close (shmem_fd);
-	shm_unlink (shmem_name.c_str());
-	shmem_fd = shm_open(shmem_name.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-	if (shmem_fd < 0) {
-		std::cout << "shm_open error: " << strerror(errno) << std::endl;
-		exit (-1);
-	}
-	// shmem_fd = shm_open(shmem_name.c_str(), O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-	shmem_size = 0;
 
 	// size the file backing the memory object
 	if (ftruncate(shmem_fd, new_shmem_size) == -1) {
@@ -124,34 +155,20 @@ void SharedImageMatrix::allocate (unsigned int w, unsigned int h) {
 	stored_shmem_data->bits = bits;
 }
 
-// This returns a pointer to a new SharedImageMatrix
-const CacheStatus SharedImageMatrix::fromCache ( const std::string &final_op ) {
+// This returns a CacheStatus enum explaining what happened with the cache
+// The operation field and the cached_source field determine the object's cache name (shmem_name)
+// cache_unknown means there was an error
+// cache_read means the SharedImageMatrix was read in from cache.
+// cache_write means the SharedImageMatrix has exclusive write access.
+//   The object is empty at this point.
+
+const CacheStatus SharedImageMatrix::fromCache () {
 	CacheStatus cache_status = cache_unknown;
 	std::string error_str;
 	
-	std::ios::fmtflags stFlags = std::cout.flags();
-	long stPrec = std::cout.precision();
-	char stFill = std::cout.fill();
-
-	std::cout <<         "-------- called SharedImageMatrix::fromCache (" << width << "," << height << ") on " << source << ", UID: ";
-	for (unsigned int i = 0; i < sizeof (sourceUID); i++) cout << hex << std::setfill('0') << setw(2) << (int)sourceUID[i];
-	std::cout << std::endl;
-	for(size_t op = 0; op < operations.size(); op++) {
-		if (! operations[op].compare(0,5,"Open_") ) {
-			std::cout << "             Open_";
-			for (size_t i = 0; i < sizeof (sourceUID); i++) cout << hex << std::setfill('0') << setw(2) << (int)((operations[op])[5+i]);
-			std::cout << std::dec << std::endl;
-		} else {
-			std::cout << "             " << operations[op] << std::endl;
-		}
-	}
-	if (final_op.length()) std::cout <<         "      param: " << final_op << std::endl;
-	std::cout.flags(stFlags);
-	std::cout.precision(stPrec);
-	std::cout.fill(stFill);
-
+std::cout <<         "-------- called SharedImageMatrix::fromCache on [" << cached_source << "]->[" << operation << "]" <<std::endl;;
 	// Make sure the shared memory has a name
-	SetShmemName( final_op );
+	SetShmemName();
 
 	// Shared memory access with concurrent processes
 	// Only one process should be able to write the shared memory.  All others must wait and/or read only.
@@ -203,8 +220,8 @@ const CacheStatus SharedImageMatrix::fromCache ( const std::string &final_op ) {
 		} else if (shmem_sem_locked == 0) {
 			// We have an exclusive lock on the semaphore, either because shmem is ready for reading or because it doesn't exist yet.
 			// First, try to create/open shmem exclusively.
-//shm_unlink (shmem_name.c_str());
-
+			// To force a write every time, unlink the shmem at this point:
+			//shm_unlink (shmem_name.c_str());
 			shmem_fd = shm_open(shmem_name.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 			if (shmem_fd > -1) {
 				// We have exclusive write access because we just created the shmem.
@@ -306,9 +323,13 @@ std::cout << "shmem_size: " << shmem_size << std::endl;
 			// The pixels are read-only.
 			WriteablePixelsFinish ();
 			if (ColorMode != cmGRAY) WriteableColorsFinish ();
+			
+			// Indicate that the object came from cache, and currently has no operation
+			cached_source = shmem_name;
+			operation = "";
+			was_cached = true;
 
 std::cout << "recovered size: " << width << "," << height << std::endl;
-			
 			return (cache_status);
 		}
 		break;
@@ -344,34 +365,17 @@ std::cout << "cache_write" << std::endl;
 	return (cache_status);
 }
 
-size_t SharedImageMatrix::shmem_page_size = sysconf(_SC_PAGE_SIZE);
-
 void SharedImageMatrix::Cache ( ) {
-	std::ios::fmtflags stFlags = std::cout.flags();
-	long stPrec = std::cout.precision();
-	char stFill = std::cout.fill();
 
-	std::cout <<         "-------- called SharedImageMatrix::Cache (" << width << "," << height << ") on " << source << ", UID: ";
-	for (unsigned int i = 0; i < sizeof (sourceUID); i++) cout << hex << std::setfill('0') << setw(2) << (int)sourceUID[i];
-	std::cout << std::endl;
-	for(size_t op = 0; op < operations.size(); op++) {
-		if (! operations[op].compare(0,5,"Open_") ) {
-			std::cout << "             Open_";
-			for (size_t i = 0; i < sizeof (sourceUID); i++) cout << hex << std::setfill('0') << setw(2) << (int)((operations[op])[5+i]);
-			std::cout << std::dec << std::endl;
-		} else {
-			std::cout << "             " << operations[op] << std::endl;
-		}
-	}
-	std::cout.flags(stFlags);
-	std::cout.precision(stPrec);
-	std::cout.fill(stFill);
-	SetShmemName( "" );
+std::cout <<         "-------- called SharedImageMatrix::Cache on [" << cached_source << "]->[" << operation << "]" <<std::endl;;
+	SetShmemName();
 
 	// Since shared memory was set up in the fromCache call,
 	// all that's left to do here is make sure its finalized and ready to use by others
 
 }
+
+
 
 int SharedImageMatrix::OpenImage(char *image_file_name,            // load an image of any supported format
 		int downsample, rect *bounding_rect,
@@ -379,34 +383,34 @@ int SharedImageMatrix::OpenImage(char *image_file_name,            // load an im
 
 	int fildes = open (image_file_name, O_RDONLY);
 	if (fildes > -1) {
-		setSourceUID (fildes);
+		struct stat the_stat;
+		fstat (fildes, &the_stat);
 		close (fildes);
-		operations.push_back ( std::string("Open_").append( (const char *)sourceUID,sizeof(sourceUID) ) );
+		operation = string_format ("Open_%lld_%lld", (long long)the_stat.st_dev, (long long)the_stat.st_ino);
+	} else {
+		operation = string_format ("Open_%s", image_file_name);
 	}
 
-	// WARNING: Setting operations here seems somewhat brittle
 	if (bounding_rect && bounding_rect->x >= 0)
-		operations.push_back ( string_format ("Sub_%d_%d_%d_%d",
+		operation.append ( string_format ("_Sub_%d_%d_%d_%d",
 			bounding_rect->x, bounding_rect->y,
 			bounding_rect->x+bounding_rect->w-1, bounding_rect->y+bounding_rect->h-1
 		));
 	if (downsample>0 && downsample<100)  /* downsample by a given factor */
-		operations.push_back ( string_format ("DS_%lf_%lf",((double)downsample)/100.0,((double)downsample)/100.0) );
+		operation.append ( string_format ("_DS_%lf_%lf",((double)downsample)/100.0,((double)downsample)/100.0) );
 	if (mean>0)  /* normalize to a given mean and standard deviation */
-		operations.push_back ( string_format ("Nstd_%lf_%lf",mean,stddev) );
-	CacheStatus cache_status = fromCache ( "" );
+		operation.append ( string_format ("_Nstd_%lf_%lf",mean,stddev) );
+
+	CacheStatus cache_status = fromCache ( );
 	
 	if (cache_status == cache_write) {
-		operations.clear();
 		int ret = ImageMatrix::OpenImage (image_file_name,downsample,bounding_rect,mean,stddev);
 		Cache();
 		return (ret);
 	} else if (cache_status == cache_read) {
-		operations.clear();
-		operations.push_back (std::string ("Cache_").append (shmem_name));		
 		return (1);
 	} else {
-		std::cerr << "Errors while recovering cache (cout):" << std::endl;
+		std::cerr << "Errors while recovering cache" << std::endl;
 		exit (-1);
 	}
 
@@ -440,15 +444,12 @@ void Transform::print_info() {
 
 SharedImageMatrix* Transform::transform( SharedImageMatrix * matrix_IN ) {
 	SharedImageMatrix *matrix_OUT = new SharedImageMatrix;
-	matrix_OUT->operations.clear();
-	matrix_OUT->operations.push_back (std::string ("Cache_").append (matrix_IN->shmem_name));
-	CacheStatus cache_status = matrix_OUT->fromCache ( name );
+	matrix_OUT->cached_source = matrix_IN->shmem_name;
+	matrix_OUT->operation = name;
+	CacheStatus cache_status = matrix_OUT->fromCache ();
 	
 	if (cache_status == cache_write) {
 		execute (matrix_IN, matrix_OUT);
-		matrix_OUT->operations.clear();
-		matrix_OUT->operations.push_back (std::string ("Cache_").append (matrix_IN->shmem_name));
-		matrix_OUT->operations.push_back (name);
 		matrix_OUT->Cache();
 		return (matrix_OUT);
 	} else if (cache_status == cache_read) {

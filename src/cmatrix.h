@@ -38,7 +38,6 @@
 #include <vector>
 #include <string> // for source field
 #include <vector> // for operations field
-#include <sys/types.h> // for dev_t, ino_t
 #include <Eigen/Dense>
 #include "colors/FuzzyCalc.h"
 //#define min(a,b) (((a) < (b)) ? (a) : (b))
@@ -159,26 +158,6 @@ static inline RGBcolor HSV2RGB(const HSVcolor hsv) {
 static inline double RGB2GRAY(const RGBcolor rgb) {
 	return((0.2989*rgb.r+0.5870*rgb.g+0.1140*rgb.b));
 }
-static inline std::string string_format(const std::string &fmt, ...) {
-    int size = 256;
-    std::string str;
-    va_list ap;
-    while (1) {
-        str.resize(size);
-        va_start(ap, fmt);
-        int n = vsnprintf((char *)str.c_str(), size, fmt.c_str(), ap);
-        va_end(ap);
-        if (n > -1 && n < size) {
-            str.resize(n);
-            return str;
-        }
-        if (n > -1)
-            size = n + 1;
-        else
-            size *= 2;
-    }
-    return str;
-}
 
 //---------------------------------------------------------------------------
 
@@ -191,8 +170,6 @@ private:
 	double _min, _max, _mean, _std, _median;        // min, max, mean, std computed in single pass, median in separate pass
 public:
 	std::string source;                             // path of image source file
-	byte sourceUID[sizeof(dev_t)+sizeof(ino_t)];    // unique ID for the source file, composed of device ID and inode.
-	std::vector<std::string> operations;            // a sequence of operations performed on this object (audit trail).
 	enum ColorModes ColorMode;                       // can be cmRGB, cmHSV or cmGRAY
 	unsigned short bits;                            // the number of intensity bits (8,16, etc)
 	unsigned int width,height;                               // width and height of the picture
@@ -248,7 +225,6 @@ public:
 	};
 	virtual ~ImageMatrix();                                 // destructor
 
-	void setSourceUID (const int fildes);          // sets the sourceUID field based on a file descriptor
 	void normalize(double min, double max, long range, double mean, double stddev); // normalized an image to either min/max or mean/stddev
 	void to8bits();
 	void flipV();                                   // flip an image around a vertical axis (left to right)

@@ -163,10 +163,6 @@ HSV2RGB = _pychrm.HSV2RGB
 def RGB2GRAY(*args):
   return _pychrm.RGB2GRAY(*args)
 RGB2GRAY = _pychrm.RGB2GRAY
-
-def string_format(*args):
-  return _pychrm.string_format(*args)
-string_format = _pychrm.string_format
 class ImageMatrix(_object):
     __swig_setmethods__ = {}
     __setattr__ = lambda self, name, value: _swig_setattr(self, ImageMatrix, name, value)
@@ -176,12 +172,6 @@ class ImageMatrix(_object):
     __swig_setmethods__["source"] = _pychrm.ImageMatrix_source_set
     __swig_getmethods__["source"] = _pychrm.ImageMatrix_source_get
     if _newclass:source = _swig_property(_pychrm.ImageMatrix_source_get, _pychrm.ImageMatrix_source_set)
-    __swig_setmethods__["sourceUID"] = _pychrm.ImageMatrix_sourceUID_set
-    __swig_getmethods__["sourceUID"] = _pychrm.ImageMatrix_sourceUID_get
-    if _newclass:sourceUID = _swig_property(_pychrm.ImageMatrix_sourceUID_get, _pychrm.ImageMatrix_sourceUID_set)
-    __swig_setmethods__["operations"] = _pychrm.ImageMatrix_operations_set
-    __swig_getmethods__["operations"] = _pychrm.ImageMatrix_operations_get
-    if _newclass:operations = _swig_property(_pychrm.ImageMatrix_operations_get, _pychrm.ImageMatrix_operations_set)
     __swig_setmethods__["ColorMode"] = _pychrm.ImageMatrix_ColorMode_set
     __swig_getmethods__["ColorMode"] = _pychrm.ImageMatrix_ColorMode_get
     if _newclass:ColorMode = _swig_property(_pychrm.ImageMatrix_ColorMode_get, _pychrm.ImageMatrix_ColorMode_set)
@@ -225,7 +215,6 @@ class ImageMatrix(_object):
         except: self.this = this
     __swig_destroy__ = _pychrm.delete_ImageMatrix
     __del__ = lambda self : None;
-    def setSourceUID(self, *args): return _pychrm.ImageMatrix_setSourceUID(self, *args)
     def normalize(self, *args): return _pychrm.ImageMatrix_normalize(self, *args)
     def to8bits(self): return _pychrm.ImageMatrix_to8bits(self)
     def flipV(self): return _pychrm.ImageMatrix_flipV(self)
@@ -675,18 +664,27 @@ class SharedImageMatrix(ImageMatrix):
         except: self.this = this
     __swig_destroy__ = _pychrm.delete_SharedImageMatrix
     __del__ = lambda self : None;
-    def SetShmemName(self, *args): return _pychrm.SharedImageMatrix_SetShmemName(self, *args)
+    def SetShmemName(self): return _pychrm.SharedImageMatrix_SetShmemName(self)
     def calc_shmem_size(self, *args): return _pychrm.SharedImageMatrix_calc_shmem_size(self, *args)
     def allocate(self, *args): return _pychrm.SharedImageMatrix_allocate(self, *args)
-    def fromCache(self, *args): return _pychrm.SharedImageMatrix_fromCache(self, *args)
+    def fromCache(self): return _pychrm.SharedImageMatrix_fromCache(self)
     def Cache(self): return _pychrm.SharedImageMatrix_Cache(self)
     def OpenImage(self, *args): return _pychrm.SharedImageMatrix_OpenImage(self, *args)
     __swig_setmethods__["shmem_page_size"] = _pychrm.SharedImageMatrix_shmem_page_size_set
     __swig_getmethods__["shmem_page_size"] = _pychrm.SharedImageMatrix_shmem_page_size_get
     if _newclass:shmem_page_size = _swig_property(_pychrm.SharedImageMatrix_shmem_page_size_get, _pychrm.SharedImageMatrix_shmem_page_size_set)
+    __swig_setmethods__["cached_source"] = _pychrm.SharedImageMatrix_cached_source_set
+    __swig_getmethods__["cached_source"] = _pychrm.SharedImageMatrix_cached_source_get
+    if _newclass:cached_source = _swig_property(_pychrm.SharedImageMatrix_cached_source_get, _pychrm.SharedImageMatrix_cached_source_set)
+    __swig_setmethods__["operation"] = _pychrm.SharedImageMatrix_operation_set
+    __swig_getmethods__["operation"] = _pychrm.SharedImageMatrix_operation_get
+    if _newclass:operation = _swig_property(_pychrm.SharedImageMatrix_operation_get, _pychrm.SharedImageMatrix_operation_set)
     __swig_setmethods__["shmem_name"] = _pychrm.SharedImageMatrix_shmem_name_set
     __swig_getmethods__["shmem_name"] = _pychrm.SharedImageMatrix_shmem_name_get
     if _newclass:shmem_name = _swig_property(_pychrm.SharedImageMatrix_shmem_name_get, _pychrm.SharedImageMatrix_shmem_name_set)
+    __swig_setmethods__["was_cached"] = _pychrm.SharedImageMatrix_was_cached_set
+    __swig_getmethods__["was_cached"] = _pychrm.SharedImageMatrix_was_cached_get
+    if _newclass:was_cached = _swig_property(_pychrm.SharedImageMatrix_was_cached_get, _pychrm.SharedImageMatrix_was_cached_set)
     __swig_setmethods__["shmem_size"] = _pychrm.SharedImageMatrix_shmem_size_set
     __swig_getmethods__["shmem_size"] = _pychrm.SharedImageMatrix_shmem_size_get
     if _newclass:shmem_size = _swig_property(_pychrm.SharedImageMatrix_shmem_size_get, _pychrm.SharedImageMatrix_shmem_size_set)
