@@ -670,9 +670,8 @@ class SharedImageMatrix(ImageMatrix):
     def fromCache(self): return _pychrm.SharedImageMatrix_fromCache(self)
     def Cache(self): return _pychrm.SharedImageMatrix_Cache(self)
     def OpenImage(self, *args): return _pychrm.SharedImageMatrix_OpenImage(self, *args)
-    __swig_setmethods__["shmem_page_size"] = _pychrm.SharedImageMatrix_shmem_page_size_set
-    __swig_getmethods__["shmem_page_size"] = _pychrm.SharedImageMatrix_shmem_page_size_get
-    if _newclass:shmem_page_size = _swig_property(_pychrm.SharedImageMatrix_shmem_page_size_get, _pychrm.SharedImageMatrix_shmem_page_size_set)
+    __swig_getmethods__["DisableCacheRead"] = lambda x: _pychrm.SharedImageMatrix_DisableCacheRead
+    if _newclass:DisableCacheRead = staticmethod(_pychrm.SharedImageMatrix_DisableCacheRead)
     __swig_setmethods__["cached_source"] = _pychrm.SharedImageMatrix_cached_source_set
     __swig_getmethods__["cached_source"] = _pychrm.SharedImageMatrix_cached_source_get
     if _newclass:cached_source = _swig_property(_pychrm.SharedImageMatrix_cached_source_get, _pychrm.SharedImageMatrix_cached_source_set)
@@ -682,24 +681,12 @@ class SharedImageMatrix(ImageMatrix):
     __swig_setmethods__["shmem_name"] = _pychrm.SharedImageMatrix_shmem_name_set
     __swig_getmethods__["shmem_name"] = _pychrm.SharedImageMatrix_shmem_name_get
     if _newclass:shmem_name = _swig_property(_pychrm.SharedImageMatrix_shmem_name_get, _pychrm.SharedImageMatrix_shmem_name_set)
-    __swig_setmethods__["was_cached"] = _pychrm.SharedImageMatrix_was_cached_set
-    __swig_getmethods__["was_cached"] = _pychrm.SharedImageMatrix_was_cached_get
-    if _newclass:was_cached = _swig_property(_pychrm.SharedImageMatrix_was_cached_get, _pychrm.SharedImageMatrix_was_cached_set)
-    __swig_setmethods__["shmem_size"] = _pychrm.SharedImageMatrix_shmem_size_set
-    __swig_getmethods__["shmem_size"] = _pychrm.SharedImageMatrix_shmem_size_get
-    if _newclass:shmem_size = _swig_property(_pychrm.SharedImageMatrix_shmem_size_get, _pychrm.SharedImageMatrix_shmem_size_set)
-    __swig_setmethods__["shmem_fd"] = _pychrm.SharedImageMatrix_shmem_fd_set
-    __swig_getmethods__["shmem_fd"] = _pychrm.SharedImageMatrix_shmem_fd_get
-    if _newclass:shmem_fd = _swig_property(_pychrm.SharedImageMatrix_shmem_fd_get, _pychrm.SharedImageMatrix_shmem_fd_set)
-    __swig_setmethods__["mmap_ptr"] = _pychrm.SharedImageMatrix_mmap_ptr_set
-    __swig_getmethods__["mmap_ptr"] = _pychrm.SharedImageMatrix_mmap_ptr_get
-    if _newclass:mmap_ptr = _swig_property(_pychrm.SharedImageMatrix_mmap_ptr_get, _pychrm.SharedImageMatrix_mmap_ptr_set)
-    __swig_setmethods__["shmem_sem"] = _pychrm.SharedImageMatrix_shmem_sem_set
-    __swig_getmethods__["shmem_sem"] = _pychrm.SharedImageMatrix_shmem_sem_get
-    if _newclass:shmem_sem = _swig_property(_pychrm.SharedImageMatrix_shmem_sem_get, _pychrm.SharedImageMatrix_shmem_sem_set)
 SharedImageMatrix_swigregister = _pychrm.SharedImageMatrix_swigregister
 SharedImageMatrix_swigregister(SharedImageMatrix)
-cvar = _pychrm.cvar
+
+def SharedImageMatrix_DisableCacheRead(*args):
+  return _pychrm.SharedImageMatrix_DisableCacheRead(*args)
+SharedImageMatrix_DisableCacheRead = _pychrm.SharedImageMatrix_DisableCacheRead
 
 class Transform(_object):
     __swig_setmethods__ = {}

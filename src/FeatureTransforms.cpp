@@ -46,6 +46,7 @@ struct shmem_data {
 
 // storage and initialization for the object static storing the page size.
 size_t SharedImageMatrix::shmem_page_size = sysconf(_SC_PAGE_SIZE);
+bool SharedImageMatrix::never_read = false;
 
 
 void SharedImageMatrix::SetShmemName ( ) {
@@ -221,7 +222,7 @@ std::cout <<         "-------- called SharedImageMatrix::fromCache on [" << cach
 			// We have an exclusive lock on the semaphore, either because shmem is ready for reading or because it doesn't exist yet.
 			// First, try to create/open shmem exclusively.
 			// To force a write every time, unlink the shmem at this point:
-			//shm_unlink (shmem_name.c_str());
+			if (never_read) shm_unlink (shmem_name.c_str());
 			shmem_fd = shm_open(shmem_name.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 			if (shmem_fd > -1) {
 				// We have exclusive write access because we just created the shmem.
@@ -233,6 +234,7 @@ std::cout <<         "-------- called SharedImageMatrix::fromCache on [" << cach
 				// This means we should be ready to read.
 				errno = 0;
 				cache_status = cache_read;
+				assert (!never_read && "SharedImageMatrix Class is set to never read, but object still exists after unlinking it!");
 			} else {
 				// This is an error - something bad happened
 				error_str = std::string ("shm_open error when opening/creating: ") + strerror(errno);

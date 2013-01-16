@@ -34,12 +34,14 @@ class SharedImageMatrix: public ImageMatrix {
 		virtual int OpenImage(char *image_file_name,            // load an image of any supported format
 			int downsample, rect *bounding_rect,
 			double mean, double stddev);
-
-		static size_t shmem_page_size;
+		static void DisableCacheRead (const bool status) {never_read = status;};
 
 		std::string cached_source;        // the shmem_name of the source.
 		std::string operation;            // the operation on the cached_source
 		std::string shmem_name;           // concatenated cached_source + operation, MD5 digest, Base 64-encoded
+	private:
+		static size_t shmem_page_size;
+		static bool never_read;
 		bool was_cached;
 		size_t shmem_size;
 		int shmem_fd;
@@ -50,6 +52,7 @@ class SharedImageMatrix: public ImageMatrix {
 		// last sizeof(shmem_data) bytes are shmem_data.
 		// First pages are the array of doubles for pix_data
 		// Second set of pages are array of HSVColor for clr_data if shmem_data->ColorMode != cmGRAY
+		// The matrix storage ends on a page boundary.
 };
 
 /*! Transform
