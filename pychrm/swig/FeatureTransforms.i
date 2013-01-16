@@ -6,4 +6,5 @@
 
 %include "std_string.i"
 %nodefaultctor Transform;
+%newobject Transform::transform;
 %include "FeatureTransforms.h"
