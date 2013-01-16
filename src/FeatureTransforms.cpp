@@ -370,7 +370,6 @@ std::cout << "cache_write" << std::endl;
 	// report the error and exit.  Since we have a clean slate, may want to try again from the beginning.
 	std::cerr << "Errors while recovering cache (cout):" << std::endl;
 	std::cerr << error_str << std::endl;
-	exit (-1);
 	return (cache_status);
 }
 
