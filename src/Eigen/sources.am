@@ -7,7 +7,6 @@ noinst_HEADERS = Eigen/Array \
     Eigen/Eigen \
     Eigen/Eigen2Support \
     Eigen/Eigenvalues \
-    Eigen/foo \
     Eigen/Geometry \
     Eigen/Householder \
     Eigen/IterativeLinearSolvers \
