@@ -114,7 +114,7 @@ am_libchrm_la_OBJECTS = libchrm_la-FuzzyCalc.lo \
 	libchrm_la-cmatrix.lo libchrm_la-wndchrm_error.lo \
 	libchrm_la-FeatureTransforms.lo \
 	libchrm_la-FeatureAlgorithms.lo libchrm_la-specfunc.lo \
-	cdecode.lo cencode.lo libchrm_la-sha1.lo
+	cdecode.lo cencode.lo libchrm_la-sha1.lo libchrm_la-md5.lo
 libchrm_la_OBJECTS = $(am_libchrm_la_OBJECTS)
 libchrm_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(libchrm_la_CXXFLAGS) \
@@ -658,8 +658,10 @@ libchrm_la_SOURCES = \
        b64/cencode.h \
        b64/decode.h \
        b64/encode.h \
-       sha1/sha1.cpp \
-       sha1/sha1.h
+       digest/sha1.cpp \
+       digest/sha1.h \
+       digest/md5.cpp \
+       digest/md.h
 
 libchrm_la_LIBADD = -ltiff -L. -lfftw3
 libchrm_la_CXXFLAGS = -Wall -g -O3
@@ -766,6 +768,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-convolution.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-gabor.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-haralick.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-md5.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-radon.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-sha1.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-specfunc.Plo@am__quote@
@@ -1033,12 +1036,19 @@ libchrm_la-specfunc.lo: gsl/specfunc.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_la-specfunc.lo `test -f 'gsl/specfunc.cpp' || echo '$(srcdir)/'`gsl/specfunc.cpp
 
-libchrm_la-sha1.lo: sha1/sha1.cpp
-@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -MT libchrm_la-sha1.lo -MD -MP -MF $(DEPDIR)/libchrm_la-sha1.Tpo -c -o libchrm_la-sha1.lo `test -f 'sha1/sha1.cpp' || echo '$(srcdir)/'`sha1/sha1.cpp
+libchrm_la-sha1.lo: digest/sha1.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -MT libchrm_la-sha1.lo -MD -MP -MF $(DEPDIR)/libchrm_la-sha1.Tpo -c -o libchrm_la-sha1.lo `test -f 'digest/sha1.cpp' || echo '$(srcdir)/'`digest/sha1.cpp
 @am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libchrm_la-sha1.Tpo $(DEPDIR)/libchrm_la-sha1.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='sha1/sha1.cpp' object='libchrm_la-sha1.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='digest/sha1.cpp' object='libchrm_la-sha1.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_la-sha1.lo `test -f 'sha1/sha1.cpp' || echo '$(srcdir)/'`sha1/sha1.cpp
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_la-sha1.lo `test -f 'digest/sha1.cpp' || echo '$(srcdir)/'`digest/sha1.cpp
+
+libchrm_la-md5.lo: digest/md5.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -MT libchrm_la-md5.lo -MD -MP -MF $(DEPDIR)/libchrm_la-md5.Tpo -c -o libchrm_la-md5.lo `test -f 'digest/md5.cpp' || echo '$(srcdir)/'`digest/md5.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libchrm_la-md5.Tpo $(DEPDIR)/libchrm_la-md5.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='digest/md5.cpp' object='libchrm_la-md5.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_la-md5.lo `test -f 'digest/md5.cpp' || echo '$(srcdir)/'`digest/md5.cpp
 
 mostlyclean-libtool:
 	-rm -f *.lo

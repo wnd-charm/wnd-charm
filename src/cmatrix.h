@@ -60,14 +60,19 @@ typedef struct {
 	byte h,s,v;
 } HSVcolor;
 typedef Eigen::Matrix< HSVcolor, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor > MatrixXhsv;
-typedef MatrixXhsv clrData;
+typedef MatrixXhsv clrDataMat;
 
 // the meaning of the color channels is specified by ColorMode, but it uses the HSVcolor structure for storage
 // All color modes other than cmGRAY contain color planes as well as intensity planes
-enum ColorMode { cmRGB, cmHSV, cmGRAY };
+enum ColorModes { cmRGB, cmHSV, cmGRAY };
 
 
-typedef Eigen::Matrix< double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor > pixData;
+typedef Eigen::Matrix< double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor > pixDataMat;
+typedef Eigen::Map< pixDataMat, Eigen::Aligned > pixDataMap;
+typedef Eigen::Map< clrDataMat, Eigen::Aligned > clrDataMap;
+typedef pixDataMap pixData;
+typedef clrDataMap clrData;
+
 typedef const pixData &readOnlyPixels;
 typedef const clrData &readOnlyColors;
 typedef pixData &writeablePixels;
@@ -178,18 +183,19 @@ static inline std::string string_format(const std::string &fmt, ...) {
 //---------------------------------------------------------------------------
 
 class ImageMatrix {
-public:
+private:
 	pixData _pix_plane;                              // pixel plane data  
 	clrData _clr_plane;                              // 3-channel color data
 	bool _is_pix_writeable;
 	bool _is_clr_writeable;
+	double _min, _max, _mean, _std, _median;        // min, max, mean, std computed in single pass, median in separate pass
+public:
 	std::string source;                             // path of image source file
 	byte sourceUID[sizeof(dev_t)+sizeof(ino_t)];    // unique ID for the source file, composed of device ID and inode.
 	std::vector<std::string> operations;            // a sequence of operations performed on this object (audit trail).
-	enum ColorMode ColorMode;                       // can be cmRGB, cmHSV or cmGRAY
+	enum ColorModes ColorMode;                       // can be cmRGB, cmHSV or cmGRAY
 	unsigned short bits;                            // the number of intensity bits (8,16, etc)
 	unsigned int width,height;                               // width and height of the picture
-	double _min, _max, _mean, _std, _median;        // min, max, mean, std computed in single pass, median in separate pass
 	bool has_stats, has_median;                     // has_stats applies to min, max, mean, std. has_median only to median
 	inline writeablePixels WriteablePixels() {
 		assert(_is_pix_writeable && "Attempt to write to read-only pixels");
@@ -227,6 +233,8 @@ public:
 		double mean, double stddev);
 	// constructor helpers
 	void init();
+	void remap_pix_plane (double *ptr, const unsigned int w, const unsigned int h);
+	void remap_clr_plane (HSVcolor *ptr, const unsigned int w, const unsigned int h);
 	virtual void allocate (unsigned int w, unsigned int h);
 	void copyFields(const ImageMatrix &copy);
 	void copyData(const ImageMatrix &copy);
@@ -234,7 +242,10 @@ public:
 	void submatrix(const ImageMatrix &matrix,
 		const unsigned int x1, const unsigned int y1, const unsigned int x2, const unsigned int y2);
 	// N.B.: See note in implementation
-	ImageMatrix();                                  // basic constructor
+	ImageMatrix () : _pix_plane (NULL,0,0), _clr_plane (NULL,0,0) {
+		std::cout << "-------- called ImageMatrix::ImageMatrix - empty" << std::endl;
+		init();
+	};
 	virtual ~ImageMatrix();                                 // destructor
 
 	void setSourceUID (const int fildes);          // sets the sourceUID field based on a file descriptor
@@ -245,7 +256,7 @@ public:
 	void invert();                                  // invert the intensity of an image
 	void Downsample(double x_ratio, double y_ratio);// down sample an image
 	ImageMatrix *Rotate(double angle);              // rotate an image by 90,180,270 degrees
-	void convolve(const pixData &filter);
+	void convolve(const pixDataMat &filter);
 	void BasicStatistics(double *mean, double *median, double *std, double *min, double *max, double *histogram, int bins);
 	inline double min() {
 		if (!has_stats) {
@@ -310,11 +321,12 @@ public:
 	void HaralickTexture2D(double distance, double *out);
 	void TamuraTexture2D(double *vec);
 	void zernike2D(double *zvalues, long *output_size);
-private:
+
 	// disable the copy constructor
-    ImageMatrix(const ImageMatrix &matrix) {
+private:
+    ImageMatrix(const ImageMatrix &matrix) : _pix_plane (NULL,0,0), _clr_plane (NULL,0,0) {
 		assert(false && "Attempt to use copy constructor");
-	}
+	};
 };
 
 #endif

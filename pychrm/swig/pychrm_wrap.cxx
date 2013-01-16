@@ -2961,50 +2961,54 @@ SWIG_Python_NonDynamicSetAttr(PyObject *obj, PyObject *name, PyObject *value) {
 #define SWIGTYPE_p_CombFirstFourMoments swig_types[4]
 #define SWIGTYPE_p_EdgeFeatures swig_types[5]
 #define SWIGTYPE_p_EdgeTransform swig_types[6]
-#define SWIGTYPE_p_Eigen__MatrixT_HSVcolor_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t swig_types[7]
-#define SWIGTYPE_p_Eigen__MatrixT_double_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t swig_types[8]
-#define SWIGTYPE_p_EmptyFeatureAlgorithm swig_types[9]
-#define SWIGTYPE_p_EmptyTransform swig_types[10]
-#define SWIGTYPE_p_FeatureAlgorithm swig_types[11]
-#define SWIGTYPE_p_FourierTransform swig_types[12]
-#define SWIGTYPE_p_FractalFeatures swig_types[13]
-#define SWIGTYPE_p_GaborTextures swig_types[14]
-#define SWIGTYPE_p_GiniCoefficient swig_types[15]
-#define SWIGTYPE_p_HSVcolor swig_types[16]
-#define SWIGTYPE_p_HaralickTextures swig_types[17]
-#define SWIGTYPE_p_HueTransform swig_types[18]
-#define SWIGTYPE_p_ImageMatrix swig_types[19]
-#define SWIGTYPE_p_MultiscaleHistograms swig_types[20]
-#define SWIGTYPE_p_ObjectFeatures swig_types[21]
-#define SWIGTYPE_p_PixelIntensityStatistics swig_types[22]
-#define SWIGTYPE_p_RGBcolor swig_types[23]
-#define SWIGTYPE_p_RadonCoefficients swig_types[24]
-#define SWIGTYPE_p_SharedImageMatrix swig_types[25]
-#define SWIGTYPE_p_TamuraTextures swig_types[26]
-#define SWIGTYPE_p_Transform swig_types[27]
-#define SWIGTYPE_p_WaveletTransform swig_types[28]
-#define SWIGTYPE_p_ZernikeCoefficients swig_types[29]
-#define SWIGTYPE_p_allocator_type swig_types[30]
-#define SWIGTYPE_p_char swig_types[31]
-#define SWIGTYPE_p_difference_type swig_types[32]
-#define SWIGTYPE_p_double swig_types[33]
-#define SWIGTYPE_p_long swig_types[34]
-#define SWIGTYPE_p_p_PyObject swig_types[35]
-#define SWIGTYPE_p_rect swig_types[36]
-#define SWIGTYPE_p_size_type swig_types[37]
-#define SWIGTYPE_p_std__allocatorT_double_t swig_types[38]
-#define SWIGTYPE_p_std__invalid_argument swig_types[39]
-#define SWIGTYPE_p_std__string swig_types[40]
-#define SWIGTYPE_p_std__vectorT__Tp__Alloc_t swig_types[41]
-#define SWIGTYPE_p_std__vectorT_double_std__allocatorT_double_t_t swig_types[42]
-#define SWIGTYPE_p_std__vectorT_std__string_std__allocatorT_std__string_t_t swig_types[43]
-#define SWIGTYPE_p_swig__SwigPyIterator swig_types[44]
-#define SWIGTYPE_p_unsigned_char swig_types[45]
-#define SWIGTYPE_p_unsigned_int swig_types[46]
-#define SWIGTYPE_p_unsigned_long swig_types[47]
-#define SWIGTYPE_p_value_type swig_types[48]
-static swig_type_info *swig_types[50];
-static swig_module_info swig_module = {swig_types, 49, 0, 0, 0, 0};
+#define SWIGTYPE_p_Eigen__MapT_clrDataMat_Eigen__Aligned_t swig_types[7]
+#define SWIGTYPE_p_Eigen__MapT_pixDataMat_Eigen__Aligned_t swig_types[8]
+#define SWIGTYPE_p_Eigen__MatrixT_HSVcolor_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t swig_types[9]
+#define SWIGTYPE_p_Eigen__MatrixT_double_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t swig_types[10]
+#define SWIGTYPE_p_EmptyFeatureAlgorithm swig_types[11]
+#define SWIGTYPE_p_EmptyTransform swig_types[12]
+#define SWIGTYPE_p_FeatureAlgorithm swig_types[13]
+#define SWIGTYPE_p_FourierTransform swig_types[14]
+#define SWIGTYPE_p_FractalFeatures swig_types[15]
+#define SWIGTYPE_p_GaborTextures swig_types[16]
+#define SWIGTYPE_p_GiniCoefficient swig_types[17]
+#define SWIGTYPE_p_HSVcolor swig_types[18]
+#define SWIGTYPE_p_HaralickTextures swig_types[19]
+#define SWIGTYPE_p_HueTransform swig_types[20]
+#define SWIGTYPE_p_ImageMatrix swig_types[21]
+#define SWIGTYPE_p_MultiscaleHistograms swig_types[22]
+#define SWIGTYPE_p_ObjectFeatures swig_types[23]
+#define SWIGTYPE_p_PixelIntensityStatistics swig_types[24]
+#define SWIGTYPE_p_RGBcolor swig_types[25]
+#define SWIGTYPE_p_RadonCoefficients swig_types[26]
+#define SWIGTYPE_p_SharedImageMatrix swig_types[27]
+#define SWIGTYPE_p_TamuraTextures swig_types[28]
+#define SWIGTYPE_p_Transform swig_types[29]
+#define SWIGTYPE_p_WaveletTransform swig_types[30]
+#define SWIGTYPE_p_ZernikeCoefficients swig_types[31]
+#define SWIGTYPE_p_allocator_type swig_types[32]
+#define SWIGTYPE_p_char swig_types[33]
+#define SWIGTYPE_p_difference_type swig_types[34]
+#define SWIGTYPE_p_double swig_types[35]
+#define SWIGTYPE_p_long swig_types[36]
+#define SWIGTYPE_p_p_PyObject swig_types[37]
+#define SWIGTYPE_p_rect swig_types[38]
+#define SWIGTYPE_p_sem_t swig_types[39]
+#define SWIGTYPE_p_size_t swig_types[40]
+#define SWIGTYPE_p_size_type swig_types[41]
+#define SWIGTYPE_p_std__allocatorT_double_t swig_types[42]
+#define SWIGTYPE_p_std__invalid_argument swig_types[43]
+#define SWIGTYPE_p_std__string swig_types[44]
+#define SWIGTYPE_p_std__vectorT__Tp__Alloc_t swig_types[45]
+#define SWIGTYPE_p_std__vectorT_double_std__allocatorT_double_t_t swig_types[46]
+#define SWIGTYPE_p_std__vectorT_std__string_std__allocatorT_std__string_t_t swig_types[47]
+#define SWIGTYPE_p_swig__SwigPyIterator swig_types[48]
+#define SWIGTYPE_p_unsigned_char swig_types[49]
+#define SWIGTYPE_p_unsigned_int swig_types[50]
+#define SWIGTYPE_p_unsigned_long swig_types[51]
+#define SWIGTYPE_p_value_type swig_types[52]
+static swig_type_info *swig_types[54];
+static swig_module_info swig_module = {swig_types, 53, 0, 0, 0, 0};
 #define SWIG_TypeQuery(name) SWIG_TypeQueryModule(&swig_module, &swig_module, name)
 #define SWIG_MangledTypeQuery(name) SWIG_MangledTypeQueryModule(&swig_module, &swig_module, name)
 
@@ -3366,24 +3370,6 @@ SWIG_AsVal_int (PyObject * obj, int *val)
 
 
 SWIGINTERN int
-SWIG_AsVal_bool (PyObject *obj, bool *val)
-{
-  int r = PyObject_IsTrue(obj);
-  if (r == -1)
-    return SWIG_ERROR;
-  if (val) *val = r ? true : false;
-  return SWIG_OK;
-}
-
-
-SWIGINTERNINLINE PyObject*
-  SWIG_From_bool  (bool value)
-{
-  return PyBool_FromLong(value ? 1 : 0);
-}
-
-
-SWIGINTERN int
 SWIG_AsVal_unsigned_SS_short (PyObject * obj, unsigned short *val)
 {
   unsigned long v;
@@ -3426,6 +3412,24 @@ SWIGINTERNINLINE PyObject *
 SWIG_From_unsigned_SS_int  (unsigned int value)
 {    
   return SWIG_From_unsigned_SS_long  (value);
+}
+
+
+SWIGINTERN int
+SWIG_AsVal_bool (PyObject *obj, bool *val)
+{
+  int r = PyObject_IsTrue(obj);
+  if (r == -1)
+    return SWIG_ERROR;
+  if (val) *val = r ? true : false;
+  return SWIG_OK;
+}
+
+
+SWIGINTERNINLINE PyObject*
+  SWIG_From_bool  (bool value)
+{
+  return PyBool_FromLong(value ? 1 : 0);
 }
 
 
@@ -5823,230 +5827,6 @@ SWIGINTERN PyObject *_wrap_string_format(PyObject *SWIGUNUSEDPARM(self), PyObjec
 }
 
 
-SWIGINTERN PyObject *_wrap_ImageMatrix__pix_plane_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  pixData arg2 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:ImageMatrix__pix_plane_set",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix__pix_plane_set" "', argument " "1"" of type '" "ImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  {
-    res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_Eigen__MatrixT_double_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t,  0  | 0);
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "ImageMatrix__pix_plane_set" "', argument " "2"" of type '" "pixData""'"); 
-    }  
-    if (!argp2) {
-      SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "ImageMatrix__pix_plane_set" "', argument " "2"" of type '" "pixData""'");
-    } else {
-      pixData * temp = reinterpret_cast< pixData * >(argp2);
-      arg2 = *temp;
-      if (SWIG_IsNewObj(res2)) delete temp;
-    }
-  }
-  if (arg1) (arg1)->_pix_plane = arg2;
-  resultobj = SWIG_Py_Void();
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_ImageMatrix__pix_plane_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  PyObject * obj0 = 0 ;
-  pixData result;
-  
-  if (!PyArg_ParseTuple(args,(char *)"O:ImageMatrix__pix_plane_get",&obj0)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix__pix_plane_get" "', argument " "1"" of type '" "ImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  result =  ((arg1)->_pix_plane);
-  resultobj = SWIG_NewPointerObj((new pixData(static_cast< const pixData& >(result))), SWIGTYPE_p_Eigen__MatrixT_double_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_ImageMatrix__clr_plane_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  clrData arg2 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:ImageMatrix__clr_plane_set",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix__clr_plane_set" "', argument " "1"" of type '" "ImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  {
-    res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_Eigen__MatrixT_HSVcolor_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t,  0  | 0);
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "ImageMatrix__clr_plane_set" "', argument " "2"" of type '" "clrData""'"); 
-    }  
-    if (!argp2) {
-      SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "ImageMatrix__clr_plane_set" "', argument " "2"" of type '" "clrData""'");
-    } else {
-      clrData * temp = reinterpret_cast< clrData * >(argp2);
-      arg2 = *temp;
-      if (SWIG_IsNewObj(res2)) delete temp;
-    }
-  }
-  if (arg1) (arg1)->_clr_plane = arg2;
-  resultobj = SWIG_Py_Void();
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_ImageMatrix__clr_plane_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  PyObject * obj0 = 0 ;
-  clrData result;
-  
-  if (!PyArg_ParseTuple(args,(char *)"O:ImageMatrix__clr_plane_get",&obj0)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix__clr_plane_get" "', argument " "1"" of type '" "ImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  result =  ((arg1)->_clr_plane);
-  resultobj = SWIG_NewPointerObj((new clrData(static_cast< const clrData& >(result))), SWIGTYPE_p_Eigen__MatrixT_HSVcolor_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_ImageMatrix__is_pix_writeable_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  bool arg2 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  bool val2 ;
-  int ecode2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:ImageMatrix__is_pix_writeable_set",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix__is_pix_writeable_set" "', argument " "1"" of type '" "ImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  ecode2 = SWIG_AsVal_bool(obj1, &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "ImageMatrix__is_pix_writeable_set" "', argument " "2"" of type '" "bool""'");
-  } 
-  arg2 = static_cast< bool >(val2);
-  if (arg1) (arg1)->_is_pix_writeable = arg2;
-  resultobj = SWIG_Py_Void();
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_ImageMatrix__is_pix_writeable_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  PyObject * obj0 = 0 ;
-  bool result;
-  
-  if (!PyArg_ParseTuple(args,(char *)"O:ImageMatrix__is_pix_writeable_get",&obj0)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix__is_pix_writeable_get" "', argument " "1"" of type '" "ImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  result = (bool) ((arg1)->_is_pix_writeable);
-  resultobj = SWIG_From_bool(static_cast< bool >(result));
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_ImageMatrix__is_clr_writeable_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  bool arg2 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  bool val2 ;
-  int ecode2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:ImageMatrix__is_clr_writeable_set",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix__is_clr_writeable_set" "', argument " "1"" of type '" "ImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  ecode2 = SWIG_AsVal_bool(obj1, &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "ImageMatrix__is_clr_writeable_set" "', argument " "2"" of type '" "bool""'");
-  } 
-  arg2 = static_cast< bool >(val2);
-  if (arg1) (arg1)->_is_clr_writeable = arg2;
-  resultobj = SWIG_Py_Void();
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_ImageMatrix__is_clr_writeable_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  PyObject * obj0 = 0 ;
-  bool result;
-  
-  if (!PyArg_ParseTuple(args,(char *)"O:ImageMatrix__is_clr_writeable_get",&obj0)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix__is_clr_writeable_get" "', argument " "1"" of type '" "ImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  result = (bool) ((arg1)->_is_clr_writeable);
-  resultobj = SWIG_From_bool(static_cast< bool >(result));
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
 SWIGINTERN PyObject *_wrap_ImageMatrix_source_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   ImageMatrix *arg1 = (ImageMatrix *) 0 ;
@@ -6216,7 +5996,7 @@ fail:
 SWIGINTERN PyObject *_wrap_ImageMatrix_ColorMode_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  enum ColorMode arg2 ;
+  enum ColorModes arg2 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   int val2 ;
@@ -6232,9 +6012,9 @@ SWIGINTERN PyObject *_wrap_ImageMatrix_ColorMode_set(PyObject *SWIGUNUSEDPARM(se
   arg1 = reinterpret_cast< ImageMatrix * >(argp1);
   ecode2 = SWIG_AsVal_int(obj1, &val2);
   if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "ImageMatrix_ColorMode_set" "', argument " "2"" of type '" "enum ColorMode""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "ImageMatrix_ColorMode_set" "', argument " "2"" of type '" "enum ColorModes""'");
   } 
-  arg2 = static_cast< enum ColorMode >(val2);
+  arg2 = static_cast< enum ColorModes >(val2);
   if (arg1) (arg1)->ColorMode = arg2;
   resultobj = SWIG_Py_Void();
   return resultobj;
@@ -6249,7 +6029,7 @@ SWIGINTERN PyObject *_wrap_ImageMatrix_ColorMode_get(PyObject *SWIGUNUSEDPARM(se
   void *argp1 = 0 ;
   int res1 = 0 ;
   PyObject * obj0 = 0 ;
-  enum ColorMode result;
+  enum ColorModes result;
   
   if (!PyArg_ParseTuple(args,(char *)"O:ImageMatrix_ColorMode_get",&obj0)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
@@ -6257,7 +6037,7 @@ SWIGINTERN PyObject *_wrap_ImageMatrix_ColorMode_get(PyObject *SWIGUNUSEDPARM(se
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix_ColorMode_get" "', argument " "1"" of type '" "ImageMatrix *""'"); 
   }
   arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  result = (enum ColorMode) ((arg1)->ColorMode);
+  result = (enum ColorModes) ((arg1)->ColorMode);
   resultobj = SWIG_From_int(static_cast< int >(result));
   return resultobj;
 fail:
@@ -6421,266 +6201,6 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_ImageMatrix__min_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  double arg2 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  double val2 ;
-  int ecode2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:ImageMatrix__min_set",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix__min_set" "', argument " "1"" of type '" "ImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  ecode2 = SWIG_AsVal_double(obj1, &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "ImageMatrix__min_set" "', argument " "2"" of type '" "double""'");
-  } 
-  arg2 = static_cast< double >(val2);
-  if (arg1) (arg1)->_min = arg2;
-  resultobj = SWIG_Py_Void();
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_ImageMatrix__min_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  PyObject * obj0 = 0 ;
-  double result;
-  
-  if (!PyArg_ParseTuple(args,(char *)"O:ImageMatrix__min_get",&obj0)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix__min_get" "', argument " "1"" of type '" "ImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  result = (double) ((arg1)->_min);
-  resultobj = SWIG_From_double(static_cast< double >(result));
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_ImageMatrix__max_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  double arg2 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  double val2 ;
-  int ecode2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:ImageMatrix__max_set",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix__max_set" "', argument " "1"" of type '" "ImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  ecode2 = SWIG_AsVal_double(obj1, &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "ImageMatrix__max_set" "', argument " "2"" of type '" "double""'");
-  } 
-  arg2 = static_cast< double >(val2);
-  if (arg1) (arg1)->_max = arg2;
-  resultobj = SWIG_Py_Void();
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_ImageMatrix__max_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  PyObject * obj0 = 0 ;
-  double result;
-  
-  if (!PyArg_ParseTuple(args,(char *)"O:ImageMatrix__max_get",&obj0)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix__max_get" "', argument " "1"" of type '" "ImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  result = (double) ((arg1)->_max);
-  resultobj = SWIG_From_double(static_cast< double >(result));
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_ImageMatrix__mean_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  double arg2 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  double val2 ;
-  int ecode2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:ImageMatrix__mean_set",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix__mean_set" "', argument " "1"" of type '" "ImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  ecode2 = SWIG_AsVal_double(obj1, &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "ImageMatrix__mean_set" "', argument " "2"" of type '" "double""'");
-  } 
-  arg2 = static_cast< double >(val2);
-  if (arg1) (arg1)->_mean = arg2;
-  resultobj = SWIG_Py_Void();
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_ImageMatrix__mean_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  PyObject * obj0 = 0 ;
-  double result;
-  
-  if (!PyArg_ParseTuple(args,(char *)"O:ImageMatrix__mean_get",&obj0)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix__mean_get" "', argument " "1"" of type '" "ImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  result = (double) ((arg1)->_mean);
-  resultobj = SWIG_From_double(static_cast< double >(result));
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_ImageMatrix__std_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  double arg2 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  double val2 ;
-  int ecode2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:ImageMatrix__std_set",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix__std_set" "', argument " "1"" of type '" "ImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  ecode2 = SWIG_AsVal_double(obj1, &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "ImageMatrix__std_set" "', argument " "2"" of type '" "double""'");
-  } 
-  arg2 = static_cast< double >(val2);
-  if (arg1) (arg1)->_std = arg2;
-  resultobj = SWIG_Py_Void();
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_ImageMatrix__std_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  PyObject * obj0 = 0 ;
-  double result;
-  
-  if (!PyArg_ParseTuple(args,(char *)"O:ImageMatrix__std_get",&obj0)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix__std_get" "', argument " "1"" of type '" "ImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  result = (double) ((arg1)->_std);
-  resultobj = SWIG_From_double(static_cast< double >(result));
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_ImageMatrix__median_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  double arg2 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  double val2 ;
-  int ecode2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:ImageMatrix__median_set",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix__median_set" "', argument " "1"" of type '" "ImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  ecode2 = SWIG_AsVal_double(obj1, &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "ImageMatrix__median_set" "', argument " "2"" of type '" "double""'");
-  } 
-  arg2 = static_cast< double >(val2);
-  if (arg1) (arg1)->_median = arg2;
-  resultobj = SWIG_Py_Void();
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_ImageMatrix__median_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  PyObject * obj0 = 0 ;
-  double result;
-  
-  if (!PyArg_ParseTuple(args,(char *)"O:ImageMatrix__median_get",&obj0)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix__median_get" "', argument " "1"" of type '" "ImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  result = (double) ((arg1)->_median);
-  resultobj = SWIG_From_double(static_cast< double >(result));
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
 SWIGINTERN PyObject *_wrap_ImageMatrix_has_stats_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   ImageMatrix *arg1 = (ImageMatrix *) 0 ;
@@ -6800,7 +6320,7 @@ SWIGINTERN PyObject *_wrap_ImageMatrix_WriteablePixels(PyObject *SWIGUNUSEDPARM(
   }
   arg1 = reinterpret_cast< ImageMatrix * >(argp1);
   result = (pixData *) &(arg1)->WriteablePixels();
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_Eigen__MatrixT_double_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t, 0 |  0 );
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_Eigen__MapT_pixDataMat_Eigen__Aligned_t, 0 |  0 );
   return resultobj;
 fail:
   return NULL;
@@ -6822,7 +6342,7 @@ SWIGINTERN PyObject *_wrap_ImageMatrix_WriteableColors(PyObject *SWIGUNUSEDPARM(
   }
   arg1 = reinterpret_cast< ImageMatrix * >(argp1);
   result = (clrData *) &(arg1)->WriteableColors();
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_Eigen__MatrixT_HSVcolor_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t, 0 |  0 );
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_Eigen__MapT_clrDataMat_Eigen__Aligned_t, 0 |  0 );
   return resultobj;
 fail:
   return NULL;
@@ -6844,7 +6364,7 @@ SWIGINTERN PyObject *_wrap_ImageMatrix_ReadablePixels(PyObject *SWIGUNUSEDPARM(s
   }
   arg1 = reinterpret_cast< ImageMatrix * >(argp1);
   result = (pixData *) &((ImageMatrix const *)arg1)->ReadablePixels();
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_Eigen__MatrixT_double_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t, 0 |  0 );
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_Eigen__MapT_pixDataMat_Eigen__Aligned_t, 0 |  0 );
   return resultobj;
 fail:
   return NULL;
@@ -6866,7 +6386,7 @@ SWIGINTERN PyObject *_wrap_ImageMatrix_ReadableColors(PyObject *SWIGUNUSEDPARM(s
   }
   arg1 = reinterpret_cast< ImageMatrix * >(argp1);
   result = (clrData *) &((ImageMatrix const *)arg1)->ReadableColors();
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_Eigen__MatrixT_HSVcolor_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t, 0 |  0 );
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_Eigen__MapT_clrDataMat_Eigen__Aligned_t, 0 |  0 );
   return resultobj;
 fail:
   return NULL;
@@ -6888,7 +6408,7 @@ SWIGINTERN PyObject *_wrap_ImageMatrix_ReadOnlyPixels(PyObject *SWIGUNUSEDPARM(s
   }
   arg1 = reinterpret_cast< ImageMatrix * >(argp1);
   result = (pixData *) &((ImageMatrix const *)arg1)->ReadOnlyPixels();
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_Eigen__MatrixT_double_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t, 0 |  0 );
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_Eigen__MapT_pixDataMat_Eigen__Aligned_t, 0 |  0 );
   return resultobj;
 fail:
   return NULL;
@@ -6910,7 +6430,7 @@ SWIGINTERN PyObject *_wrap_ImageMatrix_ReadOnlyColors(PyObject *SWIGUNUSEDPARM(s
   }
   arg1 = reinterpret_cast< ImageMatrix * >(argp1);
   result = (clrData *) &((ImageMatrix const *)arg1)->ReadOnlyColors();
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_Eigen__MatrixT_HSVcolor_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t, 0 |  0 );
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_Eigen__MapT_clrDataMat_Eigen__Aligned_t, 0 |  0 );
   return resultobj;
 fail:
   return NULL;
@@ -7111,6 +6631,102 @@ SWIGINTERN PyObject *_wrap_ImageMatrix_init(PyObject *SWIGUNUSEDPARM(self), PyOb
   }
   arg1 = reinterpret_cast< ImageMatrix * >(argp1);
   (arg1)->init();
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_ImageMatrix_remap_pix_plane(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
+  double *arg2 = (double *) 0 ;
+  unsigned int arg3 ;
+  unsigned int arg4 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  unsigned int val3 ;
+  int ecode3 = 0 ;
+  unsigned int val4 ;
+  int ecode4 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOOO:ImageMatrix_remap_pix_plane",&obj0,&obj1,&obj2,&obj3)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix_remap_pix_plane" "', argument " "1"" of type '" "ImageMatrix *""'"); 
+  }
+  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_double, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "ImageMatrix_remap_pix_plane" "', argument " "2"" of type '" "double *""'"); 
+  }
+  arg2 = reinterpret_cast< double * >(argp2);
+  ecode3 = SWIG_AsVal_unsigned_SS_int(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "ImageMatrix_remap_pix_plane" "', argument " "3"" of type '" "unsigned int""'");
+  } 
+  arg3 = static_cast< unsigned int >(val3);
+  ecode4 = SWIG_AsVal_unsigned_SS_int(obj3, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "ImageMatrix_remap_pix_plane" "', argument " "4"" of type '" "unsigned int""'");
+  } 
+  arg4 = static_cast< unsigned int >(val4);
+  (arg1)->remap_pix_plane(arg2,arg3,arg4);
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_ImageMatrix_remap_clr_plane(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
+  HSVcolor *arg2 = (HSVcolor *) 0 ;
+  unsigned int arg3 ;
+  unsigned int arg4 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  unsigned int val3 ;
+  int ecode3 = 0 ;
+  unsigned int val4 ;
+  int ecode4 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOOO:ImageMatrix_remap_clr_plane",&obj0,&obj1,&obj2,&obj3)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix_remap_clr_plane" "', argument " "1"" of type '" "ImageMatrix *""'"); 
+  }
+  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_HSVcolor, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "ImageMatrix_remap_clr_plane" "', argument " "2"" of type '" "HSVcolor *""'"); 
+  }
+  arg2 = reinterpret_cast< HSVcolor * >(argp2);
+  ecode3 = SWIG_AsVal_unsigned_SS_int(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "ImageMatrix_remap_clr_plane" "', argument " "3"" of type '" "unsigned int""'");
+  } 
+  arg3 = static_cast< unsigned int >(val3);
+  ecode4 = SWIG_AsVal_unsigned_SS_int(obj3, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "ImageMatrix_remap_clr_plane" "', argument " "4"" of type '" "unsigned int""'");
+  } 
+  arg4 = static_cast< unsigned int >(val4);
+  (arg1)->remap_clr_plane(arg2,arg3,arg4);
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -7612,7 +7228,7 @@ fail:
 SWIGINTERN PyObject *_wrap_ImageMatrix_convolve(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  pixData *arg2 = 0 ;
+  pixDataMat *arg2 = 0 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   void *argp2 = 0 ;
@@ -7628,13 +7244,13 @@ SWIGINTERN PyObject *_wrap_ImageMatrix_convolve(PyObject *SWIGUNUSEDPARM(self), 
   arg1 = reinterpret_cast< ImageMatrix * >(argp1);
   res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_Eigen__MatrixT_double_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t,  0  | 0);
   if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "ImageMatrix_convolve" "', argument " "2"" of type '" "pixData const &""'"); 
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "ImageMatrix_convolve" "', argument " "2"" of type '" "pixDataMat const &""'"); 
   }
   if (!argp2) {
-    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "ImageMatrix_convolve" "', argument " "2"" of type '" "pixData const &""'"); 
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "ImageMatrix_convolve" "', argument " "2"" of type '" "pixDataMat const &""'"); 
   }
-  arg2 = reinterpret_cast< pixData * >(argp2);
-  (arg1)->convolve((pixData const &)*arg2);
+  arg2 = reinterpret_cast< pixDataMat * >(argp2);
+  (arg1)->convolve((pixDataMat const &)*arg2);
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -13155,6 +12771,40 @@ SWIGINTERN PyObject *GiniCoefficient_swigregister(PyObject *SWIGUNUSEDPARM(self)
   return SWIG_Py_Void();
 }
 
+SWIGINTERN PyObject *_wrap_new_SharedImageMatrix(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  SharedImageMatrix *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)":new_SharedImageMatrix")) SWIG_fail;
+  result = (SharedImageMatrix *)new SharedImageMatrix();
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_SharedImageMatrix, SWIG_POINTER_NEW |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_delete_SharedImageMatrix(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:delete_SharedImageMatrix",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, SWIG_POINTER_DISOWN |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "delete_SharedImageMatrix" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
+  delete arg1;
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_SharedImageMatrix_SetShmemName(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
@@ -13188,6 +12838,70 @@ SWIGINTERN PyObject *_wrap_SharedImageMatrix_SetShmemName(PyObject *SWIGUNUSEDPA
   return resultobj;
 fail:
   if (SWIG_IsNewObj(res2)) delete arg2;
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SharedImageMatrix_calc_shmem_size(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
+  unsigned int arg2 ;
+  unsigned int arg3 ;
+  size_t *arg4 = 0 ;
+  size_t *arg5 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  unsigned int val3 ;
+  int ecode3 = 0 ;
+  void *argp4 = 0 ;
+  int res4 = 0 ;
+  void *argp5 = 0 ;
+  int res5 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
+  size_t result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOOOO:SharedImageMatrix_calc_shmem_size",&obj0,&obj1,&obj2,&obj3,&obj4)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_calc_shmem_size" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "SharedImageMatrix_calc_shmem_size" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  ecode3 = SWIG_AsVal_unsigned_SS_int(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "SharedImageMatrix_calc_shmem_size" "', argument " "3"" of type '" "unsigned int""'");
+  } 
+  arg3 = static_cast< unsigned int >(val3);
+  res4 = SWIG_ConvertPtr(obj3, &argp4, SWIGTYPE_p_size_t,  0 );
+  if (!SWIG_IsOK(res4)) {
+    SWIG_exception_fail(SWIG_ArgError(res4), "in method '" "SharedImageMatrix_calc_shmem_size" "', argument " "4"" of type '" "size_t &""'"); 
+  }
+  if (!argp4) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SharedImageMatrix_calc_shmem_size" "', argument " "4"" of type '" "size_t &""'"); 
+  }
+  arg4 = reinterpret_cast< size_t * >(argp4);
+  res5 = SWIG_ConvertPtr(obj4, &argp5, SWIGTYPE_p_size_t,  0 );
+  if (!SWIG_IsOK(res5)) {
+    SWIG_exception_fail(SWIG_ArgError(res5), "in method '" "SharedImageMatrix_calc_shmem_size" "', argument " "5"" of type '" "size_t &""'"); 
+  }
+  if (!argp5) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SharedImageMatrix_calc_shmem_size" "', argument " "5"" of type '" "size_t &""'"); 
+  }
+  arg5 = reinterpret_cast< size_t * >(argp5);
+  result = (arg1)->calc_shmem_size(arg2,arg3,*arg4,*arg5);
+  resultobj = SWIG_From_size_t(static_cast< size_t >(result));
+  return resultobj;
+fail:
   return NULL;
 }
 
@@ -13240,7 +12954,7 @@ SWIGINTERN PyObject *_wrap_SharedImageMatrix_fromCache(PyObject *SWIGUNUSEDPARM(
   int res2 = SWIG_OLDOBJ ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
-  SharedImageMatrix *result = 0 ;
+  CacheStatus result;
   
   if (!PyArg_ParseTuple(args,(char *)"OO:SharedImageMatrix_fromCache",&obj0,&obj1)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
@@ -13259,8 +12973,8 @@ SWIGINTERN PyObject *_wrap_SharedImageMatrix_fromCache(PyObject *SWIGUNUSEDPARM(
     }
     arg2 = ptr;
   }
-  result = (SharedImageMatrix *)(arg1)->fromCache((std::string const &)*arg2);
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  result = (CacheStatus)(arg1)->fromCache((std::string const &)*arg2);
+  resultobj = SWIG_From_int(static_cast< int >(result));
   if (SWIG_IsNewObj(res2)) delete arg2;
   return resultobj;
 fail:
@@ -13360,6 +13074,44 @@ fail:
 }
 
 
+SWIGINTERN int Swig_var_SharedImageMatrix_shmem_page_size_set(PyObject *_val) {
+  {
+    size_t val;
+    int res = SWIG_AsVal_size_t(_val, &val);
+    if (!SWIG_IsOK(res)) {
+      SWIG_exception_fail(SWIG_ArgError(res), "in variable '""SharedImageMatrix::shmem_page_size""' of type '""size_t""'");
+    }
+    SharedImageMatrix::shmem_page_size = static_cast< size_t >(val);
+  }
+  return 0;
+fail:
+  return 1;
+}
+
+
+SWIGINTERN PyObject *Swig_var_SharedImageMatrix_shmem_page_size_get(void) {
+  PyObject *pyobj = 0;
+  
+  pyobj = SWIG_From_size_t(static_cast< size_t >(SharedImageMatrix::shmem_page_size));
+  return pyobj;
+}
+
+
+SWIGINTERN PyObject *_wrap_SharedImageMatrix_shmem_page_size_get(PyObject *SWIGUNUSEDPARM(self), PyObject *SWIGUNUSEDPARM(args)) {
+  return Swig_var_SharedImageMatrix_shmem_page_size_get();
+}
+
+
+SWIGINTERN PyObject *_wrap_SharedImageMatrix_shmem_page_size_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  int res;
+  PyObject *value;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:set",&value)) return NULL;
+  res = Swig_var_SharedImageMatrix_shmem_page_size_set(value);
+  return !res ? SWIG_Py_Void() : NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_SharedImageMatrix_shmem_name_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
@@ -13419,34 +13171,208 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_new_SharedImageMatrix(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_SharedImageMatrix_shmem_size_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
-  SharedImageMatrix *result = 0 ;
+  SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
+  size_t arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  size_t val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)":new_SharedImageMatrix")) SWIG_fail;
-  result = (SharedImageMatrix *)new SharedImageMatrix();
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_SharedImageMatrix, SWIG_POINTER_NEW |  0 );
+  if (!PyArg_ParseTuple(args,(char *)"OO:SharedImageMatrix_shmem_size_set",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_shmem_size_set" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
+  ecode2 = SWIG_AsVal_size_t(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "SharedImageMatrix_shmem_size_set" "', argument " "2"" of type '" "size_t""'");
+  } 
+  arg2 = static_cast< size_t >(val2);
+  if (arg1) (arg1)->shmem_size = arg2;
+  resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
   return NULL;
 }
 
 
-SWIGINTERN PyObject *_wrap_delete_SharedImageMatrix(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_SharedImageMatrix_shmem_size_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   PyObject * obj0 = 0 ;
+  size_t result;
   
-  if (!PyArg_ParseTuple(args,(char *)"O:delete_SharedImageMatrix",&obj0)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, SWIG_POINTER_DISOWN |  0 );
+  if (!PyArg_ParseTuple(args,(char *)"O:SharedImageMatrix_shmem_size_get",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "delete_SharedImageMatrix" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_shmem_size_get" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
   }
   arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
-  delete arg1;
+  result =  ((arg1)->shmem_size);
+  resultobj = SWIG_From_size_t(static_cast< size_t >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SharedImageMatrix_shmem_fd_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
+  int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:SharedImageMatrix_shmem_fd_set",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_shmem_fd_set" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "SharedImageMatrix_shmem_fd_set" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = static_cast< int >(val2);
+  if (arg1) (arg1)->shmem_fd = arg2;
   resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SharedImageMatrix_shmem_fd_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  int result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:SharedImageMatrix_shmem_fd_get",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_shmem_fd_get" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
+  result = (int) ((arg1)->shmem_fd);
+  resultobj = SWIG_From_int(static_cast< int >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SharedImageMatrix_mmap_ptr_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
+  byte *arg2 = (byte *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:SharedImageMatrix_mmap_ptr_set",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_mmap_ptr_set" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_unsigned_char, SWIG_POINTER_DISOWN |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SharedImageMatrix_mmap_ptr_set" "', argument " "2"" of type '" "byte *""'"); 
+  }
+  arg2 = reinterpret_cast< byte * >(argp2);
+  if (arg1) (arg1)->mmap_ptr = arg2;
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SharedImageMatrix_mmap_ptr_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  byte *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:SharedImageMatrix_mmap_ptr_get",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_mmap_ptr_get" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
+  result = (byte *) ((arg1)->mmap_ptr);
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_unsigned_char, 0 |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SharedImageMatrix_shmem_sem_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
+  sem_t *arg2 = (sem_t *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:SharedImageMatrix_shmem_sem_set",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_shmem_sem_set" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_sem_t, SWIG_POINTER_DISOWN |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SharedImageMatrix_shmem_sem_set" "', argument " "2"" of type '" "sem_t *""'"); 
+  }
+  arg2 = reinterpret_cast< sem_t * >(argp2);
+  if (arg1) (arg1)->shmem_sem = arg2;
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SharedImageMatrix_shmem_sem_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  sem_t *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:SharedImageMatrix_shmem_sem_get",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_shmem_sem_get" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
+  result = (sem_t *) ((arg1)->shmem_sem);
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_sem_t, 0 |  0 );
   return resultobj;
 fail:
   return NULL;
@@ -13495,15 +13421,18 @@ SWIGINTERN PyObject *_wrap_Transform_execute(PyObject *SWIGUNUSEDPARM(self), PyO
   PyObject *resultobj = 0;
   Transform *arg1 = (Transform *) 0 ;
   SharedImageMatrix *arg2 = (SharedImageMatrix *) 0 ;
+  SharedImageMatrix *arg3 = (SharedImageMatrix *) 0 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   void *argp2 = 0 ;
   int res2 = 0 ;
+  void *argp3 = 0 ;
+  int res3 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
-  SharedImageMatrix *result = 0 ;
+  PyObject * obj2 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)"OO:Transform_execute",&obj0,&obj1)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OOO:Transform_execute",&obj0,&obj1,&obj2)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_Transform, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "Transform_execute" "', argument " "1"" of type '" "Transform *""'"); 
@@ -13514,8 +13443,13 @@ SWIGINTERN PyObject *_wrap_Transform_execute(PyObject *SWIGUNUSEDPARM(self), PyO
     SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "Transform_execute" "', argument " "2"" of type '" "SharedImageMatrix const *""'"); 
   }
   arg2 = reinterpret_cast< SharedImageMatrix * >(argp2);
-  result = (SharedImageMatrix *)(arg1)->execute((SharedImageMatrix const *)arg2);
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  res3 = SWIG_ConvertPtr(obj2, &argp3,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res3)) {
+    SWIG_exception_fail(SWIG_ArgError(res3), "in method '" "Transform_execute" "', argument " "3"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg3 = reinterpret_cast< SharedImageMatrix * >(argp3);
+  (arg1)->execute((SharedImageMatrix const *)arg2,arg3);
+  resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
   return NULL;
@@ -13602,37 +13536,6 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_Transform_getOutputIM(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  Transform *arg1 = (Transform *) 0 ;
-  SharedImageMatrix *arg2 = (SharedImageMatrix *) 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  SharedImageMatrix *result = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:Transform_getOutputIM",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_Transform, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "Transform_getOutputIM" "', argument " "1"" of type '" "Transform *""'"); 
-  }
-  arg1 = reinterpret_cast< Transform * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "Transform_getOutputIM" "', argument " "2"" of type '" "SharedImageMatrix const *""'"); 
-  }
-  arg2 = reinterpret_cast< SharedImageMatrix * >(argp2);
-  result = (SharedImageMatrix *)(arg1)->getOutputIM((SharedImageMatrix const *)arg2);
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
 SWIGINTERN PyObject *_wrap_delete_Transform(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   Transform *arg1 = (Transform *) 0 ;
@@ -13678,15 +13581,18 @@ SWIGINTERN PyObject *_wrap_EmptyTransform_execute(PyObject *SWIGUNUSEDPARM(self)
   PyObject *resultobj = 0;
   EmptyTransform *arg1 = (EmptyTransform *) 0 ;
   SharedImageMatrix *arg2 = (SharedImageMatrix *) 0 ;
+  SharedImageMatrix *arg3 = (SharedImageMatrix *) 0 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   void *argp2 = 0 ;
   int res2 = 0 ;
+  void *argp3 = 0 ;
+  int res3 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
-  SharedImageMatrix *result = 0 ;
+  PyObject * obj2 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)"OO:EmptyTransform_execute",&obj0,&obj1)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OOO:EmptyTransform_execute",&obj0,&obj1,&obj2)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_EmptyTransform, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "EmptyTransform_execute" "', argument " "1"" of type '" "EmptyTransform *""'"); 
@@ -13697,8 +13603,13 @@ SWIGINTERN PyObject *_wrap_EmptyTransform_execute(PyObject *SWIGUNUSEDPARM(self)
     SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "EmptyTransform_execute" "', argument " "2"" of type '" "SharedImageMatrix const *""'"); 
   }
   arg2 = reinterpret_cast< SharedImageMatrix * >(argp2);
-  result = (SharedImageMatrix *)(arg1)->execute((SharedImageMatrix const *)arg2);
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  res3 = SWIG_ConvertPtr(obj2, &argp3,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res3)) {
+    SWIG_exception_fail(SWIG_ArgError(res3), "in method '" "EmptyTransform_execute" "', argument " "3"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg3 = reinterpret_cast< SharedImageMatrix * >(argp3);
+  (arg1)->execute((SharedImageMatrix const *)arg2,arg3);
+  resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
   return NULL;
@@ -13750,15 +13661,18 @@ SWIGINTERN PyObject *_wrap_FourierTransform_execute(PyObject *SWIGUNUSEDPARM(sel
   PyObject *resultobj = 0;
   FourierTransform *arg1 = (FourierTransform *) 0 ;
   SharedImageMatrix *arg2 = (SharedImageMatrix *) 0 ;
+  SharedImageMatrix *arg3 = (SharedImageMatrix *) 0 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   void *argp2 = 0 ;
   int res2 = 0 ;
+  void *argp3 = 0 ;
+  int res3 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
-  SharedImageMatrix *result = 0 ;
+  PyObject * obj2 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)"OO:FourierTransform_execute",&obj0,&obj1)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OOO:FourierTransform_execute",&obj0,&obj1,&obj2)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_FourierTransform, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "FourierTransform_execute" "', argument " "1"" of type '" "FourierTransform *""'"); 
@@ -13769,8 +13683,13 @@ SWIGINTERN PyObject *_wrap_FourierTransform_execute(PyObject *SWIGUNUSEDPARM(sel
     SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "FourierTransform_execute" "', argument " "2"" of type '" "SharedImageMatrix const *""'"); 
   }
   arg2 = reinterpret_cast< SharedImageMatrix * >(argp2);
-  result = (SharedImageMatrix *)(arg1)->execute((SharedImageMatrix const *)arg2);
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  res3 = SWIG_ConvertPtr(obj2, &argp3,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res3)) {
+    SWIG_exception_fail(SWIG_ArgError(res3), "in method '" "FourierTransform_execute" "', argument " "3"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg3 = reinterpret_cast< SharedImageMatrix * >(argp3);
+  (arg1)->execute((SharedImageMatrix const *)arg2,arg3);
+  resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
   return NULL;
@@ -13822,15 +13741,18 @@ SWIGINTERN PyObject *_wrap_ChebyshevTransform_execute(PyObject *SWIGUNUSEDPARM(s
   PyObject *resultobj = 0;
   ChebyshevTransform *arg1 = (ChebyshevTransform *) 0 ;
   SharedImageMatrix *arg2 = (SharedImageMatrix *) 0 ;
+  SharedImageMatrix *arg3 = (SharedImageMatrix *) 0 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   void *argp2 = 0 ;
   int res2 = 0 ;
+  void *argp3 = 0 ;
+  int res3 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
-  SharedImageMatrix *result = 0 ;
+  PyObject * obj2 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)"OO:ChebyshevTransform_execute",&obj0,&obj1)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OOO:ChebyshevTransform_execute",&obj0,&obj1,&obj2)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ChebyshevTransform, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ChebyshevTransform_execute" "', argument " "1"" of type '" "ChebyshevTransform *""'"); 
@@ -13841,8 +13763,13 @@ SWIGINTERN PyObject *_wrap_ChebyshevTransform_execute(PyObject *SWIGUNUSEDPARM(s
     SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "ChebyshevTransform_execute" "', argument " "2"" of type '" "SharedImageMatrix const *""'"); 
   }
   arg2 = reinterpret_cast< SharedImageMatrix * >(argp2);
-  result = (SharedImageMatrix *)(arg1)->execute((SharedImageMatrix const *)arg2);
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  res3 = SWIG_ConvertPtr(obj2, &argp3,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res3)) {
+    SWIG_exception_fail(SWIG_ArgError(res3), "in method '" "ChebyshevTransform_execute" "', argument " "3"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg3 = reinterpret_cast< SharedImageMatrix * >(argp3);
+  (arg1)->execute((SharedImageMatrix const *)arg2,arg3);
+  resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
   return NULL;
@@ -13894,15 +13821,18 @@ SWIGINTERN PyObject *_wrap_WaveletTransform_execute(PyObject *SWIGUNUSEDPARM(sel
   PyObject *resultobj = 0;
   WaveletTransform *arg1 = (WaveletTransform *) 0 ;
   SharedImageMatrix *arg2 = (SharedImageMatrix *) 0 ;
+  SharedImageMatrix *arg3 = (SharedImageMatrix *) 0 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   void *argp2 = 0 ;
   int res2 = 0 ;
+  void *argp3 = 0 ;
+  int res3 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
-  SharedImageMatrix *result = 0 ;
+  PyObject * obj2 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)"OO:WaveletTransform_execute",&obj0,&obj1)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OOO:WaveletTransform_execute",&obj0,&obj1,&obj2)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_WaveletTransform, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "WaveletTransform_execute" "', argument " "1"" of type '" "WaveletTransform *""'"); 
@@ -13913,8 +13843,13 @@ SWIGINTERN PyObject *_wrap_WaveletTransform_execute(PyObject *SWIGUNUSEDPARM(sel
     SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "WaveletTransform_execute" "', argument " "2"" of type '" "SharedImageMatrix const *""'"); 
   }
   arg2 = reinterpret_cast< SharedImageMatrix * >(argp2);
-  result = (SharedImageMatrix *)(arg1)->execute((SharedImageMatrix const *)arg2);
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  res3 = SWIG_ConvertPtr(obj2, &argp3,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res3)) {
+    SWIG_exception_fail(SWIG_ArgError(res3), "in method '" "WaveletTransform_execute" "', argument " "3"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg3 = reinterpret_cast< SharedImageMatrix * >(argp3);
+  (arg1)->execute((SharedImageMatrix const *)arg2,arg3);
+  resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
   return NULL;
@@ -13966,15 +13901,18 @@ SWIGINTERN PyObject *_wrap_EdgeTransform_execute(PyObject *SWIGUNUSEDPARM(self),
   PyObject *resultobj = 0;
   EdgeTransform *arg1 = (EdgeTransform *) 0 ;
   SharedImageMatrix *arg2 = (SharedImageMatrix *) 0 ;
+  SharedImageMatrix *arg3 = (SharedImageMatrix *) 0 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   void *argp2 = 0 ;
   int res2 = 0 ;
+  void *argp3 = 0 ;
+  int res3 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
-  SharedImageMatrix *result = 0 ;
+  PyObject * obj2 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)"OO:EdgeTransform_execute",&obj0,&obj1)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OOO:EdgeTransform_execute",&obj0,&obj1,&obj2)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_EdgeTransform, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "EdgeTransform_execute" "', argument " "1"" of type '" "EdgeTransform *""'"); 
@@ -13985,8 +13923,13 @@ SWIGINTERN PyObject *_wrap_EdgeTransform_execute(PyObject *SWIGUNUSEDPARM(self),
     SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "EdgeTransform_execute" "', argument " "2"" of type '" "SharedImageMatrix const *""'"); 
   }
   arg2 = reinterpret_cast< SharedImageMatrix * >(argp2);
-  result = (SharedImageMatrix *)(arg1)->execute((SharedImageMatrix const *)arg2);
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  res3 = SWIG_ConvertPtr(obj2, &argp3,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res3)) {
+    SWIG_exception_fail(SWIG_ArgError(res3), "in method '" "EdgeTransform_execute" "', argument " "3"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg3 = reinterpret_cast< SharedImageMatrix * >(argp3);
+  (arg1)->execute((SharedImageMatrix const *)arg2,arg3);
+  resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
   return NULL;
@@ -14090,15 +14033,18 @@ SWIGINTERN PyObject *_wrap_ColorTransform_execute(PyObject *SWIGUNUSEDPARM(self)
   PyObject *resultobj = 0;
   ColorTransform *arg1 = (ColorTransform *) 0 ;
   SharedImageMatrix *arg2 = (SharedImageMatrix *) 0 ;
+  SharedImageMatrix *arg3 = (SharedImageMatrix *) 0 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   void *argp2 = 0 ;
   int res2 = 0 ;
+  void *argp3 = 0 ;
+  int res3 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
-  SharedImageMatrix *result = 0 ;
+  PyObject * obj2 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)"OO:ColorTransform_execute",&obj0,&obj1)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OOO:ColorTransform_execute",&obj0,&obj1,&obj2)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ColorTransform, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ColorTransform_execute" "', argument " "1"" of type '" "ColorTransform *""'"); 
@@ -14109,8 +14055,13 @@ SWIGINTERN PyObject *_wrap_ColorTransform_execute(PyObject *SWIGUNUSEDPARM(self)
     SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "ColorTransform_execute" "', argument " "2"" of type '" "SharedImageMatrix const *""'"); 
   }
   arg2 = reinterpret_cast< SharedImageMatrix * >(argp2);
-  result = (SharedImageMatrix *)(arg1)->execute((SharedImageMatrix const *)arg2);
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  res3 = SWIG_ConvertPtr(obj2, &argp3,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res3)) {
+    SWIG_exception_fail(SWIG_ArgError(res3), "in method '" "ColorTransform_execute" "', argument " "3"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg3 = reinterpret_cast< SharedImageMatrix * >(argp3);
+  (arg1)->execute((SharedImageMatrix const *)arg2,arg3);
+  resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
   return NULL;
@@ -14162,15 +14113,18 @@ SWIGINTERN PyObject *_wrap_HueTransform_execute(PyObject *SWIGUNUSEDPARM(self), 
   PyObject *resultobj = 0;
   HueTransform *arg1 = (HueTransform *) 0 ;
   SharedImageMatrix *arg2 = (SharedImageMatrix *) 0 ;
+  SharedImageMatrix *arg3 = (SharedImageMatrix *) 0 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   void *argp2 = 0 ;
   int res2 = 0 ;
+  void *argp3 = 0 ;
+  int res3 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
-  SharedImageMatrix *result = 0 ;
+  PyObject * obj2 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)"OO:HueTransform_execute",&obj0,&obj1)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OOO:HueTransform_execute",&obj0,&obj1,&obj2)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_HueTransform, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "HueTransform_execute" "', argument " "1"" of type '" "HueTransform *""'"); 
@@ -14181,8 +14135,13 @@ SWIGINTERN PyObject *_wrap_HueTransform_execute(PyObject *SWIGUNUSEDPARM(self), 
     SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "HueTransform_execute" "', argument " "2"" of type '" "SharedImageMatrix const *""'"); 
   }
   arg2 = reinterpret_cast< SharedImageMatrix * >(argp2);
-  result = (SharedImageMatrix *)(arg1)->execute((SharedImageMatrix const *)arg2);
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  res3 = SWIG_ConvertPtr(obj2, &argp3,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res3)) {
+    SWIG_exception_fail(SWIG_ArgError(res3), "in method '" "HueTransform_execute" "', argument " "3"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg3 = reinterpret_cast< SharedImageMatrix * >(argp3);
+  (arg1)->execute((SharedImageMatrix const *)arg2,arg3);
+  resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
   return NULL;
@@ -14253,14 +14212,6 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"HSV2RGB", _wrap_HSV2RGB, METH_VARARGS, NULL},
 	 { (char *)"RGB2GRAY", _wrap_RGB2GRAY, METH_VARARGS, NULL},
 	 { (char *)"string_format", _wrap_string_format, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix__pix_plane_set", _wrap_ImageMatrix__pix_plane_set, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix__pix_plane_get", _wrap_ImageMatrix__pix_plane_get, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix__clr_plane_set", _wrap_ImageMatrix__clr_plane_set, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix__clr_plane_get", _wrap_ImageMatrix__clr_plane_get, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix__is_pix_writeable_set", _wrap_ImageMatrix__is_pix_writeable_set, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix__is_pix_writeable_get", _wrap_ImageMatrix__is_pix_writeable_get, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix__is_clr_writeable_set", _wrap_ImageMatrix__is_clr_writeable_set, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix__is_clr_writeable_get", _wrap_ImageMatrix__is_clr_writeable_get, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_source_set", _wrap_ImageMatrix_source_set, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_source_get", _wrap_ImageMatrix_source_get, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_sourceUID_set", _wrap_ImageMatrix_sourceUID_set, METH_VARARGS, NULL},
@@ -14275,16 +14226,6 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"ImageMatrix_width_get", _wrap_ImageMatrix_width_get, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_height_set", _wrap_ImageMatrix_height_set, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_height_get", _wrap_ImageMatrix_height_get, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix__min_set", _wrap_ImageMatrix__min_set, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix__min_get", _wrap_ImageMatrix__min_get, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix__max_set", _wrap_ImageMatrix__max_set, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix__max_get", _wrap_ImageMatrix__max_get, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix__mean_set", _wrap_ImageMatrix__mean_set, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix__mean_get", _wrap_ImageMatrix__mean_get, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix__std_set", _wrap_ImageMatrix__std_set, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix__std_get", _wrap_ImageMatrix__std_get, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix__median_set", _wrap_ImageMatrix__median_set, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix__median_get", _wrap_ImageMatrix__median_get, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_has_stats_set", _wrap_ImageMatrix_has_stats_set, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_has_stats_get", _wrap_ImageMatrix_has_stats_get, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_has_median_set", _wrap_ImageMatrix_has_median_set, METH_VARARGS, NULL},
@@ -14301,6 +14242,8 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"ImageMatrix_SaveTiff", _wrap_ImageMatrix_SaveTiff, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_OpenImage", _wrap_ImageMatrix_OpenImage, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_init", _wrap_ImageMatrix_init, METH_VARARGS, NULL},
+	 { (char *)"ImageMatrix_remap_pix_plane", _wrap_ImageMatrix_remap_pix_plane, METH_VARARGS, NULL},
+	 { (char *)"ImageMatrix_remap_clr_plane", _wrap_ImageMatrix_remap_clr_plane, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_allocate", _wrap_ImageMatrix_allocate, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_copyFields", _wrap_ImageMatrix_copyFields, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_copyData", _wrap_ImageMatrix_copyData, METH_VARARGS, NULL},
@@ -14472,22 +14415,32 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"GiniCoefficient_calculate", _wrap_GiniCoefficient_calculate, METH_VARARGS, NULL},
 	 { (char *)"delete_GiniCoefficient", _wrap_delete_GiniCoefficient, METH_VARARGS, NULL},
 	 { (char *)"GiniCoefficient_swigregister", GiniCoefficient_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SharedImageMatrix", _wrap_new_SharedImageMatrix, METH_VARARGS, NULL},
+	 { (char *)"delete_SharedImageMatrix", _wrap_delete_SharedImageMatrix, METH_VARARGS, NULL},
 	 { (char *)"SharedImageMatrix_SetShmemName", _wrap_SharedImageMatrix_SetShmemName, METH_VARARGS, NULL},
+	 { (char *)"SharedImageMatrix_calc_shmem_size", _wrap_SharedImageMatrix_calc_shmem_size, METH_VARARGS, NULL},
 	 { (char *)"SharedImageMatrix_allocate", _wrap_SharedImageMatrix_allocate, METH_VARARGS, NULL},
 	 { (char *)"SharedImageMatrix_fromCache", _wrap_SharedImageMatrix_fromCache, METH_VARARGS, NULL},
 	 { (char *)"SharedImageMatrix_Cache", _wrap_SharedImageMatrix_Cache, METH_VARARGS, NULL},
 	 { (char *)"SharedImageMatrix_OpenImage", _wrap_SharedImageMatrix_OpenImage, METH_VARARGS, NULL},
+	 { (char *)"SharedImageMatrix_shmem_page_size_get", _wrap_SharedImageMatrix_shmem_page_size_get, METH_VARARGS, NULL},
+	 { (char *)"SharedImageMatrix_shmem_page_size_set", _wrap_SharedImageMatrix_shmem_page_size_set, METH_VARARGS, NULL},
 	 { (char *)"SharedImageMatrix_shmem_name_set", _wrap_SharedImageMatrix_shmem_name_set, METH_VARARGS, NULL},
 	 { (char *)"SharedImageMatrix_shmem_name_get", _wrap_SharedImageMatrix_shmem_name_get, METH_VARARGS, NULL},
-	 { (char *)"new_SharedImageMatrix", _wrap_new_SharedImageMatrix, METH_VARARGS, NULL},
-	 { (char *)"delete_SharedImageMatrix", _wrap_delete_SharedImageMatrix, METH_VARARGS, NULL},
+	 { (char *)"SharedImageMatrix_shmem_size_set", _wrap_SharedImageMatrix_shmem_size_set, METH_VARARGS, NULL},
+	 { (char *)"SharedImageMatrix_shmem_size_get", _wrap_SharedImageMatrix_shmem_size_get, METH_VARARGS, NULL},
+	 { (char *)"SharedImageMatrix_shmem_fd_set", _wrap_SharedImageMatrix_shmem_fd_set, METH_VARARGS, NULL},
+	 { (char *)"SharedImageMatrix_shmem_fd_get", _wrap_SharedImageMatrix_shmem_fd_get, METH_VARARGS, NULL},
+	 { (char *)"SharedImageMatrix_mmap_ptr_set", _wrap_SharedImageMatrix_mmap_ptr_set, METH_VARARGS, NULL},
+	 { (char *)"SharedImageMatrix_mmap_ptr_get", _wrap_SharedImageMatrix_mmap_ptr_get, METH_VARARGS, NULL},
+	 { (char *)"SharedImageMatrix_shmem_sem_set", _wrap_SharedImageMatrix_shmem_sem_set, METH_VARARGS, NULL},
+	 { (char *)"SharedImageMatrix_shmem_sem_get", _wrap_SharedImageMatrix_shmem_sem_get, METH_VARARGS, NULL},
 	 { (char *)"SharedImageMatrix_swigregister", SharedImageMatrix_swigregister, METH_VARARGS, NULL},
 	 { (char *)"Transform_transform", _wrap_Transform_transform, METH_VARARGS, NULL},
 	 { (char *)"Transform_execute", _wrap_Transform_execute, METH_VARARGS, NULL},
 	 { (char *)"Transform_name_set", _wrap_Transform_name_set, METH_VARARGS, NULL},
 	 { (char *)"Transform_name_get", _wrap_Transform_name_get, METH_VARARGS, NULL},
 	 { (char *)"Transform_print_info", _wrap_Transform_print_info, METH_VARARGS, NULL},
-	 { (char *)"Transform_getOutputIM", _wrap_Transform_getOutputIM, METH_VARARGS, NULL},
 	 { (char *)"delete_Transform", _wrap_delete_Transform, METH_VARARGS, NULL},
 	 { (char *)"Transform_swigregister", Transform_swigregister, METH_VARARGS, NULL},
 	 { (char *)"new_EmptyTransform", _wrap_new_EmptyTransform, METH_VARARGS, NULL},
@@ -14602,8 +14555,10 @@ static swig_type_info _swigt__p_ColorTransform = {"_p_ColorTransform", "ColorTra
 static swig_type_info _swigt__p_CombFirstFourMoments = {"_p_CombFirstFourMoments", "CombFirstFourMoments *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_EdgeFeatures = {"_p_EdgeFeatures", "EdgeFeatures *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_EdgeTransform = {"_p_EdgeTransform", "EdgeTransform *", 0, 0, (void*)0, 0};
-static swig_type_info _swigt__p_Eigen__MatrixT_HSVcolor_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t = {"_p_Eigen__MatrixT_HSVcolor_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t", "clrData *|Eigen::Matrix< HSVcolor,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > *|MatrixXhsv *", 0, 0, (void*)0, 0};
-static swig_type_info _swigt__p_Eigen__MatrixT_double_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t = {"_p_Eigen__MatrixT_double_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t", "Eigen::Matrix< double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > *|pixData *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_Eigen__MapT_clrDataMat_Eigen__Aligned_t = {"_p_Eigen__MapT_clrDataMat_Eigen__Aligned_t", "clrData *|Eigen::Map< clrDataMat,Eigen::Aligned > *|clrDataMap *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_Eigen__MapT_pixDataMat_Eigen__Aligned_t = {"_p_Eigen__MapT_pixDataMat_Eigen__Aligned_t", "pixData *|Eigen::Map< pixDataMat,Eigen::Aligned > *|pixDataMap *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_Eigen__MatrixT_HSVcolor_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t = {"_p_Eigen__MatrixT_HSVcolor_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t", "Eigen::Matrix< HSVcolor,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > *|MatrixXhsv *|clrDataMat *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_Eigen__MatrixT_double_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t = {"_p_Eigen__MatrixT_double_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t", "Eigen::Matrix< double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > *|pixDataMat *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_EmptyFeatureAlgorithm = {"_p_EmptyFeatureAlgorithm", "EmptyFeatureAlgorithm *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_EmptyTransform = {"_p_EmptyTransform", "EmptyTransform *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_FeatureAlgorithm = {"_p_FeatureAlgorithm", "FeatureAlgorithm *", 0, 0, (void*)0, 0};
@@ -14632,6 +14587,8 @@ static swig_type_info _swigt__p_double = {"_p_double", "double *", 0, 0, (void*)
 static swig_type_info _swigt__p_long = {"_p_long", "long *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_p_PyObject = {"_p_p_PyObject", "PyObject **", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_rect = {"_p_rect", "rect *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_sem_t = {"_p_sem_t", "sem_t *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_size_t = {"_p_size_t", "size_t *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_size_type = {"_p_size_type", "size_type *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_std__allocatorT_double_t = {"_p_std__allocatorT_double_t", "std::vector< double >::allocator_type *|std::allocator< double > *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_std__invalid_argument = {"_p_std__invalid_argument", "std::invalid_argument *", 0, 0, (void*)0, 0};
@@ -14653,6 +14610,8 @@ static swig_type_info *swig_type_initial[] = {
   &_swigt__p_CombFirstFourMoments,
   &_swigt__p_EdgeFeatures,
   &_swigt__p_EdgeTransform,
+  &_swigt__p_Eigen__MapT_clrDataMat_Eigen__Aligned_t,
+  &_swigt__p_Eigen__MapT_pixDataMat_Eigen__Aligned_t,
   &_swigt__p_Eigen__MatrixT_HSVcolor_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t,
   &_swigt__p_Eigen__MatrixT_double_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t,
   &_swigt__p_EmptyFeatureAlgorithm,
@@ -14683,6 +14642,8 @@ static swig_type_info *swig_type_initial[] = {
   &_swigt__p_long,
   &_swigt__p_p_PyObject,
   &_swigt__p_rect,
+  &_swigt__p_sem_t,
+  &_swigt__p_size_t,
   &_swigt__p_size_type,
   &_swigt__p_std__allocatorT_double_t,
   &_swigt__p_std__invalid_argument,
@@ -14704,6 +14665,8 @@ static swig_cast_info _swigc__p_ColorTransform[] = {  {&_swigt__p_ColorTransform
 static swig_cast_info _swigc__p_CombFirstFourMoments[] = {  {&_swigt__p_CombFirstFourMoments, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_EdgeFeatures[] = {  {&_swigt__p_EdgeFeatures, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_EdgeTransform[] = {  {&_swigt__p_EdgeTransform, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_Eigen__MapT_clrDataMat_Eigen__Aligned_t[] = {  {&_swigt__p_Eigen__MapT_clrDataMat_Eigen__Aligned_t, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_Eigen__MapT_pixDataMat_Eigen__Aligned_t[] = {  {&_swigt__p_Eigen__MapT_pixDataMat_Eigen__Aligned_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_Eigen__MatrixT_HSVcolor_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t[] = {  {&_swigt__p_Eigen__MatrixT_HSVcolor_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_Eigen__MatrixT_double_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t[] = {  {&_swigt__p_Eigen__MatrixT_double_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_EmptyFeatureAlgorithm[] = {  {&_swigt__p_EmptyFeatureAlgorithm, 0, 0, 0},{0, 0, 0, 0}};
@@ -14734,6 +14697,8 @@ static swig_cast_info _swigc__p_double[] = {  {&_swigt__p_double, 0, 0, 0},{0, 0
 static swig_cast_info _swigc__p_long[] = {  {&_swigt__p_long, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_p_PyObject[] = {  {&_swigt__p_p_PyObject, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_rect[] = {  {&_swigt__p_rect, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_sem_t[] = {  {&_swigt__p_sem_t, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_size_t[] = {  {&_swigt__p_size_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_size_type[] = {  {&_swigt__p_size_type, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_std__allocatorT_double_t[] = {  {&_swigt__p_std__allocatorT_double_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_std__invalid_argument[] = {  {&_swigt__p_std__invalid_argument, 0, 0, 0},{0, 0, 0, 0}};
@@ -14755,6 +14720,8 @@ static swig_cast_info *swig_cast_initial[] = {
   _swigc__p_CombFirstFourMoments,
   _swigc__p_EdgeFeatures,
   _swigc__p_EdgeTransform,
+  _swigc__p_Eigen__MapT_clrDataMat_Eigen__Aligned_t,
+  _swigc__p_Eigen__MapT_pixDataMat_Eigen__Aligned_t,
   _swigc__p_Eigen__MatrixT_HSVcolor_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t,
   _swigc__p_Eigen__MatrixT_double_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t,
   _swigc__p_EmptyFeatureAlgorithm,
@@ -14785,6 +14752,8 @@ static swig_cast_info *swig_cast_initial[] = {
   _swigc__p_long,
   _swigc__p_p_PyObject,
   _swigc__p_rect,
+  _swigc__p_sem_t,
+  _swigc__p_size_t,
   _swigc__p_size_type,
   _swigc__p_std__allocatorT_double_t,
   _swigc__p_std__invalid_argument,
@@ -15495,6 +15464,12 @@ SWIG_init(void) {
   SWIG_Python_SetConstant(d, "WC_EMPTY",SWIG_From_int(static_cast< int >(WC_EMPTY)));
   SWIG_Python_SetConstant(d, "WC_NOT_IMPLEMENTED",SWIG_From_int(static_cast< int >(WC_NOT_IMPLEMENTED)));
   SWIG_Python_SetConstant(d, "WC_INPUT_IMAGEMATRIX_NULL",SWIG_From_int(static_cast< int >(WC_INPUT_IMAGEMATRIX_NULL)));
+  SWIG_Python_SetConstant(d, "cache_unknown",SWIG_From_int(static_cast< int >(cache_unknown)));
+  SWIG_Python_SetConstant(d, "cache_wait",SWIG_From_int(static_cast< int >(cache_wait)));
+  SWIG_Python_SetConstant(d, "cache_read",SWIG_From_int(static_cast< int >(cache_read)));
+  SWIG_Python_SetConstant(d, "cache_write",SWIG_From_int(static_cast< int >(cache_write)));
+  PyDict_SetItemString(md,(char*)"cvar", SWIG_globals());
+  SWIG_addvarlink(SWIG_globals(),(char*)"SharedImageMatrix_shmem_page_size",Swig_var_SharedImageMatrix_shmem_page_size_get, Swig_var_SharedImageMatrix_shmem_page_size_set);
 #if PY_VERSION_HEX >= 0x03000000
   return m;
 #else

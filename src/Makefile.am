@@ -74,8 +74,10 @@ libchrm_la_SOURCES = \
        b64/cencode.h \
        b64/decode.h \
        b64/encode.h \
-       sha1/sha1.cpp \
-       sha1/sha1.h
+       digest/sha1.cpp \
+       digest/sha1.h \
+       digest/md5.cpp \
+       digest/md.h
 
 
 libchrm_la_LIBADD = -ltiff -L. -lfftw3

@@ -27,7 +27,6 @@
 /* Written by:  Lior Shamir <shamirl [at] mail [dot] nih [dot] gov>              */
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-
 #include <vector>
 #include <math.h>
 #include <stdio.h>
@@ -47,7 +46,7 @@
 #include "textures/haralick/haralick.h"
 #include "textures/zernike/zernike.h"
 
-#include "sha1/sha1.h"
+#include "digest/sha1.h"
 
 #include <iostream>
 #include <string>
@@ -256,36 +255,55 @@ void ImageMatrix::init() {
 	_median    = 0;
 	source     = "";
 	memset (sourceUID,0,sizeof(sourceUID));
-	ColorMode = cmHSV;
+	ColorMode = cmGRAY;
 	bits      = 8;
 }
+
+// This is using the fancy shmancy placement-new operator
+// The object is created new at the same memory location it was before, so no new allocation happens
+// This allows us to call Eigen's Map constructor with new parameters without actually re-allocating the object
+void ImageMatrix::remap_pix_plane(double *ptr, const unsigned int w, const unsigned int h) {
+	width  = 0;
+	height = 0;
+	// N.B. Eigen matrix parameter order is rows, cols, not X, Y
+	new (&_pix_plane) pixData(ptr, h, w);
+	width  = (unsigned int)_pix_plane.cols();
+	height = (unsigned int)_pix_plane.rows();
+	// FIXME: Should check here if the pointer is different than what it was.
+	// May be possible to do a conservative re-mapping.
+	_is_pix_writeable = true;
+	has_stats  = has_median = false;
+}
+// Same as above for the color plane.
+void ImageMatrix::remap_clr_plane(HSVcolor *ptr, const unsigned int w, const unsigned int h) {
+	if (ColorMode == cmGRAY) return;
+	width  = 0;
+	height = 0;
+	// N.B. Eigen matrix parameter order is rows, cols, not X, Y
+	new (&_clr_plane) clrData(ptr, h, w);
+	width  = (unsigned int)_clr_plane.cols();
+	height = (unsigned int)_clr_plane.rows();
+	// FIXME: Should check here if the pointer is different than what it was.
+	// May be possible to do a conservative re-mapping.
+	_is_clr_writeable = true;
+}
+
 
 void ImageMatrix::allocate (unsigned int w, unsigned int h) {
 	std::cout << "-------- called ImageMatrix::allocate (" << w << "," << h << ")" << std::endl;
 	if ((unsigned int) _pix_plane.cols() != w || (unsigned int)_pix_plane.rows() != h) {
-		width  = 0;
-		height = 0;
 		// These throw exceptions, which we don't catch (catch in main?)
-		// N.B. Eigen matrix parameter order is rows, cols, not X, Y
 		std::cout << "\t-------- allocating pixData" << std::endl;
-		_pix_plane = pixData (h, w);
-		width  = (unsigned int)_pix_plane.cols();
-		height = (unsigned int)_pix_plane.rows();
-		has_stats  = has_median = false;
+		// FIXME: We could check for shrinkage and simply remap instead of allocating.
+		remap_pix_plane (Eigen::aligned_allocator<double>().allocate (w * h), w, h);
 	}
-	_is_pix_writeable = true;
 	if (ColorMode != cmGRAY) {
 		if ((unsigned int)_clr_plane.cols() != w || (unsigned int)_clr_plane.rows() != h) {
-			width  = 0;
-			height = 0;
 			// These throw exceptions, which we don't catch (catch in main?)
-			// N.B. Eigen matrix parameter order is rows, cols, not X, Y
 			std::cout << "\t-------- allocating clrData" << std::endl;
-			_clr_plane = clrData (h, w);
-			width  = (unsigned int)_clr_plane.cols();
-			height = (unsigned int)_clr_plane.rows();
+			// FIXME: We could check for shrinkage and simply remap instead of allocating.
+			remap_clr_plane (Eigen::aligned_allocator<HSVcolor>().allocate (w * h), w, h);
 		}
-		_is_clr_writeable = true;
 	}
 }
 
@@ -325,17 +343,16 @@ void ImageMatrix::submatrix (const ImageMatrix &matrix, const unsigned int x1, c
 	// verify that the image size is OK
 	x0 = (x1 < 0 ? 0 : x1);
 	y0 = (y1 < 0 ? 0 : y1);
-	width  = (x2 >= matrix.width  ? matrix.width  : x2 - x0 + 1);
-	height = (y2 >= matrix.height ? matrix.height : y2 - y0 + 1);
+	unsigned int new_width  = (x2 >= matrix.width  ? matrix.width  : x2 - x0 + 1);
+	unsigned int new_height = (y2 >= matrix.height ? matrix.height : y2 - y0 + 1);
 
-	allocate (width, height);
+	allocate (new_width, new_height);
 	// Copy the Eigen matrixes
 	// N.B. Eigen matrix parameter order is rows, cols, not X, Y
 	WriteablePixels() = matrix.ReadablePixels().block(y0,x0,height,width);
 	if (ColorMode != cmGRAY) {
 		WriteableColors() = matrix.ReadableColors().block(y0,x0,height,width);
 	}
-
 }
 
 /*
@@ -349,10 +366,10 @@ void ImageMatrix::submatrix (const ImageMatrix &matrix, const unsigned int x1, c
 * If there are prettier mechanisms around this limitation, feel free.
 */
 
-ImageMatrix::ImageMatrix() {
-	std::cout << "-------- called ImageMatrix::ImageMatrix - empty" << std::endl;
-	init();
-}
+// ImageMatrix::ImageMatrix() {
+// 	std::cout << "-------- called ImageMatrix::ImageMatrix - empty" << std::endl;
+// 	init();
+// }
 
 
 /* destructor
@@ -360,8 +377,13 @@ ImageMatrix::ImageMatrix() {
    Allocated pixel memory gets taken care of by the Eigen destructors.
 */
 ImageMatrix::~ImageMatrix() {
-	if (_is_pix_writeable) WriteablePixelsFinish();
-	if (_is_clr_writeable) WriteableColorsFinish();
+	WriteablePixelsFinish();
+	if (_pix_plane.data()) Eigen::aligned_allocator<double>().deallocate (_pix_plane.data(), _pix_plane.size());
+	remap_pix_plane (NULL, 0, 0);
+
+	WriteableColorsFinish();
+	if (_clr_plane.data()) Eigen::aligned_allocator<HSVcolor>().deallocate (_clr_plane.data(), _clr_plane.size());
+	remap_clr_plane (NULL, 0, 0);
 }
 
 /* setSourceUID
@@ -445,10 +467,6 @@ void ImageMatrix::Downsample(double x_ratio, double y_ratio) {
 	unsigned int new_x,new_y,a;
 	HSVcolor hsv;
 
-	operations.push_back ( string_format ("DS_%lf_%lf",x_ratio,y_ratio) );
-
-	writeablePixels pix_plane = WriteablePixels();
-	writeableColors clr_plane = WriteableColors();
 
 	if (x_ratio>1) x_ratio=1;
 	if (y_ratio>1) y_ratio=1;
@@ -457,11 +475,23 @@ void ImageMatrix::Downsample(double x_ratio, double y_ratio) {
 
 	if (dx == 1 && dy == 1) return;   /* nothing to scale */
 
+	operations.push_back ( string_format ("DS_%lf_%lf",x_ratio,y_ratio) );
+	ImageMatrix copy_matrix;
+	copy_matrix.copyFields (*this);
+	copy_matrix.allocate (width, height);
+	writeablePixels copy_pix_x = copy_matrix.WriteablePixels();
+	writeableColors copy_clr_x = copy_matrix.WriteableColors();
+
+	readOnlyPixels pix_plane_x = ReadablePixels();
+	readOnlyColors clr_plane_x = ReadableColors();
+ 	unsigned int new_width = (unsigned int)(x_ratio*width), new_height = (unsigned int)(y_ratio*height),
+ 		old_width = width, old_height = height;
+
 	// first downsample x
-	for (new_y = 0; new_y < height; new_y++) {
+	for (new_y = 0; new_y < old_height; new_y++) {
 		x = 0;
 		new_x = 0;
-		while (x < width) {
+		while (x < old_width) {
 			double sum_i = 0;
 			double sum_h = 0;
 			double sum_s = 0;
@@ -470,55 +500,62 @@ void ImageMatrix::Downsample(double x_ratio, double y_ratio) {
 			/* the leftmost fraction of pixel */
 			a = (unsigned int)(floor(x));
 			frac = ceil(x)-x;
-			if (frac > 0 && a < width) {
-				sum_i += pix_plane(new_y,a) * frac;
+			if (frac > 0 && a < old_width) {
+				sum_i += pix_plane_x(new_y,a) * frac;
 				if (ColorMode != cmGRAY) {
-					sum_h += clr_plane(new_y,a).h * frac;
-					sum_s += clr_plane(new_y,a).s * frac;
-					sum_v += clr_plane(new_y,a).v * frac;
+					sum_h += clr_plane_x(new_y,a).h * frac;
+					sum_s += clr_plane_x(new_y,a).s * frac;
+					sum_v += clr_plane_x(new_y,a).v * frac;
 				}
 			} 
 
 			/* the middle full pixels */
 			for (a = (unsigned int)(ceil(x)); a < floor(x+dx); a++) {
-				if (a < width) {
-					sum_i += pix_plane(new_y,a);
+				if (a < old_width) {
+					sum_i += pix_plane_x(new_y,a);
 					if (ColorMode != cmGRAY) {
-						sum_h += clr_plane(new_y,a).h;
-						sum_s += clr_plane(new_y,a).s;
-						sum_v += clr_plane(new_y,a).v;
+						sum_h += clr_plane_x(new_y,a).h;
+						sum_s += clr_plane_x(new_y,a).s;
+						sum_v += clr_plane_x(new_y,a).v;
 					}
 				}
 			}
 			/* the right fraction of pixel */
 			frac = x+dx - floor(x+dx);
-			if (frac > 0 && a < width) {
-				sum_i += pix_plane(new_y,a) * frac;
+			if (frac > 0 && a < old_width) {
+				sum_i += pix_plane_x(new_y,a) * frac;
 				if (ColorMode != cmGRAY) {
-					sum_h += clr_plane(new_y,a).h * frac;
-					sum_s += clr_plane(new_y,a).s * frac;
-					sum_v += clr_plane(new_y,a).v * frac;
+					sum_h += clr_plane_x(new_y,a).h * frac;
+					sum_s += clr_plane_x(new_y,a).s * frac;
+					sum_v += clr_plane_x(new_y,a).v * frac;
 				}
 			}
 
-			pix_plane (new_y,new_x) = sum_i/(dx);
+			copy_pix_x (new_y,new_x) = sum_i/(dx);
 			if (ColorMode != cmGRAY) {
 				hsv.h = (byte)(sum_h/(dx));
 				hsv.s = (byte)(sum_s/(dx));
 				hsv.v = (byte)(sum_v/(dx));
-				clr_plane(new_y, new_x) = hsv;
+				copy_clr_x (new_y, new_x) = hsv;
 			}
 
 			x+=dx;
 			new_x++;
 		}
 	}
- 
+
+	allocate (new_width, new_height);
+	writeablePixels copy_pix_y = WriteablePixels();
+	writeableColors copy_clr_y = WriteableColors();
+
+	readOnlyPixels pix_plane_y = copy_matrix.ReadablePixels();
+	readOnlyColors clr_plane_y = copy_matrix.ReadableColors();
+
 	/* downsample y */
-	for (new_x = 0; new_x < x_ratio*width; new_x++) {
+	for (new_x = 0; new_x < new_width; new_x++) {
 		y = 0;
 		new_y = 0;
-		while (y < height) {
+		while (y < old_height) {
 			double sum_i = 0;
 			double sum_h = 0;
 			double sum_s = 0;
@@ -527,52 +564,45 @@ void ImageMatrix::Downsample(double x_ratio, double y_ratio) {
 			a = (unsigned int)(floor(y));
 			frac = ceil(y) - y;
 			// take also the part of the leftmost pixel (if needed)
-			if (frac > 0 && a < height) {
-				sum_i += pix_plane(a,new_x) * frac;
+			if (frac > 0 && a < old_height) {
+				sum_i += pix_plane_y(a,new_x) * frac;
 				if (ColorMode != cmGRAY) {
-					sum_h += clr_plane(a,new_x).h * frac;
-					sum_s += clr_plane(a,new_x).s * frac;
-					sum_v += clr_plane(a,new_x).v * frac;
+					sum_h += clr_plane_y(a,new_x).h * frac;
+					sum_s += clr_plane_y(a,new_x).s * frac;
+					sum_v += clr_plane_y(a,new_x).v * frac;
 				}
 			}
 			for (a = (unsigned int)(ceil(y)); a < floor(y+dy); a++) {
-				if (a < height) {
-					sum_i += pix_plane(a,new_x);
+				if (a < old_height) {
+					sum_i += pix_plane_y(a,new_x);
 					if (ColorMode != cmGRAY) {
-						sum_h += clr_plane(a,new_x).h;
-						sum_s += clr_plane(a,new_x).s;
-						sum_v += clr_plane(a,new_x).v;
+						sum_h += clr_plane_y(a,new_x).h;
+						sum_s += clr_plane_y(a,new_x).s;
+						sum_v += clr_plane_y(a,new_x).v;
 					}
 				}
 			}
 			frac=y+dy-floor(y+dy);
-			if (frac > 0 && a < height) {
-				sum_i += pix_plane(a,new_x) * frac;
+			if (frac > 0 && a < old_height) {
+				sum_i += pix_plane_y(a,new_x) * frac;
 				if (ColorMode != cmGRAY) {
-					sum_h += clr_plane(a,new_x).h * frac;
-					sum_s += clr_plane(a,new_x).s * frac;
-					sum_v += clr_plane(a,new_x).v * frac;
+					sum_h += clr_plane_y(a,new_x).h * frac;
+					sum_s += clr_plane_y(a,new_x).s * frac;
+					sum_v += clr_plane_y(a,new_x).v * frac;
 				}
 			}
-
-			pix_plane (new_y,new_x) = sum_i/(dy);
+			if (new_x < new_width && new_y < new_height) copy_pix_y (new_y,new_x) = sum_i/(dy);
 			if (ColorMode != cmGRAY) {
 				hsv.h = (byte)(sum_h/(dy));
 				hsv.s = (byte)(sum_s/(dy));
 				hsv.v = (byte)(sum_v/(dy));
-				clr_plane(new_y, new_x) = hsv;
+				copy_clr_y (new_y, new_x) = hsv;
 			}
 
 			y+=dy;
 			new_y++;
 		}
 	}
-
-	// resize/crop the image.
-	width = (unsigned int)(x_ratio*width);
-	height = (unsigned int)(y_ratio*height);
-	_pix_plane.conservativeResize (height, width);
-	if (ColorMode != cmGRAY) _clr_plane.conservativeResize (height, width);	
 }
 
 
@@ -774,7 +804,7 @@ void ImageMatrix::normalize(double n_min, double n_max, long n_range, double n_m
 
 /* convolve
 */
-void ImageMatrix::convolve(const pixData &filter) {
+void ImageMatrix::convolve(const pixDataMat &filter) {
 	unsigned long x, y, xx, yy;
 	long i, j;
 	long height2=filter.rows()/2;

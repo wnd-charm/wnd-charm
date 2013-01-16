@@ -1,7 +1,15 @@
 #include <iostream> // used for debug output from instantiator methods
+#include <iomanip>
 #include <cmath>
 #include <fcntl.h>
-#include "sha1/sha1.h"
+#include <unistd.h> // sysconf(), page_size
+#include <errno.h>
+#include <sys/stat.h>  // fstat, stat
+#include <sys/mman.h>  // mmap, shm_open
+#include <semaphore.h> // semaphores
+
+// #include "digest/sha1.h"
+#include "digest/md5.h"
 #include "b64/encode.h"
 #include "cmatrix.h"
 #include "FeatureTransforms.h"
@@ -9,37 +17,118 @@
 #include "transforms/fft/bcb_fftw3/fftw3.h"
 
 
+struct shmem_data {
+	uint32_t width, height;
+	uint8_t ColorMode;
+	uint8_t bits;
+};
+
 void SharedImageMatrix::SetShmemName ( const std::string &final_op ) {
-	SHA1::SHA1 digest;
-	uint8_t Message_Digest[SHA1::HashSize];
+	MD5::MD5 digest;
+	uint8_t Message_Digest[MD5::HashSize];
 
 	for(size_t op = 0; op < operations.size(); op++) {
-		digest.Input( (uint8_t *)(operations[op].data()), operations[op].length() );
+		digest.Update( (uint8_t *)(operations[op].data()), operations[op].length() );
 	}
-	if (final_op.length()) digest.Input( (uint8_t *)(final_op.data()), final_op.length() );
+	if (final_op.length()) digest.Update( (uint8_t *)(final_op.data()), final_op.length() );
 	digest.Result(Message_Digest);
 
-	base64::encoder().encode ((char *)Message_Digest, SHA1::HashSize, shmem_name, false);
+	shmem_name = "/wndchrm";
+	base64::encoder().encode ((char *)Message_Digest, MD5::HashSize, shmem_name, false, false);
 	std::cout <<         "         SharedImageMatrix::SetShmemName: " << shmem_name << std::endl;
 	
 }
 
-void SharedImageMatrix::allocate (unsigned int w, unsigned int h) {
-// 	std::ios::fmtflags stFlags = std::cout.flags();
-// 	int stPrec = std::cout.precision();
-// 	char stFill = std::cout.fill();
-// 
-// 	std::cout << "-------- called SharedImageMatrix::allocate (" << w << "," << h << ") on " << source << ", UID: ";
-// 	for (unsigned int i = 0; i < sizeof (sourceUID); i++) cout << hex << std::setfill('0') << setw(2) << (int)sourceUID[i];
-// 	std::cout << std::endl;
-// 	std::cout.flags(stFlags);
-// 	std::cout.precision(stPrec);
-// 	std::cout.fill(stFill);
-
-	ImageMatrix::allocate (w, h);
+const size_t SharedImageMatrix::calc_shmem_size (const unsigned int w, const unsigned int h, size_t &clr_plane_offset, size_t &shmem_data_offset) {
+	size_t new_mat_size = w * h;
+	size_t new_shmem_size = new_mat_size * sizeof (double);
+	// Expand the size to be a multiple of the page size.
+	new_shmem_size = ( (1 + (new_shmem_size / shmem_page_size)) * shmem_page_size );
+	// The color plane starts at a page boundary.
+	clr_plane_offset = new_shmem_size;
+	if (ColorMode != cmGRAY) new_shmem_size += new_mat_size * sizeof (HSVcolor);
+	// the shmem_data_t struct is stored at the end to preserve page-size memory alignment for Eigen.
+	new_shmem_size += sizeof (shmem_data);
+	// Expand the total size to be a multiple of the page size.
+	new_shmem_size = ( (1 + (new_shmem_size / shmem_page_size)) * shmem_page_size );
+	shmem_data_offset = new_shmem_size - sizeof (shmem_data);
+	return (new_shmem_size);
 }
 
-SharedImageMatrix *SharedImageMatrix::fromCache ( const std::string &final_op ) {
+
+void SharedImageMatrix::allocate (unsigned int w, unsigned int h) {
+ 	std::cout << "-------- called SharedImageMatrix::allocate (" << w << "," << h << ") on " << shmem_name << std::endl;
+
+	assert (shmem_page_size && "Memory page size is undefined!");
+	assert (shmem_fd > -1 && "Shared memory file descriptor is invalid!");
+
+	// calculate the size of the required shared memory block
+	size_t new_mat_size = w * h;
+	size_t new_shmem_size = new_mat_size * sizeof (double);
+	// Expand the size to be a multiple of the page size.
+	new_shmem_size = ( (1 + (new_shmem_size / shmem_page_size)) * shmem_page_size );
+	// The color plane starts at a page boundary.
+	size_t clr_plane_offset = new_shmem_size;
+	if (ColorMode != cmGRAY) new_shmem_size += new_mat_size * sizeof (HSVcolor);
+	// the shmem_data_t struct is stored at the end to preserve page-size memory alignment for Eigen.
+	new_shmem_size += sizeof (shmem_data);
+	// Expand the total size to be a multiple of the page size.
+	new_shmem_size = ( (1 + (new_shmem_size / shmem_page_size)) * shmem_page_size );
+	size_t shmem_data_offset = new_shmem_size - sizeof (shmem_data);
+	std::cout << " shmem_size: " << new_shmem_size << " pages: " << new_shmem_size / shmem_page_size << std::endl;
+
+	// Map shared memory object for writing
+	// Unmap any pre-existing memory and re-map
+	if (mmap_ptr != MAP_FAILED) {
+		if ( munmap (mmap_ptr, shmem_size) ) {
+			std::cout << "munmap error: " << strerror(errno) << std::endl;
+			exit (-1);
+		}
+	}
+	// OS X actually forces us to delete the segment entirely because only one call to ftruncate can be made on each segment.
+	// FIXME: It may be good to escape this on non-OS X systems.
+	close (shmem_fd);
+	shm_unlink (shmem_name.c_str());
+	shmem_fd = shm_open(shmem_name.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	if (shmem_fd < 0) {
+		std::cout << "shm_open error: " << strerror(errno) << std::endl;
+		exit (-1);
+	}
+	// shmem_fd = shm_open(shmem_name.c_str(), O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	shmem_size = 0;
+
+	// size the file backing the memory object
+	if (ftruncate(shmem_fd, new_shmem_size) == -1) {
+		std::cout << "ftruncate error: " << strerror(errno) << std::endl;
+		exit (-1);
+	}
+
+	mmap_ptr = (byte *)mmap(NULL, new_shmem_size, PROT_READ | PROT_WRITE, MAP_SHARED, shmem_fd, (off_t) 0);
+	if (mmap_ptr == MAP_FAILED) {
+		std::cout << "mmap error: " << strerror(errno) << std::endl;
+		exit (-1);
+	}
+	shmem_size = new_shmem_size;
+	// remap the data for the object to use the mmap_ptr, keeping the rest of the object where it was.
+	remap_pix_plane ( (double *)mmap_ptr, w, h);
+
+	if (ColorMode != cmGRAY) remap_clr_plane ((HSVcolor *)(mmap_ptr + clr_plane_offset), w, h);
+			
+	
+	// If this memory gets read from cache, we wont know the size of the matrix,
+	// so we have to store the shmem_data at the end of the shmem
+	shmem_data *stored_shmem_data = (shmem_data *)(mmap_ptr + shmem_data_offset);
+	stored_shmem_data->width = width;
+	stored_shmem_data->height = height;
+	stored_shmem_data->ColorMode = ColorMode;
+	stored_shmem_data->bits = bits;
+}
+
+// This returns a pointer to a new SharedImageMatrix
+const CacheStatus SharedImageMatrix::fromCache ( const std::string &final_op ) {
+	CacheStatus cache_status = cache_unknown;
+	std::string error_str;
+	
 	std::ios::fmtflags stFlags = std::cout.flags();
 	long stPrec = std::cout.precision();
 	char stFill = std::cout.fill();
@@ -60,10 +149,202 @@ SharedImageMatrix *SharedImageMatrix::fromCache ( const std::string &final_op ) 
 	std::cout.flags(stFlags);
 	std::cout.precision(stPrec);
 	std::cout.fill(stFill);
+
+	// Make sure the shared memory has a name
 	SetShmemName( final_op );
 
-	return (NULL);
+	// Shared memory access with concurrent processes
+	// Only one process should be able to write the shared memory.  All others must wait and/or read only.
+	// The POSIX standard says that fcntl locks on shared memory are "unspecified".
+	// Although they do currently work on linux, they do not currently work on OS X. The status of BSD, Solaris, etc. is unknown.
+	// The POSIX standard may or nay not support this behavior in the future.
+	// Instead, we will use POSIX semaphores to ensure exclusive write access.
+	// The semaphore has the same name as the shared memory segment, and it has an associated value.
+	// For our purposes, the semaphore can be in two states: value > 0 (shmem is readable) or value == 0 (shmem is being updated by another process).
+	// We have to be careful not to leak semaphores, so we have to create->unlink->trywait.
+	// The semaphore will be created in an unlocked state (value = 1), immediately unlinked, and then call try_wait on it.
+	// if the try_wait call succeeds, it also locks the semaphore, indicating we have exclusive read or write access.
+	// if it does not succeed and gives an EAGAIN error, it means we could not get a lock because of write operations, so we must call sem_wait, then read.
+	// if the process quits at any time, the postponed sem_unlink call will take effect, so a subsequent call to sem_open will crate an unlocked semaphore.
+	// The shmem lifetime events are then:
+	// locked semaphore -> Create shmem -> mature/write shmem -> post semaphore -> readable shmem -> close semaphore -> unlink shmem
+	// After a successful sem_open (O_CREAT)/try_wait(), an EEXIST on shm_open (O_RDWR|O_CREAT|O_EXCL) tells us the shmem is ready for reading, so we:
+	//   shm_open (O_RDONLY) -> mmap (PROT_READ) ...
+	// A successful shm_open (O_RDWR|O_CREAT|O_EXCL) tells us that we just created the shmem, and it is ready for exclusive writing.
+	// Any other error indicates that "bad things happened"
+	// Regardless of the nature of the "bad things" that did happen, the response is to unlink the sem and the shm and start all over.
+
+	// This first section results in a locked semaphore and possibly a shmem_fd ready for writing.
+	// If there were error with the semaphore or opening shmem, the semaphore is cleaned up.
+	// open or create an unlocked semaphore
+	shmem_sem = sem_open(shmem_name.c_str(), O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH, 1);
+	int shmem_sem_locked = EAGAIN;
+	if (shmem_sem == SEM_FAILED) {
+		// This is an error - something bad happened
+		error_str = std::string ("sem_open error: ") + strerror(errno);
+	} else {
+		// The sem_unlink call is postponed until we call sem_close or we terminate.
+		// Calling it here ensures that it will be called if we terminate.
+		sem_unlink (shmem_name.c_str());
+		// Try to lock the semaphore.
+		shmem_sem_locked = sem_trywait (shmem_sem);
+		if (shmem_sem_locked == EAGAIN) {
+			// another process has an exclusive semaphore lock, so we wait for it to finish
+			if (sem_wait (shmem_sem) == 0) {
+				// after a successful wait, the shmem should be ready for reading.
+				cache_status = cache_read;				
+			} else {
+				// If sem_wait returned an error, then something bad happened.
+				error_str = std::string ("sem_wait error: ") + strerror(errno);
+				sem_close (shmem_sem);
+				shmem_sem = SEM_FAILED;
+			}
+
+		} else if (shmem_sem_locked == 0) {
+			// We have an exclusive lock on the semaphore, either because shmem is ready for reading or because it doesn't exist yet.
+			// First, try to create/open shmem exclusively.
+//shm_unlink (shmem_name.c_str());
+
+			shmem_fd = shm_open(shmem_name.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+			if (shmem_fd > -1) {
+				// We have exclusive write access because we just created the shmem.
+				// The allocate() method takes care of using the shared memory at shmem_fd.
+				errno = 0;
+				cache_status = cache_write;
+			} else if (shmem_fd < 0 && errno == EEXIST) {
+				// not an error: shmem_fd is invalid because the shmem exists
+				// This means we should be ready to read.
+				errno = 0;
+				cache_status = cache_read;
+			} else {
+				// This is an error - something bad happened
+				error_str = std::string ("shm_open error when opening/creating: ") + strerror(errno);
+				// Clean up the semaphore.
+				sem_close (shmem_sem);
+				shmem_sem = SEM_FAILED;
+			}
+
+		} else {
+			// Some bad things happened trying to lock the semaphore.
+			error_str = std::string ("sem_trywait error: ") + strerror(errno);
+			// Clean up the semaphore.
+			sem_close (shmem_sem);
+			shmem_sem = SEM_FAILED;
+		}
+	}
+	
+	// This section is responsible for doing an immediate read or write.
+	// The semaphore is already taken care of if it had an error.
+	// Otherwise, the semaphore is locked.
+	switch (cache_status) {
+		case cache_unknown:
+			// don't deal with errors yet.
+			break;
+		break;
+		
+		case cache_read: {
+std::cout << "cache_read" << std::endl;
+			// This is an immediate read.
+			// We have a locked semaphore, but no open shmem file
+			shmem_fd = shm_open(shmem_name.c_str(), O_RDONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+			if (!shmem_fd < 0) {
+				error_str = std::string ("shm_open error when reading: ") + strerror(errno);
+				break;
+			}
+
+			// Get the shared memory size from the file size.
+			struct stat the_stat;
+			if ( fstat (shmem_fd, &the_stat) == -1 ) {
+				error_str = std::string ("fstat error determining length of existing shmem: ") + strerror(errno);
+				break;
+			}
+			shmem_size = (size_t)the_stat.st_size;
+std::cout << "shmem_size: " << shmem_size << std::endl;
+			if (! shmem_size > sizeof (shmem_data) ) {
+				error_str = std::string ("size of existing shmem is 0");
+				break;
+			}
+
+			// mmap the shared memory segment
+			mmap_ptr = (byte *)mmap(NULL, shmem_size, PROT_READ, MAP_SHARED, shmem_fd, (off_t)0);
+			if (mmap_ptr == MAP_FAILED) {
+				error_str = std::string ("mmap error when mapping existing shmem: ") + strerror(errno);
+				break;
+			}
+			// get the matrix sizes from the shmem_data object stored at the end of shared memory
+			size_t shmem_data_offset = shmem_size - sizeof (shmem_data);
+			shmem_data *stored_shmem_data = (shmem_data *)(mmap_ptr + shmem_data_offset);
+
+			// ensure that the memory size is correct.
+			size_t stored_mat_shmem_size, stored_clr_plane_offset, stored_shmem_data_offset;
+			stored_mat_shmem_size = calc_shmem_size (stored_shmem_data->width, stored_shmem_data->height,
+				stored_clr_plane_offset, stored_shmem_data_offset);
+			if (stored_mat_shmem_size != shmem_size) {
+				error_str = string_format ("error when mapping existing shmem: stored data requires %lu bytes, but shmem size id %lu bytes",
+					(unsigned long)stored_mat_shmem_size, (unsigned long)shmem_size);
+				break;
+			}
+			
+			// Looks like we have a valid matrix stored, so create the cached result.
+			ColorMode = static_cast<ColorModes> (stored_shmem_data->ColorMode);
+			// remap the data for the object to use the mmap_ptr, keeping the rest of the object where it was.
+			remap_pix_plane ( (double *)mmap_ptr, stored_shmem_data->width, stored_shmem_data->height);
+			if (ColorMode != cmGRAY) remap_clr_plane ((HSVcolor *)(mmap_ptr + stored_clr_plane_offset), stored_shmem_data->width, stored_shmem_data->height);
+			bits = stored_shmem_data->bits;
+			if (width != stored_shmem_data->width || height != stored_shmem_data->height) {
+				error_str = string_format ("error when mapping existing shmem: recovered w,h (%u, %u) doesn't match that in shmem (%u, %u)",
+					(unsigned int)width, (unsigned int)height,
+					(unsigned int)stored_shmem_data->width, (unsigned int)stored_shmem_data->height);
+				break;
+			}
+			
+			// The recovered object is as verified as we can manage, so release and unlink the semaphore.
+			sem_post (shmem_sem);
+			sem_close (shmem_sem);
+			shmem_sem = SEM_FAILED;
+			
+			// The pixels are read-only.
+			WriteablePixelsFinish ();
+			if (ColorMode != cmGRAY) WriteableColorsFinish ();
+
+std::cout << "recovered size: " << width << "," << height << std::endl;
+			
+			return (cache_status);
+		}
+		break;
+		
+		case cache_write:
+std::cout << "cache_write" << std::endl;
+			return (cache_status);
+		break;
+		
+		case cache_wait:
+		// this can't happen here.
+		break;
+	}
+
+	// Not having returned at this point means we had an error while reading.
+	// We have a locked semaphore, possibly an open shmem_fd, possibly an mmap_ptr to clean up.
+	// unmap if there is an mmap_ptr
+	if (mmap_ptr != MAP_FAILED) munmap (mmap_ptr, shmem_size);
+	mmap_ptr = (byte *)MAP_FAILED;
+	// close shmem_fd if its open
+	if (shmem_fd > -1) close (shmem_fd);
+	shmem_fd = -1;
+	// unlink the shmem file
+	shm_unlink (shmem_name.c_str());
+	// close and unlink the semaphore
+	if (shmem_sem != SEM_FAILED) sem_close (shmem_sem);
+	shmem_sem = SEM_FAILED;
+
+	// report the error and exit.  Since we have a clean slate, may want to try again from the beginning.
+	std::cerr << "Errors while recovering cache (cout):" << std::endl;
+	std::cerr << error_str << std::endl;
+	exit (-1);
+	return (cache_status);
 }
+
+size_t SharedImageMatrix::shmem_page_size = sysconf(_SC_PAGE_SIZE);
 
 void SharedImageMatrix::Cache ( ) {
 	std::ios::fmtflags stFlags = std::cout.flags();
@@ -86,6 +367,10 @@ void SharedImageMatrix::Cache ( ) {
 	std::cout.precision(stPrec);
 	std::cout.fill(stFill);
 	SetShmemName( "" );
+
+	// Since shared memory was set up in the fromCache call,
+	// all that's left to do here is make sure its finalized and ready to use by others
+
 }
 
 int SharedImageMatrix::OpenImage(char *image_file_name,            // load an image of any supported format
@@ -109,15 +394,42 @@ int SharedImageMatrix::OpenImage(char *image_file_name,            // load an im
 		operations.push_back ( string_format ("DS_%lf_%lf",((double)downsample)/100.0,((double)downsample)/100.0) );
 	if (mean>0)  /* normalize to a given mean and standard deviation */
 		operations.push_back ( string_format ("Nstd_%lf_%lf",mean,stddev) );
-	SharedImageMatrix *matrix_OUT = fromCache ( "" );
+	CacheStatus cache_status = fromCache ( "" );
 	
-	if (!matrix_OUT) {
+	if (cache_status == cache_write) {
 		operations.clear();
 		int ret = ImageMatrix::OpenImage (image_file_name,downsample,bounding_rect,mean,stddev);
 		Cache();
 		return (ret);
+	} else if (cache_status == cache_read) {
+		operations.clear();
+		operations.push_back (std::string ("Cache_").append (shmem_name));		
+		return (1);
+	} else {
+		std::cerr << "Errors while recovering cache (cout):" << std::endl;
+		exit (-1);
 	}
-	return (1);
+
+}
+
+SharedImageMatrix::~SharedImageMatrix () {
+std::cout << "SharedImageMatrix DESTRUCTOR for " << shmem_name << std::endl;
+	if (mmap_ptr != MAP_FAILED) munmap (mmap_ptr, shmem_size);
+	mmap_ptr = (byte *)MAP_FAILED;
+	// close shmem_fd if its open
+	if (shmem_fd > -1) close (shmem_fd);
+	shmem_fd = -1;
+	// unlink the shmem file
+	shm_unlink (shmem_name.c_str());
+	// close the semaphore
+	sem_close (shmem_sem);
+	shmem_sem = SEM_FAILED;
+
+	WriteablePixelsFinish();
+	remap_pix_plane (NULL, 0, 0);
+
+	WriteableColorsFinish();
+	remap_clr_plane (NULL, 0, 0);
 
 }
 
@@ -127,33 +439,37 @@ void Transform::print_info() {
 }
 
 SharedImageMatrix* Transform::transform( SharedImageMatrix * matrix_IN ) {
-	SharedImageMatrix *matrix_OUT = matrix_IN->fromCache ( name );
-	if (!matrix_OUT) {
-		matrix_OUT = execute (matrix_IN);
-		matrix_OUT->operations = matrix_IN->operations;
+	SharedImageMatrix *matrix_OUT = new SharedImageMatrix;
+	matrix_OUT->operations.clear();
+	matrix_OUT->operations.push_back (std::string ("Cache_").append (matrix_IN->shmem_name));
+	CacheStatus cache_status = matrix_OUT->fromCache ( name );
+	
+	if (cache_status == cache_write) {
+		execute (matrix_IN, matrix_OUT);
+		matrix_OUT->operations.clear();
+		matrix_OUT->operations.push_back (std::string ("Cache_").append (matrix_IN->shmem_name));
 		matrix_OUT->operations.push_back (name);
 		matrix_OUT->Cache();
+		return (matrix_OUT);
+	} else if (cache_status == cache_read) {
+		return (matrix_OUT);
+	} else {
+		std::cerr << "Errors while recovering cache (cout):" << std::endl;
+		exit (-1);
 	}
-
-	return (matrix_OUT);
 }
 
-
-SharedImageMatrix *Transform::getOutputIM ( const SharedImageMatrix * matrix_IN ) {
-	SharedImageMatrix* matrix_OUT = new SharedImageMatrix;
-	matrix_OUT->copy(*matrix_IN);
-	return matrix_OUT;
-};
 
 EmptyTransform::EmptyTransform () {
 	 Transform::name = "Empty";
 };
 
 
-SharedImageMatrix* EmptyTransform::execute( const SharedImageMatrix * matrix_IN ) {
+void EmptyTransform::execute( const SharedImageMatrix * matrix_IN, SharedImageMatrix * matrix_OUT ) {
+	if( !( matrix_IN && matrix_OUT) )
+		return;
+	matrix_OUT->copy (*matrix_IN);
 	std::cout << "Empty transform." << std::endl;
-	SharedImageMatrix* matrix_OUT = getOutputIM (matrix_IN);
-	return matrix_OUT;
 }
 
 //===========================================================================
@@ -164,14 +480,13 @@ FourierTransform::FourierTransform () {
 
 /* fft 2 dimensional transform */
 // http://www.fftw.org/doc/
-SharedImageMatrix* FourierTransform::execute( const SharedImageMatrix * matrix_IN ) {
-	if( !matrix_IN )
-		return NULL;
+void FourierTransform::execute( const SharedImageMatrix * matrix_IN, SharedImageMatrix * matrix_OUT ) {
+	if( !( matrix_IN && matrix_OUT) )
+		return;
 	
+	matrix_OUT->copy (*matrix_IN);
 	std::cout << "Performing transform " << name << std::endl;
-	SharedImageMatrix* matrix_OUT = getOutputIM (matrix_IN);
 	matrix_OUT->fft2();
-	return matrix_OUT;
 }
 
 
@@ -185,14 +500,13 @@ ChebyshevTransform::ChebyshevTransform () {
 }
 
 
-SharedImageMatrix* ChebyshevTransform::execute( const SharedImageMatrix * matrix_IN ) {
-	if( !matrix_IN )
-		return NULL;	
+void ChebyshevTransform::execute( const SharedImageMatrix * matrix_IN, SharedImageMatrix * matrix_OUT ) {
+	if( !( matrix_IN && matrix_OUT) )
+		return;	
+	matrix_OUT->copy (*matrix_IN);
 	std::cout << "Performing transform " << name << std::endl;
-	SharedImageMatrix* matrix_OUT = getOutputIM (matrix_IN);
 
 	matrix_OUT->ChebyshevTransform(0);
-	return matrix_OUT;
 }
 
 //WNDCHARM_REGISTER_TRANSFORM(ChebyshevTransform)
@@ -204,14 +518,13 @@ WaveletTransform::WaveletTransform () {
 };
 
 
-SharedImageMatrix* WaveletTransform::execute( const SharedImageMatrix * matrix_IN ) {
-	if( !matrix_IN )
-		return NULL;
+void WaveletTransform::execute( const SharedImageMatrix * matrix_IN, SharedImageMatrix * matrix_OUT ) {
+	if( !( matrix_IN && matrix_OUT) )
+		return;
 	
+	matrix_OUT->copy (*matrix_IN);
 	std::cout << "Performing transform " << name << std::endl;
-	SharedImageMatrix* matrix_OUT = getOutputIM (matrix_IN);
 	matrix_OUT->Symlet5Transform();
-	return matrix_OUT;
 }
 
 //WNDCHARM_REGISTER_TRANSFORM(WaveletTransform)
@@ -223,14 +536,13 @@ EdgeTransform::EdgeTransform () {
 }
 
 
-SharedImageMatrix* EdgeTransform::execute( const SharedImageMatrix * matrix_IN ) {
-	if( !matrix_IN )
-		return NULL;
+void EdgeTransform::execute( const SharedImageMatrix * matrix_IN, SharedImageMatrix * matrix_OUT ) {
+	if( !( matrix_IN && matrix_OUT) )
+		return;
 	
+	matrix_OUT->copy (*matrix_IN);
 	std::cout << "Performing transform " << name << std::endl;
-	SharedImageMatrix* matrix_OUT = getOutputIM (matrix_IN);
 	matrix_OUT->EdgeTransform();
-	return matrix_OUT;
 }
 
 //WNDCHARM_REGISTER_TRANSFORM(EdgeTransform)
@@ -242,17 +554,16 @@ ColorTransform::ColorTransform () {
 }
 
 
-SharedImageMatrix* ColorTransform::execute( const SharedImageMatrix * matrix_IN ) {
-	if( !matrix_IN )
-		return NULL;
+void ColorTransform::execute( const SharedImageMatrix * matrix_IN, SharedImageMatrix * matrix_OUT ) {
+	if( !( matrix_IN && matrix_OUT) )
+		return;
 	
+	matrix_OUT->copy (*matrix_IN);
 	std::cout << "Performing transform " << name << std::endl;
 	double temp_vec [COLORS_NUM+1];
 
-	SharedImageMatrix* matrix_OUT = getOutputIM (matrix_IN);
 	matrix_OUT->ColorTransform(temp_vec, 0);
 	histogram_vals.assign(temp_vec, temp_vec+COLORS_NUM+1);
-	return matrix_OUT;
 }
 
 //WNDCHARM_REGISTER_TRANSFORM(ColorTransform)
@@ -264,14 +575,13 @@ HueTransform::HueTransform () {
 }
 
 
-SharedImageMatrix* HueTransform::execute( const SharedImageMatrix * matrix_IN ) {
-	if( !matrix_IN )
-		return NULL;
+void HueTransform::execute( const SharedImageMatrix * matrix_IN, SharedImageMatrix * matrix_OUT ) {
+	if( !( matrix_IN && matrix_OUT) )
+		return;
 	
+	matrix_OUT->copy (*matrix_IN);
 	std::cout << "Performing transform " << name << std::endl;
-	SharedImageMatrix* matrix_OUT = getOutputIM (matrix_IN);
 	matrix_OUT->ColorTransform(NULL,1);
-	return matrix_OUT;
 }
 
 //WNDCHARM_REGISTER_TRANSFORM(HueTransform)

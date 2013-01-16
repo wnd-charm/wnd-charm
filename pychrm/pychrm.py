@@ -173,18 +173,6 @@ class ImageMatrix(_object):
     __swig_getmethods__ = {}
     __getattr__ = lambda self, name: _swig_getattr(self, ImageMatrix, name)
     __repr__ = _swig_repr
-    __swig_setmethods__["_pix_plane"] = _pychrm.ImageMatrix__pix_plane_set
-    __swig_getmethods__["_pix_plane"] = _pychrm.ImageMatrix__pix_plane_get
-    if _newclass:_pix_plane = _swig_property(_pychrm.ImageMatrix__pix_plane_get, _pychrm.ImageMatrix__pix_plane_set)
-    __swig_setmethods__["_clr_plane"] = _pychrm.ImageMatrix__clr_plane_set
-    __swig_getmethods__["_clr_plane"] = _pychrm.ImageMatrix__clr_plane_get
-    if _newclass:_clr_plane = _swig_property(_pychrm.ImageMatrix__clr_plane_get, _pychrm.ImageMatrix__clr_plane_set)
-    __swig_setmethods__["_is_pix_writeable"] = _pychrm.ImageMatrix__is_pix_writeable_set
-    __swig_getmethods__["_is_pix_writeable"] = _pychrm.ImageMatrix__is_pix_writeable_get
-    if _newclass:_is_pix_writeable = _swig_property(_pychrm.ImageMatrix__is_pix_writeable_get, _pychrm.ImageMatrix__is_pix_writeable_set)
-    __swig_setmethods__["_is_clr_writeable"] = _pychrm.ImageMatrix__is_clr_writeable_set
-    __swig_getmethods__["_is_clr_writeable"] = _pychrm.ImageMatrix__is_clr_writeable_get
-    if _newclass:_is_clr_writeable = _swig_property(_pychrm.ImageMatrix__is_clr_writeable_get, _pychrm.ImageMatrix__is_clr_writeable_set)
     __swig_setmethods__["source"] = _pychrm.ImageMatrix_source_set
     __swig_getmethods__["source"] = _pychrm.ImageMatrix_source_get
     if _newclass:source = _swig_property(_pychrm.ImageMatrix_source_get, _pychrm.ImageMatrix_source_set)
@@ -206,21 +194,6 @@ class ImageMatrix(_object):
     __swig_setmethods__["height"] = _pychrm.ImageMatrix_height_set
     __swig_getmethods__["height"] = _pychrm.ImageMatrix_height_get
     if _newclass:height = _swig_property(_pychrm.ImageMatrix_height_get, _pychrm.ImageMatrix_height_set)
-    __swig_setmethods__["_min"] = _pychrm.ImageMatrix__min_set
-    __swig_getmethods__["_min"] = _pychrm.ImageMatrix__min_get
-    if _newclass:_min = _swig_property(_pychrm.ImageMatrix__min_get, _pychrm.ImageMatrix__min_set)
-    __swig_setmethods__["_max"] = _pychrm.ImageMatrix__max_set
-    __swig_getmethods__["_max"] = _pychrm.ImageMatrix__max_get
-    if _newclass:_max = _swig_property(_pychrm.ImageMatrix__max_get, _pychrm.ImageMatrix__max_set)
-    __swig_setmethods__["_mean"] = _pychrm.ImageMatrix__mean_set
-    __swig_getmethods__["_mean"] = _pychrm.ImageMatrix__mean_get
-    if _newclass:_mean = _swig_property(_pychrm.ImageMatrix__mean_get, _pychrm.ImageMatrix__mean_set)
-    __swig_setmethods__["_std"] = _pychrm.ImageMatrix__std_set
-    __swig_getmethods__["_std"] = _pychrm.ImageMatrix__std_get
-    if _newclass:_std = _swig_property(_pychrm.ImageMatrix__std_get, _pychrm.ImageMatrix__std_set)
-    __swig_setmethods__["_median"] = _pychrm.ImageMatrix__median_set
-    __swig_getmethods__["_median"] = _pychrm.ImageMatrix__median_get
-    if _newclass:_median = _swig_property(_pychrm.ImageMatrix__median_get, _pychrm.ImageMatrix__median_set)
     __swig_setmethods__["has_stats"] = _pychrm.ImageMatrix_has_stats_set
     __swig_getmethods__["has_stats"] = _pychrm.ImageMatrix_has_stats_get
     if _newclass:has_stats = _swig_property(_pychrm.ImageMatrix_has_stats_get, _pychrm.ImageMatrix_has_stats_set)
@@ -239,6 +212,8 @@ class ImageMatrix(_object):
     def SaveTiff(self, *args): return _pychrm.ImageMatrix_SaveTiff(self, *args)
     def OpenImage(self, *args): return _pychrm.ImageMatrix_OpenImage(self, *args)
     def init(self): return _pychrm.ImageMatrix_init(self)
+    def remap_pix_plane(self, *args): return _pychrm.ImageMatrix_remap_pix_plane(self, *args)
+    def remap_clr_plane(self, *args): return _pychrm.ImageMatrix_remap_clr_plane(self, *args)
     def allocate(self, *args): return _pychrm.ImageMatrix_allocate(self, *args)
     def copyFields(self, *args): return _pychrm.ImageMatrix_copyFields(self, *args)
     def copyData(self, *args): return _pychrm.ImageMatrix_copyData(self, *args)
@@ -682,6 +657,10 @@ class GiniCoefficient(FeatureAlgorithm):
 GiniCoefficient_swigregister = _pychrm.GiniCoefficient_swigregister
 GiniCoefficient_swigregister(GiniCoefficient)
 
+cache_unknown = _pychrm.cache_unknown
+cache_wait = _pychrm.cache_wait
+cache_read = _pychrm.cache_read
+cache_write = _pychrm.cache_write
 class SharedImageMatrix(ImageMatrix):
     __swig_setmethods__ = {}
     for _s in [ImageMatrix]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
@@ -690,22 +669,39 @@ class SharedImageMatrix(ImageMatrix):
     for _s in [ImageMatrix]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
     __getattr__ = lambda self, name: _swig_getattr(self, SharedImageMatrix, name)
     __repr__ = _swig_repr
-    def SetShmemName(self, *args): return _pychrm.SharedImageMatrix_SetShmemName(self, *args)
-    def allocate(self, *args): return _pychrm.SharedImageMatrix_allocate(self, *args)
-    def fromCache(self, *args): return _pychrm.SharedImageMatrix_fromCache(self, *args)
-    def Cache(self): return _pychrm.SharedImageMatrix_Cache(self)
-    def OpenImage(self, *args): return _pychrm.SharedImageMatrix_OpenImage(self, *args)
-    __swig_setmethods__["shmem_name"] = _pychrm.SharedImageMatrix_shmem_name_set
-    __swig_getmethods__["shmem_name"] = _pychrm.SharedImageMatrix_shmem_name_get
-    if _newclass:shmem_name = _swig_property(_pychrm.SharedImageMatrix_shmem_name_get, _pychrm.SharedImageMatrix_shmem_name_set)
     def __init__(self): 
         this = _pychrm.new_SharedImageMatrix()
         try: self.this.append(this)
         except: self.this = this
     __swig_destroy__ = _pychrm.delete_SharedImageMatrix
     __del__ = lambda self : None;
+    def SetShmemName(self, *args): return _pychrm.SharedImageMatrix_SetShmemName(self, *args)
+    def calc_shmem_size(self, *args): return _pychrm.SharedImageMatrix_calc_shmem_size(self, *args)
+    def allocate(self, *args): return _pychrm.SharedImageMatrix_allocate(self, *args)
+    def fromCache(self, *args): return _pychrm.SharedImageMatrix_fromCache(self, *args)
+    def Cache(self): return _pychrm.SharedImageMatrix_Cache(self)
+    def OpenImage(self, *args): return _pychrm.SharedImageMatrix_OpenImage(self, *args)
+    __swig_setmethods__["shmem_page_size"] = _pychrm.SharedImageMatrix_shmem_page_size_set
+    __swig_getmethods__["shmem_page_size"] = _pychrm.SharedImageMatrix_shmem_page_size_get
+    if _newclass:shmem_page_size = _swig_property(_pychrm.SharedImageMatrix_shmem_page_size_get, _pychrm.SharedImageMatrix_shmem_page_size_set)
+    __swig_setmethods__["shmem_name"] = _pychrm.SharedImageMatrix_shmem_name_set
+    __swig_getmethods__["shmem_name"] = _pychrm.SharedImageMatrix_shmem_name_get
+    if _newclass:shmem_name = _swig_property(_pychrm.SharedImageMatrix_shmem_name_get, _pychrm.SharedImageMatrix_shmem_name_set)
+    __swig_setmethods__["shmem_size"] = _pychrm.SharedImageMatrix_shmem_size_set
+    __swig_getmethods__["shmem_size"] = _pychrm.SharedImageMatrix_shmem_size_get
+    if _newclass:shmem_size = _swig_property(_pychrm.SharedImageMatrix_shmem_size_get, _pychrm.SharedImageMatrix_shmem_size_set)
+    __swig_setmethods__["shmem_fd"] = _pychrm.SharedImageMatrix_shmem_fd_set
+    __swig_getmethods__["shmem_fd"] = _pychrm.SharedImageMatrix_shmem_fd_get
+    if _newclass:shmem_fd = _swig_property(_pychrm.SharedImageMatrix_shmem_fd_get, _pychrm.SharedImageMatrix_shmem_fd_set)
+    __swig_setmethods__["mmap_ptr"] = _pychrm.SharedImageMatrix_mmap_ptr_set
+    __swig_getmethods__["mmap_ptr"] = _pychrm.SharedImageMatrix_mmap_ptr_get
+    if _newclass:mmap_ptr = _swig_property(_pychrm.SharedImageMatrix_mmap_ptr_get, _pychrm.SharedImageMatrix_mmap_ptr_set)
+    __swig_setmethods__["shmem_sem"] = _pychrm.SharedImageMatrix_shmem_sem_set
+    __swig_getmethods__["shmem_sem"] = _pychrm.SharedImageMatrix_shmem_sem_get
+    if _newclass:shmem_sem = _swig_property(_pychrm.SharedImageMatrix_shmem_sem_get, _pychrm.SharedImageMatrix_shmem_sem_set)
 SharedImageMatrix_swigregister = _pychrm.SharedImageMatrix_swigregister
 SharedImageMatrix_swigregister(SharedImageMatrix)
+cvar = _pychrm.cvar
 
 class Transform(_object):
     __swig_setmethods__ = {}
@@ -720,7 +716,6 @@ class Transform(_object):
     __swig_getmethods__["name"] = _pychrm.Transform_name_get
     if _newclass:name = _swig_property(_pychrm.Transform_name_get, _pychrm.Transform_name_set)
     def print_info(self): return _pychrm.Transform_print_info(self)
-    def getOutputIM(self, *args): return _pychrm.Transform_getOutputIM(self, *args)
     __swig_destroy__ = _pychrm.delete_Transform
     __del__ = lambda self : None;
 Transform_swigregister = _pychrm.Transform_swigregister

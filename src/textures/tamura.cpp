@@ -47,10 +47,10 @@ double directionality(ImageMatrix *image) {
 	deltaV.copy(*image);
 	
 
-	pixData matrixH (3,3);
+	pixDataMat matrixH (3,3);
 	matrixH.setZero();
 
-	pixData matrixV (3,3);
+	pixDataMat matrixV (3,3);
 	matrixV.setZero();
 
 
@@ -72,7 +72,7 @@ double directionality(ImageMatrix *image) {
 	//step2
 	ImageMatrix phi;
 	phi.allocate (xdim, ydim);
-	pixData &phi_pix_plane = phi.WriteablePixels();
+	writeablePixels phi_pix_plane = phi.WriteablePixels();
 
 	sum_r = 0;
 	for (y = 0; y < ydim; ++y) {
@@ -104,7 +104,7 @@ double directionality(ImageMatrix *image) {
 }
 
 
-double efficientLocalMean(const long x,const long y,const long k, const pixData &laufendeSumme) {
+double efficientLocalMean(const long x,const long y,const long k, const pixDataMat &laufendeSumme) {
 	long k2 = k/2;
 
 	long dimx = laufendeSumme.cols();
@@ -152,8 +152,8 @@ double coarseness(ImageMatrix *image, double *hist,unsigned int nbins) {
 	const unsigned int xDim = image->width;
 	double sum = 0.0;
 	ImageMatrix *Sbest;
-	pixData laufendeSumme (yDim,xDim);
-	pixData *Ak[K_VALUE], *Ekh[K_VALUE], *Ekv[K_VALUE];
+	pixDataMat laufendeSumme (yDim,xDim);
+	pixDataMat *Ak[K_VALUE], *Ekh[K_VALUE], *Ekv[K_VALUE];
 
 	readOnlyPixels image_pix_plane = image->ReadablePixels();
 
@@ -175,9 +175,9 @@ double coarseness(ImageMatrix *image, double *hist,unsigned int nbins) {
 	}
 
 	for (k = 1; k <= K_VALUE; k++) {
-		Ak[k-1] = new pixData(yDim,xDim);
-		Ekh[k-1] = new pixData(yDim,xDim);
-		Ekv[k-1] = new pixData(yDim,xDim);
+		Ak[k-1] = new pixDataMat(yDim,xDim);
+		Ekh[k-1] = new pixDataMat(yDim,xDim);
+		Ekv[k-1] = new pixDataMat(yDim,xDim);
 	}
 	Sbest = new ImageMatrix;
 	Sbest->allocate (image->width,image->height);
@@ -187,7 +187,7 @@ double coarseness(ImageMatrix *image, double *hist,unsigned int nbins) {
 	int lenOfk = 1;
 	for(k = 1; k <= K_VALUE; ++k) {
 		lenOfk *= 2;
-		pixData &Ak_pix_plane = *Ak[k-1];
+		pixDataMat &Ak_pix_plane = *Ak[k-1];
 		for(y = 0; y < yDim; ++y)
 			for(x = 0; x < xDim; ++x)
 				Ak_pix_plane(y,x) = efficientLocalMean(x,y,lenOfk,laufendeSumme);
@@ -198,9 +198,9 @@ double coarseness(ImageMatrix *image, double *hist,unsigned int nbins) {
 	for(k = 1; k <= K_VALUE; ++k) {
 		int k2 = lenOfk;
 		lenOfk *= 2;
-		pixData &Ekh_pix_plane = *Ekh[k-1];
-		pixData &Ekv_pix_plane = *Ekv[k-1];
-		pixData &Ak_pix_plane = *Ak[k-1];
+		pixDataMat &Ekh_pix_plane = *Ekh[k-1];
+		pixDataMat &Ekv_pix_plane = *Ekv[k-1];
+		pixDataMat &Ak_pix_plane = *Ak[k-1];
 		for(y = 0; y < yDim; ++y) {
 			for(x = 0; x < xDim; ++x) {
 				int posx1 = x+k2;
@@ -219,7 +219,7 @@ double coarseness(ImageMatrix *image, double *hist,unsigned int nbins) {
 	}
 
 	//step3
-	pixData &Sbest_pix_plane = Sbest->WriteablePixels();
+	writeablePixels Sbest_pix_plane = Sbest->WriteablePixels();
 	for(y = 0; y < yDim; ++y) {
 		for(x = 0; x < xDim; ++x) {
 			double maxE = 0;
