@@ -11,12 +11,13 @@ modified to use file/URL safe alphabet (base64url) as proposed in RFC 4648:
 
 #include <b64/cencode.h>
 
-void base64_init_encodestate(base64_encodestate* state_in)
+void base64_init_encodestate(base64_encodestate* state_in, char newlines, char padding)
 {
 	state_in->step = step_A;
 	state_in->result = 0;
 	state_in->stepcount = 0;
-	state_in->chars_per_line = 72;
+	state_in->chars_per_line = (newlines ? 72 : 0);
+	state_in->use_padding = (padding ? 1 : 0);
 }
 
 char base64_encode_value(char value_in)
@@ -95,12 +96,15 @@ size_t base64_encode_blockend(char* code_out, base64_encodestate* state_in)
 	{
 	case step_B:
 		*codechar++ = base64_encode_value(state_in->result);
-		*codechar++ = '=';
-		*codechar++ = '=';
+		if (state_in->use_padding) {
+			*codechar++ = '=';
+			*codechar++ = '=';
+		}
 		break;
 	case step_C:
 		*codechar++ = base64_encode_value(state_in->result);
-		*codechar++ = '=';
+		if (state_in->use_padding)
+			*codechar++ = '=';
 		break;
 	case step_A:
 		break;

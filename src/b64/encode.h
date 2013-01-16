@@ -29,9 +29,13 @@ namespace base64
 		{}
 
 		inline size_t calc_encoded_size (const size_t plainlength) {
-			size_t coded_size = ((plainlength + ( (plainlength % 3) ? (3 - (plainlength % 3)) : 0) ) / 3) * 4;
+		
+			int pad = (int)(plainlength % 3);
+			size_t coded_size = ((plainlength + ( pad ? (3 - pad) : 0) ) / 3) * 4;
 			if (_state.chars_per_line)
-				coded_size += (((coded_size) / _state.chars_per_line) * 2) + 1;
+				// single \n (LF) character - unix newline
+				coded_size += (coded_size / _state.chars_per_line) + 1;
+			if (! _state.use_padding) coded_size -= (3-pad);
 			return (coded_size);
 		}
 		size_t encode(char value_in)
@@ -49,10 +53,11 @@ namespace base64
 			return base64_encode_blockend(plaintext_out, &_state);
 		}
 
-		std::ostream &encode(std::istream& istream_in, std::ostream& ostream_in, const bool newlines = true)
+		std::ostream &encode(std::istream& istream_in, std::ostream& ostream_in, const bool newlines = true, const bool padding = true)
 		{
-			base64_init_encodestate(&_state);
+			base64_init_encodestate(&_state, newlines, padding);
 			if (!newlines) _state.chars_per_line = 0;
+			if (!padding)  _state.use_padding = 0;
 			//
 			const size_t N = _buffersize;
 			char* plaintext = new char[N];
@@ -73,45 +78,48 @@ namespace base64
 			codelength = encode_end(code);
 			ostream_in.write(code, codelength);
 			//
-			base64_init_encodestate(&_state);
+			base64_init_encodestate(&_state, newlines, padding);
 
 			delete [] code;
 			delete [] plaintext;
 			return (ostream_in);
 		}
 
-		std::string &encode(const char *plaintext, const size_t plainlength, std::string &out, const bool newlines = true)
+		std::string &encode(const char *plaintext, const size_t plainlength, std::string &out, const bool newlines = true, const bool padding = true)
 		{
-			base64_init_encodestate(&_state);
-			if (!newlines) _state.chars_per_line = 0;
+			base64_init_encodestate(&_state, newlines, padding);
 			//
 			size_t codelength = calc_encoded_size (plainlength);
 
 			// writing directly into std::string.data() is not recommended. Oh well.
-			out.resize (codelength);
-			char* code = (char *)out.data();
+			size_t original_length = out.length();
+			out.resize (codelength + original_length);
+			char* code = (char *)out.data() + original_length;
 			size_t codelength_out,codelength_end;
 
 			codelength_out = encode(plaintext, plainlength, code);
 			codelength_end = encode_end(code + codelength_out);			
+			base64_init_encodestate(&_state, newlines, padding);
 			return (out);
 		}
 
-		std::string &encode(const std::string &plaintext, std::string &out, const bool newlines = true)
+		std::string &encode(const std::string &plaintext, std::string &out, const bool newlines = true, const bool padding = true)
 		{
-			base64_init_encodestate(&_state);
+			base64_init_encodestate(&_state, newlines, padding);
 			if (!newlines) _state.chars_per_line = 0;
 			size_t plainlength = plaintext.length();
 			//
 			size_t codelength = calc_encoded_size (plainlength);
 
 			// writing directly into std::string.data() is not recommended. Oh well.
-			out.resize (codelength);
-			char* code = (char *)out.data();
+			size_t original_length = out.length();
+			out.resize (codelength + original_length);
+			char* code = (char *)out.data() + original_length;
 			size_t codelength_out,codelength_end;
 
 			codelength_out = encode(plaintext.data(), plainlength, code);
 			codelength_end = encode_end(code + codelength_out);			
+			base64_init_encodestate(&_state, newlines, padding);
 			return (out);
 		}
 	};
