@@ -27,7 +27,7 @@ class SharedImageMatrix: public ImageMatrix {
 		}
 		virtual ~SharedImageMatrix();                                 // destructor
 		void SetShmemName();
-		const size_t calc_shmem_size (const unsigned int w, const unsigned int h, size_t &clr_plane_offset, size_t &shmem_data_offset);
+		const size_t calc_shmem_size (const unsigned int w, const unsigned int h, size_t &clr_plane_offset, size_t &shmem_data_offset) const;
 		void allocate (unsigned int w, unsigned int h) ;
 		const CacheStatus fromCache ();
 		void Cache ();

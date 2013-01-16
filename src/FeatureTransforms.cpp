@@ -40,7 +40,7 @@ static inline std::string string_format(const std::string &fmt, ...) {
 
 struct shmem_data {
 	uint32_t width, height;
-	uint8_t ColorMode;
+	enum ColorModes ColorMode;
 	uint8_t bits;
 };
 
@@ -65,7 +65,7 @@ void SharedImageMatrix::SetShmemName ( ) {
 	
 }
 
-const size_t SharedImageMatrix::calc_shmem_size (const unsigned int w, const unsigned int h, size_t &clr_plane_offset, size_t &shmem_data_offset) {
+const size_t SharedImageMatrix::calc_shmem_size (const unsigned int w, const unsigned int h, size_t &clr_plane_offset, size_t &shmem_data_offset) const {
 	size_t new_mat_size = w * h;
 	size_t new_shmem_size = new_mat_size * sizeof (double);
 	// Expand the size to be a multiple of the page size.
@@ -290,9 +290,18 @@ std::cout << "shmem_size: " << shmem_size << std::endl;
 				error_str = std::string ("mmap error when mapping existing shmem: ") + strerror(errno);
 				break;
 			}
-			// get the matrix sizes from the shmem_data object stored at the end of shared memory
+			// get the shmem_data object stored at the end of shared memory
 			size_t shmem_data_offset = shmem_size - sizeof (shmem_data);
 			shmem_data *stored_shmem_data = (shmem_data *)(mmap_ptr + shmem_data_offset);
+			if (stored_shmem_data->bits == 8 || stored_shmem_data->bits == 16) {
+				ColorMode = stored_shmem_data->ColorMode;
+				bits = stored_shmem_data->bits;
+			} else {
+				error_str = string_format ("error when mapping existing shmem: stored data bits is not 8 or 16: %ld", (long)stored_shmem_data->bits);
+				break;
+			}
+			// The width and height are set below if the stored width and height are consistent with the shared memory size.
+			// We do need to set the ColorMode to ensure correct calculation of sizes.
 
 			// ensure that the memory size is correct.
 			size_t stored_mat_shmem_size, stored_clr_plane_offset, stored_shmem_data_offset;
@@ -305,11 +314,9 @@ std::cout << "shmem_size: " << shmem_size << std::endl;
 			}
 			
 			// Looks like we have a valid matrix stored, so create the cached result.
-			ColorMode = static_cast<ColorModes> (stored_shmem_data->ColorMode);
 			// remap the data for the object to use the mmap_ptr, keeping the rest of the object where it was.
 			remap_pix_plane ( (double *)mmap_ptr, stored_shmem_data->width, stored_shmem_data->height);
 			if (ColorMode != cmGRAY) remap_clr_plane ((HSVcolor *)(mmap_ptr + stored_clr_plane_offset), stored_shmem_data->width, stored_shmem_data->height);
-			bits = stored_shmem_data->bits;
 			if (width != stored_shmem_data->width || height != stored_shmem_data->height) {
 				error_str = string_format ("error when mapping existing shmem: recovered w,h (%u, %u) doesn't match that in shmem (%u, %u)",
 					(unsigned int)width, (unsigned int)height,

@@ -12670,7 +12670,7 @@ SWIGINTERN PyObject *_wrap_SharedImageMatrix_calc_shmem_size(PyObject *SWIGUNUSE
   if (!PyArg_ParseTuple(args,(char *)"OOOOO:SharedImageMatrix_calc_shmem_size",&obj0,&obj1,&obj2,&obj3,&obj4)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_calc_shmem_size" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_calc_shmem_size" "', argument " "1"" of type '" "SharedImageMatrix const *""'"); 
   }
   arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
   ecode2 = SWIG_AsVal_unsigned_SS_int(obj1, &val2);
@@ -12699,7 +12699,7 @@ SWIGINTERN PyObject *_wrap_SharedImageMatrix_calc_shmem_size(PyObject *SWIGUNUSE
     SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SharedImageMatrix_calc_shmem_size" "', argument " "5"" of type '" "size_t &""'"); 
   }
   arg5 = reinterpret_cast< size_t * >(argp5);
-  result = (arg1)->calc_shmem_size(arg2,arg3,*arg4,*arg5);
+  result = ((SharedImageMatrix const *)arg1)->calc_shmem_size(arg2,arg3,*arg4,*arg5);
   resultobj = SWIG_From_size_t(static_cast< size_t >(result));
   return resultobj;
 fail:
