@@ -26,10 +26,9 @@ class SharedImageMatrix: public ImageMatrix {
 			shmem_sem = SEM_FAILED;
 		}
 		virtual ~SharedImageMatrix();                                 // destructor
-		void SetShmemName();
-		const size_t calc_shmem_size (const unsigned int w, const unsigned int h, size_t &clr_plane_offset, size_t &shmem_data_offset) const;
+		const std::string GetShmemName() {return shmem_name; };
 		void allocate (unsigned int w, unsigned int h) ;
-		const CacheStatus fromCache ();
+		const CacheStatus fromCache (const std::string operation_in = "", const std::string cached_source_in = "");
 		void Cache ();
 		virtual int OpenImage(char *image_file_name,            // load an image of any supported format
 			int downsample, rect *bounding_rect,
@@ -37,10 +36,12 @@ class SharedImageMatrix: public ImageMatrix {
 		static void DisableCacheRead (const bool status) {never_read = status;};
 		static void DisableDestructorCacheCleanup (const bool status) {disable_destructor_cache_cleanup = status;};
 
+	private:
+		void SetShmemName();
+		static const size_t calc_shmem_size (const unsigned int w, const unsigned int h, const bool color, size_t &clr_plane_offset, size_t &shmem_data_offset);
 		std::string cached_source;        // the shmem_name of the source.
 		std::string operation;            // the operation on the cached_source
 		std::string shmem_name;           // concatenated cached_source + operation, MD5 digest, Base 64-encoded
-	private:
 		static size_t shmem_page_size;
 		static bool never_read;
 		static bool disable_destructor_cache_cleanup;

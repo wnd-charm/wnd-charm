@@ -54,9 +54,9 @@ void SharedImageMatrix::SetShmemName ( ) {
 	MD5::MD5 digest;
 	uint8_t Message_Digest[MD5::HashSize];
 
-	assert ((cached_source.length() || operation.length()) && "Attempt to establish a shared memory name without a cached_source or operation field");
-	if (cached_source.length()) digest.Update( (uint8_t *)(cached_source.data()), cached_source.length() );
-	if (operation.length()) digest.Update( (uint8_t *)(operation.data()), operation.length() );
+	assert (!(cached_source.empty() && operation.empty()) && "Attempt to establish a shared memory name without a cached_source or operation field");
+	if (!cached_source.empty()) digest.Update( (uint8_t *)(cached_source.data()), cached_source.length() );
+	if (!operation.empty()) digest.Update( (uint8_t *)(operation.data()), operation.length() );
 	digest.Result(Message_Digest);
 
 	shmem_name = "/wndchrm";
@@ -66,14 +66,15 @@ void SharedImageMatrix::SetShmemName ( ) {
 	
 }
 
-const size_t SharedImageMatrix::calc_shmem_size (const unsigned int w, const unsigned int h, size_t &clr_plane_offset, size_t &shmem_data_offset) const {
+// This is a helper method to calculate offsets into shared memory.
+const size_t SharedImageMatrix::calc_shmem_size (const unsigned int w, const unsigned int h, const bool color, size_t &clr_plane_offset, size_t &shmem_data_offset) {
 	size_t new_mat_size = w * h;
 	size_t new_shmem_size = new_mat_size * sizeof (double);
 	// Expand the size to be a multiple of the page size.
 	new_shmem_size = ( (1 + (new_shmem_size / shmem_page_size)) * shmem_page_size );
 	// The color plane starts at a page boundary.
 	clr_plane_offset = new_shmem_size;
-	if (ColorMode != cmGRAY) new_shmem_size += new_mat_size * sizeof (HSVcolor);
+	if (color) new_shmem_size += new_mat_size * sizeof (HSVcolor);
 	// the shmem_data_t struct is stored at the end to preserve page-size memory alignment for Eigen.
 	new_shmem_size += sizeof (shmem_data);
 	// Expand the total size to be a multiple of the page size.
@@ -82,7 +83,8 @@ const size_t SharedImageMatrix::calc_shmem_size (const unsigned int w, const uns
 	return (new_shmem_size);
 }
 
-
+// This method sets up the shared memory to accomodate the matrixes, and maps the Eigen maps to use it for their data.
+// It is also able to resize an existing shared memory object.
 void SharedImageMatrix::allocate (unsigned int w, unsigned int h) {
  	std::cout << "-------- called SharedImageMatrix::allocate (" << w << "," << h << ") on " << shmem_name << std::endl;
 
@@ -95,28 +97,20 @@ void SharedImageMatrix::allocate (unsigned int w, unsigned int h) {
 	
 
 	// calculate the size of the required shared memory block
-	size_t new_mat_size = w * h;
-	size_t new_shmem_size = new_mat_size * sizeof (double);
-	// Expand the size to be a multiple of the page size.
-	new_shmem_size = ( (1 + (new_shmem_size / shmem_page_size)) * shmem_page_size );
-	// The color plane starts at a page boundary.
-	size_t clr_plane_offset = new_shmem_size;
-	if (ColorMode != cmGRAY) new_shmem_size += new_mat_size * sizeof (HSVcolor);
-	// the shmem_data_t struct is stored at the end to preserve page-size memory alignment for Eigen.
-	new_shmem_size += sizeof (shmem_data);
-	// Expand the total size to be a multiple of the page size.
-	new_shmem_size = ( (1 + (new_shmem_size / shmem_page_size)) * shmem_page_size );
-	size_t shmem_data_offset = new_shmem_size - sizeof (shmem_data);
+	size_t new_shmem_size, clr_plane_offset, shmem_data_offset;
+	new_shmem_size = calc_shmem_size (w, h, (ColorMode != cmGRAY), clr_plane_offset, shmem_data_offset);
 	std::cout << " shmem_size: " << new_shmem_size << " pages: " << new_shmem_size / shmem_page_size << std::endl;
 
 	// Map shared memory object for writing
 	// Unmap any pre-existing memory and re-map
+	// FIXME: It may be good to only resize expanding memory. Shrinking memory should only need a remap of the Eigen Map.
+	//        Don't forget about the size validation in cache_read.
 	if (mmap_ptr != MAP_FAILED) {
 		if ( munmap (mmap_ptr, shmem_size) ) {
 			std::cout << "munmap error: " << strerror(errno) << std::endl;
 			exit (-1);
 		}
-		// OS X actually forces us to delete the segment entirely because only one call to ftruncate can be made on each segment.
+		// OS X forces us to delete the segment entirely because only one call to ftruncate can be made on each segment.
 		// FIXME: It may be good to escape this on non-OS X systems.
 		if (shmem_fd > -1) close (shmem_fd);
 		shmem_fd = -1;
@@ -142,14 +136,13 @@ void SharedImageMatrix::allocate (unsigned int w, unsigned int h) {
 		exit (-1);
 	}
 	shmem_size = new_shmem_size;
-	// remap the data for the object to use the mmap_ptr, keeping the rest of the object where it was.
+	// remap the data for the object to use the mmap_ptr.
 	remap_pix_plane ( (double *)mmap_ptr, w, h);
-
 	if (ColorMode != cmGRAY) remap_clr_plane ((HSVcolor *)(mmap_ptr + clr_plane_offset), w, h);
 			
 	
 	// If this memory gets read from cache, we wont know the size of the matrix,
-	// so we have to store the shmem_data at the end of the shmem
+	// so we store the shmem_data at the end of the shmem to tell us how to read it later.
 	shmem_data *stored_shmem_data = (shmem_data *)(mmap_ptr + shmem_data_offset);
 	stored_shmem_data->width = width;
 	stored_shmem_data->height = height;
@@ -159,42 +152,46 @@ void SharedImageMatrix::allocate (unsigned int w, unsigned int h) {
 
 // This returns a CacheStatus enum explaining what happened with the cache
 // The operation field and the cached_source field determine the object's cache name (shmem_name)
-// cache_unknown means there was an error
+// In the returned enum, cache_unknown means there was an error
 // cache_read means the SharedImageMatrix was read in from cache.
 // cache_write means the SharedImageMatrix has exclusive write access.
 //   The object is empty at this point.
+// The chached_source_in and operation_in parameters are optional.
+//   If not empty, they will replace their private couterparts before calculating the shmem_name
 
-const CacheStatus SharedImageMatrix::fromCache () {
+const CacheStatus SharedImageMatrix::fromCache (const std::string operation_in, const std::string cached_source_in) {
 	CacheStatus cache_status = cache_unknown;
 	std::string error_str;
 	
 std::cout <<         "-------- called SharedImageMatrix::fromCache on [" << cached_source << "]->[" << operation << "]" <<std::endl;;
 	// Make sure the shared memory has a name
+	if (!cached_source_in.empty()) cached_source = cached_source_in;
+	if (!operation_in.empty()) operation = operation_in;
 	SetShmemName();
 
 	// Shared memory access with concurrent processes
-	// Only one process should be able to write the shared memory.  All others must wait and/or read only.
+	// Only one process should be able to write the shared memory.  All others must wait if necessary and then read only.
 	// The POSIX standard says that fcntl locks on shared memory are "unspecified".
 	// Although they do currently work on linux, they do not currently work on OS X. The status of BSD, Solaris, etc. is unknown.
-	// The POSIX standard may or nay not support this behavior in the future.
 	// Instead, we will use POSIX semaphores to ensure exclusive write access.
 	// The semaphore has the same name as the shared memory segment, and it has an associated value.
 	// For our purposes, the semaphore can be in two states: value > 0 (shmem is readable) or value == 0 (shmem is being updated by another process).
-	// We have to be careful not to leak semaphores, so we have to create->unlink->trywait.
-	// The semaphore will be created in an unlocked state (value = 1), immediately unlinked, and then call try_wait on it.
+	// We have to be careful not to leak semaphores, so we have to:
+	// Created the semaphore in an unlocked state (value = 1), immediately unlink it, and then call try_wait on it.
 	// if the try_wait call succeeds, it also locks the semaphore, indicating we have exclusive read or write access.
 	// if it does not succeed and gives an EAGAIN error, it means we could not get a lock because of write operations, so we must call sem_wait, then read.
 	// if the process quits at any time, the postponed sem_unlink call will take effect, so a subsequent call to sem_open will crate an unlocked semaphore.
 	// The shmem lifetime events are then:
 	// locked semaphore -> Create shmem -> mature/write shmem -> post semaphore -> readable shmem -> close semaphore -> unlink shmem
-	// After a successful sem_open (O_CREAT)/try_wait(), an EEXIST on shm_open (O_RDWR|O_CREAT|O_EXCL) tells us the shmem is ready for reading, so we:
+	// After a successful sem_open (O_CREAT) and try_wait(),
+	// an EEXIST on shm_open (O_RDWR|O_CREAT|O_EXCL) tells us the shmem is ready for reading, so we:
 	//   shm_open (O_RDONLY) -> mmap (PROT_READ) ...
 	// A successful shm_open (O_RDWR|O_CREAT|O_EXCL) tells us that we just created the shmem, and it is ready for exclusive writing.
 	// Any other error indicates that "bad things happened"
-	// Regardless of the nature of the "bad things" that did happen, the response is to unlink the sem and the shm and start all over.
+	// Regardless of the nature of the "bad things" that did happen, the response is to unlink the sem and the shmem and start all over.
 
 	// This first section results in a locked semaphore and possibly a shmem_fd ready for writing.
-	// If there were error with the semaphore or opening shmem, the semaphore is cleaned up.
+	// If there were errors with the semaphore or opening shmem, the semaphore is cleaned up.
 	// open or create an unlocked semaphore
 	shmem_sem = sem_open(shmem_name.c_str(), O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH, 1);
 	int shmem_sem_locked = EAGAIN;
@@ -292,6 +289,7 @@ std::cout << "shmem_size: " << shmem_size << std::endl;
 				break;
 			}
 			// get the shmem_data object stored at the end of shared memory
+			// This will tell us how to read the matrixes and reconstruct the SharedImageMatrix
 			size_t shmem_data_offset = shmem_size - sizeof (shmem_data);
 			shmem_data *stored_shmem_data = (shmem_data *)(mmap_ptr + shmem_data_offset);
 			if (stored_shmem_data->bits == 8 || stored_shmem_data->bits == 16) {
@@ -307,9 +305,10 @@ std::cout << "shmem_size: " << shmem_size << std::endl;
 			// ensure that the memory size is correct.
 			size_t stored_mat_shmem_size, stored_clr_plane_offset, stored_shmem_data_offset;
 			stored_mat_shmem_size = calc_shmem_size (stored_shmem_data->width, stored_shmem_data->height,
+				(stored_shmem_data->ColorMode != cmGRAY),
 				stored_clr_plane_offset, stored_shmem_data_offset);
 			if (stored_mat_shmem_size != shmem_size) {
-				error_str = string_format ("error when mapping existing shmem: stored data requires %lu bytes, but shmem size id %lu bytes",
+				error_str = string_format ("error when mapping existing shmem: stored data requires %lu bytes, but shmem size is %lu bytes",
 					(unsigned long)stored_mat_shmem_size, (unsigned long)shmem_size);
 				break;
 			}
@@ -374,19 +373,29 @@ std::cout << "cache_write" << std::endl;
 	return (cache_status);
 }
 
+// This method should only be called to finalize an object that will be stored in the cache.
+// It should not be called on objects retrieved from the cache.
 void SharedImageMatrix::Cache ( ) {
 
+	assert (!was_cached && "Called Cache on an object that was read from cache.");
 std::cout <<         "-------- called SharedImageMatrix::Cache on [" << cached_source << "]->[" << operation << "]" <<std::endl;;
 	SetShmemName();
 
 	// Since shared memory was set up in the fromCache call,
 	// all that's left to do here is make sure its finalized and ready to use by others
-
+	WriteablePixelsFinish();
+	WriteableColorsFinish();
+	if (shmem_sem != SEM_FAILED) {
+		sem_post (shmem_sem);
+		sem_close (shmem_sem);
+		shmem_sem = SEM_FAILED;
+	}
 }
 
 
-
-int SharedImageMatrix::OpenImage(char *image_file_name,            // load an image of any supported format
+// load an image of any supported format
+// This attempts to read the file from cache, and calls the superclass to do the work if we need to read it in.
+int SharedImageMatrix::OpenImage(char *image_file_name,
 		int downsample, rect *bounding_rect,
 		double mean, double stddev) {
 
@@ -425,6 +434,7 @@ int SharedImageMatrix::OpenImage(char *image_file_name,            // load an im
 
 }
 
+// The destructor will unlink the shared memory unless DisableDestructorCacheCleanup(true) class method has been called.
 SharedImageMatrix::~SharedImageMatrix () {
 std::cout << "SharedImageMatrix DESTRUCTOR for " << shmem_name << std::endl;
 	if (mmap_ptr != MAP_FAILED) munmap (mmap_ptr, shmem_size);
@@ -437,8 +447,9 @@ std::cout << "SharedImageMatrix DESTRUCTOR for " << shmem_name << std::endl;
 std::cout << "    unlinking " << shmem_name << std::endl;
 		shm_unlink (shmem_name.c_str());
 	}
+
 	// close the semaphore
-	sem_close (shmem_sem);
+	if (shmem_sem != SEM_FAILED) sem_close (shmem_sem);
 	shmem_sem = SEM_FAILED;
 
 	WriteablePixelsFinish();
@@ -456,9 +467,7 @@ void Transform::print_info() {
 
 SharedImageMatrix* Transform::transform( SharedImageMatrix * matrix_IN ) {
 	SharedImageMatrix *matrix_OUT = new SharedImageMatrix;
-	matrix_OUT->cached_source = matrix_IN->shmem_name;
-	matrix_OUT->operation = name;
-	CacheStatus cache_status = matrix_OUT->fromCache ();
+	CacheStatus cache_status = matrix_OUT->fromCache (matrix_IN->GetShmemName(), name);
 	
 	if (cache_status == cache_write) {
 		execute (matrix_IN, matrix_OUT);

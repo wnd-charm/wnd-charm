@@ -664,25 +664,15 @@ class SharedImageMatrix(ImageMatrix):
         except: self.this = this
     __swig_destroy__ = _pychrm.delete_SharedImageMatrix
     __del__ = lambda self : None;
-    def SetShmemName(self): return _pychrm.SharedImageMatrix_SetShmemName(self)
-    def calc_shmem_size(self, *args): return _pychrm.SharedImageMatrix_calc_shmem_size(self, *args)
+    def GetShmemName(self): return _pychrm.SharedImageMatrix_GetShmemName(self)
     def allocate(self, *args): return _pychrm.SharedImageMatrix_allocate(self, *args)
-    def fromCache(self): return _pychrm.SharedImageMatrix_fromCache(self)
+    def fromCache(self, operation_in="", cached_source_in=""): return _pychrm.SharedImageMatrix_fromCache(self, operation_in, cached_source_in)
     def Cache(self): return _pychrm.SharedImageMatrix_Cache(self)
     def OpenImage(self, *args): return _pychrm.SharedImageMatrix_OpenImage(self, *args)
     __swig_getmethods__["DisableCacheRead"] = lambda x: _pychrm.SharedImageMatrix_DisableCacheRead
     if _newclass:DisableCacheRead = staticmethod(_pychrm.SharedImageMatrix_DisableCacheRead)
     __swig_getmethods__["DisableDestructorCacheCleanup"] = lambda x: _pychrm.SharedImageMatrix_DisableDestructorCacheCleanup
     if _newclass:DisableDestructorCacheCleanup = staticmethod(_pychrm.SharedImageMatrix_DisableDestructorCacheCleanup)
-    __swig_setmethods__["cached_source"] = _pychrm.SharedImageMatrix_cached_source_set
-    __swig_getmethods__["cached_source"] = _pychrm.SharedImageMatrix_cached_source_get
-    if _newclass:cached_source = _swig_property(_pychrm.SharedImageMatrix_cached_source_get, _pychrm.SharedImageMatrix_cached_source_set)
-    __swig_setmethods__["operation"] = _pychrm.SharedImageMatrix_operation_set
-    __swig_getmethods__["operation"] = _pychrm.SharedImageMatrix_operation_get
-    if _newclass:operation = _swig_property(_pychrm.SharedImageMatrix_operation_get, _pychrm.SharedImageMatrix_operation_set)
-    __swig_setmethods__["shmem_name"] = _pychrm.SharedImageMatrix_shmem_name_set
-    __swig_getmethods__["shmem_name"] = _pychrm.SharedImageMatrix_shmem_name_get
-    if _newclass:shmem_name = _swig_property(_pychrm.SharedImageMatrix_shmem_name_get, _pychrm.SharedImageMatrix_shmem_name_set)
 SharedImageMatrix_swigregister = _pychrm.SharedImageMatrix_swigregister
 SharedImageMatrix_swigregister(SharedImageMatrix)
 
