@@ -104,7 +104,6 @@ void SharedImageMatrix::allocate (unsigned int w, unsigned int h) {
 	// Map shared memory object for writing
 	// Unmap any pre-existing memory and re-map
 	// FIXME: It may be good to only resize expanding memory. Shrinking memory should only need a remap of the Eigen Map.
-	//        Don't forget about the size validation in cache_read.
 	if (mmap_ptr != MAP_FAILED) {
 		if ( munmap (mmap_ptr, shmem_size) ) {
 			std::cout << "munmap error: " << strerror(errno) << std::endl;
@@ -292,22 +291,14 @@ std::cout << "shmem_size: " << shmem_size << std::endl;
 			// This will tell us how to read the matrixes and reconstruct the SharedImageMatrix
 			size_t shmem_data_offset = shmem_size - sizeof (shmem_data);
 			shmem_data *stored_shmem_data = (shmem_data *)(mmap_ptr + shmem_data_offset);
-			if (stored_shmem_data->bits == 8 || stored_shmem_data->bits == 16) {
-				ColorMode = stored_shmem_data->ColorMode;
-				bits = stored_shmem_data->bits;
-			} else {
-				error_str = string_format ("error when mapping existing shmem: stored data bits is not 8 or 16: %ld", (long)stored_shmem_data->bits);
-				break;
-			}
-			// The width and height are set below if the stored width and height are consistent with the shared memory size.
-			// We do need to set the ColorMode to ensure correct calculation of sizes.
 
 			// ensure that the memory size is correct.
 			size_t stored_mat_shmem_size, stored_clr_plane_offset, stored_shmem_data_offset;
 			stored_mat_shmem_size = calc_shmem_size (stored_shmem_data->width, stored_shmem_data->height,
 				(stored_shmem_data->ColorMode != cmGRAY),
-				stored_clr_plane_offset, stored_shmem_data_offset);
-			if (stored_mat_shmem_size != shmem_size) {
+				stored_clr_plane_offset, stored_shmem_data_offset
+			);
+			if (stored_mat_shmem_size < shmem_size) {
 				error_str = string_format ("error when mapping existing shmem: stored data requires %lu bytes, but shmem size is %lu bytes",
 					(unsigned long)stored_mat_shmem_size, (unsigned long)shmem_size);
 				break;
@@ -323,7 +314,9 @@ std::cout << "shmem_size: " << shmem_size << std::endl;
 					(unsigned int)stored_shmem_data->width, (unsigned int)stored_shmem_data->height);
 				break;
 			}
-			
+			ColorMode = stored_shmem_data->ColorMode;
+			bits = stored_shmem_data->bits;
+
 			// The recovered object is as verified as we can manage, so release and unlink the semaphore.
 			sem_post (shmem_sem);
 			sem_close (shmem_sem);
@@ -367,14 +360,14 @@ std::cout << "cache_write" << std::endl;
 	if (shmem_sem != SEM_FAILED) sem_close (shmem_sem);
 	shmem_sem = SEM_FAILED;
 
-	// report the error and exit.  Since we have a clean slate, may want to try again from the beginning.
+	// Report the error, but since we have a clean slate, may want to try again from the beginning.
 	std::cerr << "Errors while recovering cache (cout):" << std::endl;
 	std::cerr << error_str << std::endl;
 	return (cache_status);
 }
 
-// This method should only be called to finalize an object that will be stored in the cache.
-// It should not be called on objects retrieved from the cache.
+// This method must be called to finalize an object that will be stored in the cache.
+// It should must not be called on objects retrieved from the cache.
 void SharedImageMatrix::Cache ( ) {
 
 	assert (!was_cached && "Called Cache on an object that was read from cache.");
@@ -467,7 +460,7 @@ void Transform::print_info() {
 
 SharedImageMatrix* Transform::transform( SharedImageMatrix * matrix_IN ) {
 	SharedImageMatrix *matrix_OUT = new SharedImageMatrix;
-	CacheStatus cache_status = matrix_OUT->fromCache (matrix_IN->GetShmemName(), name);
+	CacheStatus cache_status = matrix_OUT->fromCache (name, matrix_IN->GetShmemName());
 	
 	if (cache_status == cache_write) {
 		execute (matrix_IN, matrix_OUT);
