@@ -37,14 +37,20 @@ class SharedImageMatrix: public ImageMatrix {
 		static void DisableDestructorCacheCleanup (const bool status) {disable_destructor_cache_cleanup = status;};
 
 	private:
-		void SetShmemName();
-		static const size_t calc_shmem_size (const unsigned int w, const unsigned int h, const bool color, size_t &clr_plane_offset, size_t &shmem_data_offset);
-		std::string cached_source;        // the shmem_name of the source.
-		std::string operation;            // the operation on the cached_source
-		std::string shmem_name;           // concatenated cached_source + operation, MD5 digest, Base 64-encoded
+		// class statics
 		static size_t shmem_page_size;
 		static bool never_read;
 		static bool disable_destructor_cache_cleanup;
+
+		// private class methods
+		static const size_t calc_shmem_size (const unsigned int w, const unsigned int h, const enum ColorModes ColorMode, size_t &clr_plane_offset, size_t &shmem_data_offset);
+		// private instance methods
+		void SetShmemName();
+
+		// private object fields
+		std::string cached_source;        // the shmem_name of the source.
+		std::string operation;            // the operation on the cached_source
+		std::string shmem_name;           // concatenated cached_source + operation, MD5 digest, Base 64-encoded
 		bool was_cached;
 		size_t shmem_size;
 		int shmem_fd;

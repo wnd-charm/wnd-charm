@@ -44,7 +44,7 @@ struct shmem_data {
 	uint8_t bits;
 };
 
-// storage and initialization for the object static storing the page size.
+// storage and initialization for the object statics
 size_t SharedImageMatrix::shmem_page_size = sysconf(_SC_PAGE_SIZE);
 bool SharedImageMatrix::never_read = false;
 bool SharedImageMatrix::disable_destructor_cache_cleanup = false;
@@ -66,15 +66,17 @@ void SharedImageMatrix::SetShmemName ( ) {
 	
 }
 
-// This is a helper method to calculate offsets into shared memory.
-const size_t SharedImageMatrix::calc_shmem_size (const unsigned int w, const unsigned int h, const bool color, size_t &clr_plane_offset, size_t &shmem_data_offset) {
+// This is a helper class method to calculate offsets into shared memory.
+// Note that this is a class method declared as static in the header.
+//   It is not declared static here because static in a .cpp means something else entirely.
+const size_t SharedImageMatrix::calc_shmem_size (const unsigned int w, const unsigned int h, const enum ColorModes ColorMode, size_t &clr_plane_offset, size_t &shmem_data_offset) {
 	size_t new_mat_size = w * h;
 	size_t new_shmem_size = new_mat_size * sizeof (double);
 	// Expand the size to be a multiple of the page size.
 	new_shmem_size = ( (1 + (new_shmem_size / shmem_page_size)) * shmem_page_size );
 	// The color plane starts at a page boundary.
 	clr_plane_offset = new_shmem_size;
-	if (color) new_shmem_size += new_mat_size * sizeof (HSVcolor);
+	if (ColorMode != cmGRAY) new_shmem_size += new_mat_size * sizeof (HSVcolor);
 	// the shmem_data_t struct is stored at the end to preserve page-size memory alignment for Eigen.
 	new_shmem_size += sizeof (shmem_data);
 	// Expand the total size to be a multiple of the page size.
@@ -98,7 +100,7 @@ void SharedImageMatrix::allocate (unsigned int w, unsigned int h) {
 
 	// calculate the size of the required shared memory block
 	size_t new_shmem_size, clr_plane_offset, shmem_data_offset;
-	new_shmem_size = calc_shmem_size (w, h, (ColorMode != cmGRAY), clr_plane_offset, shmem_data_offset);
+	new_shmem_size = calc_shmem_size (w, h, ColorMode, clr_plane_offset, shmem_data_offset);
 	std::cout << " shmem_size: " << new_shmem_size << " pages: " << new_shmem_size / shmem_page_size << std::endl;
 
 	// Map shared memory object for writing
@@ -295,8 +297,7 @@ std::cout << "shmem_size: " << shmem_size << std::endl;
 			// ensure that the memory size is correct.
 			size_t stored_mat_shmem_size, stored_clr_plane_offset, stored_shmem_data_offset;
 			stored_mat_shmem_size = calc_shmem_size (stored_shmem_data->width, stored_shmem_data->height,
-				(stored_shmem_data->ColorMode != cmGRAY),
-				stored_clr_plane_offset, stored_shmem_data_offset
+				stored_shmem_data->ColorMode, stored_clr_plane_offset, stored_shmem_data_offset
 			);
 			if (stored_mat_shmem_size < shmem_size) {
 				error_str = string_format ("error when mapping existing shmem: stored data requires %lu bytes, but shmem size is %lu bytes",
