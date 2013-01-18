@@ -466,6 +466,10 @@ class FisherFeatureWeights( FeatureWeights ):
 		Ic = number of images in a given class
 		"""
 
+		# Something in this function causes a numerical underflow exception to be raised
+		# Ignore it for now. - CEC
+		np.seterr (under='ignore')
+
 		if training_set == None:
 			import inspect
 			form_str = 'You passed in a None as a training set to the function {0}.{1}'	
@@ -529,6 +533,9 @@ class FisherFeatureWeights( FeatureWeights ):
 		# the filled(0) method of the masked array sets all nan and infs to 0
 		new_fw.values = feature_weights_m.filled(0).tolist()
 		new_fw.associated_training_set = training_set
+
+		# Reset numpy 
+		np.seterr (all='raise')
 	
 		return new_fw
 
