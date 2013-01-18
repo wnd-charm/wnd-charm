@@ -88,8 +88,6 @@ setup (name = 'pychrm',
 	packages = ['pychrm'],
 	install_requires=[
 		'numpy',
-		'scipy',
-		'matplotlib',
 		'argparse',
 	],
 )
