@@ -88,13 +88,8 @@ setup (name = 'pychrm',
 	packages = ['pychrm'],
 	install_requires=[
 		'numpy',
-		'numpy-f2py',
 		'scipy',
 		'matplotlib',
 		'argparse',
-		'stringformat >= 0.4',
 	],
-	dependency_links = [
-        "https://github.com/igg/stringformat/tarball/0.4egg=stringformat-0.4"
-    ],
 )
