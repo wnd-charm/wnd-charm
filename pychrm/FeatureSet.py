@@ -329,7 +329,7 @@ class FeatureVector(object):
 		if len( self.values ) != len( self.names ):
 			raise RuntimeError( "Instance of {0} is invalid: ".format( self.__class__ ) + \
 			  "different number of values ({0}) and names ({1}).".format( \
-			  len( self.feature_values ), len( self.feature_names ) ) )
+			  len( self.values ), len( self.names ) ) )
 		return True
 
 #############################################################################
