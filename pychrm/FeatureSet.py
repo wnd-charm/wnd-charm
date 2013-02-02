@@ -49,6 +49,7 @@ Pychrm TODO (in no particular order):
 * Implement ability to define continuous classification bin walls, based on which
   classification (i.e., predicted value) can be called "correct" or "incorrect"
   and consequently confusion/similarity matrices can be built.
+* Add ability to remove sample/image/time by specifying name or index
 """
 
 # ===========================================================
@@ -1894,7 +1895,7 @@ class FeatureSet_Discrete( FeatureSet ):
 
 	#==============================================================
 	@classmethod
-	def NewFromDirectory( cls, top_level_dir_path, feature_set = "large", write_sig_files_todisk = True ):
+	def NewFromDirectory( cls, top_level_dir_path, feature_set = "large", write_sig_files_todisk = False ):
 		"""@brief Equivalent to the "wndchrm train" command from the C++ implementation by Shamir.
 		Read the the given directory, parse its structure, and populate the member
 		self.imagenames_list. Then call another function to farm out the calculation of each 
@@ -3223,6 +3224,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 			for row in self.test_set.classnames_list:
 				for col in self.training_set.classnames_list:
 					self.similarity_matrix[ row ][ col ] /= self.similarity_matrix[ row ][ row ]
+					self.similarity_matrix[ col ][ row ] /= self.similarity_matrix[ row ][ row ]
 
 
 		self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
@@ -3249,18 +3251,28 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 		print ""
 
-		column_headers = "\t".join( self.training_set.classnames_list )
+		# Remember: iterate over the sorted list of class names, not the keys in the dict,
+		# because the dict keys aren't guaranteed to be ordered, nor is test_set.classnames_list.
+		# Also remember: there may be different numbers of classes in train and test set
+		# or they may be named differently.
+
+		train_set_class_names = sorted( self.training_set.classnames_list )
+		test_set_class_names = sorted( self.test_set.classnames_list )
+
+		column_headers = "\t".join( train_set_class_names )
 		column_headers += "\n"
-		column_headers += "\t".join( [ '-'*len(name) for name in self.training_set.classnames_list ] )
+		column_headers += "\t".join( [ '-'*len(name) for name in train_set_class_names ] )
 
 		print "Confusion Matrix:"
 		print column_headers
-		# Remember: iterate over the list of names, not the keys in the dict,
-		# because the dict keys aren't guaranteed to be ordered.
-		for row in self.test_set.classnames_list:
+
+		# See how the row labels are test set class names
+		# and the column labels are training set class names?
+
+		for row_name in test_set_class_names:
 			line = ""
-			for col in self.test_set.classnames_list:
-				line += '{0}\t'.format( self.confusion_matrix[row][col] )
+			for col_name in train_set_class_names:
+				line += '{0}\t'.format( self.confusion_matrix[ row_name ][ col_name ] )
 			print line
 
 		print ""
@@ -3268,19 +3280,19 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		if self.similarity_matrix:
 			print "Similarity Matrix:"
 			print column_headers
-			for row in self.test_set.classnames_list:
+			for row_name in test_set_class_names:
 				line = ""
-				for col in self.test_set.classnames_list:
-					line += '{0:0.4f}\t'.format( self.similarity_matrix[row][col] )
+				for col_name in train_set_class_names:
+					line += '{0:0.4f}\t'.format( self.similarity_matrix[ row_name ][ col_name ] )
 				print line
 			print ""
 
 		print "Average Class Probability Matrix:"
 		print column_headers
-		for row in self.test_set.classnames_list:
+		for row_name in test_set_class_names:
 			line = ""
-			for col in self.test_set.classnames_list:
-				line += '{0:0.4f}\t'.format( self.average_class_probability_matrix[row][col] )
+			for col_name in train_set_class_names:
+				line += '{0:0.4f}\t'.format( self.average_class_probability_matrix[ row_name ][ col_name ] )
 			print line
 		print ""
 	
@@ -3369,7 +3381,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 	#==============================================================
 	@classmethod
 	@output_railroad_switch
-	def New( cls, training_set, test_set, feature_weights, batch_number = None, batch_name = None, quiet = False):
+	def New( cls, training_set, test_set, feature_weights, batch_number = None, batch_name = None, quiet = False, norm_factor_threshold = None):
 		"""The equivalent of the "wndcharm classify" command in the command line implementation
 		of WND-CHARM. Input a training set, a test set, and feature weights, and returns a
 		new instance of a DiscreteBatchClassificationResult, with self.individual_results
@@ -3426,7 +3438,9 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 			for test_image_index in range( num_class_imgs ):
 				one_image_features = test_set.data_list[ test_class_index ][ test_image_index,: ]
 				result = DiscreteImageClassificationResult._WND5( training_set, one_image_features, feature_weights.values )
-
+				
+				if norm_factor_threshold and (result.normalization_factor > norm_factor_threshold):
+					continue
 				result.source_file = test_set.imagenames_list[ test_class_index ][ test_image_index ]
 				result.ground_truth_class_name = test_set.classnames_list[ test_class_index ]
 				result.batch_number = batch_number
