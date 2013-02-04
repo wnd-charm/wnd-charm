@@ -216,7 +216,7 @@ std::cout << "cache_read" << std::endl;
 			assert (!never_read && "SharedImageMatrix Class is set to never read, but the lockfile still exists after unlinking it!");
 			// This is an immediate read, and we already have a read lock
 			shmem_fd = shm_open(shmem_name.c_str(), O_RDONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-			if (!shmem_fd < 0) {
+			if (shmem_fd < 0) {
 				error_str = std::string ("shm_open error when reading: ") + strerror(errno);
 				break;
 			}
@@ -293,9 +293,9 @@ std::cout << "recovered size: " << width << "," << height << std::endl;
 		case WORMfile::WORM_WR:
 std::cout << "cache_write" << std::endl;
 			// Since we have a write-lock, we open the shmem for writing, creation, and truncation.
-			shmem_fd = shm_open(shmem_name.c_str(), O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-			if (!shmem_fd < 0) {
-				error_str = std::string ("shm_open error when writing: ") + strerror(errno);
+			shmem_fd = shm_open(shmem_name.c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+			if (shmem_fd < 0) {
+				error_str = string_format ("shm_open error when writing: %s (%d)", strerror(errno), errno);
 				break;
 			}
 			was_cached = false;
