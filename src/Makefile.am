@@ -66,6 +66,8 @@ libchrm_la_SOURCES = \
        FeatureTransforms.h \
        FeatureAlgorithms.cpp \
        FeatureAlgorithms.h \
+       WORMfile.cpp \
+       WORMfile.h \
        gsl/specfunc.cpp \
        gsl/specfunc.h \
        b64/cdecode.c \

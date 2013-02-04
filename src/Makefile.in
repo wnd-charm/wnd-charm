@@ -113,8 +113,9 @@ am_libchrm_la_OBJECTS = libchrm_la-FuzzyCalc.lo \
 	libchrm_la-WaveletMedium.lo libchrm_la-wt.lo \
 	libchrm_la-cmatrix.lo libchrm_la-wndchrm_error.lo \
 	libchrm_la-FeatureTransforms.lo \
-	libchrm_la-FeatureAlgorithms.lo libchrm_la-specfunc.lo \
-	cdecode.lo cencode.lo libchrm_la-sha1.lo libchrm_la-md5.lo
+	libchrm_la-FeatureAlgorithms.lo libchrm_la-WORMfile.lo \
+	libchrm_la-specfunc.lo cdecode.lo cencode.lo \
+	libchrm_la-sha1.lo libchrm_la-md5.lo
 libchrm_la_OBJECTS = $(am_libchrm_la_OBJECTS)
 libchrm_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(libchrm_la_CXXFLAGS) \
@@ -649,6 +650,8 @@ libchrm_la_SOURCES = \
        FeatureTransforms.h \
        FeatureAlgorithms.cpp \
        FeatureAlgorithms.h \
+       WORMfile.cpp \
+       WORMfile.h \
        gsl/specfunc.cpp \
        gsl/specfunc.h \
        b64/cdecode.c \
@@ -757,6 +760,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-FilterSet.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-FuzzyCalc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-Symlet5.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-WORMfile.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-Wavelet.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-WaveletHigh.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-WaveletLow.Plo@am__quote@
@@ -1027,6 +1031,13 @@ libchrm_la-FeatureAlgorithms.lo: FeatureAlgorithms.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='FeatureAlgorithms.cpp' object='libchrm_la-FeatureAlgorithms.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_la-FeatureAlgorithms.lo `test -f 'FeatureAlgorithms.cpp' || echo '$(srcdir)/'`FeatureAlgorithms.cpp
+
+libchrm_la-WORMfile.lo: WORMfile.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -MT libchrm_la-WORMfile.lo -MD -MP -MF $(DEPDIR)/libchrm_la-WORMfile.Tpo -c -o libchrm_la-WORMfile.lo `test -f 'WORMfile.cpp' || echo '$(srcdir)/'`WORMfile.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libchrm_la-WORMfile.Tpo $(DEPDIR)/libchrm_la-WORMfile.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='WORMfile.cpp' object='libchrm_la-WORMfile.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_la-WORMfile.lo `test -f 'WORMfile.cpp' || echo '$(srcdir)/'`WORMfile.cpp
 
 libchrm_la-specfunc.lo: gsl/specfunc.cpp
 @am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -MT libchrm_la-specfunc.lo -MD -MP -MF $(DEPDIR)/libchrm_la-specfunc.Tpo -c -o libchrm_la-specfunc.lo `test -f 'gsl/specfunc.cpp' || echo '$(srcdir)/'`gsl/specfunc.cpp

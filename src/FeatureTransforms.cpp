@@ -48,6 +48,9 @@ struct shmem_data {
 size_t SharedImageMatrix::shmem_page_size = sysconf(_SC_PAGE_SIZE);
 bool SharedImageMatrix::never_read = false;
 bool SharedImageMatrix::disable_destructor_cache_cleanup = false;
+pid_t SharedImageMatrix::PID = getpid();
+std::string SharedImageMatrix::PID_string = string_format ("%lld",(long long)SharedImageMatrix::PID);
+
 
 
 void SharedImageMatrix::SetShmemName ( ) {
@@ -85,6 +88,8 @@ const size_t SharedImageMatrix::calc_shmem_size (const unsigned int w, const uns
 	return (new_shmem_size);
 }
 
+
+// override of parent class allocate method to use shared memory.
 // This method sets up the shared memory to accomodate the matrixes, and maps the Eigen maps to use it for their data.
 // It is also able to resize an existing shared memory object.
 void SharedImageMatrix::allocate (unsigned int w, unsigned int h) {
@@ -144,11 +149,9 @@ void SharedImageMatrix::allocate (unsigned int w, unsigned int h) {
 	
 	// If this memory gets read from cache, we wont know the size of the matrix,
 	// so we store the shmem_data at the end of the shmem to tell us how to read it later.
-	shmem_data *stored_shmem_data = (shmem_data *)(mmap_ptr + shmem_data_offset);
-	stored_shmem_data->width = width;
-	stored_shmem_data->height = height;
-	stored_shmem_data->ColorMode = ColorMode;
-	stored_shmem_data->bits = bits;
+	// However, to ensure that read-validation passes only after a successful call to Cache(),
+	// we set this region of memory to 0.
+	memset((mmap_ptr + shmem_data_offset), 0, sizeof (shmem_data));
 }
 
 // This returns a CacheStatus enum explaining what happened with the cache
@@ -160,110 +163,58 @@ void SharedImageMatrix::allocate (unsigned int w, unsigned int h) {
 // The chached_source_in and operation_in parameters are optional.
 //   If not empty, they will replace their private couterparts before calculating the shmem_name
 
-const CacheStatus SharedImageMatrix::fromCache (const std::string operation_in, const std::string cached_source_in) {
-	CacheStatus cache_status = cache_unknown;
-	std::string error_str;
-	
-std::cout <<         "-------- called SharedImageMatrix::fromCache on [" << cached_source << "]->[" << operation << "]" <<std::endl;;
+void SharedImageMatrix::fromCache (const std::string cached_source_in, const std::string operation_in) {	
 	// Make sure the shared memory has a name
 	if (!cached_source_in.empty()) cached_source = cached_source_in;
 	if (!operation_in.empty()) operation = operation_in;
+std::cout <<         "-------- called SharedImageMatrix::fromCache on [" << cached_source << "]->[" << operation << "]" <<std::endl;;
 	SetShmemName();
 
 	// Shared memory access with concurrent processes
 	// Only one process should be able to write the shared memory.  All others must wait if necessary and then read only.
+	// There are lots of issues revolving around concurrency using POSIX "real time" methods. TL; DNR: Don't bother to try it.
 	// The POSIX standard says that fcntl locks on shared memory are "unspecified".
 	// Although they do currently work on linux, they do not currently work on OS X. The status of BSD, Solaris, etc. is unknown.
-	// Instead, we will use POSIX semaphores to ensure exclusive write access.
-	// The semaphore has the same name as the shared memory segment, and it has an associated value.
-	// For our purposes, the semaphore can be in two states: value > 0 (shmem is readable) or value == 0 (shmem is being updated by another process).
-	// We have to be careful not to leak semaphores, so we have to:
-	// Created the semaphore in an unlocked state (value = 1), immediately unlink it, and then call try_wait on it.
-	// if the try_wait call succeeds, it also locks the semaphore, indicating we have exclusive read or write access.
-	// if it does not succeed and gives an EAGAIN error, it means we could not get a lock because of write operations, so we must call sem_wait, then read.
-	// if the process quits at any time, the postponed sem_unlink call will take effect, so a subsequent call to sem_open will crate an unlocked semaphore.
-	// The shmem lifetime events are then:
-	// locked semaphore -> Create shmem -> mature/write shmem -> post semaphore -> readable shmem -> close semaphore -> unlink shmem
-	// After a successful sem_open (O_CREAT) and try_wait(),
-	// an EEXIST on shm_open (O_RDWR|O_CREAT|O_EXCL) tells us the shmem is ready for reading, so we:
-	//   shm_open (O_RDONLY) -> mmap (PROT_READ) ...
-	// A successful shm_open (O_RDWR|O_CREAT|O_EXCL) tells us that we just created the shmem, and it is ready for exclusive writing.
-	// Any other error indicates that "bad things happened"
-	// Regardless of the nature of the "bad things" that did happen, the response is to unlink the sem and the shmem and start all over.
+	// POSIX named/shared semaphores are unusable in a real world containing uncaught and uncatchable signals for two reasons:
+	//      1) A process that dies with a locked semaphore will cause all other processes waiting for that semaphore
+	//       to wait forever.  Uncaught signals cause deadlocks.
+	//      2) Uncaught signals prevent semaphores from being opened/created in a known state.  A process may assume
+	//       that its creating a semaphore in a known state, but it may be re-attaching to a pre-existing semaphore
+	//       locked by a dead process.  No way to know which.
+	//    2.5) The standard is ambiguous with regards to unlinking semaphores.  As worded, a sem_unlink() will cause
+	//       subsequent sem_open to attach to a new semaphore even though the unlinked semaphore won't actually be destroyed
+	//       until a later call to sem_close (directly or indirectly b/c of process termination).  This suggests that we may
+	//       have two *different* named semaphores on the same system with the exact same name!
+	//       From <http://pubs.opengroup.org/onlinepubs/7908799/xsh/sem_unlink.html>:
+	//         "Calls to sem_open() to re-create or re-connect to the semaphore refer to a new semaphore after sem_unlink() is called"
+	//       This is clearly bogus, especially if its actually implemented this way.
+	//    2.8) There is no mechanism by which to list and clean up "stale" POSIX semaphores. ipcs/ipcrm only works with SysV semaphores.
+	// Anonymous/unnamed POSIX semaphores sound nice, but they can only be used for related processes (not unrelated),
+	//    and in any case, they are unimplemented on OS X.
+	// SysV semaphores are well supported can revert/undo their state when a process with a locked semaphore terminates - they remain a viable option.
+	// However, the SysV interface is deprecated in favor of the unworkable POSIX named semaphore interface.  Progress!
+	// Yet another option is to use the POSIX thread API to get a rwlock on the shared memory, storing the lock structure in the shared memory,
+	// and ensuring that it is only initialized once using the once call.  Unfortunately, this is implementation-dependent because support for
+	// the shared flag for an rwlock is optional, and is not supported on OS X.
+	// OS X in other words leaves with a single workable option: Use a file lock (or SysV semaphores).
 
-	// This first section results in a locked semaphore and possibly a shmem_fd ready for writing.
-	// If there were errors with the semaphore or opening shmem, the semaphore is cleaned up.
-	// open or create an unlocked semaphore
-	shmem_sem = sem_open(shmem_name.c_str(), O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH, 1);
-	int shmem_sem_locked = EAGAIN;
-	if (shmem_sem == SEM_FAILED) {
-		// This is an error - something bad happened
-		error_str = std::string ("sem_open error: ") + strerror(errno);
-	} else {
-		// The sem_unlink call is postponed until we call sem_close or we terminate.
-		// Calling it here ensures that it will be called if we terminate.
-		sem_unlink (shmem_name.c_str());
-		// Try to lock the semaphore.
-		shmem_sem_locked = sem_trywait (shmem_sem);
-		if (shmem_sem_locked == EAGAIN) {
-			// another process has an exclusive semaphore lock, so we wait for it to finish
-			if (sem_wait (shmem_sem) == 0) {
-				// after a successful wait, the shmem should be ready for reading.
-				cache_status = cache_read;				
-			} else {
-				// If sem_wait returned an error, then something bad happened.
-				error_str = std::string ("sem_wait error: ") + strerror(errno);
-				sem_close (shmem_sem);
-				shmem_sem = SEM_FAILED;
-			}
-
-		} else if (shmem_sem_locked == 0) {
-			// We have an exclusive lock on the semaphore, either because shmem is ready for reading or because it doesn't exist yet.
-			// First, try to create/open shmem exclusively.
-			// To force a write every time, unlink the shmem at this point:
-			if (never_read) shm_unlink (shmem_name.c_str());
-			shmem_fd = shm_open(shmem_name.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-			if (shmem_fd > -1) {
-				// We have exclusive write access because we just created the shmem.
-				// The allocate() method takes care of using the shared memory at shmem_fd.
-				errno = 0;
-				cache_status = cache_write;
-			} else if (shmem_fd < 0 && errno == EEXIST) {
-				// not an error: shmem_fd is invalid because the shmem exists
-				// This means we should be ready to read.
-				errno = 0;
-				cache_status = cache_read;
-				assert (!never_read && "SharedImageMatrix Class is set to never read, but object still exists after unlinking it!");
-			} else {
-				// This is an error - something bad happened
-				error_str = std::string ("shm_open error when opening/creating: ") + strerror(errno);
-				// Clean up the semaphore.
-				sem_close (shmem_sem);
-				shmem_sem = SEM_FAILED;
-			}
-
-		} else {
-			// Some bad things happened trying to lock the semaphore.
-			error_str = std::string ("sem_trywait error: ") + strerror(errno);
-			// Clean up the semaphore.
-			sem_close (shmem_sem);
-			shmem_sem = SEM_FAILED;
-		}
-	}
-	
-	// This section is responsible for doing an immediate read or write.
-	// The semaphore is already taken care of if it had an error.
-	// Otherwise, the semaphore is locked.
-	switch (cache_status) {
-		case cache_unknown:
-			// don't deal with errors yet.
-			break;
-		break;
+	// Use WORMfile to determine if we should read or write. This creates a lockfile with the same name as our shared memory in the /tmp/ directory.
+	// Since this is a Write-Once-Read-Many file, asking for a write lock may result in a read lock. A stale (empty) file will result in a write lock.
+	// Asking it to wait until some kind of lock can be made will ensure that we only need to deal with immediate reads or writes at this point.
+	lock_file.path = std::string ("/tmp").append (shmem_name);
+	// if the never_read flag is set, we unlink the lock_file before opening it, so we always get a write-lock.
+	if (never_read) unlink (lock_file.path.c_str());
+	// Use the reopen method since the constructor was never called. Send optional parameters for not-read-only, wait for lock.
+	lock_file.reopen (false, true);
 		
-		case cache_read: {
+	// This section is responsible for doing an immediate read or write.
+	// The lock is already taken care of if it had an error.
+	// Otherwise, we have either a readlock or a write lock, but no open shmem.
+	switch (lock_file.status) {
+		case WORMfile::WORM_RD: {
 std::cout << "cache_read" << std::endl;
-			// This is an immediate read.
-			// We have a locked semaphore, but no open shmem file
+			assert (!never_read && "SharedImageMatrix Class is set to never read, but the lockfile still exists after unlinking it!");
+			// This is an immediate read, and we already have a read lock
 			shmem_fd = shm_open(shmem_name.c_str(), O_RDONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 			if (!shmem_fd < 0) {
 				error_str = std::string ("shm_open error when reading: ") + strerror(errno);
@@ -317,11 +268,6 @@ std::cout << "shmem_size: " << shmem_size << std::endl;
 			}
 			ColorMode = stored_shmem_data->ColorMode;
 			bits = stored_shmem_data->bits;
-
-			// The recovered object is as verified as we can manage, so release and unlink the semaphore.
-			sem_post (shmem_sem);
-			sem_close (shmem_sem);
-			shmem_sem = SEM_FAILED;
 			
 			// The pixels are read-only.
 			WriteablePixelsFinish ();
@@ -331,24 +277,43 @@ std::cout << "shmem_size: " << shmem_size << std::endl;
 			cached_source = shmem_name;
 			operation = "";
 			was_cached = true;
+			cache_status = csREAD;
+			
+			// close the lockfile
+			// Since this is a WORM file, we don't need to maintain an active readlock
+			lock_file.finish();
+
 
 std::cout << "recovered size: " << width << "," << height << std::endl;
-			return (cache_status);
+			error_str = "";
+			return;
 		}
 		break;
 		
-		case cache_write:
+		case WORMfile::WORM_WR:
 std::cout << "cache_write" << std::endl;
-			return (cache_status);
+			// Since we have a write-lock, we open the shmem for writing, creation, and truncation.
+			shmem_fd = shm_open(shmem_name.c_str(), O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+			if (!shmem_fd < 0) {
+				error_str = std::string ("shm_open error when writing: ") + strerror(errno);
+				break;
+			}
+			was_cached = false;
+			error_str = "";
+			cache_status = csWRITE;
+			// Do not release the write-lock or close the lockfile at this point - only after we're done writing by calling Cache().
+			return;
 		break;
 		
-		case cache_wait:
-		// this can't happen here.
+		default:
+			error_str = string_format ("error getting lock on lockfile '%s': %s", lock_file.path.c_str(), strerror(lock_file.status_errno));
+			was_cached = false;
 		break;
 	}
 
-	// Not having returned at this point means we had an error while reading.
-	// We have a locked semaphore, possibly an open shmem_fd, possibly an mmap_ptr to clean up.
+	// Not having returned at this point means we had an error.
+	cache_status = csERROR;
+	// Leave a clean slate for a subsequent attempt: no lock file, no shmem.
 	// unmap if there is an mmap_ptr
 	if (mmap_ptr != MAP_FAILED) munmap (mmap_ptr, shmem_size);
 	mmap_ptr = (byte *)MAP_FAILED;
@@ -357,33 +322,42 @@ std::cout << "cache_write" << std::endl;
 	shmem_fd = -1;
 	// unlink the shmem file
 	shm_unlink (shmem_name.c_str());
-	// close and unlink the semaphore
-	if (shmem_sem != SEM_FAILED) sem_close (shmem_sem);
-	shmem_sem = SEM_FAILED;
+	// close and unlink the lock
+	lock_file.finish();
+	unlink (lock_file.path.c_str());
+	lock_file = WORMfile();
 
-	// Report the error, but since we have a clean slate, may want to try again from the beginning.
-	std::cerr << "Errors while recovering cache (cout):" << std::endl;
-	std::cerr << error_str << std::endl;
-	return (cache_status);
+	return;
 }
 
 // This method must be called to finalize an object that will be stored in the cache.
-// It should must not be called on objects retrieved from the cache.
+// It must not be called on objects retrieved from the cache.
 void SharedImageMatrix::Cache ( ) {
 
 	assert (!was_cached && "Called Cache on an object that was read from cache.");
 std::cout <<         "-------- called SharedImageMatrix::Cache on [" << cached_source << "]->[" << operation << "]" <<std::endl;;
 	SetShmemName();
-
-	// Since shared memory was set up in the fromCache call,
-	// all that's left to do here is make sure its finalized and ready to use by others
-	WriteablePixelsFinish();
-	WriteableColorsFinish();
-	if (shmem_sem != SEM_FAILED) {
-		sem_post (shmem_sem);
-		sem_close (shmem_sem);
-		shmem_sem = SEM_FAILED;
-	}
+	
+	// make the shmem_data region valid.
+	shmem_data *stored_shmem_data = (shmem_data *)(mmap_ptr + shmem_size - sizeof(shmem_data));
+	stored_shmem_data->width = width;
+	stored_shmem_data->height = height;
+	stored_shmem_data->ColorMode = ColorMode;
+	stored_shmem_data->bits = bits;
+	
+	// make the lockfile valid (zero-length files count as "stale")
+	write (lock_file.fd(),  PID_string.data(), PID_string.length());
+	// this closes the lockfile, releasing all locks.
+	lock_file.finish();
+	
+	// This object should now be indistinguishable from a cached object
+	// This is not strictly true because the memory is still mapped with write permissions.
+	// However, attempting a write by calling WriteablePixels or allocate will result in run-time assertions.
+	WriteablePixelsFinish ();
+	if (ColorMode != cmGRAY) WriteableColorsFinish ();
+	cached_source = shmem_name;
+	operation = "";
+	was_cached = true;
 }
 
 
@@ -393,36 +367,38 @@ int SharedImageMatrix::OpenImage(char *image_file_name,
 		int downsample, rect *bounding_rect,
 		double mean, double stddev) {
 
+	std::string open_operation;
 	int fildes = open (image_file_name, O_RDONLY);
 	if (fildes > -1) {
 		struct stat the_stat;
 		fstat (fildes, &the_stat);
 		close (fildes);
-		operation = string_format ("Open_%lld_%lld", (long long)the_stat.st_dev, (long long)the_stat.st_ino);
+		open_operation = string_format ("Open_%lld_%lld", (long long)the_stat.st_dev, (long long)the_stat.st_ino);
 	} else {
-		operation = string_format ("Open_%s", image_file_name);
+		open_operation = string_format ("Open_%s", image_file_name);
 	}
 
 	if (bounding_rect && bounding_rect->x >= 0)
-		operation.append ( string_format ("_Sub_%d_%d_%d_%d",
+		open_operation.append ( string_format ("_Sub_%d_%d_%d_%d",
 			bounding_rect->x, bounding_rect->y,
 			bounding_rect->x+bounding_rect->w-1, bounding_rect->y+bounding_rect->h-1
 		));
 	if (downsample>0 && downsample<100)  /* downsample by a given factor */
-		operation.append ( string_format ("_DS_%lf_%lf",((double)downsample)/100.0,((double)downsample)/100.0) );
+		open_operation.append ( string_format ("_DS_%lf_%lf",((double)downsample)/100.0,((double)downsample)/100.0) );
 	if (mean>0)  /* normalize to a given mean and standard deviation */
-		operation.append ( string_format ("_Nstd_%lf_%lf",mean,stddev) );
+		open_operation.append ( string_format ("_Nstd_%lf_%lf",mean,stddev) );
 
-	CacheStatus cache_status = fromCache ( );
+	// We're setting an empty cached_source since we don't have a shared memory name to begin with.
+	fromCache ("", open_operation);
 	
-	if (cache_status == cache_write) {
+	if (cache_status == csWRITE) {
 		int ret = ImageMatrix::OpenImage (image_file_name,downsample,bounding_rect,mean,stddev);
 		Cache();
 		return (ret);
-	} else if (cache_status == cache_read) {
+	} else if (cache_status == csREAD) {
 		return (1);
 	} else {
-		std::cerr << "Errors while recovering cache" << std::endl;
+		std::cerr << "Errors while recovering cache:" << error_str << std::endl;
 		exit (-1);
 	}
 
@@ -431,26 +407,27 @@ int SharedImageMatrix::OpenImage(char *image_file_name,
 // The destructor will unlink the shared memory unless DisableDestructorCacheCleanup(true) class method has been called.
 SharedImageMatrix::~SharedImageMatrix () {
 std::cout << "SharedImageMatrix DESTRUCTOR for " << shmem_name << std::endl;
+
+	WriteablePixelsFinish();
+	remap_pix_plane (NULL, 0, 0);
+
+	if (ColorMode != cmGRAY) WriteableColorsFinish();
+	remap_clr_plane (NULL, 0, 0);
+
 	if (mmap_ptr != MAP_FAILED) munmap (mmap_ptr, shmem_size);
 	mmap_ptr = (byte *)MAP_FAILED;
 	// close shmem_fd if its open
 	if (shmem_fd > -1) close (shmem_fd);
 	shmem_fd = -1;
-	// unlink the shmem file
+	// close the lockfile
+	lock_file.finish();
+	// unlink the shmem file and the lockfile
 	if (!disable_destructor_cache_cleanup) {
-std::cout << "    unlinking " << shmem_name << std::endl;
+std::cout << "    unlinking POSIX shared memory " << shmem_name << " and lockfile " << lock_file.path << std::endl;
 		shm_unlink (shmem_name.c_str());
+		unlink (lock_file.path.c_str());
 	}
-
-	// close the semaphore
-	if (shmem_sem != SEM_FAILED) sem_close (shmem_sem);
-	shmem_sem = SEM_FAILED;
-
-	WriteablePixelsFinish();
-	remap_pix_plane (NULL, 0, 0);
-
-	WriteableColorsFinish();
-	remap_clr_plane (NULL, 0, 0);
+	cache_status = csUNKNOWN;
 
 }
 
@@ -461,16 +438,16 @@ void Transform::print_info() {
 
 SharedImageMatrix* Transform::transform( SharedImageMatrix * matrix_IN ) {
 	SharedImageMatrix *matrix_OUT = new SharedImageMatrix;
-	CacheStatus cache_status = matrix_OUT->fromCache (name, matrix_IN->GetShmemName());
+	matrix_OUT->fromCache (matrix_IN->GetShmemName(), name);
 	
-	if (cache_status == cache_write) {
+	if (matrix_OUT->Status() == csWRITE) {
 		execute (matrix_IN, matrix_OUT);
 		matrix_OUT->Cache();
 		return (matrix_OUT);
-	} else if (cache_status == cache_read) {
+	} else if (matrix_OUT->Status() == csREAD) {
 		return (matrix_OUT);
 	} else {
-		std::cerr << "Errors while recovering cache (cout):" << std::endl;
+		std::cerr << "Errors while recovering cache:" << matrix_OUT->Error() << std::endl;
 		exit (-1);
 	}
 }

@@ -4984,13 +4984,6 @@ SWIGINTERN void std_vector_Sl_double_Sg__append(std::vector< double > *self,std:
 #include <string>
 
 
-SWIGINTERNINLINE PyObject *
-SWIG_From_std_string  (const std::string& s)
-{
-  return SWIG_FromCharPtrAndSize(s.data(), s.size());
-}
-
-
 SWIGINTERN int
 SWIG_AsPtr_std_string (PyObject * obj, std::string **val) 
 {
@@ -5019,6 +5012,13 @@ SWIG_AsPtr_std_string (PyObject * obj, std::string **val)
     }
   }
   return SWIG_ERROR;
+}
+
+
+SWIGINTERNINLINE PyObject *
+SWIG_From_std_string  (const std::string& s)
+{
+  return SWIG_FromCharPtrAndSize(s.data(), s.size());
 }
 
 #ifdef __cplusplus
@@ -12600,88 +12600,6 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_delete_SharedImageMatrix(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  PyObject * obj0 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"O:delete_SharedImageMatrix",&obj0)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, SWIG_POINTER_DISOWN |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "delete_SharedImageMatrix" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
-  delete arg1;
-  resultobj = SWIG_Py_Void();
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_SharedImageMatrix_GetShmemName(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  PyObject * obj0 = 0 ;
-  std::string result;
-  
-  if (!PyArg_ParseTuple(args,(char *)"O:SharedImageMatrix_GetShmemName",&obj0)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_GetShmemName" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
-  result = (arg1)->GetShmemName();
-  resultobj = SWIG_From_std_string(static_cast< std::string >(result));
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_SharedImageMatrix_allocate(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
-  unsigned int arg2 ;
-  unsigned int arg3 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  unsigned int val2 ;
-  int ecode2 = 0 ;
-  unsigned int val3 ;
-  int ecode3 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  PyObject * obj2 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OOO:SharedImageMatrix_allocate",&obj0,&obj1,&obj2)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_allocate" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
-  ecode2 = SWIG_AsVal_unsigned_SS_int(obj1, &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "SharedImageMatrix_allocate" "', argument " "2"" of type '" "unsigned int""'");
-  } 
-  arg2 = static_cast< unsigned int >(val2);
-  ecode3 = SWIG_AsVal_unsigned_SS_int(obj2, &val3);
-  if (!SWIG_IsOK(ecode3)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "SharedImageMatrix_allocate" "', argument " "3"" of type '" "unsigned int""'");
-  } 
-  arg3 = static_cast< unsigned int >(val3);
-  (arg1)->allocate(arg2,arg3);
-  resultobj = SWIG_Py_Void();
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
 SWIGINTERN PyObject *_wrap_SharedImageMatrix_fromCache__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
@@ -12692,7 +12610,6 @@ SWIGINTERN PyObject *_wrap_SharedImageMatrix_fromCache__SWIG_0(PyObject *SWIGUNU
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
   PyObject * obj2 = 0 ;
-  CacheStatus result;
   
   if (!PyArg_ParseTuple(args,(char *)"OOO:SharedImageMatrix_fromCache",&obj0,&obj1,&obj2)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
@@ -12718,8 +12635,8 @@ SWIGINTERN PyObject *_wrap_SharedImageMatrix_fromCache__SWIG_0(PyObject *SWIGUNU
     arg3 = *ptr;
     if (SWIG_IsNewObj(res)) delete ptr;
   }
-  result = (CacheStatus)(arg1)->fromCache(arg2,arg3);
-  resultobj = SWIG_From_int(static_cast< int >(result));
+  (arg1)->fromCache(arg2,arg3);
+  resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
   return NULL;
@@ -12734,7 +12651,6 @@ SWIGINTERN PyObject *_wrap_SharedImageMatrix_fromCache__SWIG_1(PyObject *SWIGUNU
   int res1 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
-  CacheStatus result;
   
   if (!PyArg_ParseTuple(args,(char *)"OO:SharedImageMatrix_fromCache",&obj0,&obj1)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
@@ -12751,8 +12667,8 @@ SWIGINTERN PyObject *_wrap_SharedImageMatrix_fromCache__SWIG_1(PyObject *SWIGUNU
     arg2 = *ptr;
     if (SWIG_IsNewObj(res)) delete ptr;
   }
-  result = (CacheStatus)(arg1)->fromCache(arg2);
-  resultobj = SWIG_From_int(static_cast< int >(result));
+  (arg1)->fromCache(arg2);
+  resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
   return NULL;
@@ -12765,7 +12681,6 @@ SWIGINTERN PyObject *_wrap_SharedImageMatrix_fromCache__SWIG_2(PyObject *SWIGUNU
   void *argp1 = 0 ;
   int res1 = 0 ;
   PyObject * obj0 = 0 ;
-  CacheStatus result;
   
   if (!PyArg_ParseTuple(args,(char *)"O:SharedImageMatrix_fromCache",&obj0)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
@@ -12773,8 +12688,8 @@ SWIGINTERN PyObject *_wrap_SharedImageMatrix_fromCache__SWIG_2(PyObject *SWIGUNU
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_fromCache" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
   }
   arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
-  result = (CacheStatus)(arg1)->fromCache();
-  resultobj = SWIG_From_int(static_cast< int >(result));
+  (arg1)->fromCache();
+  resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
   return NULL;
@@ -12862,6 +12777,153 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_SharedImageMatrix_Error(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  std::string *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:SharedImageMatrix_Error",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_Error" "', argument " "1"" of type '" "SharedImageMatrix const *""'"); 
+  }
+  arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
+  result = (std::string *) &((SharedImageMatrix const *)arg1)->Error();
+  resultobj = SWIG_From_std_string(static_cast< std::string >(*result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SharedImageMatrix_Status(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  CacheStatus *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:SharedImageMatrix_Status",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_Status" "', argument " "1"" of type '" "SharedImageMatrix const *""'"); 
+  }
+  arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
+  result = (CacheStatus *) &((SharedImageMatrix const *)arg1)->Status();
+  resultobj = SWIG_From_int(static_cast< int >(*result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SharedImageMatrix_GetShmemName(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  std::string *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:SharedImageMatrix_GetShmemName",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_GetShmemName" "', argument " "1"" of type '" "SharedImageMatrix const *""'"); 
+  }
+  arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
+  result = (std::string *) &((SharedImageMatrix const *)arg1)->GetShmemName();
+  resultobj = SWIG_From_std_string(static_cast< std::string >(*result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SharedImageMatrix_DisableCacheRead(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  bool arg1 ;
+  bool val1 ;
+  int ecode1 = 0 ;
+  PyObject * obj0 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:SharedImageMatrix_DisableCacheRead",&obj0)) SWIG_fail;
+  ecode1 = SWIG_AsVal_bool(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "SharedImageMatrix_DisableCacheRead" "', argument " "1"" of type '" "bool""'");
+  } 
+  arg1 = static_cast< bool >(val1);
+  SharedImageMatrix::DisableCacheRead(arg1);
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SharedImageMatrix_DisableDestructorCacheCleanup(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  bool arg1 ;
+  bool val1 ;
+  int ecode1 = 0 ;
+  PyObject * obj0 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:SharedImageMatrix_DisableDestructorCacheCleanup",&obj0)) SWIG_fail;
+  ecode1 = SWIG_AsVal_bool(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "SharedImageMatrix_DisableDestructorCacheCleanup" "', argument " "1"" of type '" "bool""'");
+  } 
+  arg1 = static_cast< bool >(val1);
+  SharedImageMatrix::DisableDestructorCacheCleanup(arg1);
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SharedImageMatrix_allocate(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
+  unsigned int arg2 ;
+  unsigned int arg3 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  unsigned int val3 ;
+  int ecode3 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOO:SharedImageMatrix_allocate",&obj0,&obj1,&obj2)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_allocate" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "SharedImageMatrix_allocate" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  ecode3 = SWIG_AsVal_unsigned_SS_int(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "SharedImageMatrix_allocate" "', argument " "3"" of type '" "unsigned int""'");
+  } 
+  arg3 = static_cast< unsigned int >(val3);
+  (arg1)->allocate(arg2,arg3);
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_SharedImageMatrix_OpenImage(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
@@ -12932,41 +12994,20 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_SharedImageMatrix_DisableCacheRead(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_delete_SharedImageMatrix(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
-  bool arg1 ;
-  bool val1 ;
-  int ecode1 = 0 ;
+  SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
   PyObject * obj0 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)"O:SharedImageMatrix_DisableCacheRead",&obj0)) SWIG_fail;
-  ecode1 = SWIG_AsVal_bool(obj0, &val1);
-  if (!SWIG_IsOK(ecode1)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "SharedImageMatrix_DisableCacheRead" "', argument " "1"" of type '" "bool""'");
-  } 
-  arg1 = static_cast< bool >(val1);
-  SharedImageMatrix::DisableCacheRead(arg1);
-  resultobj = SWIG_Py_Void();
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_SharedImageMatrix_DisableDestructorCacheCleanup(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  bool arg1 ;
-  bool val1 ;
-  int ecode1 = 0 ;
-  PyObject * obj0 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"O:SharedImageMatrix_DisableDestructorCacheCleanup",&obj0)) SWIG_fail;
-  ecode1 = SWIG_AsVal_bool(obj0, &val1);
-  if (!SWIG_IsOK(ecode1)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "SharedImageMatrix_DisableDestructorCacheCleanup" "', argument " "1"" of type '" "bool""'");
-  } 
-  arg1 = static_cast< bool >(val1);
-  SharedImageMatrix::DisableDestructorCacheCleanup(arg1);
+  if (!PyArg_ParseTuple(args,(char *)"O:delete_SharedImageMatrix",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, SWIG_POINTER_DISOWN |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "delete_SharedImageMatrix" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
+  }
+  arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
+  delete arg1;
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -14005,14 +14046,16 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"delete_GiniCoefficient", _wrap_delete_GiniCoefficient, METH_VARARGS, NULL},
 	 { (char *)"GiniCoefficient_swigregister", GiniCoefficient_swigregister, METH_VARARGS, NULL},
 	 { (char *)"new_SharedImageMatrix", _wrap_new_SharedImageMatrix, METH_VARARGS, NULL},
-	 { (char *)"delete_SharedImageMatrix", _wrap_delete_SharedImageMatrix, METH_VARARGS, NULL},
-	 { (char *)"SharedImageMatrix_GetShmemName", _wrap_SharedImageMatrix_GetShmemName, METH_VARARGS, NULL},
-	 { (char *)"SharedImageMatrix_allocate", _wrap_SharedImageMatrix_allocate, METH_VARARGS, NULL},
 	 { (char *)"SharedImageMatrix_fromCache", _wrap_SharedImageMatrix_fromCache, METH_VARARGS, NULL},
 	 { (char *)"SharedImageMatrix_Cache", _wrap_SharedImageMatrix_Cache, METH_VARARGS, NULL},
-	 { (char *)"SharedImageMatrix_OpenImage", _wrap_SharedImageMatrix_OpenImage, METH_VARARGS, NULL},
+	 { (char *)"SharedImageMatrix_Error", _wrap_SharedImageMatrix_Error, METH_VARARGS, NULL},
+	 { (char *)"SharedImageMatrix_Status", _wrap_SharedImageMatrix_Status, METH_VARARGS, NULL},
+	 { (char *)"SharedImageMatrix_GetShmemName", _wrap_SharedImageMatrix_GetShmemName, METH_VARARGS, NULL},
 	 { (char *)"SharedImageMatrix_DisableCacheRead", _wrap_SharedImageMatrix_DisableCacheRead, METH_VARARGS, NULL},
 	 { (char *)"SharedImageMatrix_DisableDestructorCacheCleanup", _wrap_SharedImageMatrix_DisableDestructorCacheCleanup, METH_VARARGS, NULL},
+	 { (char *)"SharedImageMatrix_allocate", _wrap_SharedImageMatrix_allocate, METH_VARARGS, NULL},
+	 { (char *)"SharedImageMatrix_OpenImage", _wrap_SharedImageMatrix_OpenImage, METH_VARARGS, NULL},
+	 { (char *)"delete_SharedImageMatrix", _wrap_delete_SharedImageMatrix, METH_VARARGS, NULL},
 	 { (char *)"SharedImageMatrix_swigregister", SharedImageMatrix_swigregister, METH_VARARGS, NULL},
 	 { (char *)"Transform_transform", _wrap_Transform_transform, METH_VARARGS, NULL},
 	 { (char *)"Transform_execute", _wrap_Transform_execute, METH_VARARGS, NULL},
@@ -15030,10 +15073,11 @@ SWIG_init(void) {
   SWIG_Python_SetConstant(d, "WC_EMPTY",SWIG_From_int(static_cast< int >(WC_EMPTY)));
   SWIG_Python_SetConstant(d, "WC_NOT_IMPLEMENTED",SWIG_From_int(static_cast< int >(WC_NOT_IMPLEMENTED)));
   SWIG_Python_SetConstant(d, "WC_INPUT_IMAGEMATRIX_NULL",SWIG_From_int(static_cast< int >(WC_INPUT_IMAGEMATRIX_NULL)));
-  SWIG_Python_SetConstant(d, "cache_unknown",SWIG_From_int(static_cast< int >(cache_unknown)));
-  SWIG_Python_SetConstant(d, "cache_wait",SWIG_From_int(static_cast< int >(cache_wait)));
-  SWIG_Python_SetConstant(d, "cache_read",SWIG_From_int(static_cast< int >(cache_read)));
-  SWIG_Python_SetConstant(d, "cache_write",SWIG_From_int(static_cast< int >(cache_write)));
+  SWIG_Python_SetConstant(d, "csUNKNOWN",SWIG_From_int(static_cast< int >(csUNKNOWN)));
+  SWIG_Python_SetConstant(d, "csREAD",SWIG_From_int(static_cast< int >(csREAD)));
+  SWIG_Python_SetConstant(d, "csWRITE",SWIG_From_int(static_cast< int >(csWRITE)));
+  SWIG_Python_SetConstant(d, "csWAIT",SWIG_From_int(static_cast< int >(csWAIT)));
+  SWIG_Python_SetConstant(d, "csERROR",SWIG_From_int(static_cast< int >(csERROR)));
 #if PY_VERSION_HEX >= 0x03000000
   return m;
 #else

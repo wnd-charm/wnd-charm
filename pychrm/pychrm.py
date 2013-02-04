@@ -646,10 +646,11 @@ class GiniCoefficient(FeatureAlgorithm):
 GiniCoefficient_swigregister = _pychrm.GiniCoefficient_swigregister
 GiniCoefficient_swigregister(GiniCoefficient)
 
-cache_unknown = _pychrm.cache_unknown
-cache_wait = _pychrm.cache_wait
-cache_read = _pychrm.cache_read
-cache_write = _pychrm.cache_write
+csUNKNOWN = _pychrm.csUNKNOWN
+csREAD = _pychrm.csREAD
+csWRITE = _pychrm.csWRITE
+csWAIT = _pychrm.csWAIT
+csERROR = _pychrm.csERROR
 class SharedImageMatrix(ImageMatrix):
     __swig_setmethods__ = {}
     for _s in [ImageMatrix]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
@@ -662,17 +663,19 @@ class SharedImageMatrix(ImageMatrix):
         this = _pychrm.new_SharedImageMatrix()
         try: self.this.append(this)
         except: self.this = this
-    __swig_destroy__ = _pychrm.delete_SharedImageMatrix
-    __del__ = lambda self : None;
-    def GetShmemName(self): return _pychrm.SharedImageMatrix_GetShmemName(self)
-    def allocate(self, *args): return _pychrm.SharedImageMatrix_allocate(self, *args)
     def fromCache(self, operation_in="", cached_source_in=""): return _pychrm.SharedImageMatrix_fromCache(self, operation_in, cached_source_in)
     def Cache(self): return _pychrm.SharedImageMatrix_Cache(self)
-    def OpenImage(self, *args): return _pychrm.SharedImageMatrix_OpenImage(self, *args)
+    def Error(self): return _pychrm.SharedImageMatrix_Error(self)
+    def Status(self): return _pychrm.SharedImageMatrix_Status(self)
+    def GetShmemName(self): return _pychrm.SharedImageMatrix_GetShmemName(self)
     __swig_getmethods__["DisableCacheRead"] = lambda x: _pychrm.SharedImageMatrix_DisableCacheRead
     if _newclass:DisableCacheRead = staticmethod(_pychrm.SharedImageMatrix_DisableCacheRead)
     __swig_getmethods__["DisableDestructorCacheCleanup"] = lambda x: _pychrm.SharedImageMatrix_DisableDestructorCacheCleanup
     if _newclass:DisableDestructorCacheCleanup = staticmethod(_pychrm.SharedImageMatrix_DisableDestructorCacheCleanup)
+    def allocate(self, *args): return _pychrm.SharedImageMatrix_allocate(self, *args)
+    def OpenImage(self, *args): return _pychrm.SharedImageMatrix_OpenImage(self, *args)
+    __swig_destroy__ = _pychrm.delete_SharedImageMatrix
+    __del__ = lambda self : None;
 SharedImageMatrix_swigregister = _pychrm.SharedImageMatrix_swigregister
 SharedImageMatrix_swigregister(SharedImageMatrix)
 
