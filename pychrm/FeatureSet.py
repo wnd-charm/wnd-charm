@@ -4010,30 +4010,39 @@ class PredictedValuesGraph( BaseGraph ):
 class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 	"""A cost/benefit analysis of the number of features used and the time it takes to calculate
 	that number of features for a single image"""
+
+	#FIXME: Add ability to do the first 50 or 100 features, make the graph, then
+	#       ability to resume from where it left off to do the next 50.
+
 	timing_axes = None
 
 	def __init__( self, training_set, feature_weights, test_image_path, chart_title = None, max_num_features = 300):
 		import time
 		timings = []
 	
-		batch = DiscreteBatchClassificationResult( training_set, training_set, feature_weights) 
 		experiment = DiscreteClassificationExperimentResult( training_set, training_set, feature_weights)
-		for number_of_features_to_use in range( 1, max_num_features ):
+		for number_of_features_to_use in range( 1, max_num_features + 1 ):
 
-			# Time the creation and classification of a single signature
-			t1 = time.time()
-			reduced_fw = feature_weights.Threshold( number_of_features_to_use )
-			sig = Signatures.NewFromFeatureNameList( test_image_path, reduced_fw.names )
-			reduced_ts = training_set.FeatureReduce( reduced_fw.names )
-			sig.Normalize( reduced_ts )
-	
-			result = DiscreteImageClassificationResult.NewWND5( reduced_ts, reduced_fw, sig )
-			result.Print()
-			# FIXME: save intermediates just in case of interruption or parallization
-			# result.PickleMe()
-			t2 = time.time()
-			timings.append( t2 - t1 )
-			batch.individual_results.append( result )
+			reduced_ts = None
+			reduced_fw = None
+			three_timings = []
+			# Take the best of 3
+			for timing in range( 3 ):
+				# Time the creation and classification of a single signature
+				t1 = time.time()
+				reduced_fw = feature_weights.Threshold( number_of_features_to_use )
+				sig = Signatures.NewFromFeatureNameList( test_image_path, reduced_fw.names )
+				reduced_ts = training_set.FeatureReduce( reduced_fw.names )
+				sig.Normalize( reduced_ts )
+		
+				result = DiscreteImageClassificationResult.NewWND5( reduced_ts, reduced_fw, sig )
+				result.Print()
+				# FIXME: save intermediates just in case of interruption or parallization
+				# result.PickleMe()
+				t2 = time.time()
+				three_timings.append( t2 - t1 )
+
+			timings.append( min( three_timings ) )
 
 			# now, do a fit-on-fit test to measure classification accuracy
 			batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, reduced_fw )
@@ -4054,7 +4063,7 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 		self.main_axes.set_xlabel( 'Number of features' )
 		self.main_axes.set_ylabel( 'Classification accuracy (%)', color='b' )
 		classification_accuracies = \
-		  [ batch_result.figure_of_merit * 100 for batch_result in experiment.individual_results ]
+		  [ batch_result.classification_accuracy * 100 for batch_result in experiment.individual_results ]
 
 		self.main_axes.plot( x_vals, classification_accuracies, color='b', linewidth=2 )
 		for tl in self.main_axes.get_yticklabels():
