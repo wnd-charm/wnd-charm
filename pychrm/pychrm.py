@@ -663,7 +663,7 @@ class SharedImageMatrix(ImageMatrix):
         this = _pychrm.new_SharedImageMatrix()
         try: self.this.append(this)
         except: self.this = this
-    def fromCache(self, operation_in="", cached_source_in=""): return _pychrm.SharedImageMatrix_fromCache(self, operation_in, cached_source_in)
+    def fromCache(self, *args): return _pychrm.SharedImageMatrix_fromCache(self, *args)
     def Cache(self): return _pychrm.SharedImageMatrix_Cache(self)
     def Error(self): return _pychrm.SharedImageMatrix_Error(self)
     def Status(self): return _pychrm.SharedImageMatrix_Status(self)

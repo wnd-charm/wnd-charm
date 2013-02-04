@@ -12675,27 +12675,6 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_SharedImageMatrix_fromCache__SWIG_2(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  SharedImageMatrix *arg1 = (SharedImageMatrix *) 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  PyObject * obj0 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"O:SharedImageMatrix_fromCache",&obj0)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_fromCache" "', argument " "1"" of type '" "SharedImageMatrix *""'"); 
-  }
-  arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
-  (arg1)->fromCache();
-  resultobj = SWIG_Py_Void();
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
 SWIGINTERN PyObject *_wrap_SharedImageMatrix_fromCache(PyObject *self, PyObject *args) {
   int argc;
   PyObject *argv[4];
@@ -12705,15 +12684,6 @@ SWIGINTERN PyObject *_wrap_SharedImageMatrix_fromCache(PyObject *self, PyObject 
   argc = args ? (int)PyObject_Length(args) : 0;
   for (ii = 0; (ii < 3) && (ii < argc); ii++) {
     argv[ii] = PyTuple_GET_ITEM(args,ii);
-  }
-  if (argc == 1) {
-    int _v;
-    void *vptr = 0;
-    int res = SWIG_ConvertPtr(argv[0], &vptr, SWIGTYPE_p_SharedImageMatrix, 0);
-    _v = SWIG_CheckState(res);
-    if (_v) {
-      return _wrap_SharedImageMatrix_fromCache__SWIG_2(self, args);
-    }
   }
   if (argc == 2) {
     int _v;
@@ -12750,8 +12720,7 @@ fail:
   SWIG_SetErrorMsg(PyExc_NotImplementedError,"Wrong number or type of arguments for overloaded function 'SharedImageMatrix_fromCache'.\n"
     "  Possible C/C++ prototypes are:\n"
     "    SharedImageMatrix::fromCache(std::string const,std::string const)\n"
-    "    SharedImageMatrix::fromCache(std::string const)\n"
-    "    SharedImageMatrix::fromCache()\n");
+    "    SharedImageMatrix::fromCache(std::string const)\n");
   return 0;
 }
 
