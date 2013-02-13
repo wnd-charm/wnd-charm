@@ -13,6 +13,7 @@ libchrm_la_SOURCES = \
        statistics/CombFirst4Moments.h \
        statistics/FeatureStatistics.cpp \
        statistics/FeatureStatistics.h \
+       statistics/Moments.h \
        textures/gabor.cpp \
        textures/gabor.h \
        textures/haralick/CVIPtexture.cpp \

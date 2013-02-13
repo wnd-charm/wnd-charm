@@ -1,35 +1,29 @@
 //---------------------------------------------------------------------------
 
-#include <math.h>
-#include "../statistics/CombFirst4Moments.h"
+#include <cmath>
+#include <cfloat> // DBL_MAX
+#include "../statistics/Moments.h"
 #include "tamura.h"
 
 
 
 double contrast(ImageMatrix *image) {
-	double *vec;
+	double max_val;
 	unsigned int x,y;
-	double avg,std,k;
+	double z[4];
+	Moments statMoments;
 	readOnlyPixels pix_plane = image->ReadablePixels();
 
-	vec = new double[image->width*image->height];
-	avg = 0;
+	max_val = pow ((double)2,(double)image->bits) - 1;
 	for (x = 0; x < image->width; x++) {
 		for (y = 0; y < image->height; y++) {
-			vec[x*image->height+y] = pix_plane(y,x);
-			avg += pix_plane(y,x);
+			statMoments.add (pix_plane(y,x) / max_val);
 		}
 	}
-	avg = avg/(image->width*image->height);
-	std = 0;
-	for (x = 0; x < image->width; x++)
-		for (y = 0; y < image->height; y++)
-			std += (pix_plane(y,x) - avg)*(pix_plane(y,x) - avg);
-	std = sqrt(std/(image->width*image->height));
-	k = kurtosis(vec, avg, std, image->width*image->height);
-	delete [] vec;
-	if (std < 0.0000000001) return(0);
-	else return(std / pow(k/pow(std,4),0.25)  );
+	statMoments.momentVector(z);
+
+	if (z[1] < DBL_EPSILON) return(0);
+	else return(z[1] / pow (z[3] / pow (z[1], 4), 0.25));
 }
 
 
