@@ -287,10 +287,10 @@ class SampleImageTiles (object):
 			self.image = pychrm.SharedImageMatrix()
 			if 1 != self.image.OpenImage( image_in, 0, None, 0, 0 ):
 				raise ValueError( 'Could not build an SharedImageMatrix from {0}, check the file.'.format( image_in ) )
-		elif isinstance (image_in, pychrm.SharedImageMatrix):
+		elif isinstance (image_in, pychrm.ImageMatrix):
 			self.image = image_in
 		else:
-			raise ValueError("image parameter 'image_in' is not a string or a pychrm.SharedImageMatrix")
+			raise ValueError("image parameter 'image_in' is not a string or a pychrm.ImageMatrix")
 
 		if (is_fixed):
 			self.tile_width = x
@@ -1014,11 +1014,11 @@ class Signatures( FeatureVector ):
 			if 1 != original.OpenImage( path_to_image, 0, None, 0, 0 ):
 				raise ValueError( 'Could not build an SharedImageMatrix from {0}, check the file.'.\
 					format( path_to_image ) )
-		elif isinstance (image_path_or_mat, pychrm.SharedImageMatrix):
+		elif isinstance (image_path_or_mat, pychrm.ImageMatrix):
 			original = image_path_or_mat
 			path_to_image = "sample" # should really get this from SharedImageMatrix
 		else:
-			raise ValueError("image parameter 'image_path_or_mat' is not a string or a pychrm.SharedImageMatrix")
+			raise ValueError("image parameter 'image_path_or_mat' is not a string or a pychrm.ImageMatrix")
 
 		print path_to_image
 		im_cache = {}
