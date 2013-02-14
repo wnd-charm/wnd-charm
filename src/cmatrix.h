@@ -280,8 +280,8 @@ public:
 	void ChebyshevTransform(unsigned int N);
 	void ChebyshevFourierTransform2D(double *coeff);
 	void Symlet5Transform();
-	void PerwittMagnitude2D(ImageMatrix *output);
-	void PerwittDirection2D(ImageMatrix *output);
+	void PrewittMagnitude2D(ImageMatrix *output);
+	void PrewittDirection2D(ImageMatrix *output);
 	void ChebyshevStatistics2D(double *coeff, unsigned int N, unsigned int bins_num);
 	int CombFirstFourMoments2D(double *vec);
 	void EdgeStatistics(unsigned long *EdgeArea, double *MagMean, double *MagMedian, double *MagVar, double *MagHist, double *DirecMean, double *DirecMedian, double *DirecVar, double *DirecHist, double *DirecHomogeneity, double *DiffDirecHist, unsigned int num_bins);

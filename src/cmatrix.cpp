@@ -1147,11 +1147,11 @@ void ImageMatrix::EdgeTransform() {
 	WriteablePixelsFinish();
 }
 
-/* Perwitt gradient magnitude
+/* Prewitt gradient magnitude
    output - a pre-allocated matrix that will hold the output (the input matrix is not changed)
             output should be of the same size as the input matrix
 */
-void ImageMatrix::PerwittMagnitude2D(ImageMatrix *output) {
+void ImageMatrix::PrewittMagnitude2D(ImageMatrix *output) {
 	long x,y,i,j,w=width,h=height;
 	double sumx,sumy;
 	writeablePixels out_pix_plane = output->WriteablePixels();
@@ -1179,11 +1179,11 @@ void ImageMatrix::PerwittMagnitude2D(ImageMatrix *output) {
 	output->WriteablePixelsFinish();
 }
 
-/* Perwitt gradient direction
+/* Prewitt gradient direction
    output - a pre-allocated matrix that will hold the output (the input matrix is not changed)
             output should be of the same size as the input matrix
 */
-void ImageMatrix::PerwittDirection2D(ImageMatrix *output) {
+void ImageMatrix::PrewittDirection2D(ImageMatrix *output) {
 	long x,y,i,j,w=width,h=height;
 	double sumx,sumy;
 	writeablePixels out_pix_plane = output->WriteablePixels();
@@ -1233,11 +1233,11 @@ void ImageMatrix::EdgeStatistics(unsigned long *EdgeArea, double *MagMean, doubl
 
 	ImageMatrix GradientMagnitude;
 	GradientMagnitude.copy (*this);
-	PerwittMagnitude2D (&GradientMagnitude);
+	PrewittMagnitude2D (&GradientMagnitude);
 	readOnlyPixels GM_pix_plane = GradientMagnitude.ReadablePixels();
 	ImageMatrix GradientDirection;
 	GradientDirection.copy (*this);
-	PerwittDirection2D (&GradientDirection);
+	PrewittDirection2D (&GradientDirection);
 
 	/* find gradient statistics */
 	GradientMagnitude.BasicStatistics(MagMean, MagMedian, MagVar, &min, &max, MagHist, num_bins);

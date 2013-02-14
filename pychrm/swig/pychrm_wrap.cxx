@@ -7624,7 +7624,7 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_ImageMatrix_PerwittMagnitude2D(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_ImageMatrix_PrewittMagnitude2D(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   ImageMatrix *arg1 = (ImageMatrix *) 0 ;
   ImageMatrix *arg2 = (ImageMatrix *) 0 ;
@@ -7635,18 +7635,18 @@ SWIGINTERN PyObject *_wrap_ImageMatrix_PerwittMagnitude2D(PyObject *SWIGUNUSEDPA
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)"OO:ImageMatrix_PerwittMagnitude2D",&obj0,&obj1)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OO:ImageMatrix_PrewittMagnitude2D",&obj0,&obj1)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix_PerwittMagnitude2D" "', argument " "1"" of type '" "ImageMatrix *""'"); 
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix_PrewittMagnitude2D" "', argument " "1"" of type '" "ImageMatrix *""'"); 
   }
   arg1 = reinterpret_cast< ImageMatrix * >(argp1);
   res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_ImageMatrix, 0 |  0 );
   if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "ImageMatrix_PerwittMagnitude2D" "', argument " "2"" of type '" "ImageMatrix *""'"); 
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "ImageMatrix_PrewittMagnitude2D" "', argument " "2"" of type '" "ImageMatrix *""'"); 
   }
   arg2 = reinterpret_cast< ImageMatrix * >(argp2);
-  (arg1)->PerwittMagnitude2D(arg2);
+  (arg1)->PrewittMagnitude2D(arg2);
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -7654,7 +7654,7 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_ImageMatrix_PerwittDirection2D(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_ImageMatrix_PrewittDirection2D(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   ImageMatrix *arg1 = (ImageMatrix *) 0 ;
   ImageMatrix *arg2 = (ImageMatrix *) 0 ;
@@ -7665,18 +7665,18 @@ SWIGINTERN PyObject *_wrap_ImageMatrix_PerwittDirection2D(PyObject *SWIGUNUSEDPA
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)"OO:ImageMatrix_PerwittDirection2D",&obj0,&obj1)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OO:ImageMatrix_PrewittDirection2D",&obj0,&obj1)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix_PerwittDirection2D" "', argument " "1"" of type '" "ImageMatrix *""'"); 
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix_PrewittDirection2D" "', argument " "1"" of type '" "ImageMatrix *""'"); 
   }
   arg1 = reinterpret_cast< ImageMatrix * >(argp1);
   res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_ImageMatrix, 0 |  0 );
   if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "ImageMatrix_PerwittDirection2D" "', argument " "2"" of type '" "ImageMatrix *""'"); 
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "ImageMatrix_PrewittDirection2D" "', argument " "2"" of type '" "ImageMatrix *""'"); 
   }
   arg2 = reinterpret_cast< ImageMatrix * >(argp2);
-  (arg1)->PerwittDirection2D(arg2);
+  (arg1)->PrewittDirection2D(arg2);
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -13875,8 +13875,8 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"ImageMatrix_ChebyshevTransform", _wrap_ImageMatrix_ChebyshevTransform, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_ChebyshevFourierTransform2D", _wrap_ImageMatrix_ChebyshevFourierTransform2D, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_Symlet5Transform", _wrap_ImageMatrix_Symlet5Transform, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix_PerwittMagnitude2D", _wrap_ImageMatrix_PerwittMagnitude2D, METH_VARARGS, NULL},
-	 { (char *)"ImageMatrix_PerwittDirection2D", _wrap_ImageMatrix_PerwittDirection2D, METH_VARARGS, NULL},
+	 { (char *)"ImageMatrix_PrewittMagnitude2D", _wrap_ImageMatrix_PrewittMagnitude2D, METH_VARARGS, NULL},
+	 { (char *)"ImageMatrix_PrewittDirection2D", _wrap_ImageMatrix_PrewittDirection2D, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_ChebyshevStatistics2D", _wrap_ImageMatrix_ChebyshevStatistics2D, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_CombFirstFourMoments2D", _wrap_ImageMatrix_CombFirstFourMoments2D, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_EdgeStatistics", _wrap_ImageMatrix_EdgeStatistics, METH_VARARGS, NULL},
