@@ -273,6 +273,7 @@ void Tamura3Sigs2D(ImageMatrix *Im, double *vec) {
 	temp[5] = contrast(Im);
 
 	/* rearange the order of the value so it will fit OME */
+	// {"Coarseness_Hist_Bin_00","Coarseness_Hist_Bin_01","Coarseness_Hist_Bin_02","Contrast","Directionality","Total_Coarseness"}
 	vec[0] = temp[1];
 	vec[1] = temp[2];
 	vec[2] = temp[3];
