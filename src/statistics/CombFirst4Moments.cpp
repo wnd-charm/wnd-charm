@@ -105,8 +105,8 @@ int CombFirst4Moments2D(ImageMatrix *Im, double *vec) {
 		}
 	}
 
-   n2 = (int)(round(n/2));
-   m2 = (int)(round(m/2));
+	n2 = (int)(round(n/2));
+	m2 = (int)(round(m/2));
 
 	/* major diag -45 degrees */
 	matr4moments_index=0;

@@ -7,17 +7,15 @@
 
 
 
-double contrast(ImageMatrix *image) {
-	double max_val;
+double contrast(const ImageMatrix &image) {
 	unsigned int x,y;
 	double z[4];
 	Moments statMoments;
-	readOnlyPixels pix_plane = image->ReadablePixels();
+	readOnlyPixels pix_plane = image.ReadablePixels();
 
-	max_val = pow ((double)2,(double)image->bits) - 1;
-	for (x = 0; x < image->width; x++) {
-		for (y = 0; y < image->height; y++) {
-			statMoments.add (pix_plane(y,x) / max_val);
+	for (x = 0; x < image.width; x++) {
+		for (y = 0; y < image.height; y++) {
+			statMoments.add (pix_plane(y,x));
 		}
 	}
 	statMoments.momentVector(z);
@@ -28,17 +26,17 @@ double contrast(ImageMatrix *image) {
 
 
 #define  NBINS 125
-double directionality(ImageMatrix *image) {
+double directionality(const ImageMatrix &image) {
 	double sum,sum_r;
 	long a;
-	unsigned int x, xdim = image->width;
-	unsigned int y, ydim = image->height;
+	unsigned int x, xdim = image.width;
+	unsigned int y, ydim = image.height;
 	double Hd[NBINS];
 
 	ImageMatrix deltaH;
-	deltaH.copy(*image);
+	deltaH.copy(image);
 	ImageMatrix deltaV;
-	deltaV.copy(*image);
+	deltaV.copy(image);
 	
 
 	pixDataMat matrixH (3,3);
@@ -139,17 +137,17 @@ double efficientLocalMean(const long x,const long y,const long k, const pixDataM
 */
 // K_VALUE can also be 5
 #define K_VALUE 7
-double coarseness(ImageMatrix *image, double *hist,unsigned int nbins) {
+double coarseness(const ImageMatrix &image, double *hist,unsigned int nbins) {
 	unsigned int x,y,k;
 	int max;
-	const unsigned int yDim = image->height;
-	const unsigned int xDim = image->width;
+	const unsigned int yDim = image.height;
+	const unsigned int xDim = image.width;
 	double sum = 0.0;
 	ImageMatrix *Sbest;
 	pixDataMat laufendeSumme (yDim,xDim);
 	pixDataMat *Ak[K_VALUE], *Ekh[K_VALUE], *Ekv[K_VALUE];
 
-	readOnlyPixels image_pix_plane = image->ReadablePixels();
+	readOnlyPixels image_pix_plane = image.ReadablePixels();
 
 	// initialize for running sum calculation
 	double links, oben, obenlinks;
@@ -174,7 +172,7 @@ double coarseness(ImageMatrix *image, double *hist,unsigned int nbins) {
 		Ekv[k-1] = new pixDataMat(yDim,xDim);
 	}
 	Sbest = new ImageMatrix;
-	Sbest->allocate (image->width,image->height);
+	Sbest->allocate (image.width,image.height);
 
 
 	//step 1
@@ -266,11 +264,18 @@ double coarseness(ImageMatrix *image, double *hist,unsigned int nbins) {
 /* Tamura3Sigs
    vec -array of double- a pre-allocated array of 6 doubles
 */
-void Tamura3Sigs2D(ImageMatrix *Im, double *vec) {
+void Tamura3Sigs2D(ImageMatrix &Im, double *vec) {
 	double temp[6];
-	temp[0] = coarseness(Im,&(temp[1]),3);
-	temp[4] = directionality(Im);
-	temp[5] = contrast(Im);
+	double min_val = Im.min();
+	double max_val = Im.max();
+	ImageMatrix normImg;
+
+	normImg.allocate (Im.width, Im.height);
+	normImg.WriteablePixels() = ((Im.ReadablePixels().array() - min_val) / max_val);
+
+	temp[0] = coarseness(normImg,&(temp[1]),3);
+	temp[4] = directionality(normImg);
+	temp[5] = contrast(normImg);
 
 	/* rearange the order of the value so it will fit OME */
 	// {"Coarseness_Hist_Bin_00","Coarseness_Hist_Bin_01","Coarseness_Hist_Bin_02","Contrast","Directionality","Total_Coarseness"}

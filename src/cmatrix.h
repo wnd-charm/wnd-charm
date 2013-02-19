@@ -220,7 +220,6 @@ public:
 		const unsigned int x1, const unsigned int y1, const unsigned int x2, const unsigned int y2);
 	// N.B.: See note in implementation
 	ImageMatrix () : _pix_plane (NULL,0,0), _clr_plane (NULL,0,0) {
-		std::cout << "-------- called ImageMatrix::ImageMatrix - empty" << std::endl;
 		init();
 	};
 	virtual ~ImageMatrix();                                 // destructor
@@ -272,7 +271,7 @@ public:
 	void GetColorStatistics(double *hue_avg, double *hue_std, double *sat_avg, double *sat_std, double *val_avg, double *val_std, double *max_color, double *colors);
 	void ColorTransform(double *color_hist, int use_hue);
 	void histogram(double *bins,unsigned short bins_num, int imhist);
-	double Otsu();                                  // Otsu gray threshold
+   double Otsu(int dynamic_range=1);                                  /* Otsu grey threshold                  */
 	void MultiScaleHistogram(double *out);
 	//   double AverageEdge();
 	void EdgeTransform();                           // gradient binarized using otsu threshold
@@ -297,6 +296,7 @@ public:
 	void HaralickTexture2D(double distance, double *out);
 	void TamuraTexture2D(double *vec);
 	void zernike2D(double *zvalues, long *output_size);
+	void fractal2D(unsigned int bins,double *output);
 
 	// disable the copy constructor
 private:
