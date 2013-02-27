@@ -55,7 +55,8 @@ public:
 		WORM_RDLK_ERR,  // error acquiring readlock other than lock contention
 		WORM_WRLK_ERR,  // error acquiring writelock other than lock contention
 		WORM_IO_ERR,    // error opening/creating the file
-		WORM_STALE      // The file exists, and can be read-locked, but is empty 
+		WORM_STALE,     // The file exists, and can be read-locked, but is empty 
+		WORM_ENOENT     // The file does not exist while attempting to open read-only
 	};
 	
 	WORMfile::Status status;

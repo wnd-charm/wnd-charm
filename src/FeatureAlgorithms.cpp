@@ -8,25 +8,34 @@
 //start #including the functions directly once you start pulling them out of cmatrix
 //#include "transforms/Chebyshev.h"
 
+/* global variable */
+extern int verbosity;
+
 void FeatureAlgorithm::print_info() const {
-        std::cout << "FeatureAlgorithm: " << name << " (" << n_features << " features) " << std::endl;
+    std::cout << "FeatureAlgorithm: " << name << " (" << n_features << " features) " << std::endl;
+}
+
+FeatureAlgorithm::FeatureAlgorithm (const std::string &s,const int i) {
+	name = s;
+	n_features = i;
+}
+FeatureAlgorithm::FeatureAlgorithm (const char *s,const int i) {
+	name = s;
+	n_features = i;
 }
 
 //===========================================================================
-ChebyshevFourierCoefficients::ChebyshevFourierCoefficients() {
-	name = "Chebyshev-Fourier Coefficients";
-	n_features = 32;
-	//cout << "Instantiating new " << name << " object." << endl;
+ChebyshevFourierCoefficients::ChebyshevFourierCoefficients() : FeatureAlgorithm ("Chebyshev-Fourier Coefficients", 32) {
+//	cout << "Instantiating new " << name << " object." << endl;
 }
 
-std::vector<double> ChebyshevFourierCoefficients::calculate( ImageMatrix * IN_matrix )
-{
+std::vector<double> ChebyshevFourierCoefficients::calculate( ImageMatrix * IN_matrix ) const {
 	std::vector<double> coeffs;	
-	std::cout << "calculating " << name << std::endl;
+	if (verbosity > 3) std::cout << "calculating " << name << std::endl;
 	if( IN_matrix == NULL ) {
 		return coeffs;
 	}
-	coeffs.reserve(n_features-1);
+	coeffs.reserve(n_features);
 	double temp_vec [32];
 	int i;
 
@@ -39,10 +48,8 @@ std::vector<double> ChebyshevFourierCoefficients::calculate( ImageMatrix * IN_ma
 //WNDCHARM_REGISTER_ALGORITHM(ChebyshevFourierCoefficients)
 
 //===========================================================================
-ChebyshevCoefficients::ChebyshevCoefficients() {
-	name = "Chebyshev Coefficients";
-	n_features = 32;
-	//cout << "Instantiating new " << name << " object." << endl;
+ChebyshevCoefficients::ChebyshevCoefficients() : FeatureAlgorithm ("Chebyshev Coefficients", 32)  {
+//	cout << "Instantiating new " << name << " object." << endl;
 }
 
 /**
@@ -50,14 +57,13 @@ ChebyshevCoefficients::ChebyshevCoefficients() {
  * and generating a histogram of pixel intensities.
  *
  */
-std::vector<double> ChebyshevCoefficients::calculate( ImageMatrix * IN_matrix )
-{
+std::vector<double> ChebyshevCoefficients::calculate( ImageMatrix * IN_matrix ) const {
 	std::vector<double> coeffs;
-	std::cout << "calculating " << name << std::endl;
+	if (verbosity > 3) std::cout << "calculating " << name << std::endl;
 	if( IN_matrix == NULL ) {
 		return coeffs;
 	}
-	coeffs.reserve(n_features-1);
+	coeffs.reserve(n_features);
 	double temp_vec [32];
 
 	ImageMatrix temp;
@@ -73,20 +79,17 @@ std::vector<double> ChebyshevCoefficients::calculate( ImageMatrix * IN_matrix )
 
 //===========================================================================
 
-ZernikeCoefficients::ZernikeCoefficients() {
-	name = "Zernike Coefficients";
-	n_features = 72;
+ZernikeCoefficients::ZernikeCoefficients() : FeatureAlgorithm ("Zernike Coefficients", 72) {
 	//cout << "Instantiating new " << name << " object." << endl;
 }
 
-std::vector<double> ZernikeCoefficients::calculate( ImageMatrix * IN_matrix )
-{
+std::vector<double> ZernikeCoefficients::calculate( ImageMatrix * IN_matrix ) const {
 	std::vector<double> coeffs;
-	std::cout << "calculating " << name << std::endl;
+	if (verbosity > 3) std::cout << "calculating " << name << std::endl;
 	if( IN_matrix == NULL ) {
 		return coeffs;
 	}
-	coeffs.reserve(n_features-1);
+	coeffs.reserve(n_features);
 	double temp_vec [72];
 	int i;
 
@@ -102,20 +105,17 @@ std::vector<double> ZernikeCoefficients::calculate( ImageMatrix * IN_matrix )
 
 //===========================================================================
 
-HaralickTextures::HaralickTextures() {
-	name = "Haralick Textures";
-	n_features = 28;
+HaralickTextures::HaralickTextures() : FeatureAlgorithm ("Haralick Textures", 28) {
 	//cout << "Instantiating new " << name << " object." << endl;
 }
 
-std::vector<double> HaralickTextures::calculate( ImageMatrix * IN_matrix )
-{
+std::vector<double> HaralickTextures::calculate( ImageMatrix * IN_matrix ) const {
 	std::vector<double> coeffs;
-	std::cout << "calculating " << name << std::endl;
+	if (verbosity > 3) std::cout << "calculating " << name << std::endl;
 	if( IN_matrix == NULL ) {
 		return coeffs;
 	}
-	coeffs.reserve(n_features-1);
+	coeffs.reserve(n_features);
 	double temp_vec [28];
 	int i;
 
@@ -129,20 +129,17 @@ std::vector<double> HaralickTextures::calculate( ImageMatrix * IN_matrix )
 
 //===========================================================================
 
-MultiscaleHistograms::MultiscaleHistograms() {
-	name = "Multiscale Histograms";
-	n_features = 24;
+MultiscaleHistograms::MultiscaleHistograms() : FeatureAlgorithm ("Multiscale Histograms", 24) {
 	//cout << "Instantiating new " << name << " object." << endl;
 }
 
-std::vector<double> MultiscaleHistograms::calculate( ImageMatrix * IN_matrix )
-{
+std::vector<double> MultiscaleHistograms::calculate( ImageMatrix * IN_matrix ) const {
 	std::vector<double> coeffs;
-	std::cout << "calculating " << name << std::endl;
+	if (verbosity > 3) std::cout << "calculating " << name << std::endl;
 	if( IN_matrix == NULL ) {
 		return coeffs;
 	}
-	coeffs.reserve(n_features-1);
+	coeffs.reserve(n_features);
 	double temp_vec [24];
 	int i;
 
@@ -156,20 +153,17 @@ std::vector<double> MultiscaleHistograms::calculate( ImageMatrix * IN_matrix )
 
 //===========================================================================
 
-TamuraTextures::TamuraTextures() {
-	name = "Tamura Textures";
-	n_features = 6;
+TamuraTextures::TamuraTextures() : FeatureAlgorithm ("Tamura Textures", 6) {
 	//cout << "Instantiating new " << name << " object." << endl;
 }
 
-std::vector<double> TamuraTextures::calculate( ImageMatrix * IN_matrix )
-{
+std::vector<double> TamuraTextures::calculate( ImageMatrix * IN_matrix ) const {
 	std::vector<double> coeffs;
-	std::cout << "calculating " << name << std::endl;
+	if (verbosity > 3) std::cout << "calculating " << name << std::endl;
 	if( IN_matrix == NULL ) {
 		return coeffs;
 	}
-	coeffs.reserve(n_features-1);
+	coeffs.reserve(n_features);
 	double temp_vec [6];
 	int i;
 
@@ -183,20 +177,17 @@ std::vector<double> TamuraTextures::calculate( ImageMatrix * IN_matrix )
 
 //===========================================================================
 
-CombFirstFourMoments::CombFirstFourMoments() {
-	name = "Comb Moments";
-	n_features = 48;
+CombFirstFourMoments::CombFirstFourMoments() : FeatureAlgorithm ("Comb Moments", 48) {
 	//cout << "Instantiating new " << name << " object." << endl;
 }
 
-std::vector<double> CombFirstFourMoments::calculate( ImageMatrix * IN_matrix )
-{
+std::vector<double> CombFirstFourMoments::calculate( ImageMatrix * IN_matrix ) const {
 	std::vector<double> coeffs;
-	std::cout << "calculating " << name << std::endl;
+	if (verbosity > 3) std::cout << "calculating " << name << std::endl;
 	if( IN_matrix == NULL ) {
 		return coeffs;
 	}
-	coeffs.reserve(n_features-1);
+	coeffs.reserve(n_features);
 	double temp_vec [48];
 	int i;
 
@@ -210,20 +201,17 @@ std::vector<double> CombFirstFourMoments::calculate( ImageMatrix * IN_matrix )
 
 //===========================================================================
 
-RadonCoefficients::RadonCoefficients() {
-	name = "Radon Coefficients";
-	n_features = 12;
+RadonCoefficients::RadonCoefficients() : FeatureAlgorithm ("Radon Coefficients", 12) {
 	//cout << "Instantiating new " << name << " object." << endl;
 }
 
-std::vector<double> RadonCoefficients::calculate( ImageMatrix * IN_matrix )
-{
+std::vector<double> RadonCoefficients::calculate( ImageMatrix * IN_matrix ) const {
 	std::vector<double> coeffs;
-	std::cout << "calculating " << name << std::endl;
+	if (verbosity > 3) std::cout << "calculating " << name << std::endl;
 	if( IN_matrix == NULL ) {
 		return coeffs;
 	}
-	coeffs.reserve(n_features-1);
+	coeffs.reserve(n_features);
 	double temp_vec [12];
 	int i;
 
@@ -243,20 +231,17 @@ std::vector<double> RadonCoefficients::calculate( ImageMatrix * IN_matrix )
    the code is based on: CM Wu, YC Chen and KS Hsieh, Texture features for classification of ultrasonic liver images, IEEE Trans Med Imag 11 (1992) (2), pp. 141Ð152.
    method of approaximation of CC Chen, JS Daponte and MD Fox, Fractal feature analysis and classification in medical imaging, IEEE Trans Med Imag 8 (1989) (2), pp. 133Ð142.
 */
-FractalFeatures::FractalFeatures() {
-	name = "Fractal Features";
-	n_features = 20;
+FractalFeatures::FractalFeatures() : FeatureAlgorithm ("Fractal Features", 20) {
 	//cout << "Instantiating new " << name << " object." << endl;
 }
 
-std::vector<double> FractalFeatures::calculate( ImageMatrix * IN_matrix )
-{
+std::vector<double> FractalFeatures::calculate( ImageMatrix * IN_matrix ) const {
 	std::vector<double> coeffs;
-	std::cout << "calculating " << name << std::endl;
+	if (verbosity > 3) std::cout << "calculating " << name << std::endl;
 	if( IN_matrix == NULL ) {
 		return coeffs;
 	}
-	coeffs.reserve(n_features-1);
+	coeffs.reserve(n_features);
 	double temp_vec [20];
 	int i;
 
@@ -292,20 +277,17 @@ std::vector<double> FractalFeatures::calculate( ImageMatrix * IN_matrix )
 
 //===========================================================================
 
-PixelIntensityStatistics::PixelIntensityStatistics() {
-	name = "Pixel Intensity Statistics";
-	n_features = 5;
+PixelIntensityStatistics::PixelIntensityStatistics() : FeatureAlgorithm ("Pixel Intensity Statistics", 5) {
 	//cout << "Instantiating new " << name << " object." << endl;
 }
 
-std::vector<double> PixelIntensityStatistics::calculate( ImageMatrix * IN_matrix )
-{
+std::vector<double> PixelIntensityStatistics::calculate( ImageMatrix * IN_matrix ) const {
 	std::vector<double> coeffs;
-	std::cout << "calculating " << name << std::endl;
+	if (verbosity > 3) std::cout << "calculating " << name << std::endl;
 	if( IN_matrix == NULL ) {
 		return coeffs;
 	}
-	coeffs.reserve(n_features-1);
+	coeffs.reserve(n_features);
 
 	double temp_vec[5];
 	int j;
@@ -321,20 +303,17 @@ std::vector<double> PixelIntensityStatistics::calculate( ImageMatrix * IN_matrix
         
 //===========================================================================
 
-EdgeFeatures::EdgeFeatures() {
-	name = "Edge Features";
-	n_features = 28;
+EdgeFeatures::EdgeFeatures() : FeatureAlgorithm ("Edge Features", 28) {
 	//cout << "Instantiating new " << name << " object." << endl;
 }
 
-std::vector<double> EdgeFeatures::calculate( ImageMatrix * IN_matrix )
-{
+std::vector<double> EdgeFeatures::calculate( ImageMatrix * IN_matrix ) const {
 	std::vector<double> coeffs;
-	std::cout << "calculating " << name << std::endl;
+	if (verbosity > 3) std::cout << "calculating " << name << std::endl;
 	if( IN_matrix == NULL ) {
 		return coeffs;
 	}
-	coeffs.reserve(n_features-1);
+	coeffs.reserve(n_features);
 
 	unsigned long EdgeArea = 0;
 	double MagMean=0, MagMedian=0, MagVar=0, MagHist[8]={0,0,0,0,0,0,0,0}, DirecMean=0, DirecMedian=0, DirecVar=0, DirecHist[8]={0,0,0,0,0,0,0,0}, DirecHomogeneity=0, DiffDirecHist[4]={0,0,0,0};
@@ -376,20 +355,17 @@ std::vector<double> EdgeFeatures::calculate( ImageMatrix * IN_matrix )
 
 //===========================================================================
 
-ObjectFeatures::ObjectFeatures() {
-	name = "Object Features";
-	n_features = 34;
+ObjectFeatures::ObjectFeatures() : FeatureAlgorithm ("Otsu Object Features", 34) {
 	//cout << "Instantiating new " << name << " object." << endl;
 }
 
-std::vector<double> ObjectFeatures::calculate( ImageMatrix * IN_matrix )
-{
+std::vector<double> ObjectFeatures::calculate( ImageMatrix * IN_matrix ) const {
 	std::vector<double> coeffs;
-	std::cout << "calculating " << name << std::endl;
+	if (verbosity > 3) std::cout << "calculating " << name << std::endl;
 	if( IN_matrix == NULL ) {
 		return coeffs;
 	}
-	coeffs.reserve(n_features-1);
+	coeffs.reserve(n_features);
 
 	unsigned long feature_count=0, AreaMin=0, AreaMax=0;
 	long Euler=0;
@@ -443,21 +419,31 @@ std::vector<double> ObjectFeatures::calculate( ImageMatrix * IN_matrix )
 //WNDCHARM_REGISTER_ALGORITHM(ObjectFeatures)
 
 //===========================================================================
-
-GaborTextures::GaborTextures() {
-	name = "Gabor Textures";
-	n_features = 7;
+InverseObjectFeatures::InverseObjectFeatures() : FeatureAlgorithm ("Inverse-Otsu Object Features", 34) {
 	//cout << "Instantiating new " << name << " object." << endl;
 }
 
-std::vector<double> GaborTextures::calculate( ImageMatrix * IN_matrix )
-{
+std::vector<double> InverseObjectFeatures::calculate( ImageMatrix * IN_matrix ) const {
+	ImageMatrix InvMatrix;
+	InvMatrix.copy (*IN_matrix);
+	InvMatrix.invert();
+	static ObjectFeatures ObjFeaturesInst;
+	return (ObjFeaturesInst.calculate (&InvMatrix));
+}
+
+//===========================================================================
+
+GaborTextures::GaborTextures() : FeatureAlgorithm ("Gabor Textures", 7) {
+	//cout << "Instantiating new " << name << " object." << endl;
+}
+
+std::vector<double> GaborTextures::calculate( ImageMatrix * IN_matrix ) const {
 	std::vector<double> coeffs;
-	std::cout << "calculating " << name << std::endl;
+	if (verbosity > 3) std::cout << "calculating " << name << std::endl;
 	if( IN_matrix == NULL ) {
 		return coeffs;
 	}
-	coeffs.reserve(n_features-1);
+	coeffs.reserve(n_features);
 
 	double temp_vec [7];
 	int i;
@@ -478,19 +464,17 @@ std::vector<double> GaborTextures::calculate( ImageMatrix * IN_matrix )
    paper reference: Roberto G. Abraham, Sidney van den Bergh, Preethi Nair, A NEW APPROACH TO GALAXY MORPHOLOGY. I. ANALYSIS OF THE SLOAN DIGITAL SKY
         SURVEY EARLY DATA RELEASE, The Astrophysical Journal, vol. 588, p. 218-229, 2003.
 */
-GiniCoefficient::GiniCoefficient() {
-	name = "Gini Coefficient";
-	n_features = 1;
+GiniCoefficient::GiniCoefficient() : FeatureAlgorithm ("Gini Coefficient", 1) {
 	//cout << "Instantiating new " << name << " object." << endl;
 }
 
-std::vector<double> GiniCoefficient::calculate( ImageMatrix * IN_matrix ) {
+std::vector<double> GiniCoefficient::calculate( ImageMatrix * IN_matrix ) const {
 	std::vector<double> coeffs;
-	std::cout << "calculating " << name << std::endl;
+	if (verbosity > 3) std::cout << "calculating " << name << std::endl;
 	if( IN_matrix == NULL ) {
 		return coeffs;
 	}
-	coeffs.reserve(n_features-1);
+	coeffs.reserve(n_features);
 
 	double temp_vec [1];
 	int j;
@@ -531,3 +515,44 @@ std::vector<double> GiniCoefficient::calculate( ImageMatrix * IN_matrix ) {
 }
 
 //WNDCHARM_REGISTER_ALGORITHM(GiniCoefficient)
+
+//===========================================================================
+
+/* Color Histogram
+   compute the Color Histogram
+
+*/
+ColorHistogram::ColorHistogram() : FeatureAlgorithm ("Color Histogram", COLORS_NUM+1) {
+	//cout << "Instantiating new " << name << " object." << endl;
+}
+
+std::vector<double> ColorHistogram::calculate( ImageMatrix * IN_matrix ) const {
+	std::vector<double> coeffs;
+	if (verbosity > 3) std::cout << "calculating " << name << std::endl;
+	if( IN_matrix == NULL ) {
+		return coeffs;
+	}
+
+	coeffs.assign(n_features, 0);
+	unsigned int x,y, width = IN_matrix->width, height = IN_matrix->height;
+	HSVcolor hsv_pixel;
+	unsigned long color_index=0;   
+	double certainties[COLORS_NUM+1];
+
+	readOnlyColors clr_plane = IN_matrix->ReadOnlyColors();
+
+	// find the colors
+	for( y = 0; y < height; y++ ) {
+		for( x = 0; x < width; x++ ) { 
+			hsv_pixel = clr_plane (y, x);
+			color_index = FindColor( hsv_pixel.h,  hsv_pixel.s, hsv_pixel.v, certainties );
+			coeffs[ color_index ]++;
+		}
+	}
+	/* normalize the color histogram */
+	for (color_index = 0; color_index <= COLORS_NUM; color_index++)
+		coeffs[color_index] /= (width*height);	 
+
+	return coeffs;
+}
+

@@ -35,14 +35,22 @@
 #define OPEN_RETRIES 36
 #define MAX_WAIT_MULT 8192 // must be smaller than RAND_MAX, which is a minimum of 32767
 
-WORMfile::WORMfile () :
-	status (WORM_UNDEF), status_errno (0), path (""),
-	_fd (-1), _fp (NULL), _read_mode (def_read_mode) {
+WORMfile::WORMfile () {
+	status = WORM_UNDEF;
+	status_errno = 0;
+	path = "";
+	_fd = -1;
+	_fp = NULL;
+	_read_mode = def_read_mode;
 }
-WORMfile::WORMfile (const char *p_path, bool readonly, bool wait) :
-	status (WORM_UNDEF), status_errno (0), path (p_path),
-	_fd (-1), _fp (NULL), _read_mode (def_read_mode) {
-	
+WORMfile::WORMfile (const char *p_path, bool readonly, bool wait) {
+	status = WORM_UNDEF;
+	status_errno = 0;
+	path = p_path;
+	_fd = -1;
+	_fp = NULL;
+	_read_mode = def_read_mode;
+
 	reopen (readonly, wait);
 }
 
@@ -71,7 +79,7 @@ void WORMfile::reopen (bool readonly, bool wait) {
 	int k = 1;
 	int retries = OPEN_RETRIES;
 	status = WORM_UNDEF;
-	while ( !(status == WORM_WR || status == WORM_RD || status == WORM_BUSY) && retries--) {
+	while ( !(status == WORM_WR || status == WORM_RD || status == WORM_BUSY || status == WORM_ENOENT) && retries--) {
 		if (readonly) open_r (wait);
 		else open_rw();
 		if (status == WORM_WR || status == WORM_RD || status == WORM_BUSY) break;
@@ -131,6 +139,8 @@ void WORMfile::finish (bool reopen) {
 	_fp = NULL;
 	_fd = -1;
 	status = WORM_FINISHED;
+	// FIXME: Could do more detailed error checking, but in principle, the caller does not expect to process errors.
+	errno = 0;
 	// reopen if requested, without waiting.
 	if (reopen) open_r ();
 }
@@ -281,7 +291,8 @@ void WORMfile::open_r (bool wait) {
 		}
 	} else {
 	// Various I/O errors opening the file
-		status = WORM_IO_ERR;
+		if (errno == ENOENT) status = WORM_ENOENT;
+		else status = WORM_IO_ERR;
 		status_errno = errno;
 	}
 	

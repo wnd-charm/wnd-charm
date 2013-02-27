@@ -293,6 +293,7 @@ void ImageMatrix::init() {
 // This is using the fancy shmancy placement-new operator
 // The object is created new at the same memory location it was before, so no new allocation happens
 // This allows us to call Eigen's Map constructor with new parameters without actually re-allocating the object
+// N.B.: THis does not do any memory allocation or deallocation, it simply assigns the passed in memory to an Eigen object.
 void ImageMatrix::remap_pix_plane(double *ptr, const unsigned int w, const unsigned int h) {
 	width  = 0;
 	height = 0;
@@ -319,19 +320,29 @@ void ImageMatrix::remap_clr_plane(HSVcolor *ptr, const unsigned int w, const uns
 	_is_clr_writeable = true;
 }
 
-
+// If the image are changed size, then reallocate.
+// If the image changed color mode, reallocate.
+// Ensure that anything that's reallocated is deallocated first.
 void ImageMatrix::allocate (unsigned int w, unsigned int h) {
+
 	if ((unsigned int) _pix_plane.cols() != w || (unsigned int)_pix_plane.rows() != h) {
 		// These throw exceptions, which we don't catch (catch in main?)
 		// FIXME: We could check for shrinkage and simply remap instead of allocating.
+		if (_pix_plane.data()) Eigen::aligned_allocator<double>().deallocate (_pix_plane.data(), _pix_plane.size());
 		remap_pix_plane (Eigen::aligned_allocator<double>().allocate (w * h), w, h);
 	}
-	if (ColorMode != cmGRAY) {
-		if ((unsigned int)_clr_plane.cols() != w || (unsigned int)_clr_plane.rows() != h) {
-			// These throw exceptions, which we don't catch (catch in main?)
-			// FIXME: We could check for shrinkage and simply remap instead of allocating.
-			remap_clr_plane (Eigen::aligned_allocator<HSVcolor>().allocate (w * h), w, h);
-		}
+
+	// cleanup the color plane if it changed size, or if we have a gray image.
+	if ( ColorMode == cmGRAY || (_pix_plane.data() && ((unsigned int)_clr_plane.cols() != w || (unsigned int)_clr_plane.rows() != h)) ) {
+		if (_clr_plane.data()) Eigen::aligned_allocator<HSVcolor>().deallocate (_clr_plane.data(), _clr_plane.size());
+		remap_clr_plane (NULL, 0, 0);
+	}
+
+	// Allocate a new color plane if necessary.
+	if (ColorMode != cmGRAY && ! (_clr_plane.data()) ) {
+		// These throw exceptions, which we don't catch (catch in main?)
+		// FIXME: We could check for shrinkage and simply remap instead of allocating.
+		remap_clr_plane (Eigen::aligned_allocator<HSVcolor>().allocate (w * h), w, h);
 	}
 }
 
@@ -410,6 +421,15 @@ ImageMatrix::~ImageMatrix() {
 	if (_clr_plane.data()) Eigen::aligned_allocator<HSVcolor>().deallocate (_clr_plane.data(), _clr_plane.size());
 	remap_clr_plane (NULL, 0, 0);
 }
+
+// This is a general transform method that returns a new image matrix by applying the specified transform.
+ImageMatrix &ImageMatrix::transform (const ImageTransform *transform) const {
+	ImageMatrix *matrix_OUT = new ImageMatrix;
+
+	transform->execute (this, matrix_OUT);
+	return (*matrix_OUT);
+}
+
 
 /* to8bits
    convert an arbitrary-range matrix to an 8 bit range by scaling the signal range to 0.0 to 255.0
@@ -921,49 +941,57 @@ void ImageMatrix::GetColorStatistics(double *hue_avg_p, double *hue_std_p, doubl
 
 /* ColorTransform
    Transform a color image to a greyscale image such that each
-   color_hist -double *- a histogram (of COLOR_NUM + 1 bins) of the colors. This parameter is ignored if NULL
+   color_hist -double *- a histogram (of COLORS_NUM + 1 bins) of the colors. This parameter is ignored if NULL
    use_hue -int- 0 if classifying colors, 1 if using the hue component of the HSV vector
    grey level represents a different color
 */
-void ImageMatrix::ColorTransform(double *color_hist, int use_hue) {  
+void ImageMatrix::ColorTransform() {  
 	unsigned int x,y; //,base_color;
 	double cb_intensity;
-	double max_range = pow((double)2,bits)-1;
+	double max_range = pow((double)2,8)-1;
 	HSVcolor hsv_pixel;
 	unsigned long color_index=0;   
-	RGBcolor rgb;
 	double certainties[COLORS_NUM+1];
 
 	writeablePixels pix_plane = WriteablePixels();
-	writeableColors clr_plane = WriteableColors();
+	readOnlyColors clr_plane = ReadableColors();
 
-	// initialize the color histogram
-	if( color_hist ) 
-		for( color_index = 0; color_index <= COLORS_NUM; color_index++ )
-			color_hist[color_index]=0;
 	// find the colors
 	for( y = 0; y < height; y++ ) {
 		for( x = 0; x < width; x++ ) { 
 			hsv_pixel = clr_plane (y, x);
-			if( use_hue == 0 ) { // not using hue  
-				color_index = FindColor( hsv_pixel.h,  hsv_pixel.s, hsv_pixel.v, certainties );
-				if( color_hist )
-					color_hist[ color_index ] ++;
-				// convert the color index to a greyscale value
-				cb_intensity = int( ( max_range * color_index ) / COLORS_NUM );
-			} else { // using hue
-				cb_intensity = hsv_pixel.h;
-			}
-			rgb.r = rgb.g = rgb.b = (byte)( 255 * ( cb_intensity / max_range ) );
-			clr_plane (y, x) = RGB2HSV( rgb );
+			color_index = FindColor( hsv_pixel.h,  hsv_pixel.s, hsv_pixel.v, certainties );
+			// convert the color index to a greyscale value
+			cb_intensity = int( ( max_range * color_index ) / COLORS_NUM );
 			pix_plane (y, x) = cb_intensity;
 		}
 	}
-	/* normalize the color histogram */
-	if (color_hist) 
-		for (color_index=0;color_index<=COLORS_NUM;color_index++)
-			color_hist[color_index]/=(width*height);	 
 
+	// The result is an intensity image, so eliminate the color plane
+	ColorMode = cmGRAY;
+	allocate (width, height); // This deallocates any pre-existing color plane.
+}
+
+void ImageMatrix::HueTransform() {  
+	unsigned int x,y; //,base_color;
+	double cb_intensity;
+	HSVcolor hsv_pixel;
+
+	writeablePixels pix_plane = WriteablePixels();
+	readOnlyColors clr_plane = ReadableColors();
+
+	// find the colors
+	for( y = 0; y < height; y++ ) {
+		for( x = 0; x < width; x++ ) { 
+			hsv_pixel = clr_plane (y, x);
+			cb_intensity = hsv_pixel.h;
+			pix_plane (y, x) = cb_intensity;
+		}
+	}
+
+	// The result is an intensity image, so eliminate the color plane
+	ColorMode = cmGRAY;
+	allocate (width, height); // This deallocates any pre-existing color plane.
 }
 
 /* get image histogram */

@@ -22,15 +22,17 @@
 /****************************************************************************/
 
 #include "cmatrix.h"
+#include "SharedImageMatrix.h"
 #include "wndchrm_error.h"
 #include "FeatureAlgorithms.h"
-#include "FeatureTransforms.h"
+#include "ImageTransforms.h"
 %}
 
 %module pychrm
 
 
 %include "cmatrix.i"
+%include "SharedImageMatrix.i"
 %include "wndchrm_error.i"
 %include "FeatureAlgorithms.i"
-%include "FeatureTransforms.i"
+%include "ImageTransforms.i"

@@ -40,6 +40,7 @@
 #include <vector> // for operations field
 #include <Eigen/Dense>
 #include "colors/FuzzyCalc.h"
+#include "ImageTransforms.h"
 //#define min(a,b) (((a) < (b)) ? (a) : (b))
 //#define max(a,b) (((a) < (b)) ? (b) : (a))
 
@@ -224,6 +225,8 @@ public:
 	};
 	virtual ~ImageMatrix();                                 // destructor
 
+	virtual ImageMatrix &transform (const ImageTransform *transform) const;
+
 	void normalize(double min, double max, long range, double mean, double stddev); // normalized an image to either min/max or mean/stddev
 	void to8bits();
 	void flipV();                                   // flip an image around a vertical axis (left to right)
@@ -269,7 +272,8 @@ public:
 		return (_median);
 	}
 	void GetColorStatistics(double *hue_avg, double *hue_std, double *sat_avg, double *sat_std, double *val_avg, double *val_std, double *max_color, double *colors);
-	void ColorTransform(double *color_hist, int use_hue);
+	void ColorTransform();
+	void HueTransform();
 	void histogram(double *bins,unsigned short bins_num, int imhist);
    double Otsu(int dynamic_range=1);                                  /* Otsu grey threshold                  */
 	void MultiScaleHistogram(double *out);

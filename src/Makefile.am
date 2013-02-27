@@ -61,10 +61,12 @@ libchrm_la_SOURCES = \
        transforms/wavelet/wt.h \
        cmatrix.cpp \
        cmatrix.h \
+       SharedImageMatrix.cpp \
+       SharedImageMatrix.h \
        wndchrm_error.cpp \
        wndchrm_error.h \
-       FeatureTransforms.cpp \
-       FeatureTransforms.h \
+       ImageTransforms.cpp \
+       ImageTransforms.h \
        FeatureAlgorithms.cpp \
        FeatureAlgorithms.h \
        WORMfile.cpp \

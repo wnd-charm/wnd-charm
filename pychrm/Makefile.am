@@ -2,9 +2,10 @@
 BUILT_SOURCES = $(srcdir)/swig/pychrm_wrap.cxx
 SWIG_SOURCES = $(srcdir)/swig/pychrm.i \
 	$(srcdir)/swig/cmatrix.i \
+	$(srcdir)/swig/SharedImageMatrix.i \
 	$(srcdir)/swig/wndchrm_error.i \
 	$(srcdir)/swig/FeatureAlgorithms.i \
-	$(srcdir)/swig/FeatureTransforms.i
+	$(srcdir)/swig/ImageTransforms.i
 
 pkgpython_PYTHON = pychrm.py FeatureSet.py FeatureNameMap.py FeatureRegistration.py __init__.py
 pkgpyexec_LTLIBRARIES = _pychrm.la

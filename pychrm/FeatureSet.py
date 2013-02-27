@@ -1336,7 +1336,7 @@ def RetrievePixelPlane( image_matrix_cache, tform_list ):
 	top_level_transform = sublist.pop()
 	intermediate_pixel_plane = RetrievePixelPlane( image_matrix_cache, sublist )
 
-	tformed_pp = top_level_transform.transform( intermediate_pixel_plane )
+	tformed_pp = intermediate_pixel_plane.transform (top_level_transform)
 	#assert( intermediate_pixel_plane ), "Pixel Plane returned from transform() was NULL"
 	image_matrix_cache[ requested_transform ] = tformed_pp
 	return tformed_pp

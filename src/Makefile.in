@@ -111,8 +111,8 @@ am_libchrm_la_OBJECTS = libchrm_la-FuzzyCalc.lo \
 	libchrm_la-Symlet5.lo libchrm_la-Wavelet.lo \
 	libchrm_la-WaveletHigh.lo libchrm_la-WaveletLow.lo \
 	libchrm_la-WaveletMedium.lo libchrm_la-wt.lo \
-	libchrm_la-cmatrix.lo libchrm_la-wndchrm_error.lo \
-	libchrm_la-FeatureTransforms.lo \
+	libchrm_la-cmatrix.lo libchrm_la-SharedImageMatrix.lo \
+	libchrm_la-wndchrm_error.lo libchrm_la-ImageTransforms.lo \
 	libchrm_la-FeatureAlgorithms.lo libchrm_la-WORMfile.lo \
 	libchrm_la-specfunc.lo cdecode.lo cencode.lo \
 	libchrm_la-sha1.lo libchrm_la-md5.lo
@@ -645,10 +645,12 @@ libchrm_la_SOURCES = \
        transforms/wavelet/wt.h \
        cmatrix.cpp \
        cmatrix.h \
+       SharedImageMatrix.cpp \
+       SharedImageMatrix.h \
        wndchrm_error.cpp \
        wndchrm_error.h \
-       FeatureTransforms.cpp \
-       FeatureTransforms.h \
+       ImageTransforms.cpp \
+       ImageTransforms.h \
        FeatureAlgorithms.cpp \
        FeatureAlgorithms.h \
        WORMfile.cpp \
@@ -756,10 +758,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-DataGrid3D.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-FeatureAlgorithms.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-FeatureStatistics.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-FeatureTransforms.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-Filter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-FilterSet.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-FuzzyCalc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-ImageTransforms.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-SharedImageMatrix.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-Symlet5.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-WORMfile.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-Wavelet.Plo@am__quote@
@@ -1012,6 +1015,13 @@ libchrm_la-cmatrix.lo: cmatrix.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_la-cmatrix.lo `test -f 'cmatrix.cpp' || echo '$(srcdir)/'`cmatrix.cpp
 
+libchrm_la-SharedImageMatrix.lo: SharedImageMatrix.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -MT libchrm_la-SharedImageMatrix.lo -MD -MP -MF $(DEPDIR)/libchrm_la-SharedImageMatrix.Tpo -c -o libchrm_la-SharedImageMatrix.lo `test -f 'SharedImageMatrix.cpp' || echo '$(srcdir)/'`SharedImageMatrix.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libchrm_la-SharedImageMatrix.Tpo $(DEPDIR)/libchrm_la-SharedImageMatrix.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='SharedImageMatrix.cpp' object='libchrm_la-SharedImageMatrix.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_la-SharedImageMatrix.lo `test -f 'SharedImageMatrix.cpp' || echo '$(srcdir)/'`SharedImageMatrix.cpp
+
 libchrm_la-wndchrm_error.lo: wndchrm_error.cpp
 @am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -MT libchrm_la-wndchrm_error.lo -MD -MP -MF $(DEPDIR)/libchrm_la-wndchrm_error.Tpo -c -o libchrm_la-wndchrm_error.lo `test -f 'wndchrm_error.cpp' || echo '$(srcdir)/'`wndchrm_error.cpp
 @am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libchrm_la-wndchrm_error.Tpo $(DEPDIR)/libchrm_la-wndchrm_error.Plo
@@ -1019,12 +1029,12 @@ libchrm_la-wndchrm_error.lo: wndchrm_error.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_la-wndchrm_error.lo `test -f 'wndchrm_error.cpp' || echo '$(srcdir)/'`wndchrm_error.cpp
 
-libchrm_la-FeatureTransforms.lo: FeatureTransforms.cpp
-@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -MT libchrm_la-FeatureTransforms.lo -MD -MP -MF $(DEPDIR)/libchrm_la-FeatureTransforms.Tpo -c -o libchrm_la-FeatureTransforms.lo `test -f 'FeatureTransforms.cpp' || echo '$(srcdir)/'`FeatureTransforms.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libchrm_la-FeatureTransforms.Tpo $(DEPDIR)/libchrm_la-FeatureTransforms.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='FeatureTransforms.cpp' object='libchrm_la-FeatureTransforms.lo' libtool=yes @AMDEPBACKSLASH@
+libchrm_la-ImageTransforms.lo: ImageTransforms.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -MT libchrm_la-ImageTransforms.lo -MD -MP -MF $(DEPDIR)/libchrm_la-ImageTransforms.Tpo -c -o libchrm_la-ImageTransforms.lo `test -f 'ImageTransforms.cpp' || echo '$(srcdir)/'`ImageTransforms.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libchrm_la-ImageTransforms.Tpo $(DEPDIR)/libchrm_la-ImageTransforms.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='ImageTransforms.cpp' object='libchrm_la-ImageTransforms.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_la-FeatureTransforms.lo `test -f 'FeatureTransforms.cpp' || echo '$(srcdir)/'`FeatureTransforms.cpp
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_la-ImageTransforms.lo `test -f 'ImageTransforms.cpp' || echo '$(srcdir)/'`ImageTransforms.cpp
 
 libchrm_la-FeatureAlgorithms.lo: FeatureAlgorithms.cpp
 @am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -MT libchrm_la-FeatureAlgorithms.lo -MD -MP -MF $(DEPDIR)/libchrm_la-FeatureAlgorithms.Tpo -c -o libchrm_la-FeatureAlgorithms.lo `test -f 'FeatureAlgorithms.cpp' || echo '$(srcdir)/'`FeatureAlgorithms.cpp

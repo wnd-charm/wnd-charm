@@ -1,21 +1,16 @@
-#include <iostream> // used for debug output from instantiator methods
-#include <iomanip>
-#include <cmath>
-#include <fcntl.h>
+#include "SharedImageMatrix.h"
+#include "cmatrix.h"
+
 #include <unistd.h> // sysconf(), page_size
 #include <errno.h>
 #include <sys/types.h> // for dev_t, ino_t
 #include <sys/stat.h>  // fstat, stat
 #include <sys/mman.h>  // mmap, shm_open
-#include <semaphore.h> // semaphores
-
-// #include "digest/sha1.h"
 #include "digest/md5.h"
 #include "b64/encode.h"
-#include "cmatrix.h"
-#include "FeatureTransforms.h"
-#include "colors/FuzzyCalc.h" // for definition of compiler constant COLORS_NUM
-#include "transforms/fft/bcb_fftw3/fftw3.h"
+
+/* global variable */
+extern int verbosity;
 
 static inline std::string string_format(const std::string &fmt, ...) {
     int size = 256;
@@ -404,6 +399,27 @@ int SharedImageMatrix::OpenImage(char *image_file_name,
 
 }
 
+
+// This is a general transform method that returns a new image matrix by applying the specified transform.
+// Of course this returns a new SharedImageMatrix as an ImageMatrix pointer.
+// We have to declare the virtual method this way to make the override work.
+ImageMatrix &SharedImageMatrix::transform (const ImageTransform *transform) const {
+	SharedImageMatrix *matrix_OUT = new SharedImageMatrix;
+	matrix_OUT->fromCache (this->GetShmemName(), transform->name);
+
+	if (matrix_OUT->Status() == csWRITE) {
+		transform->execute (this, matrix_OUT);
+		matrix_OUT->Cache();
+		return (*matrix_OUT);
+	} else if (matrix_OUT->Status() == csREAD) {
+		return (*matrix_OUT);
+	} else {
+		std::cerr << "Errors while recovering cache:" << matrix_OUT->Error() << std::endl;
+		exit (-1);
+	}
+}
+
+
 // The destructor will unlink the shared memory unless DisableDestructorCacheCleanup(true) class method has been called.
 SharedImageMatrix::~SharedImageMatrix () {
 std::cout << "SharedImageMatrix DESTRUCTOR for " << shmem_name << std::endl;
@@ -430,152 +446,3 @@ std::cout << "    unlinking POSIX shared memory " << shmem_name << " and lockfil
 	cache_status = csUNKNOWN;
 
 }
-
-
-void Transform::print_info() {
-
-}
-
-SharedImageMatrix* Transform::transform( SharedImageMatrix * matrix_IN ) {
-	SharedImageMatrix *matrix_OUT = new SharedImageMatrix;
-	matrix_OUT->fromCache (matrix_IN->GetShmemName(), name);
-	
-	if (matrix_OUT->Status() == csWRITE) {
-		execute (matrix_IN, matrix_OUT);
-		matrix_OUT->Cache();
-		return (matrix_OUT);
-	} else if (matrix_OUT->Status() == csREAD) {
-		return (matrix_OUT);
-	} else {
-		std::cerr << "Errors while recovering cache:" << matrix_OUT->Error() << std::endl;
-		exit (-1);
-	}
-}
-
-
-EmptyTransform::EmptyTransform () {
-	 Transform::name = "Empty";
-};
-
-
-void EmptyTransform::execute( const SharedImageMatrix * matrix_IN, SharedImageMatrix * matrix_OUT ) {
-	if( !( matrix_IN && matrix_OUT) )
-		return;
-	matrix_OUT->copy (*matrix_IN);
-	std::cout << "Empty transform." << std::endl;
-}
-
-//===========================================================================
-
-FourierTransform::FourierTransform () {
-	 Transform::name = "Fourier";
-}
-
-/* fft 2 dimensional transform */
-// http://www.fftw.org/doc/
-void FourierTransform::execute( const SharedImageMatrix * matrix_IN, SharedImageMatrix * matrix_OUT ) {
-	if( !( matrix_IN && matrix_OUT) )
-		return;
-	
-	matrix_OUT->copy (*matrix_IN);
-	std::cout << "Performing transform " << name << std::endl;
-	matrix_OUT->fft2();
-}
-
-
-
-//WNDCHARM_REGISTER_TRANSFORM(FourierTransform)
-
-//===========================================================================
-
-ChebyshevTransform::ChebyshevTransform () {
-	 Transform::name = "Chebyshev";
-}
-
-
-void ChebyshevTransform::execute( const SharedImageMatrix * matrix_IN, SharedImageMatrix * matrix_OUT ) {
-	if( !( matrix_IN && matrix_OUT) )
-		return;	
-	matrix_OUT->copy (*matrix_IN);
-	std::cout << "Performing transform " << name << std::endl;
-
-	matrix_OUT->ChebyshevTransform(0);
-}
-
-//WNDCHARM_REGISTER_TRANSFORM(ChebyshevTransform)
-
-//===========================================================================
-
-WaveletTransform::WaveletTransform () {
-	 Transform::name = "Wavelet";
-};
-
-
-void WaveletTransform::execute( const SharedImageMatrix * matrix_IN, SharedImageMatrix * matrix_OUT ) {
-	if( !( matrix_IN && matrix_OUT) )
-		return;
-	
-	matrix_OUT->copy (*matrix_IN);
-	std::cout << "Performing transform " << name << std::endl;
-	matrix_OUT->Symlet5Transform();
-}
-
-//WNDCHARM_REGISTER_TRANSFORM(WaveletTransform)
-
-//===========================================================================
-
-EdgeTransform::EdgeTransform () {
-	 Transform::name = "Edge";
-}
-
-
-void EdgeTransform::execute( const SharedImageMatrix * matrix_IN, SharedImageMatrix * matrix_OUT ) {
-	if( !( matrix_IN && matrix_OUT) )
-		return;
-	
-	matrix_OUT->copy (*matrix_IN);
-	std::cout << "Performing transform " << name << std::endl;
-	matrix_OUT->EdgeTransform();
-}
-
-//WNDCHARM_REGISTER_TRANSFORM(EdgeTransform)
-
-//===========================================================================
-
-ColorTransform::ColorTransform () {
-	 Transform::name = "Color";
-}
-
-
-void ColorTransform::execute( const SharedImageMatrix * matrix_IN, SharedImageMatrix * matrix_OUT ) {
-	if( !( matrix_IN && matrix_OUT) )
-		return;
-	
-	matrix_OUT->copy (*matrix_IN);
-	std::cout << "Performing transform " << name << std::endl;
-	double temp_vec [COLORS_NUM+1];
-
-	matrix_OUT->ColorTransform(temp_vec, 0);
-	histogram_vals.assign(temp_vec, temp_vec+COLORS_NUM+1);
-}
-
-//WNDCHARM_REGISTER_TRANSFORM(ColorTransform)
-
-//===========================================================================
-
-HueTransform::HueTransform () {
-	 Transform::name = "Hue";
-}
-
-
-void HueTransform::execute( const SharedImageMatrix * matrix_IN, SharedImageMatrix * matrix_OUT ) {
-	if( !( matrix_IN && matrix_OUT) )
-		return;
-	
-	matrix_OUT->copy (*matrix_IN);
-	std::cout << "Performing transform " << name << std::endl;
-	matrix_OUT->ColorTransform(NULL,1);
-}
-
-//WNDCHARM_REGISTER_TRANSFORM(HueTransform)
-
