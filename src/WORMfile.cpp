@@ -79,10 +79,10 @@ void WORMfile::reopen (bool readonly, bool wait) {
 	int k = 1;
 	int retries = OPEN_RETRIES;
 	status = WORM_UNDEF;
-	while ( !(status == WORM_WR || status == WORM_RD || status == WORM_BUSY || status == WORM_ENOENT) && retries--) {
+	while ( !(status == WORM_WR || status == WORM_RD || status == WORM_BUSY || status == WORM_ENOENT || status == WORM_STALE) && retries--) {
 		if (readonly) open_r (wait);
 		else open_rw();
-		if (status == WORM_WR || status == WORM_RD || status == WORM_BUSY) break;
+		if (status == WORM_WR || status == WORM_RD || status == WORM_BUSY || status == WORM_ENOENT || status == WORM_STALE) break;
 
 	// exponential backoff ala ethernet protocol: wait for k * 109us, where k is a random number between 0 and 2^fails - 1
 	// ethernet protocol uses 51.2 us, we use 109 us.
