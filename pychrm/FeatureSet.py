@@ -3609,7 +3609,8 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 
 		feature_weight_lists = {}
 		for batch_result in self.individual_results:
-			weight_names_and_values = zip( batch_result.feature_weights.names, batch_result.feature_weights.values)
+			weight_names_and_values = zip( batch_result.feature_weights.names, 
+					                                        batch_result.feature_weights.values)
 			for name, weight in weight_names_and_values:
 				if not name in feature_weight_lists:
 					feature_weight_lists[ name ] = []
@@ -3618,15 +3619,21 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 		for feature_name in feature_weight_lists:
 			feature_weight_lists[ feature_name ] = np.array( feature_weight_lists[ feature_name ] )
 
-		fwl = feature_weight_lists
-		feature_weight_stats = [ (np.mean(fwl[fname]), len(fwl[fname]), np.std(fwl[fname]), np.min(fwl[fname]), np.max(fwl[fname]), fname) for fname in fwl ]
+		feature_weight_stats = []
+		for fname in feature_weight_lists:
+			fwl = feature_weight_lists[ fname ]
+			count = len( fwl )
+			fwl_w_zeros = np.zeros( len( self.individual_results ) )
+			fwl_w_zeros[0:count] = fwl
+			feature_weight_stats.append( ( np.mean( fwl_w_zeros ),
+				                          count, np.std(fwl), np.min(fwl), np.max(fwl), fname ) )
+
 		# Sort on mean values, i.e. index 0 of tuple created above
 		sort_func = lambda A, B: cmp( A[0], B[0] )
 		self.feature_weight_statistics = sorted( feature_weight_stats, sort_func, reverse = True )
 
 		#Step 2: aggregate all results across splits for individual images
 		# FIXME: Do it!
-
 
 	#=====================================================================
 	@output_railroad_switch
@@ -3808,22 +3815,17 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		print "#\tname\tclassification accuracy"
 		print "------------------------------------"
 
-		count = 1
-		for batch_result in self.individual_results:
+		for count, batch_result in enumerate( self.individual_results, 1 ):
 			if batch_result.figure_of_merit == None:
 				batch_result.GenerateStats()
-			print "{0}\t\"{1}\"\t{2:0.4f}".format( count, batch_result.name, batch_result.classification_accuracy )
-			count += 1
+			print "{0}\t{1}\t{2:0.4f}".format( count, batch_name, batch_result.classification_accuracy )
 
-		outstr = "{0}\t{1:0.3f}\t{2}\t{3:0.3f}\t{4:0.3f}\t{5:0.3f}\t{6}"
+		outstr = "{0}\t{1:0.3f}\t{2:>3}\t{3:0.3f}\t{4:0.3f}\t{5:0.3f}\t{6}"
 		print "Feature Weight Analysis:"
 		print "Rank\tmean\tcount\tStdDev\tMin\tMax\tName"
 		print "----\t----\t-----\t------\t---\t---\t----"
-		count = 1
-		for fw_stat in self.feature_weight_statistics:
+		for count, fw_stat in enumerate( self.feature_weight_statistics, 1 ):
 			print outstr.format( count, *fw_stat )
-			count += 1
-
 
 
 #============================================================================
