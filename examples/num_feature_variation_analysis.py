@@ -104,7 +104,7 @@ for bin_index in range( num_bins + 1 ):
 
 	for i in range( num_splits ):
 
-		full_training_set, full_test_set = full_set.Split( quiet = True, balanced = True )
+		full_training_set, full_test_set = full_set.Split( quiet = True, balanced_classes = True )
 		full_training_set.Normalize( quiet = True )
 		full_test_set.Normalize( full_training_set, quiet = True )
 
@@ -115,7 +115,7 @@ for bin_index in range( num_bins + 1 ):
 		reduced_training_set = full_training_set.FeatureReduce( weights_subset.names )
 		reduced_test_set = full_test_set.FeatureReduce( weights_subset.names )
 
-		batch_result = DiscreteBatchClassificationResult.New( reduced_test_set, \
+		batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, reduced_test_set, \
 		                                 weights_subset, quiet = True, batch_number = i )
 
 		experiment.individual_results.append( batch_result )
@@ -124,10 +124,10 @@ for bin_index in range( num_bins + 1 ):
 
 	grapher = PredictedValuesGraph( experiment )
 	grapher.RankOrderedPredictedValuesGraph( name )
-	grapher.SaveToFile( "rank_ordered_features_{0:03d}".format( num_features )
+	grapher.SaveToFile( "rank_ordered_features_{0:03d}".format( num_features ) )
 
 	grapher.KernelSmoothedDensityGraph( name )
-	grapher.SaveToFile( "ks_density_features_{0:03d}".format( num_features )
+	grapher.SaveToFile( "ks_density_features_{0:03d}".format( num_features ) )
 
 	bin_offset += num_features_per_bin 
 
