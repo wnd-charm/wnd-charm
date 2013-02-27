@@ -3574,14 +3574,36 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 	individual_stats = None
 	#=====================================================================
 	def GenerateStats( self ):
-		"""Not yet implemented.
+		"""Only partially implemented.
 		
+		Completed functionality:
+		1. Aggregation of ground truth->predicted values across splits	
+		2. Calculation of aggregated feature weight statistics
+
 		Considerations for future implementation.
 		1. The test set may or may not have ground truth (discrete and continuous)
 		2. The results may not have a predicted value (discrete only)
 		3. Continuous classifications do not have marginal probabilities
 		4. Hybrid test sets (discrete test sets loaded into a continuous test set)
 		   have "pseudo-classes," i.e., easily binnable ground truth values."""
+
+		# Step 0: if batch results have corresponding ground truth-predicted value pairs
+		#         aggregate them here.
+		from itertools import chain
+
+		lists_of_ground_truths = []
+		lists_of_predicted_values = []
+
+		self.figure_of_merit = 0
+		for batch_result in self.individual_results:
+			self.num_classifications += len( batch_result.individual_results )
+			if batch_result.figure_of_merit == None:
+				batch_result.GenerateStats()
+			lists_of_ground_truths.append( batch_result.ground_truth_values )
+			lists_of_predicted_values.append( batch_result.predicted_values )
+
+		self.ground_truth_values = list( chain( *lists_of_ground_truths ) )
+		self.predicted_values = list( chain( *lists_of_predicted_values ) )
 
 		# Step 1: feature weight statistics:
 
@@ -3750,7 +3772,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		"""Not fully implemented yet. Need to implement generation of confusion, similarity, and
 		average class probability matrices from constituent batches."""
 
-		# Base class does feature weight analysis
+		# Base class does feature weight analysis, ground truth-pred. value aggregation
 		super( DiscreteClassificationExperimentResult, self ).GenerateStats()
 		
 		self.num_correct_classifications = 0
@@ -3823,21 +3845,8 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 
 		Requires scipy.stats package to be installed"""
 
-		from itertools import chain
-
-		lists_of_ground_truths = []
-		lists_of_predicted_values = []
-
-		self.figure_of_merit = 0
-		for batch_result in self.individual_results:
-			self.num_classifications += len( batch_result.individual_results )
-			if batch_result.figure_of_merit == None:
-				batch_result.GenerateStats()
-			lists_of_ground_truths.append( batch_result.ground_truth_values )
-			lists_of_predicted_values.append( batch_result.predicted_values )
-
-		self.ground_truth_values = list( chain( *lists_of_ground_truths ) )
-		self.predicted_values = list( chain( *lists_of_predicted_values ) )
+		# Base class does feature weight analysis, ground truth-pred. value aggregation
+		super( ContinuousClassificationExperimentResult, self ).GenerateStats()
 	
 		gt = np.array( self.ground_truth_values )
 		pv = np.array( self.predicted_values )
