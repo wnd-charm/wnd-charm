@@ -1,6 +1,5 @@
 /* FeatureAlgorithm.cpp */
 
-#include "FeatureNames.h"
 #include "FeatureAlgorithms.h"
 #include "cmatrix.h"
 #include <iostream>
@@ -25,29 +24,6 @@ FeatureAlgorithm::FeatureAlgorithm (const char *s,const int i) {
 	n_features = i;
 }
 
-// storage for static vector of instances
-// Done in a static member function holding a static to avoid "static initialization order fiasco"
-// FIXME: although this heap memory will be allocated before main() entry,
-//   its probably still a good idea to make a destructor to clean it up.
-bool FeatureAlgorithmInstances::initialized () {
-	static std::vector<const FeatureAlgorithm *> &instances = getInstances();
-	return (!instances.empty());
-}
-std::vector<const FeatureAlgorithm *> &FeatureAlgorithmInstances::getInstances () {
-	static std::vector<const FeatureAlgorithm *> *FeatureAlgorithms = new std::vector<const FeatureAlgorithm *>;
-	return (*FeatureAlgorithms);
-}
-bool FeatureAlgorithmInstances::add (const FeatureAlgorithm *algorithm) {
-	static std::vector<const FeatureAlgorithm *> &instances = getInstances();
-
-	if (verbosity > 4) std::cout << "Registering FeatureAlgorithm " << algorithm->name << std::endl;
-	instances.insert (instances.end(), algorithm);
-	FeatureNames::registerFeatureAlgorithm (algorithm);
-	return (true);
-};
-
-
-
 //===========================================================================
 ChebyshevFourierCoefficients::ChebyshevFourierCoefficients() : FeatureAlgorithm ("Chebyshev-Fourier Coefficients", 32) {
 //	cout << "Instantiating new " << name << " object." << endl;
@@ -66,10 +42,7 @@ std::vector<double> ChebyshevFourierCoefficients::calculate( ImageMatrix * IN_ma
 	return coeffs;
 }
 
-// Register a static instance of the class using a namespace for the global bool
-namespace FeatureAlgorithmReg {
-	static const bool ChebyshevFourierCoefficientsReg = FeatureAlgorithmInstances::add (new ChebyshevFourierCoefficients);
-}
+//WNDCHARM_REGISTER_ALGORITHM(ChebyshevFourierCoefficients)
 
 //===========================================================================
 ChebyshevCoefficients::ChebyshevCoefficients() : FeatureAlgorithm ("Chebyshev Coefficients", 32)  {
@@ -96,10 +69,7 @@ std::vector<double> ChebyshevCoefficients::calculate( ImageMatrix * IN_matrix ) 
 	return coeffs;
 }
 
-// Register a static instance of the class using a namespace for the global bool
-namespace FeatureAlgorithmReg {
-	static const bool ChebyshevCoefficientsReg = FeatureAlgorithmInstances::add (new ChebyshevCoefficients);
-}
+//WNDCHARM_REGISTER_ALGORITHM(ChebyshevCoefficients)
 
 //===========================================================================
 
@@ -122,10 +92,7 @@ std::vector<double> ZernikeCoefficients::calculate( ImageMatrix * IN_matrix ) co
 	return coeffs;
 }
 
-// Register a static instance of the class using a namespace for the global bool
-namespace FeatureAlgorithmReg {
-	static const bool ZernikeCoefficientsReg = FeatureAlgorithmInstances::add (new ZernikeCoefficients);
-}
+//WNDCHARM_REGISTER_ALGORITHM(ZernikeCoefficients)
 
 //===========================================================================
 
@@ -146,10 +113,7 @@ std::vector<double> HaralickTextures::calculate( ImageMatrix * IN_matrix ) const
 	return coeffs;
 }
 
-// Register a static instance of the class using a namespace for the global bool
-namespace FeatureAlgorithmReg {
-	static const bool HaralickTexturesReg = FeatureAlgorithmInstances::add (new HaralickTextures);
-}
+//WNDCHARM_REGISTER_ALGORITHM(HaralickTextures)
 
 //===========================================================================
 
@@ -170,10 +134,7 @@ std::vector<double> MultiscaleHistograms::calculate( ImageMatrix * IN_matrix ) c
 	return coeffs;
 }
 
-// Register a static instance of the class using a namespace for the global bool
-namespace FeatureAlgorithmReg {
-	static const bool MultiscaleHistogramsReg = FeatureAlgorithmInstances::add (new MultiscaleHistograms);
-}
+//WNDCHARM_REGISTER_ALGORITHM(MultiscaleHistograms)
 
 //===========================================================================
 
@@ -194,10 +155,7 @@ std::vector<double> TamuraTextures::calculate( ImageMatrix * IN_matrix ) const {
 	return coeffs;
 }
 
-// Register a static instance of the class using a namespace for the global bool
-namespace FeatureAlgorithmReg {
-	static const bool TamuraTexturesReg = FeatureAlgorithmInstances::add (new TamuraTextures);
-}
+//WNDCHARM_REGISTER_ALGORITHM(TamuraTextures)
 
 //===========================================================================
 
@@ -218,10 +176,7 @@ std::vector<double> CombFirstFourMoments::calculate( ImageMatrix * IN_matrix ) c
 	return coeffs;
 }
 
-// Register a static instance of the class using a namespace for the global bool
-namespace FeatureAlgorithmReg {
-	static const bool CombFirstFourMomentsReg = FeatureAlgorithmInstances::add (new CombFirstFourMoments);
-}
+//WNDCHARM_REGISTER_ALGORITHM(CombFirstFourMoments)
 
 //===========================================================================
 
@@ -242,10 +197,7 @@ std::vector<double> RadonCoefficients::calculate( ImageMatrix * IN_matrix ) cons
 	return coeffs;
 }
 
-// Register a static instance of the class using a namespace for the global bool
-namespace FeatureAlgorithmReg {
-	static const bool RadonCoefficientsReg = FeatureAlgorithmInstances::add (new RadonCoefficients);
-}
+//WNDCHARM_REGISTER_ALGORITHM(RadonCoefficients)
 
 //===========================================================================
 /* fractal 
@@ -292,10 +244,7 @@ std::vector<double> FractalFeatures::calculate( ImageMatrix * IN_matrix ) const 
 	return coeffs;
 }
 
-// Register a static instance of the class using a namespace for the global bool
-namespace FeatureAlgorithmReg {
-	static const bool FractalFeaturesReg = FeatureAlgorithmInstances::add (new FractalFeatures);
-}
+//WNDCHARM_REGISTER_ALGORITHM(FractalFeatures)
 
 //===========================================================================
 
@@ -316,10 +265,7 @@ std::vector<double> PixelIntensityStatistics::calculate( ImageMatrix * IN_matrix
 	return coeffs;
 }
 
-// Register a static instance of the class using a namespace for the global bool
-namespace FeatureAlgorithmReg {
-	static const bool PixelIntensityStatisticsReg = FeatureAlgorithmInstances::add (new PixelIntensityStatistics);
-}
+//WNDCHARM_REGISTER_ALGORITHM(PixelIntensityStatistics)
         
 //===========================================================================
 
@@ -366,10 +312,7 @@ std::vector<double> EdgeFeatures::calculate( ImageMatrix * IN_matrix ) const {
 	return coeffs;
 }
 
-// Register a static instance of the class using a namespace for the global bool
-namespace FeatureAlgorithmReg {
-	static const bool EdgeFeaturesReg = FeatureAlgorithmInstances::add (new EdgeFeatures);
-}
+//WNDCHARM_REGISTER_ALGORITHM(EdgeFeatures)
 
 //===========================================================================
 
@@ -428,10 +371,7 @@ std::vector<double> ObjectFeatures::calculate( ImageMatrix * IN_matrix ) const {
 	return coeffs;
 }
 
-// Register a static instance of the class using a namespace for the global bool
-namespace FeatureAlgorithmReg {
-	static const bool ObjectFeaturesReg = FeatureAlgorithmInstances::add (new ObjectFeatures);
-}
+//WNDCHARM_REGISTER_ALGORITHM(ObjectFeatures)
 
 //===========================================================================
 InverseObjectFeatures::InverseObjectFeatures() : FeatureAlgorithm ("Inverse-Otsu Object Features", 34) {
@@ -444,11 +384,6 @@ std::vector<double> InverseObjectFeatures::calculate( ImageMatrix * IN_matrix ) 
 	InvMatrix.invert();
 	static ObjectFeatures ObjFeaturesInst;
 	return (ObjFeaturesInst.calculate (&InvMatrix));
-}
-
-// Register a static instance of the class using a namespace for the global bool
-namespace FeatureAlgorithmReg {
-	static const bool InverseObjectFeaturesReg = FeatureAlgorithmInstances::add (new InverseObjectFeatures);
 }
 
 //===========================================================================
@@ -469,10 +404,7 @@ std::vector<double> GaborTextures::calculate( ImageMatrix * IN_matrix ) const {
 	return coeffs;
 }
 
-// Register a static instance of the class using a namespace for the global bool
-namespace FeatureAlgorithmReg {
-	static const bool GaborTexturesReg = FeatureAlgorithmInstances::add (new GaborTextures);
-}
+//WNDCHARM_REGISTER_ALGORITHM(GaborTextures)
 
 //===========================================================================
 
@@ -527,11 +459,7 @@ std::vector<double> GiniCoefficient::calculate( ImageMatrix * IN_matrix ) const 
 	return coeffs;
 }
 
-// Register a static instance of the class using a namespace for the global bool
-namespace FeatureAlgorithmReg {
-	static const bool GiniCoefficientReg = FeatureAlgorithmInstances::add (new GiniCoefficient);
-}
-
+//WNDCHARM_REGISTER_ALGORITHM(GiniCoefficient)
 
 //===========================================================================
 
@@ -573,7 +501,3 @@ std::vector<double> ColorHistogram::calculate( ImageMatrix * IN_matrix ) const {
 	return coeffs;
 }
 
-// Register a static instance of the class using a namespace for the global bool
-namespace FeatureAlgorithmReg {
-	static const bool ColorHistogramReg = FeatureAlgorithmInstances::add (new ColorHistogram);
-}
