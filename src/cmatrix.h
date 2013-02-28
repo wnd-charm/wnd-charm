@@ -274,7 +274,7 @@ public:
 	void GetColorStatistics(double *hue_avg, double *hue_std, double *sat_avg, double *sat_std, double *val_avg, double *val_std, double *max_color, double *colors);
 	void ColorTransform();
 	void HueTransform();
-	void histogram(double *bins,unsigned short bins_num, int imhist);
+	void histogram(double *bins,unsigned short nbins, int imhist);
    double Otsu(int dynamic_range=1);                                  /* Otsu grey threshold                  */
 	void MultiScaleHistogram(double *out);
 	//   double AverageEdge();
@@ -285,16 +285,16 @@ public:
 	void Symlet5Transform();
 	void PrewittMagnitude2D(ImageMatrix *output);
 	void PrewittDirection2D(ImageMatrix *output);
-	void ChebyshevStatistics2D(double *coeff, unsigned int N, unsigned int bins_num);
+	void ChebyshevStatistics2D(double *coeff, unsigned int N, unsigned int nbins);
 	int CombFirstFourMoments2D(double *vec);
-	void EdgeStatistics(unsigned long *EdgeArea, double *MagMean, double *MagMedian, double *MagVar, double *MagHist, double *DirecMean, double *DirecMedian, double *DirecVar, double *DirecHist, double *DirecHomogeneity, double *DiffDirecHist, unsigned int num_bins);
+	void EdgeStatistics(unsigned long *EdgeArea, double *MagMean, double *MagMedian, double *MagVar, double *MagHist, double *DirecMean, double *DirecMedian, double *DirecVar, double *DirecHist, double *DirecHomogeneity, double *DiffDirecHist, unsigned int nbins);
 	void RadonTransform2D(double *vec);
 	double OtsuBinaryMaskTransform();
 	unsigned long BWlabel(int level);
 	void centroid(double *x_centroid, double *y_centroid);
 	void FeatureStatistics(unsigned long *count, long *Euler, double *centroid_x, double *centroid_y, unsigned long *AreaMin, unsigned long *AreaMax,
 		double *AreaMean, unsigned int *AreaMedian, double *AreaVar, unsigned int *area_histogram,double *DistMin, double *DistMax,
-		double *DistMean, double *DistMedian, double *DistVar, unsigned int *dist_histogram, unsigned int num_bins
+		double *DistMean, double *DistMedian, double *DistVar, unsigned int *dist_histogram, unsigned int nbins
 	);
 	void GaborFilters2D(double *ratios);
 	void HaralickTexture2D(double distance, double *out);

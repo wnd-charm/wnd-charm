@@ -45,24 +45,27 @@
 //---------------------------------------------------------------------------
 
 int matr4moments_to_hist(double matr4moments[4][N_COMB_SAMPLES], double *vec, int vec_start) {
-	int a,b,vec_index,bin_index;
-	int nbins = 3;
+	unsigned long a, b, vec_index, bin_index, nbins = 3;
 	double bins[3];
 	vec_index=vec_start;
-	for (a=0;a<4;a++) {
-		double min=DBL_MAX,max=-DBL_MAX;
-		for (b=0;b<nbins;b++) bins[b]=0;
-		/* find min and max (for the bins) */
+	for (a = 0; a < 4; a++) {
+		double h_min = INF, h_max = -INF, h_scale;
+		// find min and max (for the bins)
 		for (b = 0; b < N_COMB_SAMPLES; b++) {
-			if (matr4moments[a][b] > max) max = matr4moments[a][b];
-			if (matr4moments[a][b] < min) min = matr4moments[a][b];
+			if (matr4moments[a][b] > h_max) h_max = matr4moments[a][b];
+			if (matr4moments[a][b] < h_min) h_min = matr4moments[a][b];
 		}
-		/* find the bins */
+
+		// get the scale
+		if (h_max - h_min > 0) h_scale = (double)nbins / double(h_max - h_min);
+		else h_scale = 0;
+		// initialize the bins
+		memset(bins, 0, nbins * sizeof (double));
+		// find the bins
 		for (b = 0; b < N_COMB_SAMPLES; b++) {
-			if (matr4moments[a][b] == max) bin_index=nbins-1;
-			else bin_index = (int)(nbins*(matr4moments[a][b]-min)/(max-min));
-			if (bin_index > nbins-1) bin_index=nbins-1;  /* make sure to prevent an error */
-			bins[bin_index]++;
+			bin_index = (unsigned long)(( (matr4moments[a][b] - h_min)*h_scale));
+			if (bin_index >= nbins) bin_index = nbins-1;
+			bins[bin_index] += 1.0;
 		}	   
 		/* add the bins to the vector */
 		for (bin_index = 0; bin_index < nbins; bin_index++)
@@ -82,7 +85,7 @@ int CombFirst4Moments2D(ImageMatrix *Im, double *vec) {
 	readOnlyPixels pix_plane = Im->ReadablePixels();
 	long step;
 	Moments tmpMoments;
-
+printf ("CombFirst4Moments2D starting\n");
 	for (a = 0; a < 4; a++)    /* initialize */
 		for (matr4moments_index = 0; matr4moments_index < N_COMB_SAMPLES; matr4moments_index++)
 			matr4moments[a][matr4moments_index] = 0;
@@ -98,12 +101,14 @@ int CombFirst4Moments2D(ImageMatrix *Im, double *vec) {
 		J1[a] = new double[m];
 	}
 
+printf ("CombFirst4Moments2D 1, %ld X %ld\n", n, m);
 	for (y = 0; y < m; y++) {
 		for (x = 0; x < n; x++) {
 			I[x][y] = y+1;
 			J[x][y] = x+1;
 		}
 	}
+printf ("CombFirst4Moments2D 1.1, %ld X %ld\n", n, m);
 
 	n2 = (int)(round(n/2));
 	m2 = (int)(round(m/2));
@@ -127,7 +132,9 @@ int CombFirst4Moments2D(ImageMatrix *Im, double *vec) {
 		for (a = 0; a < 4; a++) matr4moments[a][matr4moments_index] = z[a];
 		matr4moments_index++;
 	}
+printf ("CombFirst4Moments2D 1.11, %ld X %ld\n", n, m);
 	vec_count=matr4moments_to_hist(matr4moments,vec,vec_count);
+printf ("CombFirst4Moments2D 1.2\n");
 
 	/* major diag +45 degrees */
 	/* fliplr J */
@@ -154,6 +161,7 @@ int CombFirst4Moments2D(ImageMatrix *Im, double *vec) {
 		matr4moments_index++;
 	}
 	vec_count=matr4moments_to_hist(matr4moments,vec,vec_count);
+printf ("CombFirst4Moments2D 1.4\n");
 
 	/* vertical comb */
 	matr4moments_index=0;
@@ -197,16 +205,19 @@ int CombFirst4Moments2D(ImageMatrix *Im, double *vec) {
 	}
 	vec_count=matr4moments_to_hist(matr4moments,vec,vec_count);
 
+printf ("CombFirst4Moments2D 2\n");
 	/* free the memory used by the function */
 	for (a=0;a<n;a++) {
 		delete [] I[a];
 		delete [] J[a];
 		delete [] J1[a];
 	}
+printf ("CombFirst4Moments2D 3\n");
 	delete [] I;
 	delete [] J;
 	delete [] J1;
 
+printf ("CombFirst4Moments2D finished\n");
 	return(vec_count);
 }
 

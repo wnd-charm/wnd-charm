@@ -190,8 +190,8 @@ int ImageMatrix::LoadTIFF(char *filename) {
 		_TIFFfree(buf8);
 		_TIFFfree(buf16);
 		TIFFClose(tif);
-		WriteableColorsFinish();
-		WriteablePixelsFinish();
+// 		WriteableColorsFinish();
+// 		WriteablePixelsFinish();
 	} else return(0);
 
 	return(1);
@@ -995,9 +995,9 @@ void ImageMatrix::HueTransform() {
 }
 
 /* get image histogram */
-void ImageMatrix::histogram(double *bins,unsigned short bins_num, int imhist) {
+void ImageMatrix::histogram(double *bins,unsigned short nbins, int imhist) {
 	unsigned long a, bin, num = width*height;
-	double val, h_min=INF,h_max=-INF, h_scale;
+	double val,  h_min = INF, h_max = -INF, h_scale;
 	readOnlyPixels pix_plane = ReadablePixels();
 
 	/* find the minimum and maximum */
@@ -1007,16 +1007,17 @@ void ImageMatrix::histogram(double *bins,unsigned short bins_num, int imhist) {
 	} else {
 		BasicStatistics (NULL, NULL, NULL, &h_min, &h_max, NULL, 0);
 	}
-	h_scale = (double)bins_num / double(h_max-h_min);
+	if (h_max-h_min > 0) h_scale = (double)nbins / double(h_max-h_min);
+	else h_scale = 0;
 
 	// initialize the bins
-	memset(bins, 0, bins_num * sizeof (double));
+	memset(bins, 0, nbins * sizeof (double));
 
    // build the histogram
 	for (a = 0; a < num; a++) {
 		val = pix_plane.array().coeff(a);
 		bin = (unsigned long)(( (val - h_min)*h_scale));
-		if (bin >= bins_num) bin = bins_num-1;
+		if (bin >= nbins) bin = nbins-1;
 		bins[bin] += 1.0;
 	}
 
@@ -1172,11 +1173,11 @@ void ImageMatrix::Symlet5Transform() {
    coeff -array of double- pre-allocated memory of 20 doubles
    nibs_num - (32 is normal)
 */
-void ImageMatrix::ChebyshevStatistics2D(double *coeff, unsigned int N, unsigned int bins_num) {
+void ImageMatrix::ChebyshevStatistics2D(double *coeff, unsigned int N, unsigned int nbins) {
 	if (N<2) N=20;
 	if (N>MIN(width,height)) N=MIN(width,height);   
 	ChebyshevTransform(N);
-	histogram(coeff,bins_num,0);
+	histogram(coeff,nbins,0);
 }
 
 /* CombFirstFourMoments
@@ -1281,16 +1282,16 @@ void ImageMatrix::PrewittDirection2D(ImageMatrix *output) {
    MagMean -double- mean of the gradient magnitude
    MagMedian -double- median of the gradient magnitude
    MagVar -double- variance of the gradient magnitude
-   MagHist -array of double- histogram of the gradient magnitude. array of size "num_bins" should be allocated before calling the function
+   MagHist -array of double- histogram of the gradient magnitude. array of size "nbins" should be allocated before calling the function
    DirecMean -double- mean of the gradient direction
    DirecMedian -double- median of the gradient direction
    DirecVar -double- variance of the gradient direction
-   DirecHist -array of double- histogram of the gradient direction. array of size "num_bins" should be allocated before calling the function
+   DirecHist -array of double- histogram of the gradient direction. array of size "nbins" should be allocated before calling the function
    DirecHomogeneity -double-
-   DiffDirecHist -array of double- array of size num_bins/2 should be allocated
+   DiffDirecHist -array of double- array of size nbins/2 should be allocated
 */
 
-void ImageMatrix::EdgeStatistics(unsigned long *EdgeArea, double *MagMean, double *MagMedian, double *MagVar, double *MagHist, double *DirecMean, double *DirecMedian, double *DirecVar, double *DirecHist, double *DirecHomogeneity, double *DiffDirecHist, unsigned int num_bins) {
+void ImageMatrix::EdgeStatistics(unsigned long *EdgeArea, double *MagMean, double *MagMedian, double *MagVar, double *MagHist, double *DirecMean, double *DirecMedian, double *DirecVar, double *DirecHist, double *DirecHomogeneity, double *DiffDirecHist, unsigned int nbins) {
 	unsigned int a,bin_index;
 	double min_val,max_val,sum, level;
 
@@ -1303,7 +1304,7 @@ void ImageMatrix::EdgeStatistics(unsigned long *EdgeArea, double *MagMean, doubl
 	PrewittDirection2D (&GradientDirection);
 
 	/* find gradient statistics */
-	GradientMagnitude.BasicStatistics(MagMean, MagMedian, MagVar, &min_val, &max_val, MagHist, num_bins);
+	GradientMagnitude.BasicStatistics(MagMean, MagMedian, MagVar, &min_val, &max_val, MagHist, nbins);
 	*MagVar = pow(*MagVar,2);
 
 	/* find the edge area (number of edge pixels) */
@@ -1318,19 +1319,19 @@ void ImageMatrix::EdgeStatistics(unsigned long *EdgeArea, double *MagMean, doubl
 //   GradientMagnitude->OtsuBinaryMaskTransform();
 
 	/* find direction statistics */
-	GradientDirection.BasicStatistics(DirecMean, DirecMedian, DirecVar, &min_val, &max_val, DirecHist, num_bins);
+	GradientDirection.BasicStatistics(DirecMean, DirecMedian, DirecVar, &min_val, &max_val, DirecHist, nbins);
 	*DirecVar=pow(*DirecVar,2);
 
 	/* Calculate statistics about edge difference direction
 	   Histogram created by computing differences amongst histogram bins at angle and angle+pi
 	*/
-	for (bin_index = 0; bin_index < (num_bins/2); bin_index++)
-		DiffDirecHist[bin_index] = fabs(DirecHist[bin_index]-DirecHist[bin_index+(int)(num_bins/2)]);
+	for (bin_index = 0; bin_index < (nbins/2); bin_index++)
+		DiffDirecHist[bin_index] = fabs(DirecHist[bin_index]-DirecHist[bin_index+(int)(nbins/2)]);
 	sum=0;
-	for (bin_index = 0; bin_index < (num_bins/2); bin_index++) {
-		if (DirecHist[bin_index] + DirecHist[bin_index+(int)(num_bins/2)] != 0)  /* protect from a numeric flaw */
-			DiffDirecHist[bin_index] = DiffDirecHist[bin_index]/(DirecHist[bin_index]+DirecHist[bin_index+(int)(num_bins/2)]);
-		sum += (DirecHist[bin_index]+DirecHist[bin_index+(int)(num_bins/2)]);
+	for (bin_index = 0; bin_index < (nbins/2); bin_index++) {
+		if (DirecHist[bin_index] + DirecHist[bin_index+(int)(nbins/2)] != 0)  /* protect from a numeric flaw */
+			DiffDirecHist[bin_index] = DiffDirecHist[bin_index]/(DirecHist[bin_index]+DirecHist[bin_index+(int)(nbins/2)]);
+		sum += (DirecHist[bin_index]+DirecHist[bin_index+(int)(nbins/2)]);
 	}
 
 	/* The fraction of edge pixels that are in the first two bins of the histogram measure edge homogeneity */
@@ -1342,7 +1343,7 @@ void ImageMatrix::EdgeStatistics(unsigned long *EdgeArea, double *MagMean, doubl
    vec -array of double- output column. a pre-allocated vector of the size 3*4=12
 */
 void ImageMatrix::RadonTransform2D(double *vec) {
-	unsigned int x,y,val_index,output_size,vec_index,bin_index;
+	unsigned int x,y,val_index,output_size,vec_index;
 	double *pixels,*ptr,bins[3];
 	int angle,num_angles=4;
 	double theta[4]={0,45,90,135};
@@ -1368,21 +1369,26 @@ void ImageMatrix::RadonTransform2D(double *vec) {
 	for (angle = 0; angle < num_angles; angle++) {
 		//radon(ptr,pixels, &theta, height, width, (width-1)/2, (height-1)/2, 1, rFirst, output_size);
 		/* create histogram */
-		double min_val=INF,max_val=-INF;
+		double h_min = INF, h_max = -INF, h_scale;
+		unsigned long bin, nbins = 3;
 		/* find the minimum and maximum values */
 		for (val_index = angle*output_size; val_index < (angle+1)*output_size; val_index++) {
-			if (ptr[val_index]>max_val) max_val = ptr[val_index];
-			if (ptr[val_index]<min_val) min_val = ptr[val_index];
+			if (ptr[val_index] > h_max) h_max = ptr[val_index];
+			if (ptr[val_index] < h_min) h_min = ptr[val_index];
 		}
 
-		for (val_index=0;val_index<3;val_index++)   /* initialize the bins */
-			bins[val_index]=0;
-		for (val_index=angle*output_size;val_index<(angle+1)*output_size;val_index++)
-			if (ptr[val_index]==max_val) bins[2]+=1;
-			else bins[(int)(((ptr[val_index]-min_val)/(max_val-min_val))*3)]+=1;
+		if (h_max-h_min > 0) h_scale = (double)nbins / double(h_max - h_min);
+		else h_scale = 0;
 
-		for (bin_index=0;bin_index<3;bin_index++)
-			vec[vec_index++]=bins[bin_index];
+		memset(bins, 0, nbins * sizeof (double));
+		for (val_index=angle*output_size;val_index<(angle+1)*output_size;val_index++) {
+			bin = (unsigned long)(( (ptr[val_index] - h_min)*h_scale));
+			if (bin >= nbins) bin = nbins-1;
+			bins[bin] += 1.0;
+		}
+
+		for (bin = 0; bin < 3; bin++)
+			vec[vec_index++] = bins[bin];
 	}
 	vd_RadonTextures(vec);
 	delete [] pixels;
@@ -1508,13 +1514,13 @@ int compare_ulongs (const void *a, const void *b) {
 
 void ImageMatrix::FeatureStatistics(unsigned long *count, long *Euler, double *centroid_x, double *centroid_y, unsigned long *AreaMin, unsigned long *AreaMax,
 	double *AreaMean, unsigned int *AreaMedian, double *AreaVar, unsigned int *area_histogram,double *DistMin, double *DistMax,
-	double *DistMean, double *DistMedian, double *DistVar, unsigned int *dist_histogram, unsigned int num_bins
+	double *DistMean, double *DistMedian, double *DistVar, unsigned int *dist_histogram, unsigned int nbins
 ) {
-	unsigned long object_index, bin_idx;
+	unsigned long object_index, bin;
 	double sum_areas,sum_dists;
 	ImageMatrix BWImage;
 	unsigned long *object_areas;
-	double *centroid_dists,sum_dist;
+	double *centroid_dists, sum_dist, hist_scale;
 
 	BWImage.copy (*this);
 	BWImage.OtsuBinaryMaskTransform();
@@ -1542,15 +1548,17 @@ void ImageMatrix::FeatureStatistics(unsigned long *count, long *Euler, double *c
 	if (*count>0) *AreaMean=sum_areas/(*count);
 	else *AreaMean=0;
 	*AreaMedian=(unsigned int)(object_areas[(*count)/2]);
-	memset (area_histogram, 0, num_bins * sizeof (int));
+	memset (area_histogram, 0, nbins * sizeof (int));
+	if ((*AreaMax - *AreaMin) > 0) hist_scale = (double)nbins / double(*AreaMax - *AreaMin);
+	else hist_scale = 0;
 	/* compute the variance and the histogram */
 	sum_areas = 0;
 	if (*AreaMax - *AreaMin > 0) {
 		for (object_index = 0; object_index < *count; object_index++) {
 			sum_areas += pow(object_areas[object_index] - *AreaMean,2);
-			bin_idx = (unsigned int)(((object_areas[object_index] - *AreaMin) / (*AreaMax - *AreaMin))*num_bins);
-			if (bin_idx >= num_bins) bin_idx = num_bins - 1;
-			area_histogram[bin_idx] += 1;
+			bin = (unsigned long)( ((double)object_areas[object_index] - *AreaMin) * hist_scale);
+			if (bin >= nbins) bin = nbins - 1;
+			area_histogram[bin] += 1;
 		}
 	}
 	if (*count > 1) *AreaVar=sum_areas / ((*count)-1);
@@ -1563,15 +1571,17 @@ void ImageMatrix::FeatureStatistics(unsigned long *count, long *Euler, double *c
 	if (*count>0) *DistMean=sum_dists/(*count);
 	else *DistMean=0;
 	*DistMedian=centroid_dists[(*count)/2];
-	memset (dist_histogram, 0, num_bins * sizeof (int));
+	memset (dist_histogram, 0, nbins * sizeof (int));
+	if ((*DistMax - *DistMin) > 0) hist_scale = (double)nbins / double(*DistMax - *DistMin);
+	else hist_scale = 0;
 
    /* compute the variance and the histogram */
 	sum_dist=0;
 	for (object_index = 0; object_index < *count; object_index++) {
 		sum_dist += pow(centroid_dists[object_index] - *DistMean,2);
-		bin_idx = (unsigned int)(((centroid_dists[object_index] - *DistMin) / (*DistMax - *DistMin))*num_bins);
-		if (bin_idx >= num_bins) bin_idx = num_bins - 1;
-		dist_histogram[bin_idx] += 1;
+		bin = (unsigned long)((centroid_dists[object_index] - *DistMin) * hist_scale);
+		if (bin >= nbins) bin = nbins - 1;
+		dist_histogram[bin] += 1;
 	}
 	if (*count>1) *DistVar=sum_dist/((*count)-1);
 	else *DistVar=sum_dist;
