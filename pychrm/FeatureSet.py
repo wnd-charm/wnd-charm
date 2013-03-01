@@ -104,11 +104,23 @@ feature_vector_major_version = 2
 # The defaultdict with an int factory makes the minor version 0 when supplied with an unknown key.
 from collections import defaultdict
 feature_vector_minor_version_from_num_features = defaultdict(int)
+# // original lengths prior to Version 2:
+# // no Gini coefficient, no inverse otsu features
+# // #define NUM_LC_FEATURES  4008
+# // #define NUM_L_FEATURES   2873
+# // #define NUM_C_FEATURES   2160
+# // #define NUM_DEF_FEATURES 1025
+# 
+# #define NUM_LC_FEATURES  4054
+# #define NUM_L_FEATURES   2919
+# #define NUM_C_FEATURES   2194
+# #define NUM_DEF_FEATURES 1059
+# These are definitions for Version 2 features.
 feature_vector_minor_version_from_num_features = {
-	1025:1,
-	2873:2,
-	2160:3,
-	4008:4
+	1059:1,
+	2919:2,
+	2194:3,
+	4054:4
 }
 feature_vector_minor_version_from_vector_type = defaultdict(int)
 feature_vector_minor_version_from_vector_type = {
@@ -119,10 +131,10 @@ feature_vector_minor_version_from_vector_type = {
 }
 feature_vector_num_features_from_vector_type = defaultdict(int)
 feature_vector_num_features_from_vector_type = {
-	'short':1025,
-	'long':2873,
-	'short_color':2160,
-	'long_color':4008
+	'short':1059,
+	'long':2919,
+	'short_color':2194,
+	'long_color':4054
 }
 
 error_banner = "\n*************************************************************************\n"
@@ -983,7 +995,7 @@ class Signatures( FeatureVector ):
 						options + "-l" )
 				retval.version = str (feature_vector_major_version)+"."+str(feature_vector_minor_version_from_vector_type['long'])
 
-		# There are historically 2873 signatures in the large feature set
+		# Compare the number of features to the expected length for this type of feature vector
 		elif len( the_sigs.names ) != feature_vector_num_features_from_vector_type['long']:
 			# FIXME: Calculate the difference of features between what was loaded
 			# from file, and what is supposed to be present in large feature set
@@ -991,7 +1003,7 @@ class Signatures( FeatureVector ):
 			# that makes sense.
 			err_msg = "There are only {0} signatures in file '{1}'".format(
 				len( the_sigs.names ), sigpath )
-			err_msg += "where there are supposed to be at least {0}.".format (
+			err_msg += "where there are supposed to be {0}.".format (
 				feature_vector_num_features_from_vector_type['long'])
 			raise ValueError( err_msg )
 		return the_sigs
@@ -3779,8 +3791,12 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 	individual_stats = None
 	#=====================================================================
 	def GenerateStats( self ):
-		"""Not yet implemented.
+		"""Only partially implemented.
 		
+		Completed functionality:
+		1. Aggregation of ground truth->predicted values across splits	
+		2. Calculation of aggregated feature weight statistics
+
 		Considerations for future implementation.
 		1. The test set may or may not have ground truth (discrete and continuous)
 		2. The results may not have a predicted value (discrete only)
@@ -3788,11 +3804,30 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 		4. Hybrid test sets (discrete test sets loaded into a continuous test set)
 		   have "pseudo-classes," i.e., easily binnable ground truth values."""
 
+		# Step 0: if batch results have corresponding ground truth-predicted value pairs
+		#         aggregate them here.
+		from itertools import chain
+
+		lists_of_ground_truths = []
+		lists_of_predicted_values = []
+
+		self.figure_of_merit = 0
+		for batch_result in self.individual_results:
+			self.num_classifications += len( batch_result.individual_results )
+			if batch_result.figure_of_merit == None:
+				batch_result.GenerateStats()
+			lists_of_ground_truths.append( batch_result.ground_truth_values )
+			lists_of_predicted_values.append( batch_result.predicted_values )
+
+		self.ground_truth_values = list( chain( *lists_of_ground_truths ) )
+		self.predicted_values = list( chain( *lists_of_predicted_values ) )
+
 		# Step 1: feature weight statistics:
 
 		feature_weight_lists = {}
 		for batch_result in self.individual_results:
-			weight_names_and_values = zip( batch_result.feature_weights.names, batch_result.feature_weights.values)
+			weight_names_and_values = zip( batch_result.feature_weights.names, 
+					                                        batch_result.feature_weights.values)
 			for name, weight in weight_names_and_values:
 				if not name in feature_weight_lists:
 					feature_weight_lists[ name ] = []
@@ -3801,15 +3836,21 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 		for feature_name in feature_weight_lists:
 			feature_weight_lists[ feature_name ] = np.array( feature_weight_lists[ feature_name ] )
 
-		fwl = feature_weight_lists
-		feature_weight_stats = [ (np.mean(fwl[fname]), len(fwl[fname]), np.std(fwl[fname]), np.min(fwl[fname]), np.max(fwl[fname]), fname) for fname in fwl ]
+		feature_weight_stats = []
+		for fname in feature_weight_lists:
+			fwl = feature_weight_lists[ fname ]
+			count = len( fwl )
+			fwl_w_zeros = np.zeros( len( self.individual_results ) )
+			fwl_w_zeros[0:count] = fwl
+			feature_weight_stats.append( ( np.mean( fwl_w_zeros ),
+				                          count, np.std(fwl), np.min(fwl), np.max(fwl), fname ) )
+
 		# Sort on mean values, i.e. index 0 of tuple created above
 		sort_func = lambda A, B: cmp( A[0], B[0] )
 		self.feature_weight_statistics = sorted( feature_weight_stats, sort_func, reverse = True )
 
 		#Step 2: aggregate all results across splits for individual images
 		# FIXME: Do it!
-
 
 	#=====================================================================
 	@output_railroad_switch
@@ -3955,7 +3996,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		"""Not fully implemented yet. Need to implement generation of confusion, similarity, and
 		average class probability matrices from constituent batches."""
 
-		# Base class does feature weight analysis
+		# Base class does feature weight analysis, ground truth-pred. value aggregation
 		super( DiscreteClassificationExperimentResult, self ).GenerateStats()
 		
 		self.num_correct_classifications = 0
@@ -3991,22 +4032,17 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		print "#\tname\tclassification accuracy"
 		print "------------------------------------"
 
-		count = 1
-		for batch_result in self.individual_results:
+		for count, batch_result in enumerate( self.individual_results, 1 ):
 			if batch_result.figure_of_merit == None:
 				batch_result.GenerateStats()
-			print "{0}\t\"{1}\"\t{2:0.4f}".format( count, batch_result.name, batch_result.classification_accuracy )
-			count += 1
+			print "{0}\t{1}\t{2:0.4f}".format( count, batch_name, batch_result.classification_accuracy )
 
-		outstr = "{0}\t{1:0.3f}\t{2}\t{3:0.3f}\t{4:0.3f}\t{5:0.3f}\t{6}"
+		outstr = "{0}\t{1:0.3f}\t{2:>3}\t{3:0.3f}\t{4:0.3f}\t{5:0.3f}\t{6}"
 		print "Feature Weight Analysis:"
 		print "Rank\tmean\tcount\tStdDev\tMin\tMax\tName"
 		print "----\t----\t-----\t------\t---\t---\t----"
-		count = 1
-		for fw_stat in self.feature_weight_statistics:
+		for count, fw_stat in enumerate( self.feature_weight_statistics, 1 ):
 			print outstr.format( count, *fw_stat )
-			count += 1
-
 
 
 #============================================================================
@@ -4028,21 +4064,8 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 
 		Requires scipy.stats package to be installed"""
 
-		from itertools import chain
-
-		lists_of_ground_truths = []
-		lists_of_predicted_values = []
-
-		self.figure_of_merit = 0
-		for batch_result in self.individual_results:
-			self.num_classifications += len( batch_result.individual_results )
-			if batch_result.figure_of_merit == None:
-				batch_result.GenerateStats()
-			lists_of_ground_truths.append( batch_result.ground_truth_values )
-			lists_of_predicted_values.append( batch_result.predicted_values )
-
-		self.ground_truth_values = list( chain( *lists_of_ground_truths ) )
-		self.predicted_values = list( chain( *lists_of_predicted_values ) )
+		# Base class does feature weight analysis, ground truth-pred. value aggregation
+		super( ContinuousClassificationExperimentResult, self ).GenerateStats()
 	
 		gt = np.array( self.ground_truth_values )
 		pv = np.array( self.predicted_values )
@@ -4062,6 +4085,7 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 		self.spearman_coeff, self.spearman_p_value =\
 					 stats.spearmanr( self.ground_truth_values, self.predicted_values )
 		np.seterr (all='raise')
+
 
 	#=====================================================================
 	@output_railroad_switch
