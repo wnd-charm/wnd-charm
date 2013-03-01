@@ -408,7 +408,7 @@ int SharedImageMatrix::OpenImage(char *image_file_name,
 // This is a general transform method that returns a new image matrix by applying the specified transform.
 // Of course this returns a new SharedImageMatrix as an ImageMatrix pointer.
 // We have to declare the virtual method this way to make the override work.
-ImageMatrix &SharedImageMatrix::transform (const ImageTransform *transform) const {
+SharedImageMatrix &SharedImageMatrix::transform (const ImageTransform *transform) const {
 	SharedImageMatrix *matrix_OUT = new SharedImageMatrix;
 	matrix_OUT->fromCache (this->GetShmemName(), transform->name);
 

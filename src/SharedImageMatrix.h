@@ -40,7 +40,7 @@ class SharedImageMatrix: public ImageMatrix {
 		virtual int OpenImage(char *image_file_name,            // load an image of any supported format
 			int downsample, rect *bounding_rect,
 			double mean, double stddev);
-		virtual ImageMatrix &transform (const ImageTransform *transform) const;
+		virtual SharedImageMatrix &transform (const ImageTransform *transform) const;
 
 		virtual ~SharedImageMatrix();                                 // destructor
 
