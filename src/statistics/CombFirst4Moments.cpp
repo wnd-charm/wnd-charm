@@ -85,7 +85,6 @@ int CombFirst4Moments2D(ImageMatrix *Im, double *vec) {
 	readOnlyPixels pix_plane = Im->ReadablePixels();
 	long step;
 	Moments tmpMoments;
-printf ("CombFirst4Moments2D starting\n");
 	for (a = 0; a < 4; a++)    /* initialize */
 		for (matr4moments_index = 0; matr4moments_index < N_COMB_SAMPLES; matr4moments_index++)
 			matr4moments[a][matr4moments_index] = 0;
@@ -101,14 +100,12 @@ printf ("CombFirst4Moments2D starting\n");
 		J1[a] = new double[m];
 	}
 
-printf ("CombFirst4Moments2D 1, %ld X %ld\n", n, m);
 	for (y = 0; y < m; y++) {
 		for (x = 0; x < n; x++) {
 			I[x][y] = y+1;
 			J[x][y] = x+1;
 		}
 	}
-printf ("CombFirst4Moments2D 1.1, %ld X %ld\n", n, m);
 
 	n2 = (int)(round(n/2));
 	m2 = (int)(round(m/2));
@@ -132,9 +129,7 @@ printf ("CombFirst4Moments2D 1.1, %ld X %ld\n", n, m);
 		for (a = 0; a < 4; a++) matr4moments[a][matr4moments_index] = z[a];
 		matr4moments_index++;
 	}
-printf ("CombFirst4Moments2D 1.11, %ld X %ld\n", n, m);
 	vec_count=matr4moments_to_hist(matr4moments,vec,vec_count);
-printf ("CombFirst4Moments2D 1.2\n");
 
 	/* major diag +45 degrees */
 	/* fliplr J */
@@ -161,7 +156,6 @@ printf ("CombFirst4Moments2D 1.2\n");
 		matr4moments_index++;
 	}
 	vec_count=matr4moments_to_hist(matr4moments,vec,vec_count);
-printf ("CombFirst4Moments2D 1.4\n");
 
 	/* vertical comb */
 	matr4moments_index=0;
@@ -205,19 +199,16 @@ printf ("CombFirst4Moments2D 1.4\n");
 	}
 	vec_count=matr4moments_to_hist(matr4moments,vec,vec_count);
 
-printf ("CombFirst4Moments2D 2\n");
 	/* free the memory used by the function */
 	for (a=0;a<n;a++) {
 		delete [] I[a];
 		delete [] J[a];
 		delete [] J1[a];
 	}
-printf ("CombFirst4Moments2D 3\n");
 	delete [] I;
 	delete [] J;
 	delete [] J1;
 
-printf ("CombFirst4Moments2D finished\n");
 	return(vec_count);
 }
 
