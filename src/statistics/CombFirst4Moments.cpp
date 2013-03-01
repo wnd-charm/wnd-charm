@@ -71,7 +71,7 @@ int matr4moments_to_hist(double matr4moments[4][N_COMB_SAMPLES], double *vec, in
 		for (bin_index = 0; bin_index < nbins; bin_index++)
 			vec[vec_index++] = bins[bin_index];
 	}
-	return(vec_index);
+	return((int)vec_index);
 }
 
 //---------------------------------------------------------------------------
