@@ -101,16 +101,7 @@ small_featureset_featuregroup_list = None
 large_featureset_featuregroup_list = None
 # The numbers *must* be consistent with what's defined in wndchrm C-codebase.
 feature_vector_major_version = 2
-# The defaultdict with an int factory makes the minor version 0 when supplied with an unknown key.
-from collections import defaultdict
-feature_vector_minor_version_from_num_features = defaultdict(int)
-# // original lengths prior to Version 2:
-# // no Gini coefficient, no inverse otsu features
-# // #define NUM_LC_FEATURES  4008
-# // #define NUM_L_FEATURES   2873
-# // #define NUM_C_FEATURES   2160
-# // #define NUM_DEF_FEATURES 1025
-# 
+# Feature vector lengths in current version
 # #define NUM_LC_FEATURES  4054
 # #define NUM_L_FEATURES   2919
 # #define NUM_C_FEATURES   2194
@@ -122,14 +113,24 @@ feature_vector_minor_version_from_num_features = {
 	2194:3,
 	4054:4
 }
-feature_vector_minor_version_from_vector_type = defaultdict(int)
+# // original lengths prior to Version 2:
+# // no Gini coefficient, no inverse otsu features
+# // #define NUM_LC_FEATURES  4008
+# // #define NUM_L_FEATURES   2873
+# // #define NUM_C_FEATURES   2160
+# // #define NUM_DEF_FEATURES 1025
+feature_vector_minor_version_from_num_features_v1 = {
+	1025:1,
+	2873:2,
+	2160:3,
+	4008:4
+}
 feature_vector_minor_version_from_vector_type = {
 	'short':1,
 	'long':2,
 	'short_color':3,
 	'long_color':4
 }
-feature_vector_num_features_from_vector_type = defaultdict(int)
 feature_vector_num_features_from_vector_type = {
 	'short':1059,
 	'long':2919,
@@ -1129,7 +1130,9 @@ class Signatures( FeatureVector ):
 		# The minor versions should always specify vector types, but for version 1 vectors,
 		# the version is not written to the file, so it gets read as 0.
 		if (signatures.version == "1.0"):
-			signatures.version = "1." + str( feature_vector_minor_version_from_num_features [len( signatures.values )] )
+			signatures.version = "1." + str(
+				feature_vector_minor_version_from_num_features_v1.get ( len (signatures.values),0 )
+			)
 
 		# Check if the feature name follows the old convention
 		signatures.names = FeatureNameMap.TranslateToNewStyle( signatures.names ) 
@@ -1537,8 +1540,9 @@ class FeatureSet( object ):
 				sample_row += nrows
 
 		if (the_training_set.feature_vector_version is None):
-			the_training_set.feature_vector_version = "1."+ str(
-				feature_vector_minor_version_from_num_features[len( the_training_set.featurenames_list )])
+			the_training_set.feature_vector_version = "1." + str(
+				feature_vector_minor_version_from_num_features_v1.get ( len (signatures.values),0 )
+			)
 		# it might already be normalized!
 		# FIXME: check for that
 		# the_training_set.Normalize()
@@ -1906,7 +1910,9 @@ class FeatureSet_Discrete( FeatureSet ):
 					num_features = int( line )
 					data_dict[ 'num_features' ] = num_features
 					if (feature_vector_version == "1.0"):
-						feature_vector_version = "1." + str(feature_vector_minor_version_from_num_features[num_features])
+						feature_vector_version = "1." + str(
+							feature_vector_minor_version_from_num_features_v1.get ( len (signatures.values),0 )
+						)
 						data_dict[ 'feature_vector_version' ] = feature_vector_version
 
 				elif line_num is 2:
@@ -2667,7 +2673,9 @@ class FeatureSet_Continuous( FeatureSet ):
 					num_features = int( line )
 					new_ts.num_features = num_features
 					if (new_ts.feature_vector_version == "1.0"):
-						new_ts.feature_vector_version = "1." + str(feature_vector_minor_version_from_num_features[num_features])
+						new_ts.feature_vector_version = "1." + str(
+							feature_vector_minor_version_from_num_features_v1.get ( len (signatures.values),0 )
+						)
 				elif line_num is 2:
 					new_ts.num_images = int( line )
 				elif line_num <= ( num_features + 2 ):
