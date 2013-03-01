@@ -88,7 +88,7 @@ import os
 import os.path 
 import itertools
 import copy
-
+import logging
 
 
 # ============================================================
@@ -126,7 +126,6 @@ feature_vector_num_features_from_vector_type = {
 }
 
 error_banner = "\n*************************************************************************\n"
-
 
 def initialize_module(): 
 	"""If you're going to calculate any signatures, you need this stuff.
@@ -758,7 +757,6 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			else:
 				new_weights.name = self.name + " (top {0} features)".format( num_features_to_be_used )
 
-
 		abs_val_pearson_coeffs = [ abs( val ) for val in self.pearson_coeffs ]
 		raw_featureweights = zip( self.names, abs_val_pearson_coeffs, self.pearson_coeffs, \
 		    self.slopes, self.intercepts, self.pearson_stderrs, self.pearson_p_values, \
@@ -836,7 +834,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 	#================================================================
 	@output_railroad_switch
 	def Print( self, print_legend = True ):
-		"""@breif Prints out feature values and statistics"""
+		"""@brief Prints out feature values and statistics"""
 
 		header_str = "Continuous feature weight set"
 		if self.name:
@@ -1217,12 +1215,10 @@ class Signatures( FeatureVector ):
 
 	#================================================================
 	def Normalize( self, training_set ):
-		"""
-		FIXME: should there be some flag that gets set if this sig has 
+		"""FIXME: should there be some flag that gets set if this sig has 
 		already been normalized??
 		
-		@return: None
-		"""
+		@return: None"""
 
 		if training_set.featurenames_list != self.names:
 			raise ValueError("Can't normalize signature for {0} against training_set {1}: Features don't match."\
@@ -1258,20 +1254,19 @@ class FeatureGroup( object ):
 	name = None
 	algorithm = None
 	transform_list = None
+	#================================================================
 	def __init__( self, name_str = "", algorithm = None, tform_list = [] ):
 		#print "Creating new FeatureGroup for string {0}:".format(name_str)
 		#print "\talgorithm: {0}, transform list: {1}".format( algorithm, tform_list )
 		self.name = name_str 
 		self.algorithm = algorithm
 		self.transform_list = tform_list
+	#================================================================
 	def CalculateFeatures( self, cached_pixel_planes ):
 		"""Returns a tuple with the features"""
 		pixel_plane = None
-		try:
-			#print "transforms: {0}".format( self.Tforms )
-			pixel_plane = RetrievePixelPlane( cached_pixel_planes, self.transform_list )
-		except:
-			raise
+		#print "transforms: {0}".format( self.Tforms )
+		pixel_plane = RetrievePixelPlane( cached_pixel_planes, self.transform_list )
 		return self.algorithm.calculate( pixel_plane )
 
 	#================================================================
@@ -1344,8 +1339,7 @@ def RetrievePixelPlane( image_matrix_cache, tform_list ):
 
 #================================================================
 def GenerateWorkOrderFromListOfFeatureStrings( feature_list ):
-	"""
-	Takes list of feature strings and chops off bin number at the first space on right, e.g.,
+	"""Takes list of feature strings and chops off bin number at the first space on right, e.g.,
 	"feature alg (transform()) [bin]" ... Returns a list of FeatureGroups.
 
 	WARNING, RETURNS A TUPLE OF TWO THINGS!
@@ -1386,7 +1380,8 @@ class FeatureSet( object ):
 	into Numpy matrices organized by image class or ground truth. FeatureSets are also used
 	as containers for test images which have yet to be classified. FeatureSets can also be
 	randomly Split() into two subset FeatureSets to be used for cross-validation of a 
-	classifier, one for training the other for testing."""
+	classifier, one for training the other for testing.
+	"""
 
 	# source_path - could be the name of a .fit, or pickle file from which this
 	# instance was generated, could be a directory
@@ -1666,13 +1661,9 @@ class FeatureSet( object ):
 		raise NotImplementedError()
 
 	#==============================================================
-	def _ProcessSigCalculationSerially( self, feature_set = "large", write_sig_files_to_disk = True, options = None ):
+	def _ProcessSigCalculation(self, imagenames_list, parallel, feature_set_name,
+			feature_group_list, feature_name_list, write_sig_files_todisk ): 
 		"""Virtual method."""
-		raise NotImplementedError()
-
-	#==============================================================
-	def _ProcessSigCalculationParallelly( self, feature_set = "large", write_sig_files_todisk = True ):
-		"""Virtual Method."""
 		raise NotImplementedError()
 
 	#==============================================================
@@ -1892,11 +1883,8 @@ class FeatureSet_Discrete( FeatureSet ):
 					num_classes, feature_vector_version = re.compile('^(\S+)\s*(\S+)?$').match(line.strip()).group (1, 2)
 					if feature_vector_version is None: feature_vector_version = "1.0"
 					data_dict[ 'feature_vector_version' ] = feature_vector_version
-
-					
 					num_classes = int( num_classes )
 					data_dict[ 'num_classes' ] = num_classes
-					
 
 					# initialize list for string data
 					for i in range( num_classes ):
@@ -1988,7 +1976,11 @@ class FeatureSet_Discrete( FeatureSet ):
 
 	#==============================================================
 	@classmethod
-	def NewFromDirectory( cls, top_level_dir_path, feature_set = "large", write_sig_files_todisk = False ):
+	def NewFromDirectory( cls, top_level_dir_path, parallel = True,
+	                                               feature_set_name = "large",
+																								 feature_group_list = None,
+																								 feature_name_list = None,
+																								 write_sig_files_todisk = False ):
 		"""@brief Equivalent to the "wndchrm train" command from the C++ implementation by Shamir.
 		Read the the given directory, parse its structure, and populate the member
 		self.imagenames_list. Then call another function to farm out the calculation of each 
@@ -2047,7 +2039,11 @@ class FeatureSet_Discrete( FeatureSet ):
 		new_ts.classnames_list = classnames_list
 		#new_ts.imagenames_list = imagenames_list  #taken care of by AddSignatures()
 		new_ts.source_path = top_level_dir_path
-		new_ts._ProcessSigCalculationSerially( imagenames_list, feature_set, write_sig_files_todisk )
+
+		# Uncomment this after the change to AddSignature is made:
+		# new_ts._InitializeFeatureMatrix()
+		new_ts._ProcessSigCalculation( imagenames_list, feature_set_name,
+		       parallel, feature_group_list, feature_name_list, write_sig_files_todisk )
 		if feature_set == "large":
 			# FIXME: add other options
 			new_ts.feature_options = "-l"
@@ -2055,33 +2051,123 @@ class FeatureSet_Discrete( FeatureSet ):
 
 		return new_ts
 
-
 	#==============================================================
-	def _ProcessSigCalculationSerially( self, imagenames_list, feature_set = "large", write_sig_files_to_disk = True, options = None ):
+	def _ProcessSigCalculation( self, imagenames_list, parallel, feature_set_name,
+			feature_group_list, feature_name_list, write_sig_files_todisk ):
 		"""Calculate image descriptors for all the images contained in self.imagenames_list"""
 
 		# FIXME: check to see if any .sig, or .pysig files exist that match our
 		#        Signature calculation criteria, and if so read them in and incorporate them
 
-		sig = None
-		class_id = 0
-		for class_filelist in imagenames_list:
-			for sourcefile in class_filelist:
-				if feature_set == "large":
-					sig = Signatures.LargeFeatureSet( sourcefile, options )
-				elif feature_set == "small":
-					sig = Signatures.SmallFeatureSet( sourcefile, options )
-				else:
-					raise ValueError( "You requested '{0}' feature set... sig calculation other than small and large feature set hasn't been implemented yet.".format( feature_set ) )
-				# FIXME: add all the other options
-				# check validity
-				if not sig:
-					raise ValueError( "Couldn't create a valid signature from file {0} with options {1}".format( sourcefile, options ) )
-				sig.is_valid()
-				if write_sig_files_to_disk:
-					sig.WriteFeaturesToASCIISigFile()
-				self.AddSignature( sig, class_id )
-			class_id += 1
+		if not parallel:
+			sig = None
+			class_id = 0
+			for class_filelist in imagenames_list:
+				for sourcefile in class_filelist:
+					if feature_set_name == "large":
+						sig = Signatures.LargeFeatureSet( sourcefile, parallel )
+					elif feature_set_name == "small":
+						sig = Signatures.SmallFeatureSet( sourcefile, parallel )
+					else:
+						raise ValueError( "You requested '{0}' feature set... sig calculation other than small and large feature set hasn't been implemented yet.".format( feature_set ) )
+					# FIXME: add all the other options
+					# check validity
+					if not sig:
+						raise ValueError( "Couldn't create a valid signature from file {0} with options {1}".format( sourcefile, options ) )
+					sig.is_valid()
+					if write_sig_files_to_disk:
+						sig.WriteFeaturesToASCIISigFile()
+					self.AddSignature( sig, class_id )
+				class_id += 1
+		else:
+		#####################################################################################
+		# Begin multiprocessing section
+
+			# Hard coded large feature set
+			work_order = large_featureset_featuregroup_strings.split( '\n' )
+			first_round_tforms, second_round_tforms, algs, self.featurenames_list = \
+			    GenerateWorkPlan( work_order )
+
+
+			print second_round_tforms
+
+			self.num_features = len( self.featurenames_list )
+			self.num_classes = len( self.imagenames_list )
+
+			import multiprocessing as mp
+			import ctypes
+
+			mp.log_to_stderr()
+			logger = mp.get_logger()
+			logger.setLevel( logging.INFO )
+
+			num_cpus = 2 #mp.cpu_count()
+			pool = mp.Pool( num_cpus )
+
+			# DO LATER: Check if .sig filex exist, and if so attempt to load them first
+			for class_filelist in imagenames_list:
+
+				num_imgs = len( class_filelist )
+				self.classsizes_list.append( num_imgs )
+
+				shared_array_base = mp.Array( ctypes.c_double, num_imgs * self.num_features )
+
+				for image_index, sourcefile in enumerate( class_filelist ):
+			
+					original = pychrm.SharedImageMatrix()
+					if 1 != original.OpenImage( sourcefile, 0, None, 0, 0 ):
+						raise ValueError( 'Could not build an SharedImageMatrix from {0}, check the file.'.\
+					                 format( path_to_image ) )
+
+					pp_mmap_paths = {}
+					pp_mmap_paths[ "" ] = original.GetShmemName()
+
+					import pdb; pdb.set_trace()
+					# Round 1: Asynchronously fire off first round of transforms to the pool
+					results = []
+					for in_px_plane_name, tform_name in first_round_tforms:
+						fn_args = ( tform_name, pp_mmap_paths[ in_px_plane_name ] )
+						res = pool.apply_async( ConcurrentTransformFunc, fn_args )
+						results.append( ( tform_name, res ) )
+					# Block on completion of round 1
+					for tform_name, res in results:
+						pp_mmap_paths[ tform_name ] = res.get()
+
+					# Round 2: Asynchronously fire off second round of transforms to the pool
+					results = []
+					for in_px_plane_name, tform_name in second_round_tforms:
+						fn_args = ( tform_name, pp_mmap_paths[ in_px_plane_name ] )
+						res = pool.apply_async( ConcurrentTransformFunc, fn_args )
+						results.append( ( tform_name, res ) )
+					# Block on completion of round 2
+					for tform_name, res in results:
+						pp_mmap_paths[ in_px_plane_name + ' ' + tform_name ] = res.get()
+
+					# After all transforms are completed, all dependencies have been removed.
+					# Asynchronously fire off all feature calculation and block until completion
+					column_offset = 0
+					results = []
+					for algname, required_tform in algs:
+						offset = image_index * self.num_features + column_offset
+						fn_args = ( algname, pp_mmap_paths[ required_tform ], shared_array_base, offset )
+						res = pool.apply_async( ConcurrentFeatCalcFunc, fn_args ) 
+						results.append( res )
+						column_offset += Algorithms[ algname ].n_features
+					# Block:
+					for res in results:
+						res.get()
+
+					# Cleanup shared pixel plane memory by instantiating a SharedImageMatrix
+					# object in this process and its destructor will be called when these fall out of scope
+					for mmap_path in pp_mmap_paths.values():
+						noop = pychrm.SharedImageMatrix()
+						noop.OpenImage( mmap_path, 0, None, 0, 0 )
+
+				shared_array = np.ctypeslib.as_array( shared_array_base.get_obj() )
+				shared_array = shared_array.reshape( num_imgs, self.num_features )
+				self.data_list.append( shared_array )
+
+			self.ContiguousDataMatrix()
 
 	#==============================================================
 	def FeatureReduce( self, requested_features ):
@@ -2142,7 +2228,6 @@ class FeatureSet_Discrete( FeatureSet ):
 			reduced_ts.feature_vector_version = "{0}.0".format (self.feature_vector_version.split('.',1)[0])
 		else:
 			reduced_ts.feature_vector_version = self.feature_vector_version
-
 
 		return reduced_ts
 
@@ -2509,6 +2594,7 @@ class FeatureSet_Continuous( FeatureSet ):
 	#: Ground truth numerical values accociated with each image
 	ground_truths = None
 
+	#==============================================================
 	def __init__( self, data_dict = None ):
 
 		# call parent constructor
@@ -2613,21 +2699,29 @@ class FeatureSet_Continuous( FeatureSet ):
 		return new_ts
 
 	#==============================================================
-	def _ProcessSigCalculationSerially( self, imagenames_list, feature_set = "large", write_sig_files_to_disk = True, options = None ):
+	def _ProcessSigCalculation(self, imagenames_list, parallel, feature_set_name,
+			feature_group_list, feature_name_list, write_sig_files_todisk ):
+ 
 		"""Begin calculation of image features for the images listed in self.imagenames_list,
-		but do not use parallel computing/ create child processes to do so.
-		
-		This function is to be deprecated ASAP in favor of parallel feature calculation"""
+		but do not use parallel computing/ create child processes to do so."""
+
 		# FIXME: check to see if any .sig, or .pysig files exist that match our
 		#        Signature calculation criteria, and if so read them in and incorporate them
+
+		# SUBCLASSING ISSUE: This function only works on subdirectories of images that are arranged
+		# in the way that discrete Featuresets are. There is no such thing as class_ids where 
+		# continuous classification is concerned. This function is copy/pasted from Discrete
+		# merely to facilitate the usage of hybrid FeatureSets which are Discrete by
+		# curation but represent continuous morphology. only a file of files can be used
+		# as input for pure continuous data.
 
 		sig = None
 		class_id = 0
 		for class_filelist in imagenames_list:
 			for sourcefile in class_filelist:
-				if feature_set == "large":
+				if feature_set_name == "large":
 					sig = Signatures.LargeFeatureSet( sourcefile, options )
-				elif feature_set == "small":
+				elif feature_set_name == "small":
 					sig = Signatures.SmallFeatureSet( sourcefile, options )
 				else:
 					raise ValueError( "sig calculation other than small and large feature set hasn't been implemented yet." )
@@ -3087,7 +3181,6 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 
 		return result
 
-
 #=================================================================================
 class ContinuousImageClassificationResult( ImageClassificationResult ):
 	"""Concrete class that contains the result of a classification for a single image/ROI.
@@ -3185,7 +3278,6 @@ class BatchClassificationResult( ClassificationResult ):
 
 		self.num_classifications = 0
 
-
 	#==============================================================
 	def GenerateStats( self ):
 		"""Base method that's called by daughter classes.
@@ -3223,7 +3315,6 @@ class BatchClassificationResult( ClassificationResult ):
 			self.spearman_coeff, self.spearman_p_value =\
 			       stats.spearmanr( self.ground_truth_values, self.predicted_values )
 			np.seterr (all='raise')
-
 
 	#==============================================================
 	def RankOrderSort( self ):
@@ -3972,7 +4063,6 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 					 stats.spearmanr( self.ground_truth_values, self.predicted_values )
 		np.seterr (all='raise')
 
-
 	#=====================================================================
 	@output_railroad_switch
 	def Print( self ):
@@ -3988,7 +4078,6 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 		print "Total standard error: {0}".format( self.figure_of_merit )
 		print "Pearson corellation coefficient: {0}".format( self.pearson_coeff )
 		print "Pearson p-value: {0}".format( self.pearson_p_value )		
-
 
 #============================================================================
 class BaseGraph( object ):
@@ -4202,5 +4291,107 @@ class Dendrogram( object ):
 
 #================================================================
 
+# define multiprocessing helper functions:
+#================================================================
+def ConcurrentTransformFunc( tform_name, input_px_plane_path ):
+	"""returns the mmap path to the transformed pixel plane """
+
+	import multiprocessing as mp
+	mp.log_to_stderr()
+	logger = mp.get_logger()
+	logger.setLevel( logging.INFO )
+	#import pdb; pdb.set_trace()
+	import os
+
+	try:
+		print "Child pid {}: attempting transform {} on input {}".format(
+				os.getpid(), tform_name, input_px_plane_path )
+
+		original = pychrm.SharedImageMatrix()
+		if 1 != original.OpenImage( input_px_plane_path, 0, None, 0, 0 ):
+			raise ValueError( 'Could not build an SharedImageMatrix from {0}, check the file.'.\
+												 format( input_px_plane_path ) )
+
+		ret_px_plane = Transforms[ tform_name ].execute( original )
+
+		ret_px_plane_path = ret_px_plane.GetShmemName()
+
+		print "Child pid {}: input {}, transformed \"{}\" = {}".format(
+				os.getpid(), input_px_plane_path, tform_name, ret_px_plane_path )
+
+		return ret_px_plane_path
+	except KeyboardInterrupt:
+		return None
+
+#================================================================
+def ConcurrentFeatCalcFunc( alg_name, input_px_plane, feature_array, offset):
+	"""Perform the feature calculation and put into the feature matrix"""
+
+	#import pdb; pdb.set_trace()
+	import multiprocessing as mp
+	mp.log_to_stderr()
+	logger = mp.get_logger()
+	logger.setLevel( logging.INFO )
+
+	try:
+		original = pychrm.SharedImageMatrix()
+		if 1 != original.OpenImage( input_px_plane, 0, None, 0, 0 ):
+			raise ValueError( 'Could not build an SharedImageMatrix from {0}, check the file.'.\
+												 format( input_px_plane ) )
+
+		alg = Algorithms[ alg_name ]
+		num_features = alg.n_features
+		feature_array[ offset : offset + num_feat ]  = alg.calculate( input_px_plane )
+
+		return True
+	except KeyboardInterrupt:
+		return None
+
+#================================================================
+def GenerateWorkPlan( featuregroup_strings ):
+	"""identify the required transforms and the order in which they need to occur"""
+	# FIXME: Two levels of transforms hardcoded for now
+	# ASSUMPTION: featuregroup string list coming in contains only unique strings
+
+	first_round_tforms = set()
+	second_round_tforms = set()
+	parsed_algorithms = []
+	feature_names = []
+
+	for fg_string in featuregroup_strings:
+		if fg_string.startswith( '#' ):
+			continue
+		string_rep = fg_string.rstrip( ")" )
+		parsed = string_rep.split( ' (' )
+		alg_name = parsed[0]
+
+		for i in range( Algorithms[ alg_name ].n_features ):
+			feature_names.append( fg_string + ' [' + str(i) + ']' )
+		tform_list = parsed[1:]
+		try:
+			tform_list.remove( "" )
+		except ValueError:
+			pass
+
+		# Make sure all transforms mentioned are known to pychrm
+		if len(tform_list) != 0:
+			for tform in tform_list:
+				if tform not in Transforms:
+					raise KeyError( "Don't know about a transform named {0}".format( tform ) )
+
+		if len( tform_list ) > 1:
+			# reverse() does an in-place list reversal that returns None 
+			tform_list.reverse()
+			second_round_tforms.add( tuple( tform_list ) )
+			parsed_algorithms.append( ( alg_name, ' '.join( tform_list ) )  )
+		elif len( tform_list ) == 1:
+			first_round_tforms.add( ("", tform_list[0]) )
+			parsed_algorithms.append( (alg_name, tform_list[0]) )
+		else:
+			parsed_algorithms.append( (alg_name, "") )
+
+	return first_round_tforms, second_round_tforms, parsed_algorithms, feature_names
+
+				
 initialize_module()
 
