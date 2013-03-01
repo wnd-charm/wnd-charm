@@ -53,6 +53,10 @@ void SharedImageMatrix::SetShmemName ( ) {
 	uint8_t Message_Digest[MD5::HashSize];
 
 	assert (!(cached_source.empty() && operation.empty()) && "Attempt to establish a shared memory name without a cached_source or operation field");
+	if (!cached_source.empty() && operation.empty()) {
+		shmem_name = cached_source;
+		return;
+	}
 	if (!cached_source.empty()) digest.Update( (uint8_t *)(cached_source.data()), cached_source.length() );
 	if (!operation.empty()) digest.Update( (uint8_t *)(operation.data()), operation.length() );
 	digest.Result(Message_Digest);
@@ -330,6 +334,7 @@ std::cout << "cache_write" << std::endl;
 void SharedImageMatrix::Cache ( ) {
 
 	assert (!was_cached && "Called Cache on an object that was read from cache.");
+	assert (mmap_ptr && "Called Cache on an object without an mmap_ptr (allcate() has not been called.)");
 std::cout <<         "-------- called SharedImageMatrix::Cache on [" << cached_source << "]->[" << operation << "]" <<std::endl;;
 	SetShmemName();
 	

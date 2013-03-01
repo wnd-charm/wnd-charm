@@ -8,9 +8,9 @@
 /*! SharedImageMatrix
 * inherits from ImageMatrix to store data in a named mmap for memory sharing b/w processes
 */
-enum CacheStatus {csUNKNOWN, csREAD, csWRITE, csWAIT, csERROR};
 class SharedImageMatrix: public ImageMatrix {
 	public:
+		enum CacheStatus {csUNKNOWN, csREAD, csWRITE, csWAIT, csERROR};
 		SharedImageMatrix () : ImageMatrix () {
 			cached_source = "";
 			operation = "";
