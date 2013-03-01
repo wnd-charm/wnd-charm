@@ -19,6 +19,14 @@ using namespace std;
 
 ostringstream error_messages;
 
+/* global variable */
+// Verbosity levels:
+// 		0-Classification accuracy and similarity and confusion matrices only
+// 		1-Individual
+// 		2-Everything except the confusion and similarity matrices when printing to std out only
+// 		>2-Everything
+int verbosity = 2;
+
 /*
    Accumulates errors and warnings to be shown later
    N.B.: Variadic - use like printf
@@ -81,7 +89,7 @@ size_t found;
 
 
 // Append any system error string
-	if (errno != 0) {
+	if (errno != 0 && error_messages.str().size()) {
 		found = error_messages.str().find_last_not_of("\n\r");
 		if (found != std::string::npos) {
 			error_messages.seekp(found+1);
@@ -140,4 +148,3 @@ const std::string getErrorString () {
 	return (error_messages.str());
 
 }
-

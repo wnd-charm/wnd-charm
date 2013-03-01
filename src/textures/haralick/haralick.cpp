@@ -9,27 +9,27 @@
    output -array of double- a pre-allocated array of 28 doubles
 */
 
-void haralick2D(ImageMatrix *Im, double distance, double *out) {
+void haralick2D(ImageMatrix &Im, double distance, double *out) {
 	unsigned int a,x,y;
 	unsigned char **p_gray;
 	TEXTURE *features;
 	int angle;
 	double min[14],max[14],sum[14];
-	double min_value = INF,max_value = -INF; //max_value = pow(2,Im->bits)-1;
-	readOnlyPixels pix_plane = Im->ReadablePixels();
+	double min_value,max_value;
+	double scale255;
+	readOnlyPixels pix_plane = Im.ReadablePixels();
 
 	if (distance <= 0) distance = 1;
 
-	p_gray = new unsigned char *[Im->height];
-	for (y = 0; y < Im->height; y++)
-		p_gray[y] = new unsigned char[Im->width];
-   /* for more than 8 bits - normalize the image to (0,255) range */
+	p_gray = new unsigned char *[Im.height];
+	for (y = 0; y < Im.height; y++)
+		p_gray[y] = new unsigned char[Im.width];
 
-	Im->BasicStatistics(NULL, NULL, NULL, &min_value, &max_value, NULL, 0);
-	for (y = 0; y < Im->height; y++)
-		for (x = 0; x < Im->width; x++)
-			if (Im->bits > 8) p_gray[y][x] = (unsigned char)((pix_plane(y,x) - min_value)*(255.0/(max_value-min_value)));
-			else p_gray[y][x] = (unsigned char)(pix_plane(y,x));
+	Im.BasicStatistics(NULL, NULL, NULL, &min_value, &max_value, NULL, 0);
+	scale255 = (255.0/(max_value-min_value));
+	for (y = 0; y < Im.height; y++)
+		for (x = 0; x < Im.width; x++)
+			p_gray[y][x] = (unsigned char)((pix_plane(y,x) - min_value) * scale255);
 
 	for (a = 0; a < 14; a++) {
 		min[a] = INF;
@@ -37,7 +37,7 @@ void haralick2D(ImageMatrix *Im, double distance, double *out) {
 		sum[a] = 0;
 	}
 	for (angle = 0; angle <= 135; angle = angle+45) {
-		features = Extract_Texture_Features((int)distance, angle, p_gray, Im->height,Im->width);
+		features = Extract_Texture_Features((int)distance, angle, p_gray, Im.height,Im.width);
 		/*  (1) Angular Second Moment */
 		sum[0] += features->ASM;
 		if (features->ASM < min[0]) min[0] = features->ASM;
@@ -97,7 +97,7 @@ void haralick2D(ImageMatrix *Im, double distance, double *out) {
 		free(features);
 	}
 
-	for (y = 0; y < Im->height; y++)
+	for (y = 0; y < Im.height; y++)
 		delete [] p_gray[y];
 	delete [] p_gray;
 
@@ -108,32 +108,32 @@ void haralick2D(ImageMatrix *Im, double distance, double *out) {
 		temp[a+14] = max[a]-min[a];
 	}
 
-	out[0] = temp[0];
-	out[1] = temp[14];
-	out[2] = temp[1];
-	out[3] = temp[15];
-	out[4] = temp[2];
-	out[5] = temp[16];
-	out[6] = temp[9];
-	out[7] = temp[23];
-	out[8] = temp[10];
-	out[9] = temp[24];
-	out[10] = temp[8];
+	out[ 0] = temp[ 0];
+	out[ 1] = temp[14];
+	out[ 2] = temp[ 1];
+	out[ 3] = temp[15];
+	out[ 4] = temp[ 2];
+	out[ 5] = temp[16];
+	out[ 6] = temp[ 9];
+	out[ 7] = temp[23];
+	out[ 8] = temp[10];
+	out[ 9] = temp[24];
+	out[10] = temp[ 8];
 	out[11] = temp[22];
 	out[12] = temp[11];
 	out[13] = temp[25];
-	out[14] = temp[4];
+	out[14] = temp[ 4];
 	out[15] = temp[18];
 	out[16] = temp[13];
 	out[17] = temp[27];
 	out[18] = temp[12];
 	out[19] = temp[26];
-	out[20] = temp[5];
+	out[20] = temp[ 5];
 	out[21] = temp[19];
-	out[22] = temp[7];
+	out[22] = temp[ 7];
 	out[23] = temp[21];
-	out[24] = temp[6];
+	out[24] = temp[ 6];
 	out[25] = temp[20];
-	out[26] = temp[3];
+	out[26] = temp[ 3];
 	out[27] = temp[17];
 }

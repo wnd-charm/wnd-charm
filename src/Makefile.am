@@ -1,4 +1,5 @@
-
+# echo "noinst_HEADERS = $(find Eigen  -not -path '*.svn/*'  -type f | perl -n -e 'chomp;s/^\.\///;push (@foo,$_); END{print join(" \\\n    ",@foo)}')" > Eigen/sources.am 
+include Eigen/sources.am
 AM_YFLAGS = -d
 AM_LFLAGS = -o$(LEX_OUTPUT_ROOT).c
 AM_CPPFLAGS = -fPIC
@@ -12,6 +13,7 @@ libchrm_la_SOURCES = \
        statistics/CombFirst4Moments.h \
        statistics/FeatureStatistics.cpp \
        statistics/FeatureStatistics.h \
+       statistics/Moments.h \
        textures/gabor.cpp \
        textures/gabor.h \
        textures/haralick/CVIPtexture.cpp \
@@ -61,8 +63,8 @@ libchrm_la_SOURCES = \
        cmatrix.h \
        wndchrm_error.cpp \
        wndchrm_error.h \
-       FeatureTransforms.cpp \
-       FeatureTransforms.h \
+       ImageTransforms.cpp \
+       ImageTransforms.h \
        FeatureAlgorithms.cpp \
        FeatureAlgorithms.h \
        gsl/specfunc.cpp \

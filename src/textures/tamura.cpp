@@ -1,66 +1,57 @@
 //---------------------------------------------------------------------------
 
-#include <math.h>
-#include "../statistics/CombFirst4Moments.h"
+#include <cmath>
+#include <cfloat> // DBL_MAX
+#include "../statistics/Moments.h"
 #include "tamura.h"
 
 
 
-double contrast(ImageMatrix *image) {
-	double *vec;
+double contrast(const ImageMatrix &image) {
 	unsigned int x,y;
-	double avg,std,k;
-	readOnlyPixels pix_plane = image->ReadablePixels();
+	double z[4];
+	Moments statMoments;
+	readOnlyPixels pix_plane = image.ReadablePixels();
 
-	vec = new double[image->width*image->height];
-	avg = 0;
-	for (x = 0; x < image->width; x++) {
-		for (y = 0; y < image->height; y++) {
-			vec[x*image->height+y] = pix_plane(y,x);
-			avg += pix_plane(y,x);
+	for (x = 0; x < image.width; x++) {
+		for (y = 0; y < image.height; y++) {
+			statMoments.add (pix_plane(y,x));
 		}
 	}
-	avg = avg/(image->width*image->height);
-	std = 0;
-	for (x = 0; x < image->width; x++)
-		for (y = 0; y < image->height; y++)
-			std += (pix_plane(y,x) - avg)*(pix_plane(y,x) - avg);
-	std = sqrt(std/(image->width*image->height));
-	k = kurtosis(vec, avg, std, image->width*image->height);
-	delete [] vec;
-	if (std < 0.0000000001) return(0);
-	else return(std / pow(k/pow(std,4),0.25)  );
+	statMoments.momentVector(z);
+
+	if (z[1] < DBL_EPSILON) return(0);
+	else return(z[1] / pow (z[3] / pow (z[1], 4), 0.25));
 }
 
 
 #define  NBINS 125
-double directionality(ImageMatrix *image) {
+double directionality(const ImageMatrix &image) {
 	double sum,sum_r;
 	long a;
-	unsigned int x, xdim = image->width;
-	unsigned int y, ydim = image->height;
+	unsigned int x, xdim = image.width;
+	unsigned int y, ydim = image.height;
 	double Hd[NBINS];
 
-	ImageMatrix deltaH (*image);
-	ImageMatrix deltaV (*image);
+	ImageMatrix deltaH;
+	deltaH.copy(image);
+	ImageMatrix deltaV;
+	deltaV.copy(image);
+	
 
-	ImageMatrix matrixH (3,3);
-	pixData &matrixH_pix_plane = matrixH.WriteablePixels();
-	matrixH_pix_plane.setZero();
+	pixDataMat matrixH (3,3);
+	matrixH.setZero();
 
-	ImageMatrix matrixV (3,3);
-	pixData &matrixV_pix_plane = matrixV.WriteablePixels();
-	matrixV_pix_plane.setZero();
+	pixDataMat matrixV (3,3);
+	matrixV.setZero();
 
 
 	//step1
-	matrixH_pix_plane(0,0) = -1; matrixH_pix_plane(1,0) = -2; matrixH_pix_plane(2,0) = -1;
-	matrixH_pix_plane(0,2) =  1; matrixH_pix_plane(1,2) =  2; matrixH_pix_plane(2,2) = -1;
+	matrixH(0,0) = -1; matrixH(1,0) = -2; matrixH(2,0) = -1;
+	matrixH(0,2) =  1; matrixH(1,2) =  2; matrixH(2,2) = -1;
 
-	matrixV_pix_plane(0,0) =  1; matrixH_pix_plane(0,1) =  2; matrixH_pix_plane(0,2) =  1;
-	matrixV_pix_plane(2,0) = -1; matrixH_pix_plane(2,1) = -2; matrixH_pix_plane(2,2) = -1;
-	matrixH.WriteablePixelsFinish();
-	matrixV.WriteablePixelsFinish();
+	matrixV(0,0) =  1; matrixH(0,1) =  2; matrixH(0,2) =  1;
+	matrixV(2,0) = -1; matrixH(2,1) = -2; matrixH(2,2) = -1;
 
 	deltaH.convolve(matrixH);
 	deltaV.convolve(matrixV);
@@ -71,8 +62,9 @@ double directionality(ImageMatrix *image) {
 	
 
 	//step2
-	ImageMatrix phi (xdim,ydim);
-	pixData &phi_pix_plane = phi.WriteablePixels();
+	ImageMatrix phi;
+	phi.allocate (xdim, ydim);
+	writeablePixels phi_pix_plane = phi.WriteablePixels();
 
 	sum_r = 0;
 	for (y = 0; y < ydim; ++y) {
@@ -104,18 +96,17 @@ double directionality(ImageMatrix *image) {
 }
 
 
-double efficientLocalMean(const int x,const int y,const int k, ImageMatrix *laufendeSumme) {
-	int k2 = k/2;
-	readOnlyPixels laufendeSumme_pix_plane = laufendeSumme->ReadablePixels();
+double efficientLocalMean(const long x,const long y,const long k, const pixDataMat &laufendeSumme) {
+	long k2 = k/2;
 
-	int dimx = laufendeSumme->width;
-	int dimy = laufendeSumme->height;
+	long dimx = laufendeSumme.cols();
+	long dimy = laufendeSumme.rows();
 
 	//wanting average over area: (y-k2,x-k2) ... (y+k2-1, x+k2-1)
-	int starty = y-k2;
-	int startx = x-k2;
-	int stopy = y+k2-1;
-	int stopx = x+k2-1;
+	long starty = y-k2;
+	long startx = x-k2;
+	long stopy = y+k2-1;
+	long stopx = x+k2-1;
 
 	if (starty < 0) starty = 0;
 	if (startx < 0) startx = 0;
@@ -125,18 +116,18 @@ double efficientLocalMean(const int x,const int y,const int k, ImageMatrix *lauf
 	double unten, links, oben, obenlinks;
 
 	if (startx-1 < 0) links = 0;
-	else links = laufendeSumme_pix_plane(stopy,startx-1);
+	else links = laufendeSumme(stopy,startx-1);
 
 	if (starty-1 < 0) oben = 0;
-	else oben = laufendeSumme_pix_plane(stopy-1,startx);
+	else oben = laufendeSumme(stopy-1,startx);
 
 	if ((starty-1 < 0) || (startx-1 <0)) obenlinks = 0;
-	else obenlinks = laufendeSumme_pix_plane(stopy-1,startx-1);
+	else obenlinks = laufendeSumme(stopy-1,startx-1);
 
-	unten = laufendeSumme_pix_plane(stopy,startx);
+	unten = laufendeSumme(stopy,startx);
 
 	//   cout << "obenlinks = " << obenlinks << " oben = " << oben << " links = " << links << " unten = " <<unten << endl;
-	int counter = (stopy-starty+1)*(stopx-startx+1);
+	long counter = (stopy-starty+1)*(stopx-startx+1);
 	return (unten-links-oben+obenlinks)/counter;
 }
 
@@ -146,54 +137,52 @@ double efficientLocalMean(const int x,const int y,const int k, ImageMatrix *lauf
 */
 // K_VALUE can also be 5
 #define K_VALUE 7
-double coarseness(ImageMatrix *image, double *hist,int nbins) {
-	int x,y,k,max;
-	const unsigned int yDim = image->height;
-	const unsigned int xDim = image->width;
+double coarseness(const ImageMatrix &image, double *hist,unsigned int nbins) {
+	unsigned int x,y,k;
+	int max;
+	const unsigned int yDim = image.height;
+	const unsigned int xDim = image.width;
 	double sum = 0.0;
-	ImageMatrix *laufendeSumme,*Ak[K_VALUE],*Ekh[K_VALUE],*Ekv[K_VALUE],*Sbest;
+	ImageMatrix *Sbest;
+	pixDataMat laufendeSumme (yDim,xDim);
+	pixDataMat *Ak[K_VALUE], *Ekh[K_VALUE], *Ekv[K_VALUE];
 
-	readOnlyPixels image_pix_plane = image->ReadablePixels();
-	//  laufendeSumme = new ImageMatrix;
-	laufendeSumme = new ImageMatrix (*image);
-	pixData &laufendeSumme_pix_plane = laufendeSumme->WriteablePixels();
-
+	readOnlyPixels image_pix_plane = image.ReadablePixels();
 
 	// initialize for running sum calculation
 	double links, oben, obenlinks;
-	for(y = 0; y < (int)yDim; ++y) {
-		for(x = 0; x < (int)xDim; ++x) {
+	for(y = 0; y < yDim; ++y) {
+		for(x = 0; x < xDim; ++x) {
 			if(x < 1) links = 0;
-			else links = laufendeSumme_pix_plane(y,x-1);
+			else links = laufendeSumme(y,x-1);
 
 			if(y < 1) oben = 0;
-			else oben = laufendeSumme_pix_plane(y-1,x);
+			else oben = laufendeSumme(y-1,x);
 
 			if(y < 1 || x < 1) obenlinks = 0;
-			else obenlinks = laufendeSumme_pix_plane(y-1,x-1);
+			else obenlinks = laufendeSumme(y-1,x-1);
 
-			laufendeSumme_pix_plane(y,x) = image_pix_plane(y,x) + links + oben - obenlinks;
+			laufendeSumme(y,x) = image_pix_plane(y,x) + links + oben - obenlinks;
 		}
 	}
-	laufendeSumme->WriteablePixelsFinish();
 
 	for (k = 1; k <= K_VALUE; k++) {
-		Ak[k-1] = new ImageMatrix(xDim,yDim);
-		Ekh[k-1] = new ImageMatrix(xDim,yDim);
-		Ekv[k-1] = new ImageMatrix(xDim,yDim);
+		Ak[k-1] = new pixDataMat(yDim,xDim);
+		Ekh[k-1] = new pixDataMat(yDim,xDim);
+		Ekv[k-1] = new pixDataMat(yDim,xDim);
 	}
-	Sbest = new ImageMatrix(image->width,image->height);
+	Sbest = new ImageMatrix;
+	Sbest->allocate (image.width,image.height);
 
 
 	//step 1
 	int lenOfk = 1;
 	for(k = 1; k <= K_VALUE; ++k) {
 		lenOfk *= 2;
-		pixData &Ak_pix_plane = Ak[k-1]->WriteablePixels();
-		for(y = 0; y < (int)yDim; ++y)
-			for(x = 0; x < (int)xDim; ++x)
+		pixDataMat &Ak_pix_plane = *Ak[k-1];
+		for(y = 0; y < yDim; ++y)
+			for(x = 0; x < xDim; ++x)
 				Ak_pix_plane(y,x) = efficientLocalMean(x,y,lenOfk,laufendeSumme);
-		Ak[k-1]->WriteablePixelsFinish();
 	}
 
 	//step 2
@@ -201,11 +190,11 @@ double coarseness(ImageMatrix *image, double *hist,int nbins) {
 	for(k = 1; k <= K_VALUE; ++k) {
 		int k2 = lenOfk;
 		lenOfk *= 2;
-		pixData &Ekh_pix_plane = Ekh[k-1]->WriteablePixels();
-		pixData &Ekv_pix_plane = Ekv[k-1]->WriteablePixels();
-		readOnlyPixels Ak_pix_plane = Ak[k-1]->ReadablePixels();
-		for(y = 0; y < (int)yDim; ++y) {
-			for(x = 0; x < (int)xDim; ++x) {
+		pixDataMat &Ekh_pix_plane = *Ekh[k-1];
+		pixDataMat &Ekv_pix_plane = *Ekv[k-1];
+		pixDataMat &Ak_pix_plane = *Ak[k-1];
+		for(y = 0; y < yDim; ++y) {
+			for(x = 0; x < xDim; ++x) {
 				int posx1 = x+k2;
 				int posx2 = x-k2;
 
@@ -219,19 +208,17 @@ double coarseness(ImageMatrix *image, double *hist,int nbins) {
 				else Ekv_pix_plane(y,x) = 0;
 			}
 		}
-		Ekh[k-1]->WriteablePixelsFinish();
-		Ekv[k-1]->WriteablePixelsFinish();
 	}
 
 	//step3
-	pixData &Sbest_pix_plane = Sbest->WriteablePixels();
-	for(y = 0; y < (int)yDim; ++y) {
-		for(x = 0; x < (int)xDim; ++x) {
+	writeablePixels Sbest_pix_plane = Sbest->WriteablePixels();
+	for(y = 0; y < yDim; ++y) {
+		for(x = 0; x < xDim; ++x) {
 			double maxE = 0;
 			int maxk = 0;
 			for(int k = 1; k <= K_VALUE; ++k) {
-				double Ekh_val = Ekh[k-1]->ReadablePixels()(y,x);
-				double Ekv_val = Ekv[k-1]->ReadablePixels()(y,x);
+				double Ekh_val = (*(Ekh[k-1]))(y,x);
+				double Ekv_val = (*(Ekv[k-1]))(y,x);
 				if(Ekh_val > maxE) {
 					maxE = Ekh_val;
 					maxk = k;
@@ -262,7 +249,6 @@ double coarseness(ImageMatrix *image, double *hist,int nbins) {
 		hist[k] = hist[k]/max;
 
 	/* free allocated memory */
-	delete laufendeSumme;
 	for (k = 1; k <= K_VALUE; k++) {
 		delete Ak[k-1];
 		delete Ekh[k-1];
@@ -278,13 +264,21 @@ double coarseness(ImageMatrix *image, double *hist,int nbins) {
 /* Tamura3Sigs
    vec -array of double- a pre-allocated array of 6 doubles
 */
-void Tamura3Sigs2D(ImageMatrix *Im, double *vec) {
+void Tamura3Sigs2D(ImageMatrix &Im, double *vec) {
 	double temp[6];
-	temp[0] = coarseness(Im,&(temp[1]),3);
-	temp[4] = directionality(Im);
-	temp[5] = contrast(Im);
+	double min_val = Im.min();
+	double max_val = Im.max();
+	ImageMatrix normImg;
+
+	normImg.allocate (Im.width, Im.height);
+	normImg.WriteablePixels() = ((Im.ReadablePixels().array() - min_val) / max_val);
+
+	temp[0] = coarseness(normImg,&(temp[1]),3);
+	temp[4] = directionality(normImg);
+	temp[5] = contrast(normImg);
 
 	/* rearange the order of the value so it will fit OME */
+	// {"Coarseness_Hist_Bin_00","Coarseness_Hist_Bin_01","Coarseness_Hist_Bin_02","Contrast","Directionality","Total_Coarseness"}
 	vec[0] = temp[1];
 	vec[1] = temp[2];
 	vec[2] = temp[3];

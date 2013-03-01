@@ -169,18 +169,9 @@ class ImageMatrix(_object):
     __swig_getmethods__ = {}
     __getattr__ = lambda self, name: _swig_getattr(self, ImageMatrix, name)
     __repr__ = _swig_repr
-    __swig_setmethods__["_pix_plane"] = _pychrm.ImageMatrix__pix_plane_set
-    __swig_getmethods__["_pix_plane"] = _pychrm.ImageMatrix__pix_plane_get
-    if _newclass:_pix_plane = _swig_property(_pychrm.ImageMatrix__pix_plane_get, _pychrm.ImageMatrix__pix_plane_set)
-    __swig_setmethods__["_clr_plane"] = _pychrm.ImageMatrix__clr_plane_set
-    __swig_getmethods__["_clr_plane"] = _pychrm.ImageMatrix__clr_plane_get
-    if _newclass:_clr_plane = _swig_property(_pychrm.ImageMatrix__clr_plane_get, _pychrm.ImageMatrix__clr_plane_set)
-    __swig_setmethods__["_is_pix_writeable"] = _pychrm.ImageMatrix__is_pix_writeable_set
-    __swig_getmethods__["_is_pix_writeable"] = _pychrm.ImageMatrix__is_pix_writeable_get
-    if _newclass:_is_pix_writeable = _swig_property(_pychrm.ImageMatrix__is_pix_writeable_get, _pychrm.ImageMatrix__is_pix_writeable_set)
-    __swig_setmethods__["_is_clr_writeable"] = _pychrm.ImageMatrix__is_clr_writeable_set
-    __swig_getmethods__["_is_clr_writeable"] = _pychrm.ImageMatrix__is_clr_writeable_get
-    if _newclass:_is_clr_writeable = _swig_property(_pychrm.ImageMatrix__is_clr_writeable_get, _pychrm.ImageMatrix__is_clr_writeable_set)
+    __swig_setmethods__["source"] = _pychrm.ImageMatrix_source_set
+    __swig_getmethods__["source"] = _pychrm.ImageMatrix_source_get
+    if _newclass:source = _swig_property(_pychrm.ImageMatrix_source_get, _pychrm.ImageMatrix_source_set)
     __swig_setmethods__["ColorMode"] = _pychrm.ImageMatrix_ColorMode_set
     __swig_getmethods__["ColorMode"] = _pychrm.ImageMatrix_ColorMode_get
     if _newclass:ColorMode = _swig_property(_pychrm.ImageMatrix_ColorMode_get, _pychrm.ImageMatrix_ColorMode_set)
@@ -193,21 +184,6 @@ class ImageMatrix(_object):
     __swig_setmethods__["height"] = _pychrm.ImageMatrix_height_set
     __swig_getmethods__["height"] = _pychrm.ImageMatrix_height_get
     if _newclass:height = _swig_property(_pychrm.ImageMatrix_height_get, _pychrm.ImageMatrix_height_set)
-    __swig_setmethods__["_min"] = _pychrm.ImageMatrix__min_set
-    __swig_getmethods__["_min"] = _pychrm.ImageMatrix__min_get
-    if _newclass:_min = _swig_property(_pychrm.ImageMatrix__min_get, _pychrm.ImageMatrix__min_set)
-    __swig_setmethods__["_max"] = _pychrm.ImageMatrix__max_set
-    __swig_getmethods__["_max"] = _pychrm.ImageMatrix__max_get
-    if _newclass:_max = _swig_property(_pychrm.ImageMatrix__max_get, _pychrm.ImageMatrix__max_set)
-    __swig_setmethods__["_mean"] = _pychrm.ImageMatrix__mean_set
-    __swig_getmethods__["_mean"] = _pychrm.ImageMatrix__mean_get
-    if _newclass:_mean = _swig_property(_pychrm.ImageMatrix__mean_get, _pychrm.ImageMatrix__mean_set)
-    __swig_setmethods__["_std"] = _pychrm.ImageMatrix__std_set
-    __swig_getmethods__["_std"] = _pychrm.ImageMatrix__std_get
-    if _newclass:_std = _swig_property(_pychrm.ImageMatrix__std_get, _pychrm.ImageMatrix__std_set)
-    __swig_setmethods__["_median"] = _pychrm.ImageMatrix__median_set
-    __swig_getmethods__["_median"] = _pychrm.ImageMatrix__median_get
-    if _newclass:_median = _swig_property(_pychrm.ImageMatrix__median_get, _pychrm.ImageMatrix__median_set)
     __swig_setmethods__["has_stats"] = _pychrm.ImageMatrix_has_stats_set
     __swig_getmethods__["has_stats"] = _pychrm.ImageMatrix_has_stats_get
     if _newclass:has_stats = _swig_property(_pychrm.ImageMatrix_has_stats_get, _pychrm.ImageMatrix_has_stats_set)
@@ -226,14 +202,20 @@ class ImageMatrix(_object):
     def SaveTiff(self, *args): return _pychrm.ImageMatrix_SaveTiff(self, *args)
     def OpenImage(self, *args): return _pychrm.ImageMatrix_OpenImage(self, *args)
     def init(self): return _pychrm.ImageMatrix_init(self)
+    def remap_pix_plane(self, *args): return _pychrm.ImageMatrix_remap_pix_plane(self, *args)
+    def remap_clr_plane(self, *args): return _pychrm.ImageMatrix_remap_clr_plane(self, *args)
     def allocate(self, *args): return _pychrm.ImageMatrix_allocate(self, *args)
+    def copyFields(self, *args): return _pychrm.ImageMatrix_copyFields(self, *args)
+    def copyData(self, *args): return _pychrm.ImageMatrix_copyData(self, *args)
     def copy(self, *args): return _pychrm.ImageMatrix_copy(self, *args)
-    def __init__(self, *args): 
-        this = _pychrm.new_ImageMatrix(*args)
+    def submatrix(self, *args): return _pychrm.ImageMatrix_submatrix(self, *args)
+    def __init__(self): 
+        this = _pychrm.new_ImageMatrix()
         try: self.this.append(this)
         except: self.this = this
     __swig_destroy__ = _pychrm.delete_ImageMatrix
     __del__ = lambda self : None;
+    def transform(self, *args): return _pychrm.ImageMatrix_transform(self, *args)
     def normalize(self, *args): return _pychrm.ImageMatrix_normalize(self, *args)
     def to8bits(self): return _pychrm.ImageMatrix_to8bits(self)
     def flipV(self): return _pychrm.ImageMatrix_flipV(self)
@@ -249,17 +231,18 @@ class ImageMatrix(_object):
     def std(self): return _pychrm.ImageMatrix_std(self)
     def median(self): return _pychrm.ImageMatrix_median(self)
     def GetColorStatistics(self, *args): return _pychrm.ImageMatrix_GetColorStatistics(self, *args)
-    def ColorTransform(self, *args): return _pychrm.ImageMatrix_ColorTransform(self, *args)
+    def ColorTransform(self): return _pychrm.ImageMatrix_ColorTransform(self)
+    def HueTransform(self): return _pychrm.ImageMatrix_HueTransform(self)
     def histogram(self, *args): return _pychrm.ImageMatrix_histogram(self, *args)
-    def Otsu(self): return _pychrm.ImageMatrix_Otsu(self)
+    def Otsu(self, dynamic_range=1): return _pychrm.ImageMatrix_Otsu(self, dynamic_range)
     def MultiScaleHistogram(self, *args): return _pychrm.ImageMatrix_MultiScaleHistogram(self, *args)
     def EdgeTransform(self): return _pychrm.ImageMatrix_EdgeTransform(self)
     def fft2(self): return _pychrm.ImageMatrix_fft2(self)
     def ChebyshevTransform(self, *args): return _pychrm.ImageMatrix_ChebyshevTransform(self, *args)
     def ChebyshevFourierTransform2D(self, *args): return _pychrm.ImageMatrix_ChebyshevFourierTransform2D(self, *args)
     def Symlet5Transform(self): return _pychrm.ImageMatrix_Symlet5Transform(self)
-    def PerwittMagnitude2D(self, *args): return _pychrm.ImageMatrix_PerwittMagnitude2D(self, *args)
-    def PerwittDirection2D(self, *args): return _pychrm.ImageMatrix_PerwittDirection2D(self, *args)
+    def PrewittMagnitude2D(self, *args): return _pychrm.ImageMatrix_PrewittMagnitude2D(self, *args)
+    def PrewittDirection2D(self, *args): return _pychrm.ImageMatrix_PrewittDirection2D(self, *args)
     def ChebyshevStatistics2D(self, *args): return _pychrm.ImageMatrix_ChebyshevStatistics2D(self, *args)
     def CombFirstFourMoments2D(self, *args): return _pychrm.ImageMatrix_CombFirstFourMoments2D(self, *args)
     def EdgeStatistics(self, *args): return _pychrm.ImageMatrix_EdgeStatistics(self, *args)
@@ -272,6 +255,7 @@ class ImageMatrix(_object):
     def HaralickTexture2D(self, *args): return _pychrm.ImageMatrix_HaralickTexture2D(self, *args)
     def TamuraTexture2D(self, *args): return _pychrm.ImageMatrix_TamuraTexture2D(self, *args)
     def zernike2D(self, *args): return _pychrm.ImageMatrix_zernike2D(self, *args)
+    def fractal2D(self, *args): return _pychrm.ImageMatrix_fractal2D(self, *args)
 ImageMatrix_swigregister = _pychrm.ImageMatrix_swigregister
 ImageMatrix_swigregister(ImageMatrix)
 
@@ -380,7 +364,7 @@ class FeatureAlgorithm(_object):
     __setattr__ = lambda self, name, value: _swig_setattr(self, FeatureAlgorithm, name, value)
     __swig_getmethods__ = {}
     __getattr__ = lambda self, name: _swig_getattr(self, FeatureAlgorithm, name)
-    def __init__(self, *args, **kwargs): raise AttributeError("No constructor defined - class is abstract")
+    def __init__(self, *args, **kwargs): raise AttributeError("No constructor defined")
     __repr__ = _swig_repr
     __swig_setmethods__["name"] = _pychrm.FeatureAlgorithm_name_set
     __swig_getmethods__["name"] = _pychrm.FeatureAlgorithm_name_get
@@ -629,6 +613,24 @@ class ObjectFeatures(FeatureAlgorithm):
 ObjectFeatures_swigregister = _pychrm.ObjectFeatures_swigregister
 ObjectFeatures_swigregister(ObjectFeatures)
 
+class InverseObjectFeatures(FeatureAlgorithm):
+    __swig_setmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, InverseObjectFeatures, name, value)
+    __swig_getmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, InverseObjectFeatures, name)
+    __repr__ = _swig_repr
+    def __init__(self): 
+        this = _pychrm.new_InverseObjectFeatures()
+        try: self.this.append(this)
+        except: self.this = this
+    def calculate(self, *args): return _pychrm.InverseObjectFeatures_calculate(self, *args)
+    __swig_destroy__ = _pychrm.delete_InverseObjectFeatures
+    __del__ = lambda self : None;
+InverseObjectFeatures_swigregister = _pychrm.InverseObjectFeatures_swigregister
+InverseObjectFeatures_swigregister(InverseObjectFeatures)
+
 class GaborTextures(FeatureAlgorithm):
     __swig_setmethods__ = {}
     for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
@@ -665,147 +667,162 @@ class GiniCoefficient(FeatureAlgorithm):
 GiniCoefficient_swigregister = _pychrm.GiniCoefficient_swigregister
 GiniCoefficient_swigregister(GiniCoefficient)
 
-class Transform(_object):
+class ColorHistogram(FeatureAlgorithm):
     __swig_setmethods__ = {}
-    __setattr__ = lambda self, name, value: _swig_setattr(self, Transform, name, value)
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, ColorHistogram, name, value)
     __swig_getmethods__ = {}
-    __getattr__ = lambda self, name: _swig_getattr(self, Transform, name)
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, ColorHistogram, name)
+    __repr__ = _swig_repr
+    def __init__(self): 
+        this = _pychrm.new_ColorHistogram()
+        try: self.this.append(this)
+        except: self.this = this
+    def calculate(self, *args): return _pychrm.ColorHistogram_calculate(self, *args)
+    __swig_destroy__ = _pychrm.delete_ColorHistogram
+    __del__ = lambda self : None;
+ColorHistogram_swigregister = _pychrm.ColorHistogram_swigregister
+ColorHistogram_swigregister(ColorHistogram)
+
+class ImageTransform(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, ImageTransform, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, ImageTransform, name)
     def __init__(self, *args, **kwargs): raise AttributeError("No constructor defined - class is abstract")
     __repr__ = _swig_repr
-    def transform(self, *args): return _pychrm.Transform_transform(self, *args)
-    __swig_setmethods__["name"] = _pychrm.Transform_name_set
-    __swig_getmethods__["name"] = _pychrm.Transform_name_get
-    if _newclass:name = _swig_property(_pychrm.Transform_name_get, _pychrm.Transform_name_set)
-    def print_info(self): return _pychrm.Transform_print_info(self)
-    __swig_destroy__ = _pychrm.delete_Transform
+    __swig_setmethods__["name"] = _pychrm.ImageTransform_name_set
+    __swig_getmethods__["name"] = _pychrm.ImageTransform_name_get
+    if _newclass:name = _swig_property(_pychrm.ImageTransform_name_get, _pychrm.ImageTransform_name_set)
+    def execute(self, *args): return _pychrm.ImageTransform_execute(self, *args)
+    def print_info(self): return _pychrm.ImageTransform_print_info(self)
+    __swig_destroy__ = _pychrm.delete_ImageTransform
     __del__ = lambda self : None;
-Transform_swigregister = _pychrm.Transform_swigregister
-Transform_swigregister(Transform)
+ImageTransform_swigregister = _pychrm.ImageTransform_swigregister
+ImageTransform_swigregister(ImageTransform)
 
-class EmptyTransform(Transform):
+class EmptyTransform(ImageTransform):
     __swig_setmethods__ = {}
-    for _s in [Transform]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    for _s in [ImageTransform]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
     __setattr__ = lambda self, name, value: _swig_setattr(self, EmptyTransform, name, value)
     __swig_getmethods__ = {}
-    for _s in [Transform]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    for _s in [ImageTransform]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
     __getattr__ = lambda self, name: _swig_getattr(self, EmptyTransform, name)
     __repr__ = _swig_repr
     def __init__(self, *args): 
         this = _pychrm.new_EmptyTransform(*args)
         try: self.this.append(this)
         except: self.this = this
-    def transform(self, *args): return _pychrm.EmptyTransform_transform(self, *args)
+    def execute(self, *args): return _pychrm.EmptyTransform_execute(self, *args)
     __swig_destroy__ = _pychrm.delete_EmptyTransform
     __del__ = lambda self : None;
 EmptyTransform_swigregister = _pychrm.EmptyTransform_swigregister
 EmptyTransform_swigregister(EmptyTransform)
 
-class FourierTransform(Transform):
+class FourierTransform(ImageTransform):
     __swig_setmethods__ = {}
-    for _s in [Transform]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    for _s in [ImageTransform]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
     __setattr__ = lambda self, name, value: _swig_setattr(self, FourierTransform, name, value)
     __swig_getmethods__ = {}
-    for _s in [Transform]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    for _s in [ImageTransform]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
     __getattr__ = lambda self, name: _swig_getattr(self, FourierTransform, name)
     __repr__ = _swig_repr
     def __init__(self): 
         this = _pychrm.new_FourierTransform()
         try: self.this.append(this)
         except: self.this = this
-    def transform(self, *args): return _pychrm.FourierTransform_transform(self, *args)
+    def execute(self, *args): return _pychrm.FourierTransform_execute(self, *args)
     __swig_destroy__ = _pychrm.delete_FourierTransform
     __del__ = lambda self : None;
 FourierTransform_swigregister = _pychrm.FourierTransform_swigregister
 FourierTransform_swigregister(FourierTransform)
 
-class ChebyshevTransform(Transform):
+class ChebyshevTransform(ImageTransform):
     __swig_setmethods__ = {}
-    for _s in [Transform]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    for _s in [ImageTransform]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
     __setattr__ = lambda self, name, value: _swig_setattr(self, ChebyshevTransform, name, value)
     __swig_getmethods__ = {}
-    for _s in [Transform]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    for _s in [ImageTransform]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
     __getattr__ = lambda self, name: _swig_getattr(self, ChebyshevTransform, name)
     __repr__ = _swig_repr
     def __init__(self): 
         this = _pychrm.new_ChebyshevTransform()
         try: self.this.append(this)
         except: self.this = this
-    def transform(self, *args): return _pychrm.ChebyshevTransform_transform(self, *args)
+    def execute(self, *args): return _pychrm.ChebyshevTransform_execute(self, *args)
     __swig_destroy__ = _pychrm.delete_ChebyshevTransform
     __del__ = lambda self : None;
 ChebyshevTransform_swigregister = _pychrm.ChebyshevTransform_swigregister
 ChebyshevTransform_swigregister(ChebyshevTransform)
 
-class WaveletTransform(Transform):
+class WaveletTransform(ImageTransform):
     __swig_setmethods__ = {}
-    for _s in [Transform]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    for _s in [ImageTransform]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
     __setattr__ = lambda self, name, value: _swig_setattr(self, WaveletTransform, name, value)
     __swig_getmethods__ = {}
-    for _s in [Transform]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    for _s in [ImageTransform]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
     __getattr__ = lambda self, name: _swig_getattr(self, WaveletTransform, name)
     __repr__ = _swig_repr
     def __init__(self): 
         this = _pychrm.new_WaveletTransform()
         try: self.this.append(this)
         except: self.this = this
-    def transform(self, *args): return _pychrm.WaveletTransform_transform(self, *args)
+    def execute(self, *args): return _pychrm.WaveletTransform_execute(self, *args)
     __swig_destroy__ = _pychrm.delete_WaveletTransform
     __del__ = lambda self : None;
 WaveletTransform_swigregister = _pychrm.WaveletTransform_swigregister
 WaveletTransform_swigregister(WaveletTransform)
 
-class EdgeTransform(Transform):
+class EdgeTransform(ImageTransform):
     __swig_setmethods__ = {}
-    for _s in [Transform]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    for _s in [ImageTransform]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
     __setattr__ = lambda self, name, value: _swig_setattr(self, EdgeTransform, name, value)
     __swig_getmethods__ = {}
-    for _s in [Transform]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    for _s in [ImageTransform]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
     __getattr__ = lambda self, name: _swig_getattr(self, EdgeTransform, name)
     __repr__ = _swig_repr
     def __init__(self): 
         this = _pychrm.new_EdgeTransform()
         try: self.this.append(this)
         except: self.this = this
-    def transform(self, *args): return _pychrm.EdgeTransform_transform(self, *args)
+    def execute(self, *args): return _pychrm.EdgeTransform_execute(self, *args)
     __swig_destroy__ = _pychrm.delete_EdgeTransform
     __del__ = lambda self : None;
 EdgeTransform_swigregister = _pychrm.EdgeTransform_swigregister
 EdgeTransform_swigregister(EdgeTransform)
 
-class ColorTransform(Transform):
+class ColorTransform(ImageTransform):
     __swig_setmethods__ = {}
-    for _s in [Transform]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    for _s in [ImageTransform]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
     __setattr__ = lambda self, name, value: _swig_setattr(self, ColorTransform, name, value)
     __swig_getmethods__ = {}
-    for _s in [Transform]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    for _s in [ImageTransform]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
     __getattr__ = lambda self, name: _swig_getattr(self, ColorTransform, name)
     __repr__ = _swig_repr
     def __init__(self): 
         this = _pychrm.new_ColorTransform()
         try: self.this.append(this)
         except: self.this = this
-    __swig_setmethods__["histogram_vals"] = _pychrm.ColorTransform_histogram_vals_set
-    __swig_getmethods__["histogram_vals"] = _pychrm.ColorTransform_histogram_vals_get
-    if _newclass:histogram_vals = _swig_property(_pychrm.ColorTransform_histogram_vals_get, _pychrm.ColorTransform_histogram_vals_set)
-    def transform(self, *args): return _pychrm.ColorTransform_transform(self, *args)
+    def execute(self, *args): return _pychrm.ColorTransform_execute(self, *args)
     __swig_destroy__ = _pychrm.delete_ColorTransform
     __del__ = lambda self : None;
 ColorTransform_swigregister = _pychrm.ColorTransform_swigregister
 ColorTransform_swigregister(ColorTransform)
 
-class HueTransform(Transform):
+class HueTransform(ImageTransform):
     __swig_setmethods__ = {}
-    for _s in [Transform]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    for _s in [ImageTransform]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
     __setattr__ = lambda self, name, value: _swig_setattr(self, HueTransform, name, value)
     __swig_getmethods__ = {}
-    for _s in [Transform]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    for _s in [ImageTransform]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
     __getattr__ = lambda self, name: _swig_getattr(self, HueTransform, name)
     __repr__ = _swig_repr
     def __init__(self): 
         this = _pychrm.new_HueTransform()
         try: self.this.append(this)
         except: self.this = this
-    def transform(self, *args): return _pychrm.HueTransform_transform(self, *args)
+    def execute(self, *args): return _pychrm.HueTransform_execute(self, *args)
     __swig_destroy__ = _pychrm.delete_HueTransform
     __del__ = lambda self : None;
 HueTransform_swigregister = _pychrm.HueTransform_swigregister

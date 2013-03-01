@@ -88,7 +88,7 @@ import os
 import os.path 
 import itertools
 import copy
-
+import logging
 
 
 # ============================================================
@@ -99,9 +99,46 @@ small_featureset_featuregroup_strings = None
 large_featureset_featuregroup_strings = None
 small_featureset_featuregroup_list = None
 large_featureset_featuregroup_list = None
+# The numbers *must* be consistent with what's defined in wndchrm C-codebase.
+feature_vector_major_version = 2
+# Feature vector lengths in current version
+# #define NUM_LC_FEATURES  4054
+# #define NUM_L_FEATURES   2919
+# #define NUM_C_FEATURES   2194
+# #define NUM_DEF_FEATURES 1059
+# These are definitions for Version 2 features.
+feature_vector_minor_version_from_num_features = {
+	1059:1,
+	2919:2,
+	2194:3,
+	4054:4
+}
+# // original lengths prior to Version 2:
+# // no Gini coefficient, no inverse otsu features
+# // #define NUM_LC_FEATURES  4008
+# // #define NUM_L_FEATURES   2873
+# // #define NUM_C_FEATURES   2160
+# // #define NUM_DEF_FEATURES 1025
+feature_vector_minor_version_from_num_features_v1 = {
+	1025:1,
+	2873:2,
+	2160:3,
+	4008:4
+}
+feature_vector_minor_version_from_vector_type = {
+	'short':1,
+	'long':2,
+	'short_color':3,
+	'long_color':4
+}
+feature_vector_num_features_from_vector_type = {
+	'short':1059,
+	'long':2919,
+	'short_color':2194,
+	'long_color':4054
+}
 
 error_banner = "\n*************************************************************************\n"
-
 
 def initialize_module(): 
 	"""If you're going to calculate any signatures, you need this stuff.
@@ -467,10 +504,6 @@ class FisherFeatureWeights( FeatureWeights ):
 		Ic = number of images in a given class
 		"""
 
-		# Something in this function causes a numerical underflow exception to be raised
-		# Ignore it for now. - CEC
-		np.seterr (under='ignore')
-
 		if training_set == None:
 			import inspect
 			form_str = 'You passed in a None as a training set to the function {0}.{1}'	
@@ -534,9 +567,6 @@ class FisherFeatureWeights( FeatureWeights ):
 		# the filled(0) method of the masked array sets all nan and infs to 0
 		new_fw.values = feature_weights_m.filled(0).tolist()
 		new_fw.associated_training_set = training_set
-
-		# Reset numpy 
-		np.seterr (all='raise')
 	
 		return new_fw
 
@@ -740,7 +770,6 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			else:
 				new_weights.name = self.name + " (top {0} features)".format( num_features_to_be_used )
 
-
 		abs_val_pearson_coeffs = [ abs( val ) for val in self.pearson_coeffs ]
 		raw_featureweights = zip( self.names, abs_val_pearson_coeffs, self.pearson_coeffs, \
 		    self.slopes, self.intercepts, self.pearson_stderrs, self.pearson_p_values, \
@@ -818,7 +847,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 	#================================================================
 	@output_railroad_switch
 	def Print( self, print_legend = True ):
-		"""@breif Prints out feature values and statistics"""
+		"""@brief Prints out feature values and statistics"""
 
 		header_str = "Continuous feature weight set"
 		if self.name:
@@ -876,6 +905,7 @@ class Signatures( FeatureVector ):
 	#: used the large feature set to generate these features ("-l")
 
 	options = ""
+	version = ""
 
 	#================================================================
 	def __init__( self ):
@@ -910,7 +940,10 @@ class Signatures( FeatureVector ):
 		print "====================================================================="
 		print "Calculating small feature set for file:"
 		global small_featureset_featuregroup_list
-		return cls.NewFromFeatureGroupList( imagepath, small_featureset_featuregroup_list, options )
+		the_sigs = cls.NewFromFeatureGroupList( imagepath, small_featureset_featuregroup_list, options )
+		the_sigs.version = str (feature_vector_major_version)+"."+str(feature_vector_minor_version_from_vector_type['short'])
+
+		return the_sigs
 
 	#================================================================
 	@classmethod
@@ -945,7 +978,6 @@ class Signatures( FeatureVector ):
 			print "{0}: reading in signature from file: {1}".format( imagepath, sigpath )
 			the_sigs = cls.NewFromSigFile( sigpath, imagepath, options_str )
 
-
 		# Check to see what, if anything was loaded from file. The file could be corrupted
 		# incomplete, or calculated with different options, e.g., -S1441
 		# FIXME: Here's where you'd calculate a small subset of features
@@ -956,19 +988,24 @@ class Signatures( FeatureVector ):
 			global large_featureset_featuregroup_list
 			if options == None:
 				the_sigs = cls.NewFromFeatureGroupList( imagepath, large_featureset_featuregroup_list, "-l" )
+				the_sigs.version = str (feature_vector_major_version)+"."+str(feature_vector_minor_version_from_vector_type['long'])
 			else:
 				# FIXME: dummyproofing: does options already contain '-l'?
+				# This retval is never mentioned again, so is it really just supposed to be dropped?
 				retval = cls.NewFromFeatureGroupList( imagepath, large_featureset_featuregroup_list, \
 						options + "-l" )
-		# There are historically 2885 signatures in the large feature set 
-		elif len( the_sigs.names ) < 2873:
+				retval.version = str (feature_vector_major_version)+"."+str(feature_vector_minor_version_from_vector_type['long'])
+
+		# Compare the number of features to the expected length for this type of feature vector
+		elif len( the_sigs.names ) != feature_vector_num_features_from_vector_type['long']:
 			# FIXME: Calculate the difference of features between what was loaded
 			# from file, and what is supposed to be present in large feature set
 			# and calculate only those. They might also need to be placed in an order
 			# that makes sense.
-			err_msg = "There are only {0} signatures in file '{1}'".format( \
-			  len( the_sigs.names ), sigpath )
-			err_msg += "where there are supposed to be at least 2873."
+			err_msg = "There are only {0} signatures in file '{1}'".format(
+				len( the_sigs.names ), sigpath )
+			err_msg += "where there are supposed to be {0}.".format (
+				feature_vector_num_features_from_vector_type['long'])
 			raise ValueError( err_msg )
 		return the_sigs
 
@@ -1012,6 +1049,8 @@ class Signatures( FeatureVector ):
 				signatures.names.append( fg.name + " [{0}]".format( count ) )
 				signatures.values.append( value )	
 				count += 1
+		# The minor version is 0 because this is not one of the standard feature vectors
+		signatures.version = str (feature_vector_major_version)+".0"
 
 		return signatures
 
@@ -1066,27 +1105,39 @@ class Signatures( FeatureVector ):
 		signatures.path_to_image = image_path
 		signatures.options = options
  
+ 		import re
 		with open( sigfile_path ) as infile:
 			linenum = 0
 			for line in infile:
 				if linenum == 0:
 					# The class id here may be trash
-					signatures.class_id = line.strip()
+					signatures.class_id, signatures.version = re.compile('^(\S+)\s*(\S+)?$').match(line.strip()).group (1, 2)
+					if signatures.version is None: signatures.version = "1.0"
+
 				elif linenum == 1:
 					# We've already assigned self.source_file
 					# the path in the sig file may be trash anyway
 					#signatures.source_file = line.strip()
 					pass
 				else:
-					value, name = line.strip().split( ' ', 1 )
+					value, name = line.strip().split(None, 1 )
 					signatures.values.append( float( value ) )	
 					signatures.names.append( name )
 				linenum += 1
 			#print "Loaded {0} features.".format( len( signatures.values ) )
 
+		# Set the minor version to the vector type based on # of features
+		# The minor versions should always specify vector types, but for version 1 vectors,
+		# the version is not written to the file, so it gets read as 0.
+		if (signatures.version == "1.0"):
+			signatures.version = "1." + str(
+				feature_vector_minor_version_from_num_features_v1.get ( len (signatures.values),0 )
+			)
+
 		# Check if the feature name follows the old convention
 		signatures.names = FeatureNameMap.TranslateToNewStyle( signatures.names ) 
 		
+		print "Features version from file: {0}".format (signatures.version)
 		return signatures
 	
 	#================================================================
@@ -1131,8 +1182,8 @@ class Signatures( FeatureVector ):
 		self.path_to_sigfile = outfile_path
 
 		with open( outfile_path, "w" ) as out_file:
-			# FIXME: line 2 contains class membership, just hardcode a number for now
-			out_file.write( "0\n" )
+			# FIXME: line 1 contains class membership and version, just hardcode the class membership for now
+			out_file.write( "0\t{1}\n".format (self.version) )
 			out_file.write( "{0}\n".format( self.source_file ) )
 			for i in range( 0, len( self.names ) ):
 				out_file.write( "{val:0.6f} {name}\n".format( val=self.values[i], name=self.names[i] ) )
@@ -1168,17 +1219,21 @@ class Signatures( FeatureVector ):
 		for new_name in requested_features:
 			reduced_sigs.names.append( new_name )
 			reduced_sigs.values.append( dictionary[ new_name ] )
-		
+
+		# if the feature vector size changed then it is no longer a standard feature vector.
+		if ( len (reduced_sigs.names) != len (self.names) ):
+			reduced_sigs.version = "{0}.0".format (self.version.split('.',1)[0])
+		else:
+			reduced_sigs.version = self.version
+
 		return reduced_sigs
 
 	#================================================================
 	def Normalize( self, training_set ):
-		"""
-		FIXME: should there be some flag that gets set if this sig has 
+		"""FIXME: should there be some flag that gets set if this sig has 
 		already been normalized??
 		
-		@return: None
-		"""
+		@return: None"""
 
 		if training_set.featurenames_list != self.names:
 			raise ValueError("Can't normalize signature for {0} against training_set {1}: Features don't match."\
@@ -1214,20 +1269,19 @@ class FeatureGroup( object ):
 	name = None
 	algorithm = None
 	transform_list = None
+	#================================================================
 	def __init__( self, name_str = "", algorithm = None, tform_list = [] ):
 		#print "Creating new FeatureGroup for string {0}:".format(name_str)
 		#print "\talgorithm: {0}, transform list: {1}".format( algorithm, tform_list )
 		self.name = name_str 
 		self.algorithm = algorithm
 		self.transform_list = tform_list
+	#================================================================
 	def CalculateFeatures( self, cached_pixel_planes ):
 		"""Returns a tuple with the features"""
 		pixel_plane = None
-		try:
-			#print "transforms: {0}".format( self.Tforms )
-			pixel_plane = RetrievePixelPlane( cached_pixel_planes, self.transform_list )
-		except:
-			raise
+		#print "transforms: {0}".format( self.Tforms )
+		pixel_plane = RetrievePixelPlane( cached_pixel_planes, self.transform_list )
 		return self.algorithm.calculate( pixel_plane )
 
 	#================================================================
@@ -1292,7 +1346,7 @@ def RetrievePixelPlane( image_matrix_cache, tform_list ):
 	top_level_transform = sublist.pop()
 	intermediate_pixel_plane = RetrievePixelPlane( image_matrix_cache, sublist )
 
-	tformed_pp = top_level_transform.transform( intermediate_pixel_plane )
+	tformed_pp = intermediate_pixel_plane.transform (top_level_transform)
 	#assert( intermediate_pixel_plane ), "Pixel Plane returned from transform() was NULL"
 	image_matrix_cache[ requested_transform ] = tformed_pp
 	return tformed_pp
@@ -1300,8 +1354,7 @@ def RetrievePixelPlane( image_matrix_cache, tform_list ):
 
 #================================================================
 def GenerateWorkOrderFromListOfFeatureStrings( feature_list ):
-	"""
-	Takes list of feature strings and chops off bin number at the first space on right, e.g.,
+	"""Takes list of feature strings and chops off bin number at the first space on right, e.g.,
 	"feature alg (transform()) [bin]" ... Returns a list of FeatureGroups.
 
 	WARNING, RETURNS A TUPLE OF TWO THINGS!
@@ -1342,7 +1395,8 @@ class FeatureSet( object ):
 	into Numpy matrices organized by image class or ground truth. FeatureSets are also used
 	as containers for test images which have yet to be classified. FeatureSets can also be
 	randomly Split() into two subset FeatureSets to be used for cross-validation of a 
-	classifier, one for training the other for testing."""
+	classifier, one for training the other for testing.
+	"""
 
 	# source_path - could be the name of a .fit, or pickle file from which this
 	# instance was generated, could be a directory
@@ -1389,6 +1443,11 @@ class FeatureSet( object ):
 	#: A single numpy matrix N features (columns) x M images (rows)
 	data_matrix = None
 	data_matrix_is_contiguous = False
+	
+	#: The feature vector version contained in this FeatureSet
+	#: The major version must match for all feature vectors in the FeatureSet
+	#: The minor version must match also if it is one of the standard feature vectors (i.e. non-0)
+	feature_vector_version = None
 
 	#==============================================================
 	def __init__( self, data_dict = None ):
@@ -1427,6 +1486,8 @@ class FeatureSet( object ):
 				self.interpolation_coefficients = data_dict[ 'interpolation_coefficients' ]
 			if "data_matrix" in data_dict:
 				self.data_matrix = data_dict[ 'data_matrix' ]
+			if "feature_vector_version" in data_dict:
+				self.feature_vector_version = data_dict[ 'feature_vector_version' ]
 
 	#==============================================================
 	@output_railroad_switch
@@ -1438,6 +1499,18 @@ class FeatureSet( object ):
 		print 'Type: {0}'.format( self.__class__.__name__ )
 		print 'Total number of images: {0}'.format( self.num_images )
 		print 'Number features: {0}'.format( len( self.featurenames_list ) )
+		print 'Feature Vector Version: {0}'.format( self.feature_vector_version )
+
+	#==============================================================
+	@classmethod
+	def CompatibleFeatureVectorVersion( cls, version ):
+		in_major, in_minor = tuple (int (v) for v in version.split('.',1))
+		our_major, our_minor = tuple (int (v) for v in cls.feature_vector_version.split('.',1))
+		if (in_major != our_major): return False
+		if (our_minor and in_minor and in_minor != our_minor): return False
+		# Note that if either minor version is 0 (i.e not a standard feature vector),
+		# we return true while in fact, the compatibility is unknown
+		return True
 
 	#==============================================================
 	@classmethod
@@ -1466,6 +1539,10 @@ class FeatureSet( object ):
 				the_training_set.data_list[i] = the_training_set.data_matrix[sample_row : sample_row + nrows]
 				sample_row += nrows
 
+		if (the_training_set.feature_vector_version is None):
+			the_training_set.feature_vector_version = "1." + str(
+				feature_vector_minor_version_from_num_features_v1.get ( len (signatures.values),0 )
+			)
 		# it might already be normalized!
 		# FIXME: check for that
 		# the_training_set.Normalize()
@@ -1600,13 +1677,9 @@ class FeatureSet( object ):
 		raise NotImplementedError()
 
 	#==============================================================
-	def _ProcessSigCalculationSerially( self, feature_set = "large", write_sig_files_to_disk = True, options = None ):
+	def _ProcessSigCalculation(self, imagenames_list, parallel, feature_set_name,
+			feature_group_list, feature_name_list, write_sig_files_todisk ): 
 		"""Virtual method."""
-		raise NotImplementedError()
-
-	#==============================================================
-	def _ProcessSigCalculationParallelly( self, feature_set = "large", write_sig_files_todisk = True ):
-		"""Virtual Method."""
 		raise NotImplementedError()
 
 	#==============================================================
@@ -1648,6 +1721,10 @@ class FeatureSet( object ):
 			if training_set.featurenames_list != self.featurenames_list:
 				raise ValueError("Can't normalize test_set {0} against training_set {1}: Features don't match.".format (
 					self.source_path, training_set.source_path ) )
+			if ( not self.CompatibleFeatureVectorVersion (training_set.feature_vector_version) ):
+				raise ValueError("Can't normalize test_set {0} with version {1} features against training_set {2} with version {3} features: Feature vector versions don't match.".format (
+					self.source_path, self.feature_vector_version, training_set.source_path, training_set.feature_vector_version ) )
+			
 
 			if not quiet:
 				print 'Normaling set "{0}" ({1} images) against set "{2}" ({3} images)'.format(
@@ -1793,6 +1870,8 @@ class FeatureSet_Discrete( FeatureSet ):
 
 		pickled_pathname = pathname + ".pychrm"
 
+		import re
+
 		print "Creating Training Set from legacy WND-CHARM text file file {0}".format( pathname )
 		with open( pathname ) as fitfile:
 			data_dict = {}
@@ -1811,13 +1890,18 @@ class FeatureSet_Discrete( FeatureSet ):
 			feature_count = 0
 			image_pathname = ""
 			num_classes = 0
+			feature_vector_version = ""
 			num_features = 0
 			num_images = 0
 
 			for line in fitfile:
 				if line_num is 0:
-					num_classes = int( line )
+					num_classes, feature_vector_version = re.compile('^(\S+)\s*(\S+)?$').match(line.strip()).group (1, 2)
+					if feature_vector_version is None: feature_vector_version = "1.0"
+					data_dict[ 'feature_vector_version' ] = feature_vector_version
+					num_classes = int( num_classes )
 					data_dict[ 'num_classes' ] = num_classes
+
 					# initialize list for string data
 					for i in range( num_classes ):
 						tmp_string_data_list.append( [] )
@@ -1825,6 +1909,12 @@ class FeatureSet_Discrete( FeatureSet ):
 				elif line_num is 1:
 					num_features = int( line )
 					data_dict[ 'num_features' ] = num_features
+					if (feature_vector_version == "1.0"):
+						feature_vector_version = "1." + str(
+							feature_vector_minor_version_from_num_features_v1.get ( len (signatures.values),0 )
+						)
+						data_dict[ 'feature_vector_version' ] = feature_vector_version
+
 				elif line_num is 2:
 					data_dict[ 'num_images' ] = int( line )
 				elif line_num <= ( num_features + 2 ):
@@ -1873,6 +1963,7 @@ class FeatureSet_Discrete( FeatureSet ):
 		# Instantiate the class
 		the_training_set = cls( data_dict )
 		
+		print "Features version from .fit file: {0}".format (the_training_set.feature_vector_version)
 		return the_training_set
 
 	#==============================================================
@@ -1889,6 +1980,7 @@ class FeatureSet_Discrete( FeatureSet ):
 		new_ts.source_path = ts_name
 		new_ts.num_classes = 1
 		new_ts.num_features = len( signature.feature_values )
+		new_ts.feature_vector_version = signature.version
 		new_ts.num_images = 1
 		new_ts.classnames_list.append( "UNKNOWN" )
 		new_ts.classsizes_list.append( 1 )
@@ -1902,7 +1994,11 @@ class FeatureSet_Discrete( FeatureSet ):
 
 	#==============================================================
 	@classmethod
-	def NewFromDirectory( cls, top_level_dir_path, feature_set = "large", write_sig_files_todisk = False ):
+	def NewFromDirectory( cls, top_level_dir_path, parallel = True,
+	                                               feature_set_name = "large",
+																								 feature_group_list = None,
+																								 feature_name_list = None,
+																								 write_sig_files_todisk = False ):
 		"""@brief Equivalent to the "wndchrm train" command from the C++ implementation by Shamir.
 		Read the the given directory, parse its structure, and populate the member
 		self.imagenames_list. Then call another function to farm out the calculation of each 
@@ -1961,7 +2057,11 @@ class FeatureSet_Discrete( FeatureSet ):
 		new_ts.classnames_list = classnames_list
 		#new_ts.imagenames_list = imagenames_list  #taken care of by AddSignatures()
 		new_ts.source_path = top_level_dir_path
-		new_ts._ProcessSigCalculationSerially( imagenames_list, feature_set, write_sig_files_todisk )
+
+		# Uncomment this after the change to AddSignature is made:
+		# new_ts._InitializeFeatureMatrix()
+		new_ts._ProcessSigCalculation( imagenames_list, feature_set_name,
+		       parallel, feature_group_list, feature_name_list, write_sig_files_todisk )
 		if feature_set == "large":
 			# FIXME: add other options
 			new_ts.feature_options = "-l"
@@ -1969,9 +2069,9 @@ class FeatureSet_Discrete( FeatureSet ):
 
 		return new_ts
 
-
 	#==============================================================
-	def _ProcessSigCalculationSerially( self, imagenames_list, feature_set = "large", write_sig_files_to_disk = True, options = None ):
+	def _ProcessSigCalculation( self, imagenames_list, parallel, feature_set_name,
+			feature_group_list, feature_name_list, write_sig_files_todisk ):
 		"""Calculate image descriptors for all the images contained in self.imagenames_list"""
 
 		# FIXME: check to see if any .sig, or .pysig files exist that match our
@@ -2050,6 +2150,12 @@ class FeatureSet_Discrete( FeatureSet ):
 
 		# regenerate the class views
 		reduced_ts._RegenerateClassViews()
+		
+		# if the feature vectors sizes changed then they are no longer standard feature vectors.
+		if (reduced_ts.num_features != self.num_features):
+			reduced_ts.feature_vector_version = "{0}.0".format (self.feature_vector_version.split('.',1)[0])
+		else:
+			reduced_ts.feature_vector_version = self.feature_vector_version
 
 		return reduced_ts
 
@@ -2068,6 +2174,10 @@ class FeatureSet_Discrete( FeatureSet ):
 		if None == class_id_index:
 			raise ValueError( 'Must specify either a class_index' )
 		
+		if ( not self.CompatibleFeatureVectorVersion (signature.version) ):
+			raise ValueError("Can't add feature vector {0} version {1} to feature set {2} with version {3} features: Feature vector versions don't match.".format (
+				signature.source_path, signature.version, self.source_path, self.feature_vector_version ) )
+			
 		if( self.data_list == None ) or ( len( self.data_list ) == 0 ) :
 			# If no class_id_index is specified, sig goes in first matrix in the list by default
 			# make sure there's something there when you try to dereference that index
@@ -2412,6 +2522,7 @@ class FeatureSet_Continuous( FeatureSet ):
 	#: Ground truth numerical values accociated with each image
 	ground_truths = None
 
+	#==============================================================
 	def __init__( self, data_dict = None ):
 
 		# call parent constructor
@@ -2457,16 +2568,24 @@ class FeatureSet_Continuous( FeatureSet ):
 			feature_count = 0
 			image_pathname = ""
 			num_classes = 0
+			feature_vector_version = ""
 			num_features = 0
 
 			import re
 
 			for line in fitfile:
 				if line_num is 0:
-					num_classes = int( line )
+					num_classes, new_ts.feature_vector_version = re.compile('^(\S+)\s*(\S+)?$').match(line.strip()).group (1, 2)
+					if new_ts.feature_vector_version is None: new_ts.feature_vector_version = "1.0"
+					num_classes = int( num_classes )
+
 				elif line_num is 1:
 					num_features = int( line )
 					new_ts.num_features = num_features
+					if (new_ts.feature_vector_version == "1.0"):
+						new_ts.feature_vector_version = "1." + str(
+							feature_vector_minor_version_from_num_features_v1.get ( len (signatures.values),0 )
+						)
 				elif line_num is 2:
 					new_ts.num_images = int( line )
 				elif line_num <= ( num_features + 2 ):
@@ -2505,25 +2624,34 @@ class FeatureSet_Continuous( FeatureSet ):
 
 		from StringIO import StringIO
 		new_ts.data_matrix = np.genfromtxt( StringIO( string_data.join( tmp_string_data_list ) ) )
-		
+		print "Features version from .fit file: {0}".format (new_ts.feature_vector_version)
+
 		return new_ts
 
 	#==============================================================
-	def _ProcessSigCalculationSerially( self, imagenames_list, feature_set = "large", write_sig_files_to_disk = True, options = None ):
+	def _ProcessSigCalculation(self, imagenames_list, parallel, feature_set_name,
+			feature_group_list, feature_name_list, write_sig_files_todisk ):
+ 
 		"""Begin calculation of image features for the images listed in self.imagenames_list,
-		but do not use parallel computing/ create child processes to do so.
-		
-		This function is to be deprecated ASAP in favor of parallel feature calculation"""
+		but do not use parallel computing/ create child processes to do so."""
+
 		# FIXME: check to see if any .sig, or .pysig files exist that match our
 		#        Signature calculation criteria, and if so read them in and incorporate them
+
+		# SUBCLASSING ISSUE: This function only works on subdirectories of images that are arranged
+		# in the way that discrete Featuresets are. There is no such thing as class_ids where 
+		# continuous classification is concerned. This function is copy/pasted from Discrete
+		# merely to facilitate the usage of hybrid FeatureSets which are Discrete by
+		# curation but represent continuous morphology. only a file of files can be used
+		# as input for pure continuous data.
 
 		sig = None
 		class_id = 0
 		for class_filelist in imagenames_list:
 			for sourcefile in class_filelist:
-				if feature_set == "large":
+				if feature_set_name == "large":
 					sig = Signatures.LargeFeatureSet( sourcefile, options )
-				elif feature_set == "small":
+				elif feature_set_name == "small":
 					sig = Signatures.SmallFeatureSet( sourcefile, options )
 				else:
 					raise ValueError( "sig calculation other than small and large feature set hasn't been implemented yet." )
@@ -2600,13 +2728,23 @@ class FeatureSet_Continuous( FeatureSet ):
 			reduced_ts.data_matrix[:,new_column_index] = self.data_matrix[:,fat_column_index]
 			new_column_index += 1
 
+		# if the feature vectors sizes changed then they are no longer standard feature vectors.
+		if (reduced_ts.num_features != self.num_features):
+			reduced_ts.feature_vector_version = "{0}.0".format (self.feature_vector_version.split('.',1)[0])
+		else:
+			reduced_ts.feature_vector_version = self.feature_vector_version
+
 		return reduced_ts
 
 	#==============================================================
 	def AddSignature( self, signature, ground_truth = None ):
 		"""@argument signature is a valid signature
 		@argument class_id_index identifies the class to which the signature belongs"""
-		
+
+		if ( not self.CompatibleFeatureVectorVersion (signature.version) ):
+			raise ValueError("Can't add feature vector {0} version {1} to feature set {2} with version {3} features: Feature vector versions don't match.".format (
+				signature.source_path, signature.version, self.source_path, self.feature_vector_version ) )
+
 		if (self.data_matrix == None) or ( len( self.data_matrix ) == 0 ) :
 			self.data_matrix = np.array( signature.values )
 			self.featurenames_list = signature.names
@@ -2973,7 +3111,6 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 
 		return result
 
-
 #=================================================================================
 class ContinuousImageClassificationResult( ImageClassificationResult ):
 	"""Concrete class that contains the result of a classification for a single image/ROI.
@@ -3071,7 +3208,6 @@ class BatchClassificationResult( ClassificationResult ):
 
 		self.num_classifications = 0
 
-
 	#==============================================================
 	def GenerateStats( self ):
 		"""Base method that's called by daughter classes.
@@ -3109,7 +3245,6 @@ class BatchClassificationResult( ClassificationResult ):
 			self.spearman_coeff, self.spearman_p_value =\
 			       stats.spearmanr( self.ground_truth_values, self.predicted_values )
 			np.seterr (all='raise')
-
 
 	#==============================================================
 	def RankOrderSort( self ):
@@ -3885,7 +4020,6 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 		print "Total standard error: {0}".format( self.figure_of_merit )
 		print "Pearson corellation coefficient: {0}".format( self.pearson_coeff )
 		print "Pearson p-value: {0}".format( self.pearson_p_value )		
-
 
 #============================================================================
 class BaseGraph( object ):

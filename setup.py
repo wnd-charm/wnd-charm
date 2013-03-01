@@ -35,7 +35,7 @@ wndchrm_module = Extension('_pychrm',
 		'src/transforms/wavelet/wt.cpp',
 		'src/cmatrix.cpp',
 		'src/wndchrm_error.cpp',
-		'src/FeatureTransforms.cpp',
+		'src/ImageTransforms.cpp',
 		'src/FeatureAlgorithms.cpp',
 		'src/gsl/specfunc.cpp',
 	],
@@ -88,6 +88,10 @@ setup (name = 'pychrm',
 	packages = ['pychrm'],
 	install_requires=[
 		'numpy',
+		'stringformat >= 0.4',
 		'argparse',
 	],
+	dependency_links = [
+        "https://github.com/igg/stringformat/tarball/0.4egg=stringformat-0.4"
+    ],
 )

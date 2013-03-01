@@ -36,9 +36,11 @@
 #include <assert.h>
 #undef NDEBUG
 #include <vector>
-#include <string> // for what_am_i definition
+#include <string> // for source field
+#include <vector> // for operations field
 #include <Eigen/Dense>
 #include "colors/FuzzyCalc.h"
+#include "ImageTransforms.h"
 //#define min(a,b) (((a) < (b)) ? (a) : (b))
 //#define max(a,b) (((a) < (b)) ? (b) : (a))
 
@@ -58,20 +60,25 @@ typedef struct {
 	byte h,s,v;
 } HSVcolor;
 typedef Eigen::Matrix< HSVcolor, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor > MatrixXhsv;
-typedef MatrixXhsv clrData;
+typedef MatrixXhsv clrDataMat;
 
 // the meaning of the color channels is specified by ColorMode, but it uses the HSVcolor structure for storage
 // All color modes other than cmGRAY contain color planes as well as intensity planes
-enum ColorMode { cmRGB, cmHSV, cmGRAY };
+enum ColorModes { cmRGB, cmHSV, cmGRAY };
 
 
-typedef Eigen::Matrix< double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor > pixData;
+typedef Eigen::Matrix< double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor > pixDataMat;
+typedef Eigen::Map< pixDataMat, Eigen::Aligned > pixDataMap;
+typedef Eigen::Map< clrDataMat, Eigen::Aligned > clrDataMap;
+typedef pixDataMap pixData;
+typedef clrDataMap clrData;
+
 typedef const pixData &readOnlyPixels;
 typedef const clrData &readOnlyColors;
 typedef pixData &writeablePixels;
 typedef clrData &writeableColors;
 typedef struct {
-	unsigned int x,y,w,h;
+	int x,y,w,h;
 } rect;
 
 //---------------------------------------------------------------------------
@@ -152,19 +159,21 @@ static inline RGBcolor HSV2RGB(const HSVcolor hsv) {
 static inline double RGB2GRAY(const RGBcolor rgb) {
 	return((0.2989*rgb.r+0.5870*rgb.g+0.1140*rgb.b));
 }
+
 //---------------------------------------------------------------------------
 
 class ImageMatrix {
-public:
+private:
 	pixData _pix_plane;                              // pixel plane data  
 	clrData _clr_plane;                              // 3-channel color data
 	bool _is_pix_writeable;
 	bool _is_clr_writeable;
-	//std::string what_am_i;                        // informative label
-	enum ColorMode ColorMode;                       // can be cmRGB, cmHSV or cmGRAY
+	double _min, _max, _mean, _std, _median;        // min, max, mean, std computed in single pass, median in separate pass
+public:
+	std::string source;                             // path of image source file
+	enum ColorModes ColorMode;                       // can be cmRGB, cmHSV or cmGRAY
 	unsigned short bits;                            // the number of intensity bits (8,16, etc)
 	unsigned int width,height;                               // width and height of the picture
-	double _min, _max, _mean, _std, _median;        // min, max, mean, std computed in single pass, median in separate pass
 	bool has_stats, has_median;                     // has_stats applies to min, max, mean, std. has_median only to median
 	inline writeablePixels WriteablePixels() {
 		assert(_is_pix_writeable && "Attempt to write to read-only pixels");
@@ -197,20 +206,26 @@ public:
 	}
 	int LoadTIFF(char *filename);                   // load from TIFF file
 	int SaveTiff(char *filename);                   // save a matrix in TIF format
-	int OpenImage(char *image_file_name,            // load an image of any supported format
+	virtual int OpenImage(char *image_file_name,            // load an image of any supported format
 		int downsample, rect *bounding_rect,
 		double mean, double stddev);
 	// constructor helpers
-	void 	init();
-	void 	allocate (unsigned int w, unsigned int h);
-	void 	copy(const ImageMatrix &copy);
-	ImageMatrix();                                  // basic constructor
-	ImageMatrix(const ImageMatrix &matrix);               // copy constructor
+	void init();
+	void remap_pix_plane (double *ptr, const unsigned int w, const unsigned int h);
+	void remap_clr_plane (HSVcolor *ptr, const unsigned int w, const unsigned int h);
+	virtual void allocate (unsigned int w, unsigned int h);
+	void copyFields(const ImageMatrix &copy);
+	void copyData(const ImageMatrix &copy);
+	void copy(const ImageMatrix &copy);
+	void submatrix(const ImageMatrix &matrix,
+		const unsigned int x1, const unsigned int y1, const unsigned int x2, const unsigned int y2);
+	// N.B.: See note in implementation
+	ImageMatrix () : _pix_plane (NULL,0,0), _clr_plane (NULL,0,0) {
+		init();
+	};
+	virtual ~ImageMatrix();                                 // destructor
 
-	ImageMatrix(const unsigned int width,const unsigned int height);              // construct a new empty, allocated matrix
-	ImageMatrix(const ImageMatrix &matrix,                // create a new matrix which is part of the original one
-		unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2);
-	~ImageMatrix();                                 // destructor
+	virtual ImageMatrix &transform (const ImageTransform *transform) const;
 
 	void normalize(double min, double max, long range, double mean, double stddev); // normalized an image to either min/max or mean/stddev
 	void to8bits();
@@ -219,7 +234,7 @@ public:
 	void invert();                                  // invert the intensity of an image
 	void Downsample(double x_ratio, double y_ratio);// down sample an image
 	ImageMatrix *Rotate(double angle);              // rotate an image by 90,180,270 degrees
-	void convolve(const ImageMatrix &filter);
+	void convolve(const pixDataMat &filter);
 	void BasicStatistics(double *mean, double *median, double *std, double *min, double *max, double *histogram, int bins);
 	inline double min() {
 		if (!has_stats) {
@@ -257,9 +272,10 @@ public:
 		return (_median);
 	}
 	void GetColorStatistics(double *hue_avg, double *hue_std, double *sat_avg, double *sat_std, double *val_avg, double *val_std, double *max_color, double *colors);
-	void ColorTransform(double *color_hist, int use_hue);
-	void histogram(double *bins,unsigned short bins_num, int imhist);
-	double Otsu();                                  // Otsu gray threshold
+	void ColorTransform();
+	void HueTransform();
+	void histogram(double *bins,unsigned short nbins, int imhist);
+   double Otsu(int dynamic_range=1);                                  /* Otsu grey threshold                  */
 	void MultiScaleHistogram(double *out);
 	//   double AverageEdge();
 	void EdgeTransform();                           // gradient binarized using otsu threshold
@@ -267,23 +283,30 @@ public:
 	void ChebyshevTransform(unsigned int N);
 	void ChebyshevFourierTransform2D(double *coeff);
 	void Symlet5Transform();
-	void PerwittMagnitude2D(ImageMatrix *output);
-	void PerwittDirection2D(ImageMatrix *output);
-	void ChebyshevStatistics2D(double *coeff, unsigned int N, unsigned int bins_num);
+	void PrewittMagnitude2D(ImageMatrix *output);
+	void PrewittDirection2D(ImageMatrix *output);
+	void ChebyshevStatistics2D(double *coeff, unsigned int N, unsigned int nbins);
 	int CombFirstFourMoments2D(double *vec);
-	void EdgeStatistics(unsigned long *EdgeArea, double *MagMean, double *MagMedian, double *MagVar, double *MagHist, double *DirecMean, double *DirecMedian, double *DirecVar, double *DirecHist, double *DirecHomogeneity, double *DiffDirecHist, unsigned int num_bins);
+	void EdgeStatistics(unsigned long *EdgeArea, double *MagMean, double *MagMedian, double *MagVar, double *MagHist, double *DirecMean, double *DirecMedian, double *DirecVar, double *DirecHist, double *DirecHomogeneity, double *DiffDirecHist, unsigned int nbins);
 	void RadonTransform2D(double *vec);
 	double OtsuBinaryMaskTransform();
 	unsigned long BWlabel(int level);
 	void centroid(double *x_centroid, double *y_centroid);
 	void FeatureStatistics(unsigned long *count, long *Euler, double *centroid_x, double *centroid_y, unsigned long *AreaMin, unsigned long *AreaMax,
 		double *AreaMean, unsigned int *AreaMedian, double *AreaVar, unsigned int *area_histogram,double *DistMin, double *DistMax,
-		double *DistMean, double *DistMedian, double *DistVar, unsigned int *dist_histogram, unsigned int num_bins
+		double *DistMean, double *DistMedian, double *DistVar, unsigned int *dist_histogram, unsigned int nbins
 	);
 	void GaborFilters2D(double *ratios);
 	void HaralickTexture2D(double distance, double *out);
 	void TamuraTexture2D(double *vec);
 	void zernike2D(double *zvalues, long *output_size);
+	void fractal2D(unsigned int bins,double *output);
+
+	// disable the copy constructor
+private:
+    ImageMatrix(const ImageMatrix &matrix) : _pix_plane (NULL,0,0), _clr_plane (NULL,0,0) {
+		assert(false && "Attempt to use copy constructor");
+	};
 };
 
 #endif
