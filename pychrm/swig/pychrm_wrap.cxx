@@ -8692,7 +8692,7 @@ SWIGINTERN PyObject *_wrap_SharedImageMatrix_Status(PyObject *SWIGUNUSEDPARM(sel
   void *argp1 = 0 ;
   int res1 = 0 ;
   PyObject * obj0 = 0 ;
-  CacheStatus *result = 0 ;
+  SharedImageMatrix::CacheStatus *result = 0 ;
   
   if (!PyArg_ParseTuple(args,(char *)"O:SharedImageMatrix_Status",&obj0)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
@@ -8700,7 +8700,7 @@ SWIGINTERN PyObject *_wrap_SharedImageMatrix_Status(PyObject *SWIGUNUSEDPARM(sel
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SharedImageMatrix_Status" "', argument " "1"" of type '" "SharedImageMatrix const *""'"); 
   }
   arg1 = reinterpret_cast< SharedImageMatrix * >(argp1);
-  result = (CacheStatus *) &((SharedImageMatrix const *)arg1)->Status();
+  result = (SharedImageMatrix::CacheStatus *) &((SharedImageMatrix const *)arg1)->Status();
   resultobj = SWIG_From_int(static_cast< int >(*result));
   return resultobj;
 fail:
@@ -8891,7 +8891,7 @@ SWIGINTERN PyObject *_wrap_SharedImageMatrix_transform(PyObject *SWIGUNUSEDPARM(
   int res2 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
-  ImageMatrix *result = 0 ;
+  SharedImageMatrix *result = 0 ;
   
   if (!PyArg_ParseTuple(args,(char *)"OO:SharedImageMatrix_transform",&obj0,&obj1)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_SharedImageMatrix, 0 |  0 );
@@ -8904,8 +8904,8 @@ SWIGINTERN PyObject *_wrap_SharedImageMatrix_transform(PyObject *SWIGUNUSEDPARM(
     SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SharedImageMatrix_transform" "', argument " "2"" of type '" "ImageTransform const *""'"); 
   }
   arg2 = reinterpret_cast< ImageTransform * >(argp2);
-  result = (ImageMatrix *) &((SharedImageMatrix const *)arg1)->transform((ImageTransform const *)arg2);
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_ImageMatrix, SWIG_POINTER_OWN |  0 );
+  result = (SharedImageMatrix *) &((SharedImageMatrix const *)arg1)->transform((ImageTransform const *)arg2);
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_SharedImageMatrix, SWIG_POINTER_OWN |  0 );
   return resultobj;
 fail:
   return NULL;
@@ -15384,11 +15384,11 @@ SWIG_init(void) {
   SWIG_Python_SetConstant(d, "cmRGB",SWIG_From_int(static_cast< int >(cmRGB)));
   SWIG_Python_SetConstant(d, "cmHSV",SWIG_From_int(static_cast< int >(cmHSV)));
   SWIG_Python_SetConstant(d, "cmGRAY",SWIG_From_int(static_cast< int >(cmGRAY)));
-  SWIG_Python_SetConstant(d, "csUNKNOWN",SWIG_From_int(static_cast< int >(csUNKNOWN)));
-  SWIG_Python_SetConstant(d, "csREAD",SWIG_From_int(static_cast< int >(csREAD)));
-  SWIG_Python_SetConstant(d, "csWRITE",SWIG_From_int(static_cast< int >(csWRITE)));
-  SWIG_Python_SetConstant(d, "csWAIT",SWIG_From_int(static_cast< int >(csWAIT)));
-  SWIG_Python_SetConstant(d, "csERROR",SWIG_From_int(static_cast< int >(csERROR)));
+  SWIG_Python_SetConstant(d, "SharedImageMatrix_csUNKNOWN",SWIG_From_int(static_cast< int >(SharedImageMatrix::csUNKNOWN)));
+  SWIG_Python_SetConstant(d, "SharedImageMatrix_csREAD",SWIG_From_int(static_cast< int >(SharedImageMatrix::csREAD)));
+  SWIG_Python_SetConstant(d, "SharedImageMatrix_csWRITE",SWIG_From_int(static_cast< int >(SharedImageMatrix::csWRITE)));
+  SWIG_Python_SetConstant(d, "SharedImageMatrix_csWAIT",SWIG_From_int(static_cast< int >(SharedImageMatrix::csWAIT)));
+  SWIG_Python_SetConstant(d, "SharedImageMatrix_csERROR",SWIG_From_int(static_cast< int >(SharedImageMatrix::csERROR)));
   SWIG_Python_SetConstant(d, "WC_UNINITIALIZED",SWIG_From_int(static_cast< int >(WC_UNINITIALIZED)));
   SWIG_Python_SetConstant(d, "WC_NO_ERROR",SWIG_From_int(static_cast< int >(WC_NO_ERROR)));
   SWIG_Python_SetConstant(d, "WC_IPP_NULL",SWIG_From_int(static_cast< int >(WC_IPP_NULL)));

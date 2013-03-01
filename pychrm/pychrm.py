@@ -259,11 +259,6 @@ class ImageMatrix(_object):
 ImageMatrix_swigregister = _pychrm.ImageMatrix_swigregister
 ImageMatrix_swigregister(ImageMatrix)
 
-csUNKNOWN = _pychrm.csUNKNOWN
-csREAD = _pychrm.csREAD
-csWRITE = _pychrm.csWRITE
-csWAIT = _pychrm.csWAIT
-csERROR = _pychrm.csERROR
 class SharedImageMatrix(ImageMatrix):
     __swig_setmethods__ = {}
     for _s in [ImageMatrix]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
@@ -272,6 +267,11 @@ class SharedImageMatrix(ImageMatrix):
     for _s in [ImageMatrix]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
     __getattr__ = lambda self, name: _swig_getattr(self, SharedImageMatrix, name)
     __repr__ = _swig_repr
+    csUNKNOWN = _pychrm.SharedImageMatrix_csUNKNOWN
+    csREAD = _pychrm.SharedImageMatrix_csREAD
+    csWRITE = _pychrm.SharedImageMatrix_csWRITE
+    csWAIT = _pychrm.SharedImageMatrix_csWAIT
+    csERROR = _pychrm.SharedImageMatrix_csERROR
     def __init__(self): 
         this = _pychrm.new_SharedImageMatrix()
         try: self.this.append(this)

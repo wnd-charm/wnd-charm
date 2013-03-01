@@ -94,6 +94,7 @@ setup (name = 'pychrm',
 	install_requires=[
 		'numpy',
 		'stringformat >= 0.4',
+		'argparse',
 	],
 	dependency_links = [
         "https://github.com/igg/stringformat/tarball/0.4egg=stringformat-0.4"
