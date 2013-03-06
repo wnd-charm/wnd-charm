@@ -101,7 +101,6 @@ void SharedImageMatrix::allocate (unsigned int w, unsigned int h) {
 	//   A matrix was read from cache if shmem_name == cached_source (was_cached is true)
 	assert (!was_cached && "Attempt to call allocate on a cached object!");
 	
-
 	// calculate the size of the required shared memory block
 	size_t new_shmem_size, clr_plane_offset, shmem_data_offset;
 	new_shmem_size = calc_shmem_size (w, h, ColorMode, clr_plane_offset, shmem_data_offset);
@@ -120,7 +119,6 @@ void SharedImageMatrix::allocate (unsigned int w, unsigned int h) {
 		if (shmem_fd > -1) close (shmem_fd);
 		shmem_fd = -1;
 		shm_unlink (shmem_name.c_str());
-
 		shmem_fd = shm_open(shmem_name.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 		if (shmem_fd < 0) {
 			std::cout << "shm_open error: " << strerror(errno) << std::endl;
@@ -292,8 +290,13 @@ std::cout << "recovered size: " << width << "," << height << std::endl;
 		case WORMfile::WORM_WR:
 std::cout << "cache_write" << std::endl;
 			// Since we have a write-lock, we open the shmem for writing, creation, and truncation.
-			shmem_fd = shm_open(shmem_name.c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-			if (shmem_fd < 0) {
+			errno = 0;
+			shmem_fd = shm_open(shmem_name.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+			if (shmem_fd < 0 && errno == EEXIST) {
+				shm_unlink (shmem_name.c_str());
+				shmem_fd = shm_open(shmem_name.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+			}
+			if (shmem_fd < 0)  {
 				error_str = string_format ("shm_open error when writing: %s (%d)", strerror(errno), errno);
 				break;
 			}
