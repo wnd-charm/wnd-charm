@@ -6825,28 +6825,39 @@ fail:
 SWIGINTERN PyObject *_wrap_ImageMatrix_transform(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  ImageTransform *arg2 = (ImageTransform *) 0 ;
+  ImageMatrix *arg2 = 0 ;
+  ImageTransform *arg3 = (ImageTransform *) 0 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   void *argp2 = 0 ;
   int res2 = 0 ;
+  void *argp3 = 0 ;
+  int res3 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
-  ImageMatrix *result = 0 ;
+  PyObject * obj2 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)"OO:ImageMatrix_transform",&obj0,&obj1)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OOO:ImageMatrix_transform",&obj0,&obj1,&obj2)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix_transform" "', argument " "1"" of type '" "ImageMatrix const *""'"); 
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix_transform" "', argument " "1"" of type '" "ImageMatrix *""'"); 
   }
   arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_ImageTransform, 0 |  0 );
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_ImageMatrix,  0  | 0);
   if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "ImageMatrix_transform" "', argument " "2"" of type '" "ImageTransform const *""'"); 
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "ImageMatrix_transform" "', argument " "2"" of type '" "ImageMatrix const &""'"); 
   }
-  arg2 = reinterpret_cast< ImageTransform * >(argp2);
-  result = (ImageMatrix *) &((ImageMatrix const *)arg1)->transform((ImageTransform const *)arg2);
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_ImageMatrix, SWIG_POINTER_OWN |  0 );
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "ImageMatrix_transform" "', argument " "2"" of type '" "ImageMatrix const &""'"); 
+  }
+  arg2 = reinterpret_cast< ImageMatrix * >(argp2);
+  res3 = SWIG_ConvertPtr(obj2, &argp3,SWIGTYPE_p_ImageTransform, 0 |  0 );
+  if (!SWIG_IsOK(res3)) {
+    SWIG_exception_fail(SWIG_ArgError(res3), "in method '" "ImageMatrix_transform" "', argument " "3"" of type '" "ImageTransform const *""'"); 
+  }
+  arg3 = reinterpret_cast< ImageTransform * >(argp3);
+  (arg1)->transform((ImageMatrix const &)*arg2,(ImageTransform const *)arg3);
+  resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
   return NULL;
@@ -7006,35 +7017,47 @@ fail:
 SWIGINTERN PyObject *_wrap_ImageMatrix_Downsample(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  double arg2 ;
+  ImageMatrix *arg2 = 0 ;
   double arg3 ;
+  double arg4 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
-  double val2 ;
-  int ecode2 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
   double val3 ;
   int ecode3 = 0 ;
+  double val4 ;
+  int ecode4 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
   PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)"OOO:ImageMatrix_Downsample",&obj0,&obj1,&obj2)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OOOO:ImageMatrix_Downsample",&obj0,&obj1,&obj2,&obj3)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix_Downsample" "', argument " "1"" of type '" "ImageMatrix *""'"); 
   }
   arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  ecode2 = SWIG_AsVal_double(obj1, &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "ImageMatrix_Downsample" "', argument " "2"" of type '" "double""'");
-  } 
-  arg2 = static_cast< double >(val2);
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_ImageMatrix,  0  | 0);
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "ImageMatrix_Downsample" "', argument " "2"" of type '" "ImageMatrix const &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "ImageMatrix_Downsample" "', argument " "2"" of type '" "ImageMatrix const &""'"); 
+  }
+  arg2 = reinterpret_cast< ImageMatrix * >(argp2);
   ecode3 = SWIG_AsVal_double(obj2, &val3);
   if (!SWIG_IsOK(ecode3)) {
     SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "ImageMatrix_Downsample" "', argument " "3"" of type '" "double""'");
   } 
   arg3 = static_cast< double >(val3);
-  (arg1)->Downsample(arg2,arg3);
+  ecode4 = SWIG_AsVal_double(obj3, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "ImageMatrix_Downsample" "', argument " "4"" of type '" "double""'");
+  } 
+  arg4 = static_cast< double >(val4);
+  (arg1)->Downsample((ImageMatrix const &)*arg2,arg3,arg4);
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -7045,28 +7068,39 @@ fail:
 SWIGINTERN PyObject *_wrap_ImageMatrix_Rotate(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   ImageMatrix *arg1 = (ImageMatrix *) 0 ;
-  double arg2 ;
+  ImageMatrix *arg2 = 0 ;
+  double arg3 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
-  double val2 ;
-  int ecode2 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  double val3 ;
+  int ecode3 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
-  ImageMatrix *result = 0 ;
+  PyObject * obj2 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)"OO:ImageMatrix_Rotate",&obj0,&obj1)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OOO:ImageMatrix_Rotate",&obj0,&obj1,&obj2)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix_Rotate" "', argument " "1"" of type '" "ImageMatrix *""'"); 
   }
   arg1 = reinterpret_cast< ImageMatrix * >(argp1);
-  ecode2 = SWIG_AsVal_double(obj1, &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "ImageMatrix_Rotate" "', argument " "2"" of type '" "double""'");
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_ImageMatrix,  0  | 0);
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "ImageMatrix_Rotate" "', argument " "2"" of type '" "ImageMatrix const &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "ImageMatrix_Rotate" "', argument " "2"" of type '" "ImageMatrix const &""'"); 
+  }
+  arg2 = reinterpret_cast< ImageMatrix * >(argp2);
+  ecode3 = SWIG_AsVal_double(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "ImageMatrix_Rotate" "', argument " "3"" of type '" "double""'");
   } 
-  arg2 = static_cast< double >(val2);
-  result = (ImageMatrix *)(arg1)->Rotate(arg2);
-  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_ImageMatrix, 0 |  0 );
+  arg3 = static_cast< double >(val3);
+  (arg1)->Rotate((ImageMatrix const &)*arg2,arg3);
+  resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
   return NULL;

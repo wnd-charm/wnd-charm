@@ -70,6 +70,9 @@ using namespace std;
 
 
 
+/* global variable */
+extern int verbosity;
+
 
 
 
@@ -77,7 +80,7 @@ using namespace std;
    filename -char *- full path to the image file
 */
 int ImageMatrix::LoadTIFF(char *filename) {
-	unsigned int h,w,x,y;
+	unsigned int h,w,x=0,y=0;
 	unsigned short int spp=0,bps=0;
 	TIFF *tif = NULL;
 	unsigned char *buf8;
@@ -163,7 +166,7 @@ int ImageMatrix::LoadTIFF(char *filename) {
 		// i.e. scale global RGB min-max to 0-255
 		if (spp == 3 && bits > 8) {
 			size_t a, num = width*height;
-			double R_min, G_min, B_min, R_max, G_max, B_max, RGB_min, RGB_max, RGB_scale;
+			double R_min=0, G_min=0, B_min=0, R_max=0, G_max=0, B_max=0, RGB_min=0, RGB_max=0, RGB_scale=0;
 			R_matrix.WriteablePixelsFinish();
 			G_matrix.WriteablePixelsFinish();
 			B_matrix.WriteablePixelsFinish();
@@ -259,7 +262,7 @@ int ImageMatrix::OpenImage(char *image_file_name, int downsample, rect *bounding
 			);
 		}
 		if (downsample>0 && downsample<100)  /* downsample by a given factor */
-			Downsample(((double)downsample)/100.0,((double)downsample)/100.0);   /* downsample the image */
+			Downsample(*this, ((double)downsample)/100.0,((double)downsample)/100.0);   /* downsample the image */
 		if (mean>0)  /* normalize to a given mean and standard deviation */
 			normalize(-1,-1,-1,mean,stddev);
 	}
@@ -328,12 +331,15 @@ void ImageMatrix::allocate (unsigned int w, unsigned int h) {
 	if ((unsigned int) _pix_plane.cols() != w || (unsigned int)_pix_plane.rows() != h) {
 		// These throw exceptions, which we don't catch (catch in main?)
 		// FIXME: We could check for shrinkage and simply remap instead of allocating.
+		if (verbosity > 7 && _pix_plane.data()) fprintf (stdout, "deallocating grayscale %p ",(void *)_pix_plane.data());
 		if (_pix_plane.data()) Eigen::aligned_allocator<double>().deallocate (_pix_plane.data(), _pix_plane.size());
 		remap_pix_plane (Eigen::aligned_allocator<double>().allocate (w * h), w, h);
+		if (verbosity > 7 && _pix_plane.data()) fprintf (stdout, "allocated grayscale %p\n",(void *)_pix_plane.data());
 	}
 
 	// cleanup the color plane if it changed size, or if we have a gray image.
 	if ( ColorMode == cmGRAY || (_pix_plane.data() && ((unsigned int)_clr_plane.cols() != w || (unsigned int)_clr_plane.rows() != h)) ) {
+		if (verbosity > 7 && _clr_plane.data()) fprintf (stdout, "  deallocating color %p\n",(void *)_clr_plane.data());
 		if (_clr_plane.data()) Eigen::aligned_allocator<HSVcolor>().deallocate (_clr_plane.data(), _clr_plane.size());
 		remap_clr_plane (NULL, 0, 0);
 	}
@@ -343,6 +349,7 @@ void ImageMatrix::allocate (unsigned int w, unsigned int h) {
 		// These throw exceptions, which we don't catch (catch in main?)
 		// FIXME: We could check for shrinkage and simply remap instead of allocating.
 		remap_clr_plane (Eigen::aligned_allocator<HSVcolor>().allocate (w * h), w, h);
+		if (verbosity > 7 && _clr_plane.data()) fprintf (stdout, "  allocated color %p\n",(void *)_clr_plane.data());
 	}
 }
 
@@ -414,20 +421,20 @@ void ImageMatrix::submatrix (const ImageMatrix &matrix, const unsigned int x1, c
 */
 ImageMatrix::~ImageMatrix() {
 	WriteablePixelsFinish();
+	if (verbosity > 7 && _pix_plane.data()) fprintf (stdout, "deallocating grayscale %p\n",(void *)_pix_plane.data());
 	if (_pix_plane.data()) Eigen::aligned_allocator<double>().deallocate (_pix_plane.data(), _pix_plane.size());
 	remap_pix_plane (NULL, 0, 0);
 
 	WriteableColorsFinish();
+	if (verbosity > 7 && _clr_plane.data()) fprintf (stdout, "deallocating color %p\n",(void *)_clr_plane.data());
 	if (_clr_plane.data()) Eigen::aligned_allocator<HSVcolor>().deallocate (_clr_plane.data(), _clr_plane.size());
 	remap_clr_plane (NULL, 0, 0);
 }
 
-// This is a general transform method that returns a new image matrix by applying the specified transform.
-ImageMatrix &ImageMatrix::transform (const ImageTransform *transform) const {
-	ImageMatrix *matrix_OUT = new ImageMatrix;
-
-	transform->execute (this, matrix_OUT);
-	return (*matrix_OUT);
+// This is a general transform method that applies the specified transform to the specified ImageMatrix,
+// storing the result in the ImageMatrix it was called on
+void ImageMatrix::transform (const ImageMatrix &matrix_IN, const ImageTransform *transform) {
+	transform->execute (&matrix_IN, this);
 }
 
 
@@ -486,7 +493,7 @@ void ImageMatrix::invert() {
    x_ratio, y_ratio -double- (0 to 1) the size of the new image comparing to the old one
    FIXME: Since this is done in-place, there is potential for aliasing (i.e. new pixel values interfering with old pixel values)
 */
-void ImageMatrix::Downsample(double x_ratio, double y_ratio) {
+void ImageMatrix::Downsample (const ImageMatrix &matrix_IN, double x_ratio, double y_ratio) {
 	double x,y,dx,dy,frac;
 	unsigned int new_x,new_y,a;
 	HSVcolor hsv;
@@ -500,15 +507,15 @@ void ImageMatrix::Downsample(double x_ratio, double y_ratio) {
 	if (dx == 1 && dy == 1) return;   /* nothing to scale */
 
 	ImageMatrix copy_matrix;
-	copy_matrix.copyFields (*this);
-	copy_matrix.allocate (width, height);
+	copy_matrix.copyFields (matrix_IN);
+	copy_matrix.allocate (matrix_IN.width, matrix_IN.height);
 	writeablePixels copy_pix_x = copy_matrix.WriteablePixels();
 	writeableColors copy_clr_x = copy_matrix.WriteableColors();
 
-	readOnlyPixels pix_plane_x = ReadablePixels();
-	readOnlyColors clr_plane_x = ReadableColors();
- 	unsigned int new_width = (unsigned int)(x_ratio*width), new_height = (unsigned int)(y_ratio*height),
- 		old_width = width, old_height = height;
+	readOnlyPixels pix_plane_x = matrix_IN.ReadablePixels();
+	readOnlyColors clr_plane_x = matrix_IN.ReadableColors();
+ 	unsigned int new_width = (unsigned int)(x_ratio*matrix_IN.width), new_height = (unsigned int)(y_ratio*matrix_IN.height),
+ 		old_width = matrix_IN.width, old_height = matrix_IN.height;
 
 	// first downsample x
 	for (new_y = 0; new_y < old_height; new_y++) {
@@ -633,46 +640,42 @@ void ImageMatrix::Downsample(double x_ratio, double y_ratio) {
    Rotate an image by 90, 120, or 270 degrees
    angle -double- (0 to 360) the degrees of rotation.  Only values of 90, 180, 270 are currently allowed
 */
-ImageMatrix* ImageMatrix::Rotate(double angle) {
-	ImageMatrix *new_matrix;
+void ImageMatrix::Rotate(const ImageMatrix &matrix_IN, double angle) {
 	unsigned int new_width,new_height;
 
 	// Only deal with right angles
-	if (! ( (angle == 90) || (angle == 180) || (angle == 270) ) ) return (this);
+	if (! ( (angle == 90) || (angle == 180) || (angle == 270) ) ) return;
 
 	// switch width/height if 90 or 270
 	if ( (angle == 90) || (angle == 270) ) {
-		new_width = height;
-		new_height = width;
+		new_width = matrix_IN.height;
+		new_height = matrix_IN.width;
 	} else {
-		new_width = width;
-		new_height = height;
+		new_width = matrix_IN.width;
+		new_height = matrix_IN.height;
 	}
 
-	// Make a new image matrix
-	new_matrix = new ImageMatrix;
-	new_matrix->copyFields (*this);
+	// Copy fields from input
+	copyFields (matrix_IN);
 
-	new_matrix->allocate (new_width, new_height);
+	allocate (new_width, new_height);
 
 	// a 180 is simply a reverse of the matrix
 	// a 90 is m.transpose().rowwise.reverse()
 	// a 270 is m.transpose()
 	switch ((int)angle) {
 		case 90:
-			new_matrix->WriteablePixels() = ReadablePixels().transpose().rowwise().reverse();
+			WriteablePixels() = matrix_IN.ReadablePixels().transpose().rowwise().reverse();
 		break;
 
 		case 180:
-			new_matrix->WriteablePixels() = ReadablePixels().reverse();
+			WriteablePixels() = matrix_IN.ReadablePixels().reverse();
 		break;
 
 		case 270:
-			new_matrix->WriteablePixels() = ReadablePixels().transpose();
+			WriteablePixels() = matrix_IN.ReadablePixels().transpose();
 		break;
 	}
-
-	return(new_matrix);
 }
 
 
@@ -1133,7 +1136,7 @@ void ImageMatrix::ChebyshevFourierTransform2D(double *coeff) {
 	if( (width * height) > (300 * 300) ) {
 		matrix = new ImageMatrix;
 		matrix->copy (*this);
-		matrix->Downsample( MIN( 300.0/(double)width, 300.0/(double)height ), MIN( 300.0/(double)width, 300.0/(double)height ) );  /* downsample for avoiding memory problems */
+		matrix->Downsample(*this, MIN( 300.0/(double)width, 300.0/(double)height ), MIN( 300.0/(double)width, 300.0/(double)height ) );  /* downsample for avoiding memory problems */
 	} else {
 		matrix = this;
 	}
