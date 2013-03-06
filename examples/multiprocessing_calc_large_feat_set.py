@@ -148,7 +148,7 @@ if __name__ == '__main__':
 			new_ShImMat = pychrm.SharedImageMatrix()
 			new_ShImMat.fromCache( original_shmem_name, tform_name )
 			pixel_planes[ tform_name ] = new_ShImMat
-			#new_ShImMat.DisableDestructorCacheCleanup(False)
+			new_ShImMat.DisableDestructorCacheCleanup(False)
 			pp_shmem_names[ tform_name ] = new_ShImMat.GetShmemName()
 
 
@@ -156,6 +156,7 @@ if __name__ == '__main__':
 		# Round 2: Asynchronously fire off second round of transforms to the pool
 		results = []
 		for first_tform_name, second_tform_name in second_round_tforms:
+			print "performing compound tform: ", first_tform_name, second_tform_name
 			first_tform_shmem_addr = pp_shmem_names[ first_tform_name ]
 			fn_args = ( second_tform_name, first_tform_shmem_addr )
 			res = pool.apply_async( ConcurrentTransformFunc, fn_args )
@@ -166,7 +167,7 @@ if __name__ == '__main__':
 			res.get()
 			new_ShImMat = pychrm.SharedImageMatrix()
 			new_ShImMat.fromCache( first_tform_shmem_addr, tform_name )
-			#new_ShImMat.DisableDestructorCacheCleanup(False)
+			new_ShImMat.DisableDestructorCacheCleanup(False)
 			tform_compound_name = first_tform_name + ' ' + second_tform_name
 			pixel_planes[ tform_compound_name ] = new_ShImMat
 			pp_shmem_names[ tform_compound_name ] = new_ShImMat.GetShmemName()
@@ -174,7 +175,7 @@ if __name__ == '__main__':
 
 		print "\n\n\n************************************ROUND 2 COMPLETE*************************\n\n\n"
 
-		print "*****************{}****************".format( len( pixel_planes ) )
+		print "*****************TOTAL NUM TRANSFORMS {}****************".format( len( pixel_planes ) )
 		# After all transforms are completed, all dependencies have been removed.
 		# Asynchronously fire off all feature calculation and block until completion
 
@@ -189,7 +190,7 @@ if __name__ == '__main__':
 		column_offset = 0
 		results = []
 		for algname, required_tform in algs:
-			offset = image_index * self.num_features + column_offset
+			offset = image_index * num_features + column_offset
 			required_pp_shmem_name = pp_shmem_names[ required_tform ]
 			fn_args = ( required_shmem_name, algname, shared_array_base, offset )
 			res = pool.apply_async( ConcurrentFeatCalcFunc, fn_args ) 
