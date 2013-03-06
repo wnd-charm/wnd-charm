@@ -289,14 +289,16 @@ std::cout << "recovered size: " << width << "," << height << std::endl;
 		
 		case WORMfile::WORM_WR:
 std::cout << "cache_write" << std::endl;
-			// Since we have a write-lock, we open the shmem for writing, creation, and truncation.
+			// Since we have a write-lock, we open a brand new shared memory.
+			// A stale shared memory may pre-exist, giving us an EEXIST errno with the O_EXCL flag.
+			// In this case, we unlink the shmem, ignoring any errors, and try to reopen it again with O_EXCL
 			errno = 0;
 			shmem_fd = shm_open(shmem_name.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 			if (shmem_fd < 0 && errno == EEXIST) {
 				shm_unlink (shmem_name.c_str());
 				shmem_fd = shm_open(shmem_name.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 			}
-			if (shmem_fd < 0)  {
+			if (shmem_fd < 0) {
 				error_str = string_format ("shm_open error when writing: %s (%d)", strerror(errno), errno);
 				break;
 			}
