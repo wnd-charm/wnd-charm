@@ -1147,8 +1147,7 @@ void ImageMatrix::ChebyshevFourierTransform2D(double *coeff) {
 /* Symlet5 transform */
 void ImageMatrix::Symlet5Transform() {
 	unsigned int x,y;
-	DataGrid2D *grid2d=NULL;
-	DataGrid *grid;
+	DataGrid *grid=NULL;
 	Symlet5 *Sym5;
 
 	writeablePixels pix_plane = WriteablePixels();
