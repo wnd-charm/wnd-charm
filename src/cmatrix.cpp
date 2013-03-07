@@ -381,14 +381,13 @@ void ImageMatrix::copy(const ImageMatrix &copy) {
 void ImageMatrix::submatrix (const ImageMatrix &matrix, const unsigned int x1, const unsigned int y1, const unsigned int x2, const unsigned int y2) {
 	unsigned int x0, y0;
 
-	bits = matrix.bits;
-	ColorMode = matrix.ColorMode;
 	// verify that the image size is OK
 	x0 = (x1 < 0 ? 0 : x1);
 	y0 = (y1 < 0 ? 0 : y1);
 	unsigned int new_width  = (x2 >= matrix.width  ? matrix.width  : x2 - x0 + 1);
 	unsigned int new_height = (y2 >= matrix.height ? matrix.height : y2 - y0 + 1);
 
+	copyFields (matrix);
 	allocate (new_width, new_height);
 	// Copy the Eigen matrixes
 	// N.B. Eigen matrix parameter order is rows, cols, not X, Y
@@ -1141,6 +1140,7 @@ void ImageMatrix::ChebyshevFourierTransform2D(double *coeff) {
 		matrix = this;
 	}
 	ChebyshevFourier2D(matrix, 0, coeff,32);
+	if (matrix != this) delete matrix;
 }
 
 
@@ -1168,7 +1168,7 @@ void ImageMatrix::Symlet5Transform() {
 			pix_plane (y,x) = grid->getData(x,y,-1);
 		 
 	delete Sym5;
-	delete grid2d;
+	delete grid;
 	WriteablePixelsFinish();
 }
 
