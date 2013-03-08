@@ -1345,7 +1345,7 @@ def RetrievePixelPlane( image_matrix_cache, tform_list ):
 	sublist.reverse()
 	top_level_transform = sublist.pop()
 	intermediate_pixel_plane = RetrievePixelPlane( image_matrix_cache, sublist )
-	
+
 	tformed_pp = pychrm.ImageMatrix()
 	tformed_pp.transform (intermediate_pixel_plane, top_level_transform)
 	#assert( intermediate_pixel_plane ), "Pixel Plane returned from transform() was NULL"
