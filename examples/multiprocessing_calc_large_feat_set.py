@@ -4,6 +4,23 @@ import multiprocessing as mp
 import logging
 
 #================================================================
+def CleanShmemCache():
+	"""read the lock files in /tmp and acquire their shmem blocks so they can be destroyed"""
+	#from tempfile import gettempdir
+	from glob import glob
+	import os
+
+	#globcmd = gettempdir() + sep + 'wndchrm*'
+	globcmd = '/tmp/wndchrm*'
+	lock_files = glob( globcmd )
+	print len(lock_files)
+	for lock_file in lock_files:
+		tmp_path, tmp_file = os.path.split( lock_file )
+		print tmp_file
+		shimmat = pychrm.SharedImageMatrix()
+		shimmat.fromCache( '/'+tmp_file )	
+	
+#================================================================
 def ConcurrentTransformFunc( tform_name, input_shmem_name ):
 	"""returns the mmap path to the transformed pixel plane """
 
@@ -48,14 +65,16 @@ def ConcurrentFeatCalcFunc( input_shmem_name, alg_name, feature_array, offset):
 		print "<<<<<<<<<<<Child pid {}: attempting FEATURE CALCULATION {} on input {}".format(
 				os.getpid(), alg_name, input_shmem_name )
 		
-		original = pychrm.SharedImageMatrix()
-		if 1 != original.fromCache( input_shmem_name ):
+		px_plane = pychrm.SharedImageMatrix()
+		px_plane.fromCache( input_shmem_name )
+		if px_plane.csREAD != px_plane.Status(): 
 			raise ValueError( 'Could not build an SharedImageMatrix from {0}, check the file.'.\
-												 format( input_px_plane ) )
+												 format( input_shmem_name ) )
 
+		px_plane.DisableDestructorCacheCleanup(True)
 		alg = Algorithms[ alg_name ]
 		num_features = alg.n_features
-		feature_array[ offset : offset + num_feat ]  = alg.calculate( input_px_plane )
+		feature_array[ offset : offset + num_features ]  = alg.calculate( px_plane )
 
 		print ">>>>>>>>>>>>Child pid {}: input {}, calculated features {}".format(
 				os.getpid(), input_shmem_name, alg_name  )
@@ -111,7 +130,7 @@ def GenerateWorkPlan( featuregroup_strings ):
 	return first_round_tforms, second_round_tforms, parsed_algorithms, feature_names
 
 #================================================================
-if __name__ == '__main__':
+def CalcFeatures():
 
 	import sys
 
@@ -141,18 +160,22 @@ if __name__ == '__main__':
 			fn_args = ( tform_name, original_shmem_name )
 			res = pool.apply_async( ConcurrentTransformFunc, fn_args )
 			results.append( ( tform_name, res ) )
-
+			
 		# Block on completion of round 1
-		#for tform_name, res in results:
+		for tform_name, res in results:
 			res.get()
 			new_ShImMat = pychrm.SharedImageMatrix()
 			new_ShImMat.fromCache( original_shmem_name, tform_name )
 			pixel_planes[ tform_name ] = new_ShImMat
-			new_ShImMat.DisableDestructorCacheCleanup(False)
 			pp_shmem_names[ tform_name ] = new_ShImMat.GetShmemName()
 
 
-		print "\n\n\n************************************ROUND 1 COMPLETE*************************\n\n\n"
+		print "\n\n\n************************************ROUND 1 COMPLETE*************************"
+		print "Round 1 Summary:"
+		for tform_name in pp_shmem_names:
+			print tform_name, "\t", pp_shmem_names[ tform_name ]
+		print "\n\n\n"
+
 		# Round 2: Asynchronously fire off second round of transforms to the pool
 		results = []
 		for first_tform_name, second_tform_name in second_round_tforms:
@@ -163,17 +186,20 @@ if __name__ == '__main__':
 			results.append( ( first_tform_shmem_addr, first_tform_name, second_tform_name, res ) )
 
 		# Block on completion of round 2
-		#for first_tform_shmem_addr, first_tform_name, second_tform_name, res in results:
+		for first_tform_shmem_addr, first_tform_name, second_tform_name, res in results:
 			res.get()
 			new_ShImMat = pychrm.SharedImageMatrix()
-			new_ShImMat.fromCache( first_tform_shmem_addr, tform_name )
-			new_ShImMat.DisableDestructorCacheCleanup(False)
+			new_ShImMat.fromCache( first_tform_shmem_addr, second_tform_name )
 			tform_compound_name = first_tform_name + ' ' + second_tform_name
 			pixel_planes[ tform_compound_name ] = new_ShImMat
 			pp_shmem_names[ tform_compound_name ] = new_ShImMat.GetShmemName()
 
 
-		print "\n\n\n************************************ROUND 2 COMPLETE*************************\n\n\n"
+		print "\n\n\n************************************ROUND 2 COMPLETE*************************"
+		print "Round 2 Summary:"
+		for tform_name in pp_shmem_names:
+			print tform_name, "\t", pp_shmem_names[ tform_name ]
+		print "\n\n\n"
 
 		print "*****************TOTAL NUM TRANSFORMS {}****************".format( len( pixel_planes ) )
 		# After all transforms are completed, all dependencies have been removed.
@@ -192,7 +218,7 @@ if __name__ == '__main__':
 		for algname, required_tform in algs:
 			offset = image_index * num_features + column_offset
 			required_pp_shmem_name = pp_shmem_names[ required_tform ]
-			fn_args = ( required_shmem_name, algname, shared_array_base, offset )
+			fn_args = ( required_pp_shmem_name, algname, shared_array_base, offset )
 			res = pool.apply_async( ConcurrentFeatCalcFunc, fn_args ) 
 			results.append( (algname, required_tform, required_pp_shmem_name, res ) )
 			column_offset += Algorithms[ algname ].n_features
@@ -200,11 +226,17 @@ if __name__ == '__main__':
 		# Block:
 		for algname, tform_name, tform_shmem_name, res in results:
 			print "receiving results from {} ({}) shmem {}".format(
-				algname, tform_name, tform_shmem_name )
+				algname, required_tform, required_pp_shmem_name )
 			res.get()
 
-		print shared_array_base
+		for shimmat in pixel_planes:
+			pixel_planes[ shimmat ].DisableDestructorCacheCleanup(False)
+		print dir( shared_array_base )
 
 	except KeyboardInterrupt:
 		print "You pressed Ctrl-C"
 
+#================================================================
+if __name__ == '__main__':
+	CleanShmemCache()
+	CalcFeatures()
