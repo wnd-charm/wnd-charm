@@ -1346,7 +1346,8 @@ def RetrievePixelPlane( image_matrix_cache, tform_list ):
 	top_level_transform = sublist.pop()
 	intermediate_pixel_plane = RetrievePixelPlane( image_matrix_cache, sublist )
 
-	tformed_pp = intermediate_pixel_plane.transform (top_level_transform)
+	tformed_pp = pychrm.SharedImageMatrix()
+	tformed_pp.transform (intermediate_pixel_plane, top_level_transform)
 	#assert( intermediate_pixel_plane ), "Pixel Plane returned from transform() was NULL"
 	image_matrix_cache[ requested_transform ] = tformed_pp
 	return tformed_pp
@@ -4344,8 +4345,8 @@ def ConcurrentTransformFunc( tform_name, input_px_plane_path ):
 			raise ValueError( 'Could not build an SharedImageMatrix from {0}, check the file.'.\
 												 format( input_px_plane_path ) )
 
-		ret_px_plane = Transforms[ tform_name ].execute( original )
-
+		ret_px_plane = pychrm.SharedImageMatrix()
+		ret_px_plane.transform (original, Transforms[ tform_name ])
 		ret_px_plane_path = ret_px_plane.GetShmemName()
 
 		print "Child pid {}: input {}, transformed \"{}\" = {}".format(

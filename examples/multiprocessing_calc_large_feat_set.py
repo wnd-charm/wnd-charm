@@ -21,8 +21,8 @@ def ConcurrentTransformFunc( tform_name, input_shmem_name ):
 			raise ValueError( 'Could not build an SharedImageMatrix from {0}, check the file.'.\
 												 format( input_shmem_name ) )
 
-		tform = Transforms[ tform_name ]
-		ret_px_plane = original.transform( tform )
+		ret_px_plane = pychrm.SharedImageMatrix()
+		ret_px_plane.transform (original, Transforms[ tform_name ])
 
 		original.DisableDestructorCacheCleanup(True)
 		ret_px_plane.DisableDestructorCacheCleanup(True)

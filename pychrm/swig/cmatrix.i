@@ -3,5 +3,6 @@
 %{
 #include "cmatrix.h"
 %}
-%newobject ImageMatrix::transform;
+%include "std_string.i"
+
 %include "cmatrix.h"

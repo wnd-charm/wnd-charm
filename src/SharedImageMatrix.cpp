@@ -413,18 +413,16 @@ int SharedImageMatrix::OpenImage(char *image_file_name,
 // This is a general transform method that returns a new image matrix by applying the specified transform.
 // Of course this returns a new SharedImageMatrix as an ImageMatrix pointer.
 // We have to declare the virtual method this way to make the override work.
-SharedImageMatrix &SharedImageMatrix::transform (const ImageTransform *transform) const {
-	SharedImageMatrix *matrix_OUT = new SharedImageMatrix;
-	matrix_OUT->fromCache (this->GetShmemName(), transform->name);
+void SharedImageMatrix::transform (const SharedImageMatrix &matrix_IN, const ImageTransform *transform) {
+	fromCache (matrix_IN.GetShmemName(), transform->name);
 
-	if (matrix_OUT->Status() == csWRITE) {
-		transform->execute (this, matrix_OUT);
-		matrix_OUT->Cache();
-		return (*matrix_OUT);
-	} else if (matrix_OUT->Status() == csREAD) {
-		return (*matrix_OUT);
+	if (Status() == csWRITE) {
+		transform->execute (&matrix_IN, this);
+		Cache();
+	} else if (Status() == csREAD) {
+		// noop
 	} else {
-		std::cerr << "Errors while recovering cache:" << matrix_OUT->Error() << std::endl;
+		std::cerr << "Errors while recovering cache: " << Error() << std::endl;
 		exit (-1);
 	}
 }
