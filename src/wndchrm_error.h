@@ -15,7 +15,9 @@ enum WNDCHRM_ERROR {
 };
 
 
+void catErrno ();
 void catError (const char *fmt, ...);
+void catError (const std::string &error);
 int showError(int stop, const char *fmt, ...);
 const std::string getErrorString ();
 const char* translateError( WNDCHRM_ERROR return_val );

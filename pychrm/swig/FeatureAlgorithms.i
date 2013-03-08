@@ -4,6 +4,7 @@
 #include "FeatureAlgorithms.h"
 %}
 
+%include "std_string.i"
 %include "std_vector.i"
 // Instantiate templates used by FeatureAlgorithms
 namespace std {

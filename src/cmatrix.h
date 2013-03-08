@@ -33,11 +33,10 @@
 #define cmatrixH
 //---------------------------------------------------------------------------
 
-#include <assert.h>
+// this turns off runtime assertions if defined
 #undef NDEBUG
-#include <vector>
+#include <assert.h>
 #include <string> // for source field
-#include <vector> // for operations field
 #include <Eigen/Dense>
 #include "colors/FuzzyCalc.h"
 #include "ImageTransforms.h"

@@ -12,12 +12,10 @@
 
 #include "wndchrm_error.h"
 
-using namespace std;
-
-#define MAX_ERROR_MESSAGE 512
+#define MAX_ERROR_MESSAGE 1024
 
 
-ostringstream error_messages;
+std::ostringstream error_messages;
 
 /* global variable */
 // Verbosity levels:
@@ -27,29 +25,19 @@ ostringstream error_messages;
 // 		>2-Everything
 int verbosity = 2;
 
-/*
-   Accumulates errors and warnings to be shown later
-   N.B.: Variadic - use like printf
-*/
-void catError (const char *fmt, ...) {
-va_list ap;
-size_t err_lngth;
-char error_buffer[MAX_ERROR_MESSAGE];
-char newline=0;
-size_t found;
-
-	// process the printf-style parameters
-	va_start (ap, fmt);
-	err_lngth = vsnprintf (error_buffer,MAX_ERROR_MESSAGE, fmt, ap);
-	va_end (ap);
-
-	error_messages << error_buffer;
-
+// appends the system error message for the current errno
+void catErrno () {
+	char error_buffer[MAX_ERROR_MESSAGE];
+	size_t found;
+	char newline=0;
 
 	if (errno != 0) {
 	// Append any system error string
-
+#ifdef _GNU_SOURCE
+		strncpy (error_buffer, strerror_r(errno, error_buffer, MAX_ERROR_MESSAGE), MAX_ERROR_MESSAGE);
+#else
 		strerror_r(errno, error_buffer, MAX_ERROR_MESSAGE);
+#endif
 
 		if (strlen(error_buffer)) {
 			// clean trailing newlines
@@ -64,9 +52,30 @@ size_t found;
 
 		errno = 0;
 	}
-	
-	
 }
+/*
+   Accumulates errors and warnings to be shown later
+   N.B.: Variadic - use like printf
+*/
+void catError (const char *fmt, ...) {
+	va_list ap;
+	size_t err_lngth;
+	char error_buffer[MAX_ERROR_MESSAGE];
+
+	// process the printf-style parameters
+	va_start (ap, fmt);
+	err_lngth = vsnprintf (error_buffer,MAX_ERROR_MESSAGE, fmt, ap);
+	va_end (ap);
+
+	error_messages << error_buffer;
+
+	catErrno();
+}
+
+void catError (const std::string &error) {
+	error_messages << error;
+}
+
 
 /*
    displays an error message and optionally stops the program
@@ -90,24 +99,18 @@ size_t found;
 
 // Append any system error string
 	if (errno != 0 && error_messages.str().size()) {
-		found = error_messages.str().find_last_not_of("\n\r");
-		if (found != std::string::npos) {
-			error_messages.seekp(found+1);
-		}
-
-		strerror_r(errno, error_buffer, MAX_ERROR_MESSAGE);
-		error_messages << ": " << error_buffer << "\n";
+		catErrno();
 	}
 
 	if (error_messages.str().size()) {
-		cerr << error_messages.str();
+		std::cerr << error_messages.str();
 	// Make sure we print a newline
 		found = error_messages.str().find_last_not_of("\n\r");
-		if ( error_messages.str().find_first_of("\n\r",found) == std::string::npos ) cerr << "\n";
+		if ( error_messages.str().find_first_of("\n\r",found) == std::string::npos ) std::cerr << "\n";
 	}
 
 	if (stop && !error_messages.str().size()) {
-		cerr << "Fatal error - terminating.\n";
+		std::cerr << "Fatal error - terminating.\n";
 	} else if (stop) {
 		exit(0);
 	}
