@@ -10,6 +10,7 @@ def CleanShmemCache():
 	from glob import glob
 	import os
 
+	print "\n\n*******BEGINNING TO LOAD LEFTOVER CACHED PIXEL PLANES*************\n\n"
 	#globcmd = gettempdir() + sep + 'wndchrm*'
 	globcmd = '/tmp/wndchrm*'
 	lock_files = glob( globcmd )
@@ -19,6 +20,7 @@ def CleanShmemCache():
 		print tmp_file
 		shimmat = pychrm.SharedImageMatrix()
 		shimmat.fromCache( '/'+tmp_file )	
+	print "\n\n*******FINISHED LOADING LEFTOVER CACHED PIXEL PLANES*************\n\n"
 
 
 #================================================================
@@ -72,18 +74,19 @@ def ConcurrentTransformFunc( tform_name, input_shmem_name ):
 		return retval
 
 #================================================================
-def ConcurrentFeatCalcFunc( input_shmem_name, alg_name, feature_array, offset):
+#def ConcurrentFeatCalcFunc( input_shmem_name, alg_name, feature_array, offset):
+def ConcurrentFeatCalcFunc( input_shmem_name, alg_name, tform_name ):
 	"""Perform the feature calculation and put into the feature matrix"""
 
 	mp.log_to_stderr()
 	logger = mp.get_logger()
 	logger.setLevel( logging.INFO )
 
-	this_fns_retval = False
+	this_fns_retval = None
 
 	try:
-		print "<<<<<<<<<<<{} (pid {}: attempting FEATURE CALCULATION {} on input {}".format(
-				mp.current_process(), os.getpid(), alg_name, input_shmem_name )
+		print "<<<<<<<<<<<{} (pid {}: attempting FEATURE CALCULATION {} on input {} ({})".format(
+				mp.current_process(), os.getpid(), alg_name, tform_name, input_shmem_name )
 		
 		px_plane = pychrm.SharedImageMatrix()
 		px_plane.fromCache( input_shmem_name )
@@ -93,13 +96,14 @@ def ConcurrentFeatCalcFunc( input_shmem_name, alg_name, feature_array, offset):
 
 		px_plane.DisableDestructorCacheCleanup(True)
 		alg = Algorithms[ alg_name ]
-		num_features = alg.n_features
-		feature_array[ offset : offset + num_features ]  = alg.calculate( px_plane )
+		#num_features = alg.n_features
+		#feature_array[ offset : offset + num_features ]  = alg.calculate( px_plane )
+		features = alg.calculate( px_plane )
 
-		print ">>>>>>>>>>>>{} (pid {}: input {}, calculated features {}".format(
-				mp.current_process(), os.getpid(), input_shmem_name, alg_name  )
+		print ">>>>>>>>>>>>{} (pid {}: completed FEATURE CALCULATION {} on input {} ({})".format(
+				mp.current_process(), os.getpid(), alg_name, tform_name, input_shmem_name )
 
-		this_fns_retval = True
+		this_fns_retval = ( alg_name, tform_name, features )
 
 	except KeyboardInterrupt:
 		print "ConcurrentFeatCalcFunc: Caught Keyboard interrupt inside child process {}".format(
@@ -159,109 +163,128 @@ def CalcFeatures():
 	import sys
 
 	input_tif = sys.argv[1]
+	print "\n\n*******BEGINNING TO CALCULATE FEATURES FOR IMAGE {}*************\n\n".format(
+			input_tif )
+
 	num_cpus = mp.cpu_count()
 
 	# Create queues
 	task_queue = mp.Queue()
 	done_queue = mp.Queue()
 
+	shared_array_base = None
+
+	try:
+		original = pychrm.SharedImageMatrix()
+		if 1 != original.OpenImage( input_tif , 0, None, 0, 0 ):
+			raise ValueError( 'Could not build an SharedImageMatrix from {0}, check the file.'.\
+								 format( path_to_image ) )
+		else:
+			print "successfully loaded image"
+
+		pixel_planes = {}
+		pp_shmem_names = {}
+		original_shmem_name = original.GetShmemName()
+		pp_shmem_names[ "" ] = original_shmem_name
+
+		work_order = large_featureset_featuregroup_strings.split( '\n' )
+		first_round_tforms, second_round_tforms, required_feature_groups, feat_names = GenerateWorkPlan( work_order )
+
+		# Enqueue first round tasks
+		for tform_name in first_round_tforms:
+			fn_args = ( tform_name, original_shmem_name )
+			task_queue.put( ( ConcurrentTransformFunc, fn_args ) )
+
+		# Start worker processes
+		for i in range( num_cpus ):
+			mp.Process( target = worker, args = (task_queue, done_queue) ).start()
+
+		# Deal with the returned vals as they come off the done_queue
+		for i in range( len( first_round_tforms ) ):
+			tform_name, tformed_shmem_name = done_queue.get()
+			print "Instantiating tform {} back in the mother process.".format( tform_name )
+			new_ShImMat = pychrm.SharedImageMatrix()
+			new_ShImMat.fromCache( original_shmem_name, tform_name )
+			status = new_ShImMat.Status()
+			if new_ShImMat.csREAD != status: 
+				raise RuntimeError( 'Mother process got a csstatus of {} which should be csREAD'.\
+													 format( status ) )
+			assert( tformed_shmem_name == new_ShImMat.GetShmemName() )
+			pixel_planes[ tform_name ] = new_ShImMat
+			pp_shmem_names[ tform_name ] = tformed_shmem_name
+
+		print "\n\n\n************************************ROUND 1 COMPLETE*************************"
+		print "Round 1 Summary:"
+		for tform_name in pp_shmem_names:
+			print tform_name, "\t", pp_shmem_names[ tform_name ]
+		print "\n\n\n"
+
+		# Enqueue second round tasks
+		for first_tform_name, second_tform_name in second_round_tforms:
+			print "performing compound tform: ", first_tform_name, second_tform_name
+			first_tform_shmem_addr = pp_shmem_names[ first_tform_name ]
+			fn_args = ( (first_tform_name, second_tform_name), first_tform_shmem_addr )
+			task_queue.put( ( ConcurrentTransformFunc, fn_args ) )
+
+		# Deal with the returned vals as they come off the done_queue
+		for i in range( len( second_round_tforms ) ):
+			tform_pair, tformed_shmem_name = done_queue.get()
+			print "Instantiating tform {} {} back in the mother process.".format( tform_pair[0], tform_pair[1] )
+			new_ShImMat = pychrm.SharedImageMatrix()
+			new_ShImMat.fromCache( pp_shmem_names[ tform_pair[0] ] , tform_pair[1] )
+			status = new_ShImMat.Status()
+			if new_ShImMat.csREAD != status: 
+				raise RuntimeError( 'Mother process got a csstatus of {} which should be csREAD'.\
+													 format( status ) )
+			assert( new_ShImMat.GetShmemName() ==  tformed_shmem_name )
+			compound_tform_name = ' '.join( tform_pair )
+			pixel_planes[ compound_tform_name ] = new_ShImMat
+			pp_shmem_names[ compound_tform_name ] = tformed_shmem_name 
+
+		print "\n\n\n************************************ROUND 2 COMPLETE*************************"
+		print "Round 2 Summary:"
+		for tform_name in pp_shmem_names:
+			print tform_name, "\t", pp_shmem_names[ tform_name ]
+		print "\n\n\n"
+
+		print "*****************TOTAL NUM TRANSFORMS {}****************".format( len( pixel_planes ) )
+		# After all transforms are completed, all dependencies have been removed.
+		# Fire off all feature calculation
+
+		image_index = 0 # will be incremented when we start looping over images
+		num_images = 1
+		num_features = len( feat_names )
+
+		#import ctypes 
+		#shared_array_base = mp.Array( ctypes.c_double, num_images * num_features )
+		#shared_array_base = [None] * ( num_images * num_features )
+		shared_array_base = []
+
+		column_offset = 0
+		for algname, required_tform in required_feature_groups:
+			offset = image_index * num_features + column_offset
+			required_pp_shmem_name = pp_shmem_names[ required_tform ]
+			#fn_args = ( required_pp_shmem_name, algname, shared_array_base, offset )
+			fn_args = ( required_pp_shmem_name, algname, required_tform )
+			task_queue.put( ( ConcurrentFeatCalcFunc, fn_args ) )
+			#column_offset += Algorithms[ algname ].n_features
+
+		for i in range( len( required_feature_groups ) ):
+			alg_name, tform_name, features = done_queue.get()
+			shared_array_base += features
+			#column_offset += len( features )
+
+		# Tell child processes to stop
+		for i in range( num_cpus ):
+			task_queue.put('STOP')
 
 
-	original = pychrm.SharedImageMatrix()
-	if 1 != original.OpenImage( input_tif , 0, None, 0, 0 ):
-		raise ValueError( 'Could not build an SharedImageMatrix from {0}, check the file.'.\
-							 format( path_to_image ) )
-	else:
-		print "successfully loaded image"
+	finally:
+		for shimmat in pixel_planes:
+			pixel_planes[ shimmat ].DisableDestructorCacheCleanup(False)
+	
+	print shared_array_base
 
-	pixel_planes = {}
-	pp_shmem_names = {}
-	original_shmem_name = original.GetShmemName()
-	pp_shmem_names[ "" ] = original_shmem_name
-
-	work_order = large_featureset_featuregroup_strings.split( '\n' )
-	first_round_tforms, second_round_tforms, algs, feat_names = GenerateWorkPlan( work_order )
-
-	# Enqueue first round tasks
-	for tform_name in first_round_tforms:
-		fn_args = ( tform_name, original_shmem_name )
-		task_queue.put( ( ConcurrentTransformFunc, fn_args ) )
-
-	# Start worker processes
-	for i in range( num_cpus ):
-		mp.Process( target = worker, args = (task_queue, done_queue) ).start()
-
-	# Deal with the returned vals as they come off the done_queue
-	for i in range( len( first_round_tforms ) ):
-		tform_name, tformed_shmem_name = done_queue.get()
-		new_ShImMat = pychrm.SharedImageMatrix()
-		new_ShImMat.fromCache( original_shmem_name, tform_name )
-		status = new_ShImMat.Status()
-		if new_ShImMat.csREAD != status: 
-			raise RuntimeError( 'Mother process got a csstatus of {} which should be csREAD'.\
-												 format( status ) )
-		assert( tformed_shmem_name == new_ShImMat.GetShmemName() )
-		pixel_planes[ tform_name ] = new_ShImMat
-		pp_shmem_names[ tform_name ] = tformed_shmem_name
-
-	print "\n\n\n************************************ROUND 1 COMPLETE*************************"
-	print "Round 1 Summary:"
-	for tform_name in pp_shmem_names:
-		print tform_name, "\t", pp_shmem_names[ tform_name ]
-	print "\n\n\n"
-
-	# Enqueue second round tasks
-	for first_tform_name, second_tform_name in second_round_tforms:
-		print "performing compound tform: ", first_tform_name, second_tform_name
-		first_tform_shmem_addr = pp_shmem_names[ first_tform_name ]
-		fn_args = ( (first_tform_name, second_tform_name), first_tform_shmem_addr )
-		task_queue.put( ( ConcurrentTransformFunc, fn_args ) )
-
-	# Deal with the returned vals as they come off the done_queue
-	for i in range( len( second_round_tforms ) ):
-		tform_pair, tformed_shmem_name = done_queue.get()
-		new_ShImMat = pychrm.SharedImageMatrix()
-		new_ShImMat.fromCache( pp_shmem_names[ tform_pair[0] ] , tform_pair[1] )
-		status = new_ShImMat.Status()
-		if new_ShImMat.csREAD != status: 
-			raise RuntimeError( 'Mother process got a csstatus of {} which should be csREAD'.\
-												 format( status ) )
-		assert( new_ShImMat.GetShmemName() ==  tformed_shmem_name )
-		compund_tform_name = ' '.join( tform_pair )
-		pixel_planes[ compound_tform_name ] = new_ShImMat
-		pp_shmem_names[ compound_tform_name ] = tformed_shmem_name 
-
-	print "\n\n\n************************************ROUND 2 COMPLETE*************************"
-	print "Round 2 Summary:"
-	for tform_name in pp_shmem_names:
-		print tform_name, "\t", pp_shmem_names[ tform_name ]
-	print "\n\n\n"
-
-	print "*****************TOTAL NUM TRANSFORMS {}****************".format( len( pixel_planes ) )
-	# After all transforms are completed, all dependencies have been removed.
-	# Fire off all feature calculation
-
-	image_index = 0 # will be incremented when we start looping over images
-	num_images = 1
-	num_features = len( feat_names )
-	import ctypes 
-
-	shared_array_base = mp.Array( ctypes.c_double, num_images * num_features )
-
-	column_offset = 0
-	for algname, required_tform in algs:
-		offset = image_index * num_features + column_offset
-		required_pp_shmem_name = pp_shmem_names[ required_tform ]
-		fn_args = ( required_pp_shmem_name, algname, shared_array_base, offset )
-		task_queue.put( ( ConcurrentFeatCalcFunc, fn_args ) )
-		column_offset += Algorithms[ algname ].n_features
-
-	for i in range( len( algs ) ):
-		done_queue.get()
-
-	for shimmat in pixel_planes:
-		pixel_planes[ shimmat ].DisableDestructorCacheCleanup(False)
-	print dir( shared_array_base )
 
 #================================================================
 if __name__ == '__main__':
