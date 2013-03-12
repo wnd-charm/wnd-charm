@@ -85,7 +85,7 @@ int ImageMatrix::LoadTIFF(char *filename) {
 	TIFF *tif = NULL;
 	unsigned char *buf8;
 	unsigned short *buf16;
-	RGBcolor rgb;
+	RGBcolor rgb = {0,0,0};
 	ImageMatrix R_matrix, G_matrix, B_matrix;
 
 
