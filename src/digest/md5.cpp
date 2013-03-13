@@ -65,6 +65,7 @@
 //----------------------------------------------------------------------
 //hashlib++ includes
 #include "md5.h"
+#include <cstring>
 
 namespace MD5 {
 

@@ -1,6 +1,7 @@
 #include "SharedImageMatrix.h"
 #include "cmatrix.h"
 
+#include <cstdarg> //va_start and va_end
 #include <unistd.h> // sysconf(), page_size
 #include <errno.h>
 #include <sys/types.h> // for dev_t, ino_t
