@@ -26,6 +26,7 @@ def CleanShmemCache():
 #================================================================
 def worker( input_task_queue, output_result_queue ):
 	for func, args in iter( input_task_queue.get, 'STOP' ):
+		print "{} {}".format( func, args )
 		result = func( *args )
 		output_result_queue.put( result )
 
@@ -74,9 +75,12 @@ def ConcurrentTransformFunc( tform_name, input_shmem_name ):
 		return retval
 
 #================================================================
-#def ConcurrentFeatCalcFunc( input_shmem_name, alg_name, feature_array, offset):
-def ConcurrentFeatCalcFunc( input_shmem_name, alg_name, tform_name ):
+def ConcurrentFeatCalcFunc( input_shmem_name, alg_name, tform_name, feature_array, offset):
+#def ConcurrentFeatCalcFunc( input_shmem_name, alg_name, tform_name ):
 	"""Perform the feature calculation and put into the feature matrix"""
+
+	print "<<<<<<<<<<<{} (pid {}: attempting FEATURE CALCULATION {} on input {} ({})".format(
+				mp.current_process(), os.getpid(), alg_name, tform_name, input_shmem_name )
 
 	mp.log_to_stderr()
 	logger = mp.get_logger()
@@ -85,8 +89,6 @@ def ConcurrentFeatCalcFunc( input_shmem_name, alg_name, tform_name ):
 	this_fns_retval = None
 
 	try:
-		print "<<<<<<<<<<<{} (pid {}: attempting FEATURE CALCULATION {} on input {} ({})".format(
-				mp.current_process(), os.getpid(), alg_name, tform_name, input_shmem_name )
 		
 		px_plane = pychrm.SharedImageMatrix()
 		px_plane.fromCache( input_shmem_name )
@@ -96,9 +98,9 @@ def ConcurrentFeatCalcFunc( input_shmem_name, alg_name, tform_name ):
 
 		px_plane.DisableDestructorCacheCleanup(True)
 		alg = Algorithms[ alg_name ]
-		#num_features = alg.n_features
-		#feature_array[ offset : offset + num_features ]  = alg.calculate( px_plane )
-		features = alg.calculate( px_plane )
+		num_features = alg.n_features
+		feature_array[ offset : offset + num_features ]  = alg.calculate( px_plane )
+		#features = alg.calculate( px_plane )
 
 		print ">>>>>>>>>>>>{} (pid {}: completed FEATURE CALCULATION {} on input {} ({})".format(
 				mp.current_process(), os.getpid(), alg_name, tform_name, input_shmem_name )
@@ -172,7 +174,7 @@ def CalcFeatures():
 	task_queue = mp.Queue()
 	done_queue = mp.Queue()
 
-	shared_array_base = None
+	feature_matrix_proxy = None
 
 	try:
 		original = pychrm.SharedImageMatrix()
@@ -258,20 +260,25 @@ def CalcFeatures():
 		#import ctypes 
 		#shared_array_base = mp.Array( ctypes.c_double, num_images * num_features )
 		#shared_array_base = [None] * ( num_images * num_features )
-		shared_array_base = []
+		#shared_array_base = []
+
+		manager = mp.Manager()
+
+		feature_matrix_proxy = manager.list( [None] * ( num_images * num_features ) )
 
 		column_offset = 0
 		for algname, required_tform in required_feature_groups:
 			offset = image_index * num_features + column_offset
 			required_pp_shmem_name = pp_shmem_names[ required_tform ]
-			#fn_args = ( required_pp_shmem_name, algname, shared_array_base, offset )
-			fn_args = ( required_pp_shmem_name, algname, required_tform )
+			fn_args = ( required_pp_shmem_name, algname, required_tform, feature_matrix_proxy, offset )
+			#fn_args = ( required_pp_shmem_name, algname, required_tform )
 			task_queue.put( ( ConcurrentFeatCalcFunc, fn_args ) )
-			#column_offset += Algorithms[ algname ].n_features
+			column_offset += Algorithms[ algname ].n_features
 
 		for i in range( len( required_feature_groups ) ):
-			alg_name, tform_name, features = done_queue.get()
-			shared_array_base += features
+			done_queue.get()
+			#alg_name, tform_name, features = done_queue.get()
+			#shared_array_base += features
 			#column_offset += len( features )
 
 		# Tell child processes to stop
@@ -283,7 +290,7 @@ def CalcFeatures():
 		for shimmat in pixel_planes:
 			pixel_planes[ shimmat ].DisableDestructorCacheCleanup(False)
 	
-	print shared_array_base
+	print feature_matrix_proxy
 
 
 #================================================================
