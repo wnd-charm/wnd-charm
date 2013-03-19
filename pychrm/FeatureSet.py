@@ -1367,9 +1367,11 @@ def GenerateWorkOrderFromListOfFeatureStrings( feature_list ):
 	output_features_count = 0
 
 	for feature in feature_list:
-		split_line = feature.rsplit( " ", 1 )
+		split_line = feature.rsplit( " ", 1 )[0]
 		# add to set to ensure uniqueness
-		feature_group_strings.add( split_line[0] )
+		if split_line.startswith( '#' ):
+			continue
+		feature_group_strings.add( split_line )
 
 	# iterate over set and construct feature groups
 	work_order = []
@@ -1724,7 +1726,6 @@ class FeatureSet( object ):
 			if ( not self.CompatibleFeatureVectorVersion (training_set.feature_vector_version) ):
 				raise ValueError("Can't normalize test_set {0} with version {1} features against training_set {2} with version {3} features: Feature vector versions don't match.".format (
 					self.source_path, self.feature_vector_version, training_set.source_path, training_set.feature_vector_version ) )
-			
 
 			if not quiet:
 				print 'Normaling set "{0}" ({1} images) against set "{2}" ({3} images)'.format(
@@ -1971,10 +1972,7 @@ class FeatureSet_Discrete( FeatureSet ):
 	def NewFromSignature( cls, signature, ts_name = "TestSet", ):
 		"""@brief Creates a new FeatureSet from a single signature"""
 
-		try:
-			signature.is_valid()
-		except:
-			raise
+		signature.is_valid()
 
 		new_ts = cls()
 		new_ts.source_path = ts_name
@@ -1996,13 +1994,15 @@ class FeatureSet_Discrete( FeatureSet ):
 	@classmethod
 	def NewFromDirectory( cls, top_level_dir_path, parallel = True,
 	                                               feature_set_name = "large",
-																								 feature_group_list = None,
-																								 feature_name_list = None,
-																								 write_sig_files_todisk = False ):
+	                                               feature_group_list = None,
+	                                               feature_name_list = None,
+	                                               write_sig_files_to_disk = True ):
 		"""@brief Equivalent to the "wndchrm train" command from the C++ implementation by Shamir.
 		Read the the given directory, parse its structure, and populate the member
 		self.imagenames_list. Then call another function to farm out the calculation of each 
-		image's features to child processes (or at least it will in the future!)"""
+		image's features to child processes
+		
+		"""
 
 		print "Creating Training Set from directories of images {0}".format( top_level_dir_path )
 		if not( os.path.exists( top_level_dir_path ) ):
@@ -2061,7 +2061,7 @@ class FeatureSet_Discrete( FeatureSet ):
 		# Uncomment this after the change to AddSignature is made:
 		# new_ts._InitializeFeatureMatrix()
 		new_ts._ProcessSigCalculation( imagenames_list, feature_set_name,
-		       parallel, feature_group_list, feature_name_list, write_sig_files_todisk )
+		       parallel, feature_group_list, feature_name_list, write_sig_files_to_disk )
 		if feature_set == "large":
 			# FIXME: add other options
 			new_ts.feature_options = "-l"
@@ -2070,8 +2070,8 @@ class FeatureSet_Discrete( FeatureSet ):
 		return new_ts
 
 	#==============================================================
-	def _ProcessSigCalculation( self, imagenames_list, parallel, feature_set_name,
-			feature_group_list, feature_name_list, write_sig_files_todisk ):
+	def _ProcessSigCalculation( self, imagenames_list,  feature_set_name = 'large', parallel = False,
+			feature_group_list = None, feature_name_list = None, write_sig_files_to_disk = True ):
 		"""Calculate image descriptors for all the images contained in self.imagenames_list"""
 
 		# FIXME: check to see if any .sig, or .pysig files exist that match our
@@ -2079,8 +2079,7 @@ class FeatureSet_Discrete( FeatureSet ):
 
 		if not parallel:
 			sig = None
-			class_id = 0
-			for class_filelist in imagenames_list:
+			for class_id, class_filelist in enumerate( imagenames_list ):
 				for sourcefile in class_filelist:
 					if feature_set_name == "large":
 						sig = Signatures.LargeFeatureSet( sourcefile, parallel )
@@ -2096,94 +2095,159 @@ class FeatureSet_Discrete( FeatureSet ):
 					if write_sig_files_to_disk:
 						sig.WriteFeaturesToASCIISigFile()
 					self.AddSignature( sig, class_id )
-				class_id += 1
 		else:
 		#####################################################################################
 		# Begin multiprocessing section
 
-			# Hard coded large feature set
-			work_order = large_featureset_featuregroup_strings.split( '\n' )
-			first_round_tforms, second_round_tforms, algs, self.featurenames_list = \
-			    GenerateWorkPlan( work_order )
-
-
-			print second_round_tforms
-
-			self.num_features = len( self.featurenames_list )
-			self.num_classes = len( self.imagenames_list )
+			if feature_set_name:
+				if feature_set_name == 'large':
+					work_order = large_featureset_featuregroup_strings.split( '\n' )
+				elif feature_set_name == 'small':
+					work_order = small_featureset_featuregroup_strings.split( '\n' )
+				else:
+					raise NotImplementedError( 'Feature set {} not yet implemented.'.format( feature_set_name ) )
+			elif feature_group_list:
+				work_order = feature_group_list
+			elif feature_name_list:
+				work_order = GenerateWorkOrderFromListOfFeatureStrings( feature_name_list )
+			else:
+				raise ValueError( "You must specify which features you want to use" )
+			
+			first_round_tforms, second_round_tforms, required_feature_groups, feat_names = \
+					GenerateWorkPlan( work_order )
+			num_features = len( feat_names )
 
 			import multiprocessing as mp
-			import ctypes
+			num_cpus = mp.cpu_count()
 
-			mp.log_to_stderr()
-			logger = mp.get_logger()
-			logger.setLevel( logging.INFO )
+			# Create queues
+			task_queue = mp.Queue()
+			done_queue = mp.Queue()
 
-			num_cpus = 2 #mp.cpu_count()
-			pool = mp.Pool( num_cpus )
+			# Start worker processes
+			for i in range( num_cpus ):
+				mp.Process( target = worker, args = (task_queue, done_queue) ).start()
 
-			# DO LATER: Check if .sig filex exist, and if so attempt to load them first
-			for class_filelist in imagenames_list:
+			feature_matrix_proxy = None
+			for class_id, class_filelist in enumerate( imagenames_list ):
+				for sourcefile in class_filelist:
+					try:
+						sig = Signatures()
+						sig.source_file = sourcefile
+						sig.path_to_image = sourcefile
 
-				num_imgs = len( class_filelist )
-				self.classsizes_list.append( num_imgs )
+						original = pychrm.SharedImageMatrix()
+						if 1 != original.OpenImage( sourcefile , 0, None, 0, 0 ):
+							raise ValueError( 'Could not build an SharedImageMatrix from {0}, check the file.'.\
+												 format( path_to_image ) )
+						else:
+							print "successfully loaded image"
 
-				shared_array_base = mp.Array( ctypes.c_double, num_imgs * self.num_features )
+						pixel_planes = {}
+						pp_shmem_names = {}
+						original_shmem_name = original.GetShmemName()
+						pp_shmem_names[ "" ] = original_shmem_name
 
-				for image_index, sourcefile in enumerate( class_filelist ):
-			
-					original = pychrm.SharedImageMatrix()
-					if 1 != original.OpenImage( sourcefile, 0, None, 0, 0 ):
-						raise ValueError( 'Could not build an SharedImageMatrix from {0}, check the file.'.\
-					                 format( path_to_image ) )
+						# Enqueue first round tasks
+						for tform_name in first_round_tforms:
+							fn_args = ( tform_name, original_shmem_name )
+							task_queue.put( ( ConcurrentTransformFunc, fn_args ) )
 
-					pp_mmap_paths = {}
-					pp_mmap_paths[ "" ] = original.GetShmemName()
+						# Deal with the returned vals as they come off the done_queue
+						for i in range( len( first_round_tforms ) ):
+							tform_name, tformed_shmem_name = done_queue.get()
+							#print "Instantiating tform {} back in the mother process.".format( tform_name )
+							new_ShImMat = pychrm.SharedImageMatrix()
+							new_ShImMat.fromCache( original_shmem_name, tform_name )
+							status = new_ShImMat.Status()
+							if new_ShImMat.csREAD != status: 
+								raise RuntimeError( 'Mother process got a csstatus of {} which should be csREAD'.\
+																	 format( status ) )
+							assert( tformed_shmem_name == new_ShImMat.GetShmemName() )
+							pixel_planes[ tform_name ] = new_ShImMat
+							pp_shmem_names[ tform_name ] = tformed_shmem_name
 
-					import pdb; pdb.set_trace()
-					# Round 1: Asynchronously fire off first round of transforms to the pool
-					results = []
-					for in_px_plane_name, tform_name in first_round_tforms:
-						fn_args = ( tform_name, pp_mmap_paths[ in_px_plane_name ] )
-						res = pool.apply_async( ConcurrentTransformFunc, fn_args )
-						results.append( ( tform_name, res ) )
-					# Block on completion of round 1
-					for tform_name, res in results:
-						pp_mmap_paths[ tform_name ] = res.get()
+						print "\n\n\n************************************ROUND 1 COMPLETE*************************"
+						print "Round 1 Summary:"
+						for tform_name in pp_shmem_names:
+							print tform_name, "\t", pp_shmem_names[ tform_name ]
+						print "\n\n\n"
 
-					# Round 2: Asynchronously fire off second round of transforms to the pool
-					results = []
-					for in_px_plane_name, tform_name in second_round_tforms:
-						fn_args = ( tform_name, pp_mmap_paths[ in_px_plane_name ] )
-						res = pool.apply_async( ConcurrentTransformFunc, fn_args )
-						results.append( ( tform_name, res ) )
-					# Block on completion of round 2
-					for tform_name, res in results:
-						pp_mmap_paths[ in_px_plane_name + ' ' + tform_name ] = res.get()
+						# Enqueue second round tasks
+						for first_tform_name, second_tform_name in second_round_tforms:
+							print "performing compound tform: ", first_tform_name, second_tform_name
+							first_tform_shmem_addr = pp_shmem_names[ first_tform_name ]
+							fn_args = ( (first_tform_name, second_tform_name), first_tform_shmem_addr )
+							task_queue.put( ( ConcurrentTransformFunc, fn_args ) )
 
-					# After all transforms are completed, all dependencies have been removed.
-					# Asynchronously fire off all feature calculation and block until completion
-					column_offset = 0
-					results = []
-					for algname, required_tform in algs:
-						offset = image_index * self.num_features + column_offset
-						fn_args = ( algname, pp_mmap_paths[ required_tform ], shared_array_base, offset )
-						res = pool.apply_async( ConcurrentFeatCalcFunc, fn_args ) 
-						results.append( res )
-						column_offset += Algorithms[ algname ].n_features
-					# Block:
-					for res in results:
-						res.get()
+						# Deal with the returned vals as they come off the done_queue
+						for i in range( len( second_round_tforms ) ):
+							tform_pair, tformed_shmem_name = done_queue.get()
+							print "Instantiating tform {} {} back in the mother process.".format( tform_pair[0], tform_pair[1] )
+							new_ShImMat = pychrm.SharedImageMatrix()
+							new_ShImMat.fromCache( pp_shmem_names[ tform_pair[0] ] , tform_pair[1] )
+							status = new_ShImMat.Status()
+							if new_ShImMat.csREAD != status: 
+								raise RuntimeError( 'Mother process got a csstatus of {} which should be csREAD'.\
+																	 format( status ) )
+							assert( new_ShImMat.GetShmemName() ==  tformed_shmem_name )
+							compound_tform_name = ' '.join( tform_pair )
+							pixel_planes[ compound_tform_name ] = new_ShImMat
+							pp_shmem_names[ compound_tform_name ] = tformed_shmem_name 
 
-					# Cleanup shared pixel plane memory by instantiating a SharedImageMatrix
-					# object in this process and its destructor will be called when these fall out of scope
-					for mmap_path in pp_mmap_paths.values():
-						noop = pychrm.SharedImageMatrix()
-						noop.OpenImage( mmap_path, 0, None, 0, 0 )
+						print "\n\n\n************************************ROUND 2 COMPLETE*************************"
+						print "Round 2 Summary:"
+						for tform_name in pp_shmem_names:
+							print tform_name, "\t", pp_shmem_names[ tform_name ]
+						print "\n\n\n"
 
-				shared_array = np.ctypeslib.as_array( shared_array_base.get_obj() )
-				shared_array = shared_array.reshape( num_imgs, self.num_features )
-				self.data_list.append( shared_array )
+						print "*****************TOTAL NUM TRANSFORMS {}****************".format( len( pixel_planes ) )
+						# After all transforms are completed, all dependencies have been removed.
+						# Fire off all feature calculation
+
+						#import ctypes 
+						#shared_array_base = mp.Array( ctypes.c_double, num_images * num_features )
+						#shared_array_base = [None] * ( num_images * num_features )
+						#shared_array_base = []
+
+						manager = mp.Manager()
+
+						feature_matrix_proxy = manager.list( [None] * ( num_images * num_features ) )
+						sig.names = [None] * num_features
+
+						column_offset = 0
+						fg_index = 0
+						for algname, required_tform in required_feature_groups:
+							offset = image_index * num_features + column_offset
+							required_pp_shmem_name = pp_shmem_names[ required_tform ]
+							fn_args = ( required_pp_shmem_name, algname, required_tform, feature_matrix_proxy, offset )
+							#fn_args = ( required_pp_shmem_name, algname, required_tform )
+							num_alg_args =  Algorithms[ algname ].n_features
+							sig.names[ column_offset : column_offset + num_alg_args ] = \
+									[ "{} [{}]".format( work_order[ fg_index ], i ) for i in range( num_alg_args ) ]
+							task_queue.put( ( ConcurrentFeatCalcFunc, fn_args ) )
+							column_offset += num_alg_args
+							fg_index += 1
+
+						for i in range( len( required_feature_groups ) ):
+							done_queue.get()
+							#alg_name, tform_name, features = done_queue.get()
+							#shared_array_base += features
+							#column_offset += len( features )
+
+					finally:
+						for shimmat in pixel_planes:
+							pixel_planes[ shimmat ].DisableDestructorCacheCleanup(False)
+					
+					sig.values = list( feature_matrix_proxy )
+					if write_sig_files_to_disk:
+						sig.WriteFeaturesToASCIISigFile()
+
+					self.AddSignature( sig, class_id )
+
+			# Tell child processes to stop
+			for i in range( num_cpus ):
+				task_queue.put('STOP')
 
 			self.ContiguousDataMatrix()
 
@@ -4325,62 +4389,110 @@ class Dendrogram( object ):
 
 # define multiprocessing helper functions:
 #================================================================
-def ConcurrentTransformFunc( tform_name, input_px_plane_path ):
-	"""returns the mmap path to the transformed pixel plane """
-
-	import multiprocessing as mp
-	mp.log_to_stderr()
-	logger = mp.get_logger()
-	logger.setLevel( logging.INFO )
-	#import pdb; pdb.set_trace()
+def CleanShmemCache():
+	"""read the lock files in /tmp and acquire their shmem blocks so they can be destroyed"""
+	#from tempfile import gettempdir
+	from glob import glob
 	import os
 
+	print "\n\n*******BEGINNING TO LOAD LEFTOVER CACHED PIXEL PLANES*************\n\n"
+	#globcmd = gettempdir() + sep + 'wndchrm*'
+	globcmd = '/tmp/wndchrm*'
+	lock_files = glob( globcmd )
+	print len(lock_files)
+	for lock_file in lock_files:
+		tmp_path, tmp_file = os.path.split( lock_file )
+		print tmp_file
+		shimmat = pychrm.SharedImageMatrix()
+		shimmat.fromCache( '/'+tmp_file )	
+	print "\n\n*******FINISHED LOADING LEFTOVER CACHED PIXEL PLANES*************\n\n"
+
+
+#================================================================
+def worker( input_task_queue, output_result_queue ):
+	for func, args in iter( input_task_queue.get, 'STOP' ):
+		print "{} {}".format( func, args )
+		result = func( *args )
+		output_result_queue.put( result )
+
+#================================================================
+def ConcurrentTransformFunc( tform_name, input_shmem_name ):
+	"""returns the mmap path to the transformed pixel plane """
+
+	import os
+
+	required_tform = None
+	if isinstance( tform_name, tuple ):
+		required_tform = tform_name[-1]
+	else:
+		required_tform = tform_name
+
+	retval = None
 	try:
-		print "Child pid {}: attempting transform {} on input {}".format(
-				os.getpid(), tform_name, input_px_plane_path )
+		print "<<<<<<<<<<<{} (pid {}): attempting transform {} on input {}".format(
+				mp.current_process(), os.getpid(), required_tform, input_shmem_name )
 
 		original = pychrm.SharedImageMatrix()
-		if 1 != original.OpenImage( input_px_plane_path, 0, None, 0, 0 ):
+		original.fromCache( input_shmem_name )
+		if original.csREAD != original.Status(): 
 			raise ValueError( 'Could not build an SharedImageMatrix from {0}, check the file.'.\
-												 format( input_px_plane_path ) )
+												 format( input_shmem_name ) )
 
 		ret_px_plane = pychrm.SharedImageMatrix()
-		ret_px_plane.transform (original, Transforms[ tform_name ])
-		ret_px_plane_path = ret_px_plane.GetShmemName()
+		ret_px_plane.transform( original, Transforms[ required_tform ] )
 
-		print "Child pid {}: input {}, transformed \"{}\" = {}".format(
-				os.getpid(), input_px_plane_path, tform_name, ret_px_plane_path )
+		original.DisableDestructorCacheCleanup( True )
+		ret_px_plane.DisableDestructorCacheCleanup( True )
+		ret_px_plane_shmem_name = ret_px_plane.GetShmemName()
 
-		return ret_px_plane_path
+		print ">>>>>>>>>>>>{} (pid {}): input {}, transformed \"{}\" = {}".format(
+				mp.current_process(), os.getpid(), input_shmem_name, tform_name, ret_px_plane_shmem_name )
+
+		retval = ( tform_name, ret_px_plane_shmem_name )
+
 	except KeyboardInterrupt:
-		return None
+		print "ConcurrentTransformFunc: Caught Keyboard interrupt inside child process {}".format(
+				os.getpid() )
+	finally:
+		return retval
 
 #================================================================
-def ConcurrentFeatCalcFunc( alg_name, input_px_plane, feature_array, offset):
+def ConcurrentFeatCalcFunc( input_shmem_name, alg_name, tform_name, feature_array, offset):
+#def ConcurrentFeatCalcFunc( input_shmem_name, alg_name, tform_name ):
 	"""Perform the feature calculation and put into the feature matrix"""
 
-	#import pdb; pdb.set_trace()
-	import multiprocessing as mp
-	mp.log_to_stderr()
-	logger = mp.get_logger()
-	logger.setLevel( logging.INFO )
+	print "<<<<<<<<<<<{} (pid {}: attempting FEATURE CALCULATION {} on input {} ({})".format(
+				mp.current_process(), os.getpid(), alg_name, tform_name, input_shmem_name )
+
+	this_fns_retval = None
 
 	try:
-		original = pychrm.SharedImageMatrix()
-		if 1 != original.OpenImage( input_px_plane, 0, None, 0, 0 ):
+		
+		px_plane = pychrm.SharedImageMatrix()
+		px_plane.fromCache( input_shmem_name )
+		if px_plane.csREAD != px_plane.Status(): 
 			raise ValueError( 'Could not build an SharedImageMatrix from {0}, check the file.'.\
-												 format( input_px_plane ) )
+												 format( input_shmem_name ) )
 
+		px_plane.DisableDestructorCacheCleanup(True)
 		alg = Algorithms[ alg_name ]
 		num_features = alg.n_features
-		feature_array[ offset : offset + num_feat ]  = alg.calculate( input_px_plane )
+		feature_array[ offset : offset + num_features ]  = alg.calculate( px_plane )
+		#features = alg.calculate( px_plane )
 
-		return True
+		print ">>>>>>>>>>>>{} (pid {}: completed FEATURE CALCULATION {} on input {} ({})".format(
+				mp.current_process(), os.getpid(), alg_name, tform_name, input_shmem_name )
+
+		this_fns_retval = ( alg_name, tform_name, features )
+
 	except KeyboardInterrupt:
-		return None
+		print "ConcurrentFeatCalcFunc: Caught Keyboard interrupt inside child process {}".format(
+				os.getpid() )
+	finally:
+		return this_fns_retval
+		
 
 #================================================================
-
 def GenerateWorkPlan( featuregroup_strings ):
 	"""identify the required transforms and the order in which they need to occur"""
 	# FIXME: Two levels of transforms hardcoded for now
@@ -4418,7 +4530,7 @@ def GenerateWorkPlan( featuregroup_strings ):
 			second_round_tforms.add( tuple( tform_list ) )
 			parsed_algorithms.append( ( alg_name, ' '.join( tform_list ) )  )
 		elif len( tform_list ) == 1:
-			first_round_tforms.add( ("", tform_list[0]) )
+			first_round_tforms.add( tform_list[0] )
 			parsed_algorithms.append( (alg_name, tform_list[0]) )
 		else:
 			parsed_algorithms.append( (alg_name, "") )
