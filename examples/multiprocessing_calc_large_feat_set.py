@@ -176,6 +176,10 @@ def CalcFeatures():
 
 	feature_matrix_proxy = None
 
+	sig = Signatures()
+	sig.source_file = input_tif
+	sig.path_to_image = input_tif
+
 	try:
 		original = pychrm.SharedImageMatrix()
 		if 1 != original.OpenImage( input_tif , 0, None, 0, 0 ):
@@ -265,15 +269,21 @@ def CalcFeatures():
 		manager = mp.Manager()
 
 		feature_matrix_proxy = manager.list( [None] * ( num_images * num_features ) )
+		sig.names = [None] * num_features
 
 		column_offset = 0
+		fg_index = 0
 		for algname, required_tform in required_feature_groups:
 			offset = image_index * num_features + column_offset
 			required_pp_shmem_name = pp_shmem_names[ required_tform ]
 			fn_args = ( required_pp_shmem_name, algname, required_tform, feature_matrix_proxy, offset )
 			#fn_args = ( required_pp_shmem_name, algname, required_tform )
+			num_alg_args =  Algorithms[ algname ].n_features
+			sig.names[ column_offset : column_offset + num_alg_args ] = \
+					[ "{} [{}]".format( work_order[ fg_index ], i ) for i in range( num_alg_args ) ]
 			task_queue.put( ( ConcurrentFeatCalcFunc, fn_args ) )
-			column_offset += Algorithms[ algname ].n_features
+			column_offset += num_alg_args
+			fg_index += 1
 
 		for i in range( len( required_feature_groups ) ):
 			done_queue.get()
@@ -290,7 +300,8 @@ def CalcFeatures():
 		for shimmat in pixel_planes:
 			pixel_planes[ shimmat ].DisableDestructorCacheCleanup(False)
 	
-	print feature_matrix_proxy
+	sig.values = list( feature_matrix_proxy )
+	sig.WriteFeaturesToASCIISigFile()
 
 
 #================================================================

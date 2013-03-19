@@ -690,7 +690,6 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		self.spearman_coeffs = []
 		self.spearman_p_values = []
 
-
 	#================================================================
 	@classmethod
 	def NewFromFeatureSet( cls, training_set ):
@@ -896,23 +895,23 @@ class Signatures( FeatureVector ):
 	These specific lists have been preserved here for convenience and interchangeability.
 	"""
 
-	# in the future, signatures can be loaded from be from a database as well.
-	source_file = None
-	path_to_image = None
-	path_to_sigfile = None
-
-	#: Captures some of the image descriptor meta-data, such as whether we
-	#: used the large feature set to generate these features ("-l")
-
-	options = ""
-	version = ""
-
 	#================================================================
 	def __init__( self ):
 		"""@brief: constructor"""
 
 		# call parent constructor
 		super( Signatures, self ).__init__()
+
+		# in the future, signatures can be loaded from be from a database as well.
+		self.source_file = None
+		self.path_to_image = None
+		self.path_to_sigfile = None
+
+		#: Captures some of the image descriptor meta-data, such as whether we
+		#: used the large feature set to generate these features ("-l")
+
+		self.options = ""
+		self.version = str (feature_vector_major_version)+"."+str(feature_vector_minor_version_from_vector_type['long'])
 
 	#================================================================
 	@classmethod
@@ -1183,7 +1182,7 @@ class Signatures( FeatureVector ):
 
 		with open( outfile_path, "w" ) as out_file:
 			# FIXME: line 1 contains class membership and version, just hardcode the class membership for now
-			out_file.write( "0\t{1}\n".format (self.version) )
+			out_file.write( "0\t{0}\n".format (self.version) )
 			out_file.write( "{0}\n".format( self.source_file ) )
 			for i in range( 0, len( self.names ) ):
 				out_file.write( "{val:0.6f} {name}\n".format( val=self.values[i], name=self.names[i] ) )
@@ -4381,6 +4380,7 @@ def ConcurrentFeatCalcFunc( alg_name, input_px_plane, feature_array, offset):
 		return None
 
 #================================================================
+
 def GenerateWorkPlan( featuregroup_strings ):
 	"""identify the required transforms and the order in which they need to occur"""
 	# FIXME: Two levels of transforms hardcoded for now
@@ -4424,7 +4424,6 @@ def GenerateWorkPlan( featuregroup_strings ):
 			parsed_algorithms.append( (alg_name, "") )
 
 	return first_round_tforms, second_round_tforms, parsed_algorithms, feature_names
-
 				
 initialize_module()
 
