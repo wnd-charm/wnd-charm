@@ -32,13 +32,11 @@ test_fit = os.path.join (test_dir,'test-l.fit')
 test_fit_wght = os.path.join (test_dir,'test_fit-l.weights')
 
 ts = FeatureSet_Discrete.NewFromFitFile( test_fit )
-ts.featurenames_list = FeatureNameMap.TranslateToNewStyle( ts.featurenames_list )
 ts.Normalize()
 calc_wghts = FisherFeatureWeights.NewFromFeatureSet (ts)
 
 
 test_wghts = FisherFeatureWeights.NewFromFile (test_fit_wght)
-test_wghts.names = FeatureNameMap.TranslateToNewStyle( test_wghts.names )
 
 epsilon = 0.00001
 max_diff = 0.

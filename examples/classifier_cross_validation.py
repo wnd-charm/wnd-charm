@@ -58,7 +58,6 @@ full_training_set = None
 # Get the classifier parameter(s)
 if ( input_filename.endswith (".fit") ):
 	full_training_set = FeatureSet_Discrete.NewFromFitFile( input_filename )
-	full_training_set.featurenames_list = FeatureNameMap.TranslateToNewStyle( full_training_set.featurenames_list )
 elif ( input_filename.endswith (".fit.pickled") ):
 	full_training_set = FeatureSet_Discrete.NewFromPickleFile( input_filename )
 elif ( input_filename.endswith (".fof") ):

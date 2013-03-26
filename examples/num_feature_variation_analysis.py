@@ -74,7 +74,6 @@ num_bins = (range_end - range_start) / range_step
 
 if ( input_filename.endswith (".fit") ):
 	full_set = FeatureSet_Discrete.NewFromFitFile( input_filename )
-	full_set.featurenames_list = FeatureNameMap.TranslateToNewStyle( full_set.featurenames_list )
 elif ( input_filename.endswith (".fit.pickled") ):
 	full_set = FeatureSet_Discrete.NewFromPickleFile( input_filename )
 elif ( input_filename.endswith (".fof") ):

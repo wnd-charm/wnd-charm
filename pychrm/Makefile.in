@@ -268,16 +268,18 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-BUILT_SOURCES = $(srcdir)/swig/pychrm_wrap.cxx
+BUILT_SOURCES = $(srcdir)/swig/pychrm_wrap.cpp
 SWIG_SOURCES = $(srcdir)/swig/pychrm.i \
 	$(srcdir)/swig/cmatrix.i \
 	$(srcdir)/swig/wndchrm_error.i \
+	$(srcdir)/swig/Tasks.i \
+	$(srcdir)/swig/FeatureNames.i \
 	$(srcdir)/swig/FeatureAlgorithms.i \
 	$(srcdir)/swig/ImageTransforms.i
 
-pkgpython_PYTHON = pychrm.py FeatureSet.py FeatureNameMap.py FeatureRegistration.py __init__.py
+pkgpython_PYTHON = pychrm.py FeatureSet.py __init__.py
 pkgpyexec_LTLIBRARIES = _pychrm.la
-_pychrm_la_SOURCES = $(srcdir)/swig/pychrm_wrap.cxx $(SWIG_SOURCES)
+_pychrm_la_SOURCES = $(srcdir)/swig/pychrm_wrap.cpp $(SWIG_SOURCES)
 _pychrm_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) -I$(top_srcdir)/src
 _pychrm_la_LDFLAGS = -module -bundle 
 _pychrm_la_LIBADD = ../src/libchrm.la
@@ -285,7 +287,7 @@ all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
 .SUFFIXES:
-.SUFFIXES: .cxx .lo .o .obj
+.SUFFIXES: .cpp .lo .o .obj
 $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -361,33 +363,33 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/_pychrm_la-pychrm_wrap.Plo@am__quote@
 
-.cxx.o:
+.cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
 @am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXXCOMPILE) -c -o $@ $<
 
-.cxx.obj:
+.cpp.obj:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
 @am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
-.cxx.lo:
+.cpp.lo:
 @am__fastdepCXX_TRUE@	$(LTCXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
 @am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LTCXXCOMPILE) -c -o $@ $<
 
-_pychrm_la-pychrm_wrap.lo: $(srcdir)/swig/pychrm_wrap.cxx
-@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(_pychrm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT _pychrm_la-pychrm_wrap.lo -MD -MP -MF $(DEPDIR)/_pychrm_la-pychrm_wrap.Tpo -c -o _pychrm_la-pychrm_wrap.lo `test -f '$(srcdir)/swig/pychrm_wrap.cxx' || echo '$(srcdir)/'`$(srcdir)/swig/pychrm_wrap.cxx
+_pychrm_la-pychrm_wrap.lo: $(srcdir)/swig/pychrm_wrap.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(_pychrm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT _pychrm_la-pychrm_wrap.lo -MD -MP -MF $(DEPDIR)/_pychrm_la-pychrm_wrap.Tpo -c -o _pychrm_la-pychrm_wrap.lo `test -f '$(srcdir)/swig/pychrm_wrap.cpp' || echo '$(srcdir)/'`$(srcdir)/swig/pychrm_wrap.cpp
 @am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/_pychrm_la-pychrm_wrap.Tpo $(DEPDIR)/_pychrm_la-pychrm_wrap.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$(srcdir)/swig/pychrm_wrap.cxx' object='_pychrm_la-pychrm_wrap.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$(srcdir)/swig/pychrm_wrap.cpp' object='_pychrm_la-pychrm_wrap.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(_pychrm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o _pychrm_la-pychrm_wrap.lo `test -f '$(srcdir)/swig/pychrm_wrap.cxx' || echo '$(srcdir)/'`$(srcdir)/swig/pychrm_wrap.cxx
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(_pychrm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o _pychrm_la-pychrm_wrap.lo `test -f '$(srcdir)/swig/pychrm_wrap.cpp' || echo '$(srcdir)/'`$(srcdir)/swig/pychrm_wrap.cpp
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -659,7 +661,7 @@ uninstall-am: uninstall-pkgpyexecLTLIBRARIES uninstall-pkgpythonPYTHON
 	uninstall-pkgpythonPYTHON
 
 
-$(srcdir)/swig/pychrm_wrap.cxx : $(SWIG_SOURCES)
+$(srcdir)/swig/pychrm_wrap.cpp : $(SWIG_SOURCES)
 	 $(SWIG) $(SWIG_PYTHON_OPT) -I$(top_srcdir)/src -outdir $(srcdir) -o $@ $<
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

@@ -30,7 +30,6 @@ def get_featureset (input_filename):
 	# Get the classifier parameter(s)
 	if ( input_filename.endswith (".fit") ):
 		featureset = FeatureSet_Discrete.NewFromFitFile( input_filename )
-		featureset.featurenames_list = FeatureNameMap.TranslateToNewStyle( featureset.featurenames_list )
 	elif ( input_filename.endswith (".fit.pickled") ):
 		featureset = FeatureSet_Discrete.NewFromPickleFile( input_filename )
 	elif ( input_filename.endswith (".fof") ):

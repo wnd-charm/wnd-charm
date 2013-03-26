@@ -101,9 +101,6 @@ if from_scratch:
 	#    legacy C++ WND-CHARM implementation (a.k.a. "C-charm")
 	full_training_set = FeatureSet_Discrete.NewFromFitFile( input_filename )
 
-	# 1b. Translate feature names from C-chrm style, to Pychrm style
-	full_training_set.featurenames_list = FeatureNameMap.TranslateToNewStyle( full_training_set.featurenames_list )
-
 	# 2. Normalize the features:
 	full_training_set.Normalize()
 

@@ -63,7 +63,6 @@ dump_pickle = args.D
 
 if ( input_filename.endswith (".fit") ):
 	full_set = FeatureSet_Continuous.NewFromFitFile( input_filename )
-	full_set.featurenames_list = FeatureNameMap.TranslateToNewStyle( full_set.featurenames_list )
 elif ( input_filename.endswith (".fit.pickled") ):
 	full_set = FeatureSet_Continuous.NewFromPickleFile( input_filename )
 elif ( input_filename.endswith (".fof") ):

@@ -103,9 +103,6 @@ if from_scratch:
 	# 1. Load the raw c-charm fit file
 	full_training_set = FeatureSet_Discrete.NewFromFitFile( input_filename )
 
-	# 2. C-charm uses "Lior-style" feature names. Translate them into the new "Ilya-style"
-	full_training_set.featurenames_list = FeatureNameMap.TranslateToNewStyle( full_training_set.featurenames_list )
-
 	# 3. Normalize the features:
 	full_training_set.Normalize()
 

@@ -161,14 +161,6 @@ def initialize_module():
 # 		last_feature_group = feature_group.name
 # 		print "  feature_name "+feature_name
 
-
-		
-# 	feature_groups = small_feature_plan.getFeatureGroups()
-# 	print dir (feature_groups)
-# 	for feature_group in feature_groups:
-# 		print "  feature_group.name: "+feature_group.name+", algorithm.name: "+feature_group.algorithm.name
-	
-
 	# while we're debugging, raise exceptions for numerical weirdness, since it all has to be dealt with somehow
 	# In cases where numerical weirdness is expected and dealt with explicitly, these exceptions are
 	# temporarily turned off and then restored to their previous settings.
@@ -484,7 +476,7 @@ class FisherFeatureWeights( FeatureWeights ):
 				# split line "number <space> name"
 				feature_line = line.strip().split( " ", 1 )
 				weights.values.append( float( feature_line[0] ) )
-				weights.names.append( feature_line[1] )
+				weights.names.append( pychrm.FeatureNames.getFeatureInfoByName (feature_line[1]).name )
 
 		return weights
 
@@ -1117,9 +1109,8 @@ class Signatures( FeatureVector ):
 					pass
 				else:
 					value, name = line.strip().split(None, 1 )
-					FI = pychrm.FeatureNames.getFeatureInfoByName (name)
 					signatures.values.append( float( value ) )
-					signatures.names.append( FI.name )
+					signatures.names.append( pychrm.FeatureNames.getFeatureInfoByName (name).name )
 				linenum += 1
 			#print "Loaded {0} features.".format( len( signatures.values ) )
 
@@ -1808,14 +1799,14 @@ class FeatureSet_Discrete( FeatureSet ):
 					data_dict[ 'num_features' ] = num_features
 					if (feature_vector_version == "1.0"):
 						feature_vector_version = "1." + str(
-							feature_vector_minor_version_from_num_features_v1.get ( len (signatures.values),0 )
+							feature_vector_minor_version_from_num_features_v1.get ( num_features,0 )
 						)
 						data_dict[ 'feature_vector_version' ] = feature_vector_version
 
 				elif line_num is 2:
 					data_dict[ 'num_images' ] = int( line )
 				elif line_num <= ( num_features + 2 ):
-					data_dict[ 'featurenames_list' ].append( line.strip() )
+					data_dict[ 'featurenames_list' ].append( pychrm.FeatureNames.getFeatureInfoByName (line.strip()).name )
 					feature_count += 1
 				elif line_num == ( num_features + 3 ):
 					pass # skip a line
