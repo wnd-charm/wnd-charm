@@ -6,43 +6,6 @@ setup.py file for SWIG-ified wndchrm
 
 from setuptools import setup, Extension
 
-
-wndchrm_module = Extension('_pychrm',
-	sources=['pychrm/swig/pychrm_wrap.cxx',
-		'src/colors/FuzzyCalc.cpp',
-		'src/statistics/CombFirst4Moments.cpp',
-		'src/statistics/FeatureStatistics.cpp',
-		'src/textures/gabor.cpp',
-		'src/textures/haralick/CVIPtexture.cpp',
-		'src/textures/haralick/haralick.cpp',
-		'src/textures/tamura.cpp',
-		'src/textures/zernike/complex.cpp',
-		'src/textures/zernike/zernike.cpp',
-		'src/transforms/ChebyshevFourier.cpp',
-		'src/transforms/chebyshev.cpp',
-		'src/transforms/radon.cpp',
-		'src/transforms/wavelet/Common.cpp',
-		'src/transforms/wavelet/convolution.cpp',
-		'src/transforms/wavelet/DataGrid2D.cpp',
-		'src/transforms/wavelet/DataGrid3D.cpp',
-		'src/transforms/wavelet/Filter.cpp',
-		'src/transforms/wavelet/FilterSet.cpp',
-		'src/transforms/wavelet/Symlet5.cpp',
-		'src/transforms/wavelet/Wavelet.cpp',
-		'src/transforms/wavelet/WaveletHigh.cpp',
-		'src/transforms/wavelet/WaveletLow.cpp',
-		'src/transforms/wavelet/WaveletMedium.cpp',
-		'src/transforms/wavelet/wt.cpp',
-		'src/cmatrix.cpp',
-		'src/wndchrm_error.cpp',
-		'src/ImageTransforms.cpp',
-		'src/FeatureAlgorithms.cpp',
-		'src/gsl/specfunc.cpp',
-	],
-	include_dirs=['src/'],
-	libraries=['tiff','fftw3'],
-)
-
 import os
 pkg_dir = os.path.join (os.path.dirname(os.path.realpath(__file__)),'pychrm')
 
@@ -77,6 +40,60 @@ try:
 		f.close()
 except:
 	pass
+
+# Third-party modules - we depend on numpy for everything
+import numpy
+
+try:
+	numpy_include = numpy.get_include()
+except AttributeError:
+	numpy_include = numpy.get_numpy_include()
+
+
+print "numpy_include "+numpy_include
+
+wndchrm_module = Extension('_pychrm',
+	sources=[
+		'pychrm/swig/pychrm.i',
+#		'pychrm/swig/pychrm_wrap.cxx',
+		'src/colors/FuzzyCalc.cpp',
+		'src/statistics/CombFirst4Moments.cpp',
+		'src/statistics/FeatureStatistics.cpp',
+		'src/textures/gabor.cpp',
+		'src/textures/haralick/CVIPtexture.cpp',
+		'src/textures/haralick/haralick.cpp',
+		'src/textures/tamura.cpp',
+		'src/textures/zernike/complex.cpp',
+		'src/textures/zernike/zernike.cpp',
+		'src/transforms/ChebyshevFourier.cpp',
+		'src/transforms/chebyshev.cpp',
+		'src/transforms/radon.cpp',
+		'src/transforms/wavelet/Common.cpp',
+		'src/transforms/wavelet/convolution.cpp',
+		'src/transforms/wavelet/DataGrid2D.cpp',
+		'src/transforms/wavelet/DataGrid3D.cpp',
+		'src/transforms/wavelet/Filter.cpp',
+		'src/transforms/wavelet/FilterSet.cpp',
+		'src/transforms/wavelet/Symlet5.cpp',
+		'src/transforms/wavelet/Wavelet.cpp',
+		'src/transforms/wavelet/WaveletHigh.cpp',
+		'src/transforms/wavelet/WaveletLow.cpp',
+		'src/transforms/wavelet/WaveletMedium.cpp',
+		'src/transforms/wavelet/wt.cpp',
+		'src/cmatrix.cpp',
+		'src/wndchrm_error.cpp',
+		'src/ImageTransforms.cpp',
+		'src/FeatureAlgorithms.cpp',
+		'src/Tasks.cpp',
+		'src/FeatureNames.cpp',
+		'src/gsl/specfunc.cpp',
+	],
+	include_dirs=['./','src/',numpy_include],
+#	swig_opts=['-modern', '-c++', '-I./', '-I./src', '-I'+numpy_include],
+	swig_opts=['-c++', '-I./', '-I./src'],
+	libraries=['tiff','fftw3'],
+)
+
 
 setup (name = 'pychrm',
 	version = __version__,
