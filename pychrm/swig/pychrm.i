@@ -23,6 +23,7 @@
 
 #include "cmatrix.h"
 #include "wndchrm_error.h"
+#include "Tasks.h"
 #include "FeatureAlgorithms.h"
 #include "ImageTransforms.h"
 %}
@@ -32,5 +33,6 @@
 
 %include "cmatrix.i"
 %include "wndchrm_error.i"
+%include "Tasks.i"
 %include "FeatureAlgorithms.i"
 %include "ImageTransforms.i"
