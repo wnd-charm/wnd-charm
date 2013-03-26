@@ -10,7 +10,7 @@
 double contrast(const ImageMatrix &image) {
 	unsigned int x,y;
 	double z[4];
-	Moments statMoments;
+	Moments4 statMoments;
 	readOnlyPixels pix_plane = image.ReadablePixels();
 
 	for (x = 0; x < image.width; x++) {
@@ -18,6 +18,9 @@ double contrast(const ImageMatrix &image) {
 			statMoments.add (pix_plane(y,x));
 		}
 	}
+
+// alternative for above:
+//	ReadablePixels().unaryExpr (Moments4func(statMoments)).sum();
 	statMoments.momentVector(z);
 
 	if (z[1] < DBL_EPSILON) return(0);
@@ -27,7 +30,7 @@ double contrast(const ImageMatrix &image) {
 
 #define  NBINS 125
 double directionality(const ImageMatrix &image) {
-	double sum,sum_r;
+	double sum,sum_r, val;
 	long a;
 	unsigned int x, xdim = image.width;
 	unsigned int y, ydim = image.height;
@@ -65,16 +68,19 @@ double directionality(const ImageMatrix &image) {
 	ImageMatrix phi;
 	phi.allocate (xdim, ydim);
 	writeablePixels phi_pix_plane = phi.WriteablePixels();
+	Moments2 phi_stats;
 
 	sum_r = 0;
 	for (y = 0; y < ydim; ++y) {
 		for (x = 0; x < xdim; ++x) {
 			if (deltaH_pix_plane(y,x) >= 0.0001) {
-				phi_pix_plane(y,x) = atan(deltaV_pix_plane(y,x) / deltaH_pix_plane(y,x))+(M_PI/2.0+0.001); //+0.001 because otherwise sometimes getting -6.12574e-17
-				sum_r += pow(deltaH_pix_plane(y,x),2)+pow(deltaV_pix_plane(y,x),2)+pow(phi_pix_plane(y,x),2);
-			} else phi_pix_plane(y,x) = 0.0;
+				val = atan(deltaV_pix_plane(y,x) / deltaH_pix_plane(y,x))+(M_PI/2.0+0.001); //+0.001 because otherwise sometimes getting -6.12574e-17
+				phi_pix_plane(y,x) = phi_stats.add (val);
+				sum_r += pow(deltaH_pix_plane(y,x),2)+pow(deltaV_pix_plane(y,x),2)+pow(val,2);
+			} else phi_pix_plane(y,x) = phi_stats.add (0.0);
 		}
 	}
+	phi.stats = phi_stats;
 	phi.WriteablePixelsFinish();
 	phi.histogram(Hd,NBINS,0);
 
@@ -212,6 +218,7 @@ double coarseness(const ImageMatrix &image, double *hist,unsigned int nbins) {
 
 	//step3
 	writeablePixels Sbest_pix_plane = Sbest->WriteablePixels();
+	Moments2 Sbest_stats;
 	for(y = 0; y < yDim; ++y) {
 		for(x = 0; x < xDim; ++x) {
 			double maxE = 0;
@@ -228,10 +235,11 @@ double coarseness(const ImageMatrix &image, double *hist,unsigned int nbins) {
 					maxk = k;
 				}
 			}
-			Sbest_pix_plane(y,x) = maxk;
+			Sbest_pix_plane(y,x) = Sbest_stats.add(maxk);
 			sum += maxk;
 		}
 	}
+	Sbest->stats = Sbest_stats;
 	Sbest->WriteablePixelsFinish();
 
 	/* calculate the average coarseness */
@@ -264,14 +272,17 @@ double coarseness(const ImageMatrix &image, double *hist,unsigned int nbins) {
 /* Tamura3Sigs
    vec -array of double- a pre-allocated array of 6 doubles
 */
-void Tamura3Sigs2D(ImageMatrix &Im, double *vec) {
+void Tamura3Sigs2D(const ImageMatrix &Im, double *vec) {
 	double temp[6];
-	double min_val = Im.min();
-	double max_val = Im.max();
+	// to keep this method from modifying the const Im object, we use GetStats on a local Moments2 object
+	Moments2 local_stats;
+	Im.GetStats (local_stats);
+	double min_val = local_stats.min();
+	double max_val = local_stats.max();
 	ImageMatrix normImg;
 
 	normImg.allocate (Im.width, Im.height);
-	normImg.WriteablePixels() = ((Im.ReadablePixels().array() - min_val) / max_val);
+	normImg.WriteablePixels() = ((Im.ReadablePixels().array() - min_val) / max_val).unaryExpr (Moments2func(normImg.stats));
 
 	temp[0] = coarseness(normImg,&(temp[1]),3);
 	temp[4] = directionality(normImg);

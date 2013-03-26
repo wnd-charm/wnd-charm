@@ -115,49 +115,49 @@ N - coefficient
 width - width of the image
 height - height of the image
 */
-void Chebyshev2D(ImageMatrix *Im, double *out, unsigned int N) {
+void Chebyshev2D(const ImageMatrix &Im, double *out, unsigned int N) {
 	double *TjIn,*Tj;
 	double *in;
 	unsigned int a,i,j;
 
 // Make a default value for coeficient order if it was not given as an input
 //   if (N< = 0)
-//     N = min(Im->width,Im->height);
+//     N = min(Im.width,Im.height);
 
-	TjIn = new double[Im->width];
-	for (a = 0; a < Im->width; a++)
-		TjIn[a] = 2*(double)(a+1) / (double)Im->width -1;
+	TjIn = new double[Im.width];
+	for (a = 0; a < Im.width; a++)
+		TjIn[a] = 2*(double)(a+1) / (double)Im.width -1;
 
 // Pre-compute Tj on x
-	Tj = new double[Im->width*N];
-	TNx(TjIn,Tj,N,Im->width);
+	Tj = new double[Im.width*N];
+	TNx(TjIn,Tj,N,Im.width);
 
 
-	in = new double[Im->width*Im->height];
-	readOnlyPixels Im_pix_plane = Im->ReadablePixels();
+	in = new double[Im.width*Im.height];
+	readOnlyPixels Im_pix_plane = Im.ReadablePixels();
 
-	for (j = 0; j < Im->height; j++)
-		for (i = 0; i < Im->width; i++)
-			in[j*Im->width+i] = Im_pix_plane(j,i);
-	getChCoeff(in,out,Tj,N,Im->width,Im->height);
+	for (j = 0; j < Im.height; j++)
+		for (i = 0; i < Im.width; i++)
+			in[j*Im.width+i] = Im_pix_plane(j,i);
+	getChCoeff(in,out,Tj,N,Im.width,Im.height);
 
 	/* transpose the matrix "out" into "in" */
 	for (j = 0; j < N; j++)
-		for (i = 0; i < Im->height/*Im->width*/; i++)
-			in[j*Im->height+i] = out[i*N+j];
+		for (i = 0; i < Im.height/*Im.width*/; i++)
+			in[j*Im.height+i] = out[i*N+j];
 
 // If the height is different, re-compute Tj
-	if (Im->height != Im->width) {
+	if (Im.height != Im.width) {
 		delete [] Tj;
 		delete [] TjIn;
-		TjIn = new double[Im->height];
-		for (a = 0; a < Im->height; a++)
-			TjIn[a] = 2*(double)(a+1) / (double)Im->height -1;
+		TjIn = new double[Im.height];
+		for (a = 0; a < Im.height; a++)
+			TjIn[a] = 2*(double)(a+1) / (double)Im.height -1;
 	// Pre-compute Tj on y
-		Tj = new double[Im->height*N];
-		TNx(TjIn,Tj,N,Im->height);
+		Tj = new double[Im.height*N];
+		TNx(TjIn,Tj,N,Im.height);
 	}
-	getChCoeff(in,out,Tj,N,Im->height,N);
+	getChCoeff(in,out,Tj,N,Im.height,N);
 
 	delete [] in;
 	delete [] TjIn;

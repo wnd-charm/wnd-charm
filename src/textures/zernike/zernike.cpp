@@ -141,13 +141,13 @@ void mb_Znl(double *X, double *Y, double *P, int size, double D, double m10_m00,
 }
 
 
-void mb_zernike2D_OLD(ImageMatrix *I, double D, double R, double *zvalues, long *output_size) {
+void mb_zernike2D_OLD(const ImageMatrix &Im, double D, double R, double *zvalues, long *output_size) {
 	double *Y,*X,*P,psum;
 	double intensity;
 	int x,y,size;
 
 	*output_size=0;
-	int rows = I->height,cols = I->width;
+	int rows = Im.height,cols = Im.width;
 	if (D<=0) D=15;
 	if (R<=0) R=rows/2;
 
@@ -155,7 +155,7 @@ void mb_zernike2D_OLD(ImageMatrix *I, double D, double R, double *zvalues, long 
 	X=new double[rows*cols];
 	P=new double[rows*cols];
 
-	readOnlyPixels I_pix_plane = I->ReadablePixels();
+	readOnlyPixels I_pix_plane = Im.ReadablePixels();
    /* Find all non-zero pixel coordinates and values */
 	size=0;
 	psum=0;
@@ -204,11 +204,11 @@ void mb_zernike2D_OLD(ImageMatrix *I, double D, double R, double *zvalues, long 
   better on average than the previous version, and they produce better classification in problems
   where zernike features are useful.
 */
-void mb_zernike2D (ImageMatrix *I, double order, double rad, double *zvalues, long *output_size) {
+void mb_zernike2D (const ImageMatrix &Im, double order, double rad, double *zvalues, long *output_size) {
 	int L, N, D;
 
-// N is the smaller of I->width and I->height
-	N = I->width < I->height ? I->width : I->height;
+// N is the smaller of Im.width and Im.height
+	N = Im.width < Im.height ? Im.width : Im.height;
 	if (order > 0) L = (int)order;
 	else L = 15;
 	assert (L < MAX_L);
@@ -230,9 +230,9 @@ void mb_zernike2D (ImageMatrix *I, double order, double rad, double *zvalues, lo
 	double AR[MAX_L][MAX_L], AI[MAX_L][MAX_L];
 	
 	double sum = 0;
-	int cols = I->width;
-	int rows = I->height;
-	readOnlyPixels I_pix_plane = I->ReadablePixels();
+	int cols = Im.width;
+	int rows = Im.height;
+	readOnlyPixels I_pix_plane = Im.ReadablePixels();
 
 // compute x/0, y/0 and 0/0 moments to center the unit circle on the centroid
 	double moment10 = 0.0, moment00 = 0.0, moment01 = 0.0;

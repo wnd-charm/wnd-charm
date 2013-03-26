@@ -14,7 +14,7 @@ enum WNDCHRM_ERROR {
 	WC_INPUT_IMAGEMATRIX_NULL
 };
 
-
+extern int verbosity;
 void catErrno ();
 void catError (const char *fmt, ...);
 void catError (const std::string &error);

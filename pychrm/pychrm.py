@@ -184,9 +184,9 @@ class ImageMatrix(_object):
     __swig_setmethods__["height"] = _pychrm.ImageMatrix_height_set
     __swig_getmethods__["height"] = _pychrm.ImageMatrix_height_get
     if _newclass:height = _swig_property(_pychrm.ImageMatrix_height_get, _pychrm.ImageMatrix_height_set)
-    __swig_setmethods__["has_stats"] = _pychrm.ImageMatrix_has_stats_set
-    __swig_getmethods__["has_stats"] = _pychrm.ImageMatrix_has_stats_get
-    if _newclass:has_stats = _swig_property(_pychrm.ImageMatrix_has_stats_get, _pychrm.ImageMatrix_has_stats_set)
+    __swig_setmethods__["stats"] = _pychrm.ImageMatrix_stats_set
+    __swig_getmethods__["stats"] = _pychrm.ImageMatrix_stats_get
+    if _newclass:stats = _swig_property(_pychrm.ImageMatrix_stats_get, _pychrm.ImageMatrix_stats_set)
     __swig_setmethods__["has_median"] = _pychrm.ImageMatrix_has_median_set
     __swig_getmethods__["has_median"] = _pychrm.ImageMatrix_has_median_get
     if _newclass:has_median = _swig_property(_pychrm.ImageMatrix_has_median_get, _pychrm.ImageMatrix_has_median_set)
@@ -217,37 +217,41 @@ class ImageMatrix(_object):
     __del__ = lambda self : None;
     def transform(self, *args): return _pychrm.ImageMatrix_transform(self, *args)
     def normalize(self, *args): return _pychrm.ImageMatrix_normalize(self, *args)
-    def to8bits(self): return _pychrm.ImageMatrix_to8bits(self)
+    def to8bits(self, *args): return _pychrm.ImageMatrix_to8bits(self, *args)
     def flipV(self): return _pychrm.ImageMatrix_flipV(self)
     def flipH(self): return _pychrm.ImageMatrix_flipH(self)
     def invert(self): return _pychrm.ImageMatrix_invert(self)
     def Downsample(self, *args): return _pychrm.ImageMatrix_Downsample(self, *args)
     def Rotate(self, *args): return _pychrm.ImageMatrix_Rotate(self, *args)
     def convolve(self, *args): return _pychrm.ImageMatrix_convolve(self, *args)
-    def BasicStatistics(self, *args): return _pychrm.ImageMatrix_BasicStatistics(self, *args)
+    def update_median(self): return _pychrm.ImageMatrix_update_median(self)
+    def get_median(self): return _pychrm.ImageMatrix_get_median(self)
+    def UpdateStats(self): return _pychrm.ImageMatrix_UpdateStats(self)
+    def GetStats(self, *args): return _pychrm.ImageMatrix_GetStats(self, *args)
     def min(self): return _pychrm.ImageMatrix_min(self)
     def max(self): return _pychrm.ImageMatrix_max(self)
     def mean(self): return _pychrm.ImageMatrix_mean(self)
     def std(self): return _pychrm.ImageMatrix_std(self)
+    def var(self): return _pychrm.ImageMatrix_var(self)
     def median(self): return _pychrm.ImageMatrix_median(self)
     def GetColorStatistics(self, *args): return _pychrm.ImageMatrix_GetColorStatistics(self, *args)
-    def ColorTransform(self): return _pychrm.ImageMatrix_ColorTransform(self)
-    def HueTransform(self): return _pychrm.ImageMatrix_HueTransform(self)
+    def ColorTransform(self, *args): return _pychrm.ImageMatrix_ColorTransform(self, *args)
+    def HueTransform(self, *args): return _pychrm.ImageMatrix_HueTransform(self, *args)
     def histogram(self, *args): return _pychrm.ImageMatrix_histogram(self, *args)
-    def Otsu(self, dynamic_range=1): return _pychrm.ImageMatrix_Otsu(self, dynamic_range)
+    def Otsu(self, dynamic_range=True): return _pychrm.ImageMatrix_Otsu(self, dynamic_range)
     def MultiScaleHistogram(self, *args): return _pychrm.ImageMatrix_MultiScaleHistogram(self, *args)
-    def EdgeTransform(self): return _pychrm.ImageMatrix_EdgeTransform(self)
-    def fft2(self): return _pychrm.ImageMatrix_fft2(self)
+    def EdgeTransform(self, *args): return _pychrm.ImageMatrix_EdgeTransform(self, *args)
+    def fft2(self, *args): return _pychrm.ImageMatrix_fft2(self, *args)
     def ChebyshevTransform(self, *args): return _pychrm.ImageMatrix_ChebyshevTransform(self, *args)
     def ChebyshevFourierTransform2D(self, *args): return _pychrm.ImageMatrix_ChebyshevFourierTransform2D(self, *args)
-    def Symlet5Transform(self): return _pychrm.ImageMatrix_Symlet5Transform(self)
+    def Symlet5Transform(self, *args): return _pychrm.ImageMatrix_Symlet5Transform(self, *args)
     def PrewittMagnitude2D(self, *args): return _pychrm.ImageMatrix_PrewittMagnitude2D(self, *args)
     def PrewittDirection2D(self, *args): return _pychrm.ImageMatrix_PrewittDirection2D(self, *args)
     def ChebyshevStatistics2D(self, *args): return _pychrm.ImageMatrix_ChebyshevStatistics2D(self, *args)
     def CombFirstFourMoments2D(self, *args): return _pychrm.ImageMatrix_CombFirstFourMoments2D(self, *args)
     def EdgeStatistics(self, *args): return _pychrm.ImageMatrix_EdgeStatistics(self, *args)
     def RadonTransform2D(self, *args): return _pychrm.ImageMatrix_RadonTransform2D(self, *args)
-    def OtsuBinaryMaskTransform(self): return _pychrm.ImageMatrix_OtsuBinaryMaskTransform(self)
+    def OtsuBinaryMaskTransform(self, *args): return _pychrm.ImageMatrix_OtsuBinaryMaskTransform(self, *args)
     def BWlabel(self, *args): return _pychrm.ImageMatrix_BWlabel(self, *args)
     def centroid(self, *args): return _pychrm.ImageMatrix_centroid(self, *args)
     def FeatureStatistics(self, *args): return _pychrm.ImageMatrix_FeatureStatistics(self, *args)
@@ -255,7 +259,6 @@ class ImageMatrix(_object):
     def HaralickTexture2D(self, *args): return _pychrm.ImageMatrix_HaralickTexture2D(self, *args)
     def TamuraTexture2D(self, *args): return _pychrm.ImageMatrix_TamuraTexture2D(self, *args)
     def zernike2D(self, *args): return _pychrm.ImageMatrix_zernike2D(self, *args)
-    def fractal2D(self, *args): return _pychrm.ImageMatrix_fractal2D(self, *args)
 ImageMatrix_swigregister = _pychrm.ImageMatrix_swigregister
 ImageMatrix_swigregister(ImageMatrix)
 
@@ -315,6 +318,7 @@ class SwigPyIterator(_object):
     def __iter__(self): return self
 SwigPyIterator_swigregister = _pychrm.SwigPyIterator_swigregister
 SwigPyIterator_swigregister(SwigPyIterator)
+cvar = _pychrm.cvar
 
 class DoubleVector(_object):
     __swig_setmethods__ = {}
@@ -363,331 +367,371 @@ class DoubleVector(_object):
 DoubleVector_swigregister = _pychrm.DoubleVector_swigregister
 DoubleVector_swigregister(DoubleVector)
 
-class FeatureAlgorithm(_object):
+class ConstComputationTaskPtrVector(_object):
     __swig_setmethods__ = {}
-    __setattr__ = lambda self, name, value: _swig_setattr(self, FeatureAlgorithm, name, value)
+    __setattr__ = lambda self, name, value: _swig_setattr(self, ConstComputationTaskPtrVector, name, value)
     __swig_getmethods__ = {}
-    __getattr__ = lambda self, name: _swig_getattr(self, FeatureAlgorithm, name)
+    __getattr__ = lambda self, name: _swig_getattr(self, ConstComputationTaskPtrVector, name)
+    __repr__ = _swig_repr
+    def iterator(self): return _pychrm.ConstComputationTaskPtrVector_iterator(self)
+    def __iter__(self): return self.iterator()
+    def __nonzero__(self): return _pychrm.ConstComputationTaskPtrVector___nonzero__(self)
+    def __bool__(self): return _pychrm.ConstComputationTaskPtrVector___bool__(self)
+    def __len__(self): return _pychrm.ConstComputationTaskPtrVector___len__(self)
+    def pop(self): return _pychrm.ConstComputationTaskPtrVector_pop(self)
+    def __getslice__(self, *args): return _pychrm.ConstComputationTaskPtrVector___getslice__(self, *args)
+    def __setslice__(self, *args): return _pychrm.ConstComputationTaskPtrVector___setslice__(self, *args)
+    def __delslice__(self, *args): return _pychrm.ConstComputationTaskPtrVector___delslice__(self, *args)
+    def __delitem__(self, *args): return _pychrm.ConstComputationTaskPtrVector___delitem__(self, *args)
+    def __getitem__(self, *args): return _pychrm.ConstComputationTaskPtrVector___getitem__(self, *args)
+    def __setitem__(self, *args): return _pychrm.ConstComputationTaskPtrVector___setitem__(self, *args)
+    def append(self, *args): return _pychrm.ConstComputationTaskPtrVector_append(self, *args)
+    def empty(self): return _pychrm.ConstComputationTaskPtrVector_empty(self)
+    def size(self): return _pychrm.ConstComputationTaskPtrVector_size(self)
+    def clear(self): return _pychrm.ConstComputationTaskPtrVector_clear(self)
+    def swap(self, *args): return _pychrm.ConstComputationTaskPtrVector_swap(self, *args)
+    def get_allocator(self): return _pychrm.ConstComputationTaskPtrVector_get_allocator(self)
+    def begin(self): return _pychrm.ConstComputationTaskPtrVector_begin(self)
+    def end(self): return _pychrm.ConstComputationTaskPtrVector_end(self)
+    def rbegin(self): return _pychrm.ConstComputationTaskPtrVector_rbegin(self)
+    def rend(self): return _pychrm.ConstComputationTaskPtrVector_rend(self)
+    def pop_back(self): return _pychrm.ConstComputationTaskPtrVector_pop_back(self)
+    def erase(self, *args): return _pychrm.ConstComputationTaskPtrVector_erase(self, *args)
+    def __init__(self, *args): 
+        this = _pychrm.new_ConstComputationTaskPtrVector(*args)
+        try: self.this.append(this)
+        except: self.this = this
+    def push_back(self, *args): return _pychrm.ConstComputationTaskPtrVector_push_back(self, *args)
+    def front(self): return _pychrm.ConstComputationTaskPtrVector_front(self)
+    def back(self): return _pychrm.ConstComputationTaskPtrVector_back(self)
+    def assign(self, *args): return _pychrm.ConstComputationTaskPtrVector_assign(self, *args)
+    def resize(self, *args): return _pychrm.ConstComputationTaskPtrVector_resize(self, *args)
+    def insert(self, *args): return _pychrm.ConstComputationTaskPtrVector_insert(self, *args)
+    def reserve(self, *args): return _pychrm.ConstComputationTaskPtrVector_reserve(self, *args)
+    def capacity(self): return _pychrm.ConstComputationTaskPtrVector_capacity(self)
+    __swig_destroy__ = _pychrm.delete_ConstComputationTaskPtrVector
+    __del__ = lambda self : None;
+ConstComputationTaskPtrVector_swigregister = _pychrm.ConstComputationTaskPtrVector_swigregister
+ConstComputationTaskPtrVector_swigregister(ConstComputationTaskPtrVector)
+
+class ConstComputationTaskNodePtrVector(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, ConstComputationTaskNodePtrVector, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, ConstComputationTaskNodePtrVector, name)
+    __repr__ = _swig_repr
+    def iterator(self): return _pychrm.ConstComputationTaskNodePtrVector_iterator(self)
+    def __iter__(self): return self.iterator()
+    def __nonzero__(self): return _pychrm.ConstComputationTaskNodePtrVector___nonzero__(self)
+    def __bool__(self): return _pychrm.ConstComputationTaskNodePtrVector___bool__(self)
+    def __len__(self): return _pychrm.ConstComputationTaskNodePtrVector___len__(self)
+    def pop(self): return _pychrm.ConstComputationTaskNodePtrVector_pop(self)
+    def __getslice__(self, *args): return _pychrm.ConstComputationTaskNodePtrVector___getslice__(self, *args)
+    def __setslice__(self, *args): return _pychrm.ConstComputationTaskNodePtrVector___setslice__(self, *args)
+    def __delslice__(self, *args): return _pychrm.ConstComputationTaskNodePtrVector___delslice__(self, *args)
+    def __delitem__(self, *args): return _pychrm.ConstComputationTaskNodePtrVector___delitem__(self, *args)
+    def __getitem__(self, *args): return _pychrm.ConstComputationTaskNodePtrVector___getitem__(self, *args)
+    def __setitem__(self, *args): return _pychrm.ConstComputationTaskNodePtrVector___setitem__(self, *args)
+    def append(self, *args): return _pychrm.ConstComputationTaskNodePtrVector_append(self, *args)
+    def empty(self): return _pychrm.ConstComputationTaskNodePtrVector_empty(self)
+    def size(self): return _pychrm.ConstComputationTaskNodePtrVector_size(self)
+    def clear(self): return _pychrm.ConstComputationTaskNodePtrVector_clear(self)
+    def swap(self, *args): return _pychrm.ConstComputationTaskNodePtrVector_swap(self, *args)
+    def get_allocator(self): return _pychrm.ConstComputationTaskNodePtrVector_get_allocator(self)
+    def begin(self): return _pychrm.ConstComputationTaskNodePtrVector_begin(self)
+    def end(self): return _pychrm.ConstComputationTaskNodePtrVector_end(self)
+    def rbegin(self): return _pychrm.ConstComputationTaskNodePtrVector_rbegin(self)
+    def rend(self): return _pychrm.ConstComputationTaskNodePtrVector_rend(self)
+    def pop_back(self): return _pychrm.ConstComputationTaskNodePtrVector_pop_back(self)
+    def erase(self, *args): return _pychrm.ConstComputationTaskNodePtrVector_erase(self, *args)
+    def __init__(self, *args): 
+        this = _pychrm.new_ConstComputationTaskNodePtrVector(*args)
+        try: self.this.append(this)
+        except: self.this = this
+    def push_back(self, *args): return _pychrm.ConstComputationTaskNodePtrVector_push_back(self, *args)
+    def front(self): return _pychrm.ConstComputationTaskNodePtrVector_front(self)
+    def back(self): return _pychrm.ConstComputationTaskNodePtrVector_back(self)
+    def assign(self, *args): return _pychrm.ConstComputationTaskNodePtrVector_assign(self, *args)
+    def resize(self, *args): return _pychrm.ConstComputationTaskNodePtrVector_resize(self, *args)
+    def insert(self, *args): return _pychrm.ConstComputationTaskNodePtrVector_insert(self, *args)
+    def reserve(self, *args): return _pychrm.ConstComputationTaskNodePtrVector_reserve(self, *args)
+    def capacity(self): return _pychrm.ConstComputationTaskNodePtrVector_capacity(self)
+    __swig_destroy__ = _pychrm.delete_ConstComputationTaskNodePtrVector
+    __del__ = lambda self : None;
+ConstComputationTaskNodePtrVector_swigregister = _pychrm.ConstComputationTaskNodePtrVector_swigregister
+ConstComputationTaskNodePtrVector_swigregister(ConstComputationTaskNodePtrVector)
+
+class ComputationTask(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, ComputationTask, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, ComputationTask, name)
+    def __init__(self, *args, **kwargs): raise AttributeError("No constructor defined - class is abstract")
+    __repr__ = _swig_repr
+    UnknownTaskType = _pychrm.ComputationTask_UnknownTaskType
+    ImageTransformTask = _pychrm.ComputationTask_ImageTransformTask
+    FeatureAlgorithmTask = _pychrm.ComputationTask_FeatureAlgorithmTask
+    __swig_setmethods__["name"] = _pychrm.ComputationTask_name_set
+    __swig_getmethods__["name"] = _pychrm.ComputationTask_name_get
+    if _newclass:name = _swig_property(_pychrm.ComputationTask_name_get, _pychrm.ComputationTask_name_set)
+    __swig_setmethods__["type"] = _pychrm.ComputationTask_type_set
+    __swig_getmethods__["type"] = _pychrm.ComputationTask_type_get
+    if _newclass:type = _swig_property(_pychrm.ComputationTask_type_get, _pychrm.ComputationTask_type_set)
+    def register_task(self): return _pychrm.ComputationTask_register_task(self)
+    def print_info(self): return _pychrm.ComputationTask_print_info(self)
+    __swig_getmethods__["typeLabels"] = lambda x: _pychrm.ComputationTask_typeLabels
+    if _newclass:typeLabels = staticmethod(_pychrm.ComputationTask_typeLabels)
+    def typeLabel(self): return _pychrm.ComputationTask_typeLabel(self)
+    __swig_destroy__ = _pychrm.delete_ComputationTask
+    __del__ = lambda self : None;
+ComputationTask_swigregister = _pychrm.ComputationTask_swigregister
+ComputationTask_swigregister(ComputationTask)
+
+def ComputationTask_typeLabels(*args):
+  return _pychrm.ComputationTask_typeLabels(*args)
+ComputationTask_typeLabels = _pychrm.ComputationTask_typeLabels
+
+class ComputationTaskInstances(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, ComputationTaskInstances, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, ComputationTaskInstances, name)
     def __init__(self, *args, **kwargs): raise AttributeError("No constructor defined")
     __repr__ = _swig_repr
-    __swig_setmethods__["name"] = _pychrm.FeatureAlgorithm_name_set
-    __swig_getmethods__["name"] = _pychrm.FeatureAlgorithm_name_get
-    if _newclass:name = _swig_property(_pychrm.FeatureAlgorithm_name_get, _pychrm.FeatureAlgorithm_name_set)
-    __swig_setmethods__["n_features"] = _pychrm.FeatureAlgorithm_n_features_set
-    __swig_getmethods__["n_features"] = _pychrm.FeatureAlgorithm_n_features_get
-    if _newclass:n_features = _swig_property(_pychrm.FeatureAlgorithm_n_features_get, _pychrm.FeatureAlgorithm_n_features_set)
-    def calculate(self, *args): return _pychrm.FeatureAlgorithm_calculate(self, *args)
-    def print_info(self): return _pychrm.FeatureAlgorithm_print_info(self)
-    __swig_destroy__ = _pychrm.delete_FeatureAlgorithm
+    __swig_getmethods__["initialized"] = lambda x: _pychrm.ComputationTaskInstances_initialized
+    if _newclass:initialized = staticmethod(_pychrm.ComputationTaskInstances_initialized)
+    __swig_getmethods__["add"] = lambda x: _pychrm.ComputationTaskInstances_add
+    if _newclass:add = staticmethod(_pychrm.ComputationTaskInstances_add)
+    __swig_getmethods__["getInstances"] = lambda x: _pychrm.ComputationTaskInstances_getInstances
+    if _newclass:getInstances = staticmethod(_pychrm.ComputationTaskInstances_getInstances)
+    __swig_destroy__ = _pychrm.delete_ComputationTaskInstances
     __del__ = lambda self : None;
-FeatureAlgorithm_swigregister = _pychrm.FeatureAlgorithm_swigregister
-FeatureAlgorithm_swigregister(FeatureAlgorithm)
+ComputationTaskInstances_swigregister = _pychrm.ComputationTaskInstances_swigregister
+ComputationTaskInstances_swigregister(ComputationTaskInstances)
 
-class EmptyFeatureAlgorithm(FeatureAlgorithm):
+def ComputationTaskInstances_initialized():
+  return _pychrm.ComputationTaskInstances_initialized()
+ComputationTaskInstances_initialized = _pychrm.ComputationTaskInstances_initialized
+
+def ComputationTaskInstances_add(*args):
+  return _pychrm.ComputationTaskInstances_add(*args)
+ComputationTaskInstances_add = _pychrm.ComputationTaskInstances_add
+
+def ComputationTaskInstances_getInstances():
+  return _pychrm.ComputationTaskInstances_getInstances()
+ComputationTaskInstances_getInstances = _pychrm.ComputationTaskInstances_getInstances
+
+class ComputationTaskNode(_object):
     __swig_setmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
-    __setattr__ = lambda self, name, value: _swig_setattr(self, EmptyFeatureAlgorithm, name, value)
+    __setattr__ = lambda self, name, value: _swig_setattr(self, ComputationTaskNode, name, value)
     __swig_getmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
-    __getattr__ = lambda self, name: _swig_getattr(self, EmptyFeatureAlgorithm, name)
+    __getattr__ = lambda self, name: _swig_getattr(self, ComputationTaskNode, name)
     __repr__ = _swig_repr
-    def calculate(self, *args): return _pychrm.EmptyFeatureAlgorithm_calculate(self, *args)
+    __swig_setmethods__["source_task"] = _pychrm.ComputationTaskNode_source_task_set
+    __swig_getmethods__["source_task"] = _pychrm.ComputationTaskNode_source_task_get
+    if _newclass:source_task = _swig_property(_pychrm.ComputationTaskNode_source_task_get, _pychrm.ComputationTaskNode_source_task_set)
+    __swig_setmethods__["task"] = _pychrm.ComputationTaskNode_task_set
+    __swig_getmethods__["task"] = _pychrm.ComputationTaskNode_task_get
+    if _newclass:task = _swig_property(_pychrm.ComputationTaskNode_task_get, _pychrm.ComputationTaskNode_task_set)
+    __swig_setmethods__["name"] = _pychrm.ComputationTaskNode_name_set
+    __swig_getmethods__["name"] = _pychrm.ComputationTaskNode_name_get
+    if _newclass:name = _swig_property(_pychrm.ComputationTaskNode_name_get, _pychrm.ComputationTaskNode_name_set)
+    __swig_setmethods__["node_key"] = _pychrm.ComputationTaskNode_node_key_set
+    __swig_getmethods__["node_key"] = _pychrm.ComputationTaskNode_node_key_get
+    if _newclass:node_key = _swig_property(_pychrm.ComputationTaskNode_node_key_get, _pychrm.ComputationTaskNode_node_key_set)
+    __swig_setmethods__["num_dependent_nodes"] = _pychrm.ComputationTaskNode_num_dependent_nodes_set
+    __swig_getmethods__["num_dependent_nodes"] = _pychrm.ComputationTaskNode_num_dependent_nodes_get
+    if _newclass:num_dependent_nodes = _swig_property(_pychrm.ComputationTaskNode_num_dependent_nodes_get, _pychrm.ComputationTaskNode_num_dependent_nodes_set)
+    __swig_setmethods__["depth"] = _pychrm.ComputationTaskNode_depth_set
+    __swig_getmethods__["depth"] = _pychrm.ComputationTaskNode_depth_get
+    if _newclass:depth = _swig_property(_pychrm.ComputationTaskNode_depth_get, _pychrm.ComputationTaskNode_depth_set)
+    __swig_setmethods__["dependent_tasks"] = _pychrm.ComputationTaskNode_dependent_tasks_set
+    __swig_getmethods__["dependent_tasks"] = _pychrm.ComputationTaskNode_dependent_tasks_get
+    if _newclass:dependent_tasks = _swig_property(_pychrm.ComputationTaskNode_dependent_tasks_get, _pychrm.ComputationTaskNode_dependent_tasks_set)
+    def print_info(self): return _pychrm.ComputationTaskNode_print_info(self)
+    def get_num_dependent_nodes(self): return _pychrm.ComputationTaskNode_get_num_dependent_nodes(self)
     def __init__(self, *args): 
-        this = _pychrm.new_EmptyFeatureAlgorithm(*args)
+        this = _pychrm.new_ComputationTaskNode(*args)
         try: self.this.append(this)
         except: self.this = this
-    __swig_destroy__ = _pychrm.delete_EmptyFeatureAlgorithm
+    __swig_destroy__ = _pychrm.delete_ComputationTaskNode
     __del__ = lambda self : None;
-EmptyFeatureAlgorithm_swigregister = _pychrm.EmptyFeatureAlgorithm_swigregister
-EmptyFeatureAlgorithm_swigregister(EmptyFeatureAlgorithm)
+ComputationTaskNode_swigregister = _pychrm.ComputationTaskNode_swigregister
+ComputationTaskNode_swigregister(ComputationTaskNode)
 
-class ChebyshevFourierCoefficients(FeatureAlgorithm):
+class ComputationPlan(_object):
     __swig_setmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
-    __setattr__ = lambda self, name, value: _swig_setattr(self, ChebyshevFourierCoefficients, name, value)
+    __setattr__ = lambda self, name, value: _swig_setattr(self, ComputationPlan, name, value)
     __swig_getmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
-    __getattr__ = lambda self, name: _swig_getattr(self, ChebyshevFourierCoefficients, name)
+    __getattr__ = lambda self, name: _swig_getattr(self, ComputationPlan, name)
+    def __init__(self, *args, **kwargs): raise AttributeError("No constructor defined - class is abstract")
     __repr__ = _swig_repr
-    def __init__(self): 
-        this = _pychrm.new_ChebyshevFourierCoefficients()
-        try: self.this.append(this)
-        except: self.this = this
-    def calculate(self, *args): return _pychrm.ChebyshevFourierCoefficients_calculate(self, *args)
-    __swig_destroy__ = _pychrm.delete_ChebyshevFourierCoefficients
+    __swig_setmethods__["name"] = _pychrm.ComputationPlan_name_set
+    __swig_getmethods__["name"] = _pychrm.ComputationPlan_name_get
+    if _newclass:name = _swig_property(_pychrm.ComputationPlan_name_get, _pychrm.ComputationPlan_name_set)
+    __swig_setmethods__["root"] = _pychrm.ComputationPlan_root_set
+    __swig_getmethods__["root"] = _pychrm.ComputationPlan_root_get
+    if _newclass:root = _swig_property(_pychrm.ComputationPlan_root_get, _pychrm.ComputationPlan_root_set)
+    def add(self, *args): return _pychrm.ComputationPlan_add(self, *args)
+    def add_get_node(self, *args): return _pychrm.ComputationPlan_add_get_node(self, *args)
+    def finalize(self): return _pychrm.ComputationPlan_finalize(self)
+    def isFinalized(self): return _pychrm.ComputationPlan_isFinalized(self)
+    __swig_destroy__ = _pychrm.delete_ComputationPlan
     __del__ = lambda self : None;
-ChebyshevFourierCoefficients_swigregister = _pychrm.ChebyshevFourierCoefficients_swigregister
-ChebyshevFourierCoefficients_swigregister(ChebyshevFourierCoefficients)
+ComputationPlan_swigregister = _pychrm.ComputationPlan_swigregister
+ComputationPlan_swigregister(ComputationPlan)
 
-class ChebyshevCoefficients(FeatureAlgorithm):
+class ComputationPlanExecutor(_object):
     __swig_setmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
-    __setattr__ = lambda self, name, value: _swig_setattr(self, ChebyshevCoefficients, name, value)
+    __setattr__ = lambda self, name, value: _swig_setattr(self, ComputationPlanExecutor, name, value)
     __swig_getmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
-    __getattr__ = lambda self, name: _swig_getattr(self, ChebyshevCoefficients, name)
+    __getattr__ = lambda self, name: _swig_getattr(self, ComputationPlanExecutor, name)
+    def __init__(self, *args, **kwargs): raise AttributeError("No constructor defined - class is abstract")
     __repr__ = _swig_repr
-    def __init__(self): 
-        this = _pychrm.new_ChebyshevCoefficients()
-        try: self.this.append(this)
-        except: self.this = this
-    def calculate(self, *args): return _pychrm.ChebyshevCoefficients_calculate(self, *args)
-    __swig_destroy__ = _pychrm.delete_ChebyshevCoefficients
+    __swig_setmethods__["plan"] = _pychrm.ComputationPlanExecutor_plan_set
+    __swig_getmethods__["plan"] = _pychrm.ComputationPlanExecutor_plan_get
+    if _newclass:plan = _swig_property(_pychrm.ComputationPlanExecutor_plan_get, _pychrm.ComputationPlanExecutor_plan_set)
+    def get_next_executable_node(self): return _pychrm.ComputationPlanExecutor_get_next_executable_node(self)
+    def run(self): return _pychrm.ComputationPlanExecutor_run(self)
+    def finish_node_execution(self, *args): return _pychrm.ComputationPlanExecutor_finish_node_execution(self, *args)
+    def make_dependencies_executable(self, *args): return _pychrm.ComputationPlanExecutor_make_dependencies_executable(self, *args)
+    __swig_destroy__ = _pychrm.delete_ComputationPlanExecutor
     __del__ = lambda self : None;
-ChebyshevCoefficients_swigregister = _pychrm.ChebyshevCoefficients_swigregister
-ChebyshevCoefficients_swigregister(ChebyshevCoefficients)
+ComputationPlanExecutor_swigregister = _pychrm.ComputationPlanExecutor_swigregister
+ComputationPlanExecutor_swigregister(ComputationPlanExecutor)
 
-class ZernikeCoefficients(FeatureAlgorithm):
+CURRENT_FEATURE_VERSION = _pychrm.CURRENT_FEATURE_VERSION
+class FeatureComputationPlan(ComputationPlan):
     __swig_setmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
-    __setattr__ = lambda self, name, value: _swig_setattr(self, ZernikeCoefficients, name, value)
+    for _s in [ComputationPlan]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, FeatureComputationPlan, name, value)
     __swig_getmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
-    __getattr__ = lambda self, name: _swig_getattr(self, ZernikeCoefficients, name)
+    for _s in [ComputationPlan]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, FeatureComputationPlan, name)
     __repr__ = _swig_repr
-    def __init__(self): 
-        this = _pychrm.new_ZernikeCoefficients()
+    __swig_setmethods__["n_features"] = _pychrm.FeatureComputationPlan_n_features_set
+    __swig_getmethods__["n_features"] = _pychrm.FeatureComputationPlan_n_features_get
+    if _newclass:n_features = _swig_property(_pychrm.FeatureComputationPlan_n_features_get, _pychrm.FeatureComputationPlan_n_features_set)
+    __swig_setmethods__["feature_vec_type"] = _pychrm.FeatureComputationPlan_feature_vec_type_set
+    __swig_getmethods__["feature_vec_type"] = _pychrm.FeatureComputationPlan_feature_vec_type_get
+    if _newclass:feature_vec_type = _swig_property(_pychrm.FeatureComputationPlan_feature_vec_type_get, _pychrm.FeatureComputationPlan_feature_vec_type_set)
+    def add(self, *args): return _pychrm.FeatureComputationPlan_add(self, *args)
+    def getFGoffset(self, *args): return _pychrm.FeatureComputationPlan_getFGoffset(self, *args)
+    def getFeatureNameByIndex(self, *args): return _pychrm.FeatureComputationPlan_getFeatureNameByIndex(self, *args)
+    def getFeatureGroupByIndex(self, *args): return _pychrm.FeatureComputationPlan_getFeatureGroupByIndex(self, *args)
+    def __init__(self, *args): 
+        this = _pychrm.new_FeatureComputationPlan(*args)
         try: self.this.append(this)
         except: self.this = this
-    def calculate(self, *args): return _pychrm.ZernikeCoefficients_calculate(self, *args)
-    __swig_destroy__ = _pychrm.delete_ZernikeCoefficients
+    __swig_destroy__ = _pychrm.delete_FeatureComputationPlan
     __del__ = lambda self : None;
-ZernikeCoefficients_swigregister = _pychrm.ZernikeCoefficients_swigregister
-ZernikeCoefficients_swigregister(ZernikeCoefficients)
+FeatureComputationPlan_swigregister = _pychrm.FeatureComputationPlan_swigregister
+FeatureComputationPlan_swigregister(FeatureComputationPlan)
 
-class HaralickTextures(FeatureAlgorithm):
+class FeatureComputationPlanExecutor(ComputationPlanExecutor):
     __swig_setmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
-    __setattr__ = lambda self, name, value: _swig_setattr(self, HaralickTextures, name, value)
+    for _s in [ComputationPlanExecutor]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, FeatureComputationPlanExecutor, name, value)
     __swig_getmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
-    __getattr__ = lambda self, name: _swig_getattr(self, HaralickTextures, name)
+    for _s in [ComputationPlanExecutor]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, FeatureComputationPlanExecutor, name)
     __repr__ = _swig_repr
-    def __init__(self): 
-        this = _pychrm.new_HaralickTextures()
+    __swig_setmethods__["plan"] = _pychrm.FeatureComputationPlanExecutor_plan_set
+    __swig_getmethods__["plan"] = _pychrm.FeatureComputationPlanExecutor_plan_get
+    if _newclass:plan = _swig_property(_pychrm.FeatureComputationPlanExecutor_plan_get, _pychrm.FeatureComputationPlanExecutor_plan_set)
+    __swig_setmethods__["feature_mat"] = _pychrm.FeatureComputationPlanExecutor_feature_mat_set
+    __swig_getmethods__["feature_mat"] = _pychrm.FeatureComputationPlanExecutor_feature_mat_get
+    if _newclass:feature_mat = _swig_property(_pychrm.FeatureComputationPlanExecutor_feature_mat_get, _pychrm.FeatureComputationPlanExecutor_feature_mat_set)
+    __swig_setmethods__["current_feature_mat_row"] = _pychrm.FeatureComputationPlanExecutor_current_feature_mat_row_set
+    __swig_getmethods__["current_feature_mat_row"] = _pychrm.FeatureComputationPlanExecutor_current_feature_mat_row_get
+    if _newclass:current_feature_mat_row = _swig_property(_pychrm.FeatureComputationPlanExecutor_current_feature_mat_row_get, _pychrm.FeatureComputationPlanExecutor_current_feature_mat_row_set)
+    def finish_node_execution(self, *args): return _pychrm.FeatureComputationPlanExecutor_finish_node_execution(self, *args)
+    def run(self, *args): return _pychrm.FeatureComputationPlanExecutor_run(self, *args)
+    __swig_destroy__ = _pychrm.delete_FeatureComputationPlanExecutor
+    __del__ = lambda self : None;
+    def __init__(self, *args): 
+        this = _pychrm.new_FeatureComputationPlanExecutor(*args)
         try: self.this.append(this)
         except: self.this = this
-    def calculate(self, *args): return _pychrm.HaralickTextures_calculate(self, *args)
-    __swig_destroy__ = _pychrm.delete_HaralickTextures
-    __del__ = lambda self : None;
-HaralickTextures_swigregister = _pychrm.HaralickTextures_swigregister
-HaralickTextures_swigregister(HaralickTextures)
+FeatureComputationPlanExecutor_swigregister = _pychrm.FeatureComputationPlanExecutor_swigregister
+FeatureComputationPlanExecutor_swigregister(FeatureComputationPlanExecutor)
 
-class MultiscaleHistograms(FeatureAlgorithm):
+class StdFeatureComputationPlans(_object):
     __swig_setmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
-    __setattr__ = lambda self, name, value: _swig_setattr(self, MultiscaleHistograms, name, value)
+    __setattr__ = lambda self, name, value: _swig_setattr(self, StdFeatureComputationPlans, name, value)
     __swig_getmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
-    __getattr__ = lambda self, name: _swig_getattr(self, MultiscaleHistograms, name)
+    __getattr__ = lambda self, name: _swig_getattr(self, StdFeatureComputationPlans, name)
+    def __init__(self, *args, **kwargs): raise AttributeError("No constructor defined")
     __repr__ = _swig_repr
-    def __init__(self): 
-        this = _pychrm.new_MultiscaleHistograms()
-        try: self.this.append(this)
-        except: self.this = this
-    def calculate(self, *args): return _pychrm.MultiscaleHistograms_calculate(self, *args)
-    __swig_destroy__ = _pychrm.delete_MultiscaleHistograms
+    fv_unknown = _pychrm.StdFeatureComputationPlans_fv_unknown
+    fv_short = _pychrm.StdFeatureComputationPlans_fv_short
+    fv_long = _pychrm.StdFeatureComputationPlans_fv_long
+    fv_short_color = _pychrm.StdFeatureComputationPlans_fv_short_color
+    fv_long_color = _pychrm.StdFeatureComputationPlans_fv_long_color
+    __swig_getmethods__["getFeatureSet"] = lambda x: _pychrm.StdFeatureComputationPlans_getFeatureSet
+    if _newclass:getFeatureSet = staticmethod(_pychrm.StdFeatureComputationPlans_getFeatureSet)
+    __swig_getmethods__["getFeatureSetColor"] = lambda x: _pychrm.StdFeatureComputationPlans_getFeatureSetColor
+    if _newclass:getFeatureSetColor = staticmethod(_pychrm.StdFeatureComputationPlans_getFeatureSetColor)
+    __swig_getmethods__["getFeatureSetLong"] = lambda x: _pychrm.StdFeatureComputationPlans_getFeatureSetLong
+    if _newclass:getFeatureSetLong = staticmethod(_pychrm.StdFeatureComputationPlans_getFeatureSetLong)
+    __swig_getmethods__["getFeatureSetLongColor"] = lambda x: _pychrm.StdFeatureComputationPlans_getFeatureSetLongColor
+    if _newclass:getFeatureSetLongColor = staticmethod(_pychrm.StdFeatureComputationPlans_getFeatureSetLongColor)
+    __swig_getmethods__["addLongFeatures"] = lambda x: _pychrm.StdFeatureComputationPlans_addLongFeatures
+    if _newclass:addLongFeatures = staticmethod(_pychrm.StdFeatureComputationPlans_addLongFeatures)
+    __swig_getmethods__["addGroupAFeatures"] = lambda x: _pychrm.StdFeatureComputationPlans_addGroupAFeatures
+    if _newclass:addGroupAFeatures = staticmethod(_pychrm.StdFeatureComputationPlans_addGroupAFeatures)
+    __swig_getmethods__["addGroupBFeatures"] = lambda x: _pychrm.StdFeatureComputationPlans_addGroupBFeatures
+    if _newclass:addGroupBFeatures = staticmethod(_pychrm.StdFeatureComputationPlans_addGroupBFeatures)
+    __swig_getmethods__["addGroupCFeatures"] = lambda x: _pychrm.StdFeatureComputationPlans_addGroupCFeatures
+    if _newclass:addGroupCFeatures = staticmethod(_pychrm.StdFeatureComputationPlans_addGroupCFeatures)
+    __swig_getmethods__["addColorFeatures"] = lambda x: _pychrm.StdFeatureComputationPlans_addColorFeatures
+    if _newclass:addColorFeatures = staticmethod(_pychrm.StdFeatureComputationPlans_addColorFeatures)
+    __swig_getmethods__["addStdFeatures"] = lambda x: _pychrm.StdFeatureComputationPlans_addStdFeatures
+    if _newclass:addStdFeatures = staticmethod(_pychrm.StdFeatureComputationPlans_addStdFeatures)
+    __swig_destroy__ = _pychrm.delete_StdFeatureComputationPlans
     __del__ = lambda self : None;
-MultiscaleHistograms_swigregister = _pychrm.MultiscaleHistograms_swigregister
-MultiscaleHistograms_swigregister(MultiscaleHistograms)
+StdFeatureComputationPlans_swigregister = _pychrm.StdFeatureComputationPlans_swigregister
+StdFeatureComputationPlans_swigregister(StdFeatureComputationPlans)
 
-class TamuraTextures(FeatureAlgorithm):
-    __swig_setmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
-    __setattr__ = lambda self, name, value: _swig_setattr(self, TamuraTextures, name, value)
-    __swig_getmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
-    __getattr__ = lambda self, name: _swig_getattr(self, TamuraTextures, name)
-    __repr__ = _swig_repr
-    def __init__(self): 
-        this = _pychrm.new_TamuraTextures()
-        try: self.this.append(this)
-        except: self.this = this
-    def calculate(self, *args): return _pychrm.TamuraTextures_calculate(self, *args)
-    __swig_destroy__ = _pychrm.delete_TamuraTextures
-    __del__ = lambda self : None;
-TamuraTextures_swigregister = _pychrm.TamuraTextures_swigregister
-TamuraTextures_swigregister(TamuraTextures)
+def StdFeatureComputationPlans_getFeatureSet():
+  return _pychrm.StdFeatureComputationPlans_getFeatureSet()
+StdFeatureComputationPlans_getFeatureSet = _pychrm.StdFeatureComputationPlans_getFeatureSet
 
-class CombFirstFourMoments(FeatureAlgorithm):
-    __swig_setmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
-    __setattr__ = lambda self, name, value: _swig_setattr(self, CombFirstFourMoments, name, value)
-    __swig_getmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
-    __getattr__ = lambda self, name: _swig_getattr(self, CombFirstFourMoments, name)
-    __repr__ = _swig_repr
-    def __init__(self): 
-        this = _pychrm.new_CombFirstFourMoments()
-        try: self.this.append(this)
-        except: self.this = this
-    def calculate(self, *args): return _pychrm.CombFirstFourMoments_calculate(self, *args)
-    __swig_destroy__ = _pychrm.delete_CombFirstFourMoments
-    __del__ = lambda self : None;
-CombFirstFourMoments_swigregister = _pychrm.CombFirstFourMoments_swigregister
-CombFirstFourMoments_swigregister(CombFirstFourMoments)
+def StdFeatureComputationPlans_getFeatureSetColor():
+  return _pychrm.StdFeatureComputationPlans_getFeatureSetColor()
+StdFeatureComputationPlans_getFeatureSetColor = _pychrm.StdFeatureComputationPlans_getFeatureSetColor
 
-class RadonCoefficients(FeatureAlgorithm):
-    __swig_setmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
-    __setattr__ = lambda self, name, value: _swig_setattr(self, RadonCoefficients, name, value)
-    __swig_getmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
-    __getattr__ = lambda self, name: _swig_getattr(self, RadonCoefficients, name)
-    __repr__ = _swig_repr
-    def __init__(self): 
-        this = _pychrm.new_RadonCoefficients()
-        try: self.this.append(this)
-        except: self.this = this
-    def calculate(self, *args): return _pychrm.RadonCoefficients_calculate(self, *args)
-    __swig_destroy__ = _pychrm.delete_RadonCoefficients
-    __del__ = lambda self : None;
-RadonCoefficients_swigregister = _pychrm.RadonCoefficients_swigregister
-RadonCoefficients_swigregister(RadonCoefficients)
+def StdFeatureComputationPlans_getFeatureSetLong():
+  return _pychrm.StdFeatureComputationPlans_getFeatureSetLong()
+StdFeatureComputationPlans_getFeatureSetLong = _pychrm.StdFeatureComputationPlans_getFeatureSetLong
 
-class FractalFeatures(FeatureAlgorithm):
-    __swig_setmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
-    __setattr__ = lambda self, name, value: _swig_setattr(self, FractalFeatures, name, value)
-    __swig_getmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
-    __getattr__ = lambda self, name: _swig_getattr(self, FractalFeatures, name)
-    __repr__ = _swig_repr
-    def __init__(self): 
-        this = _pychrm.new_FractalFeatures()
-        try: self.this.append(this)
-        except: self.this = this
-    def calculate(self, *args): return _pychrm.FractalFeatures_calculate(self, *args)
-    __swig_destroy__ = _pychrm.delete_FractalFeatures
-    __del__ = lambda self : None;
-FractalFeatures_swigregister = _pychrm.FractalFeatures_swigregister
-FractalFeatures_swigregister(FractalFeatures)
+def StdFeatureComputationPlans_getFeatureSetLongColor():
+  return _pychrm.StdFeatureComputationPlans_getFeatureSetLongColor()
+StdFeatureComputationPlans_getFeatureSetLongColor = _pychrm.StdFeatureComputationPlans_getFeatureSetLongColor
 
-class PixelIntensityStatistics(FeatureAlgorithm):
-    __swig_setmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
-    __setattr__ = lambda self, name, value: _swig_setattr(self, PixelIntensityStatistics, name, value)
-    __swig_getmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
-    __getattr__ = lambda self, name: _swig_getattr(self, PixelIntensityStatistics, name)
-    __repr__ = _swig_repr
-    def __init__(self): 
-        this = _pychrm.new_PixelIntensityStatistics()
-        try: self.this.append(this)
-        except: self.this = this
-    def calculate(self, *args): return _pychrm.PixelIntensityStatistics_calculate(self, *args)
-    __swig_destroy__ = _pychrm.delete_PixelIntensityStatistics
-    __del__ = lambda self : None;
-PixelIntensityStatistics_swigregister = _pychrm.PixelIntensityStatistics_swigregister
-PixelIntensityStatistics_swigregister(PixelIntensityStatistics)
+def StdFeatureComputationPlans_addLongFeatures(*args):
+  return _pychrm.StdFeatureComputationPlans_addLongFeatures(*args)
+StdFeatureComputationPlans_addLongFeatures = _pychrm.StdFeatureComputationPlans_addLongFeatures
 
-class EdgeFeatures(FeatureAlgorithm):
-    __swig_setmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
-    __setattr__ = lambda self, name, value: _swig_setattr(self, EdgeFeatures, name, value)
-    __swig_getmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
-    __getattr__ = lambda self, name: _swig_getattr(self, EdgeFeatures, name)
-    __repr__ = _swig_repr
-    def __init__(self): 
-        this = _pychrm.new_EdgeFeatures()
-        try: self.this.append(this)
-        except: self.this = this
-    def calculate(self, *args): return _pychrm.EdgeFeatures_calculate(self, *args)
-    __swig_destroy__ = _pychrm.delete_EdgeFeatures
-    __del__ = lambda self : None;
-EdgeFeatures_swigregister = _pychrm.EdgeFeatures_swigregister
-EdgeFeatures_swigregister(EdgeFeatures)
+def StdFeatureComputationPlans_addGroupAFeatures(*args):
+  return _pychrm.StdFeatureComputationPlans_addGroupAFeatures(*args)
+StdFeatureComputationPlans_addGroupAFeatures = _pychrm.StdFeatureComputationPlans_addGroupAFeatures
 
-class ObjectFeatures(FeatureAlgorithm):
-    __swig_setmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
-    __setattr__ = lambda self, name, value: _swig_setattr(self, ObjectFeatures, name, value)
-    __swig_getmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
-    __getattr__ = lambda self, name: _swig_getattr(self, ObjectFeatures, name)
-    __repr__ = _swig_repr
-    def __init__(self): 
-        this = _pychrm.new_ObjectFeatures()
-        try: self.this.append(this)
-        except: self.this = this
-    def calculate(self, *args): return _pychrm.ObjectFeatures_calculate(self, *args)
-    __swig_destroy__ = _pychrm.delete_ObjectFeatures
-    __del__ = lambda self : None;
-ObjectFeatures_swigregister = _pychrm.ObjectFeatures_swigregister
-ObjectFeatures_swigregister(ObjectFeatures)
+def StdFeatureComputationPlans_addGroupBFeatures(*args):
+  return _pychrm.StdFeatureComputationPlans_addGroupBFeatures(*args)
+StdFeatureComputationPlans_addGroupBFeatures = _pychrm.StdFeatureComputationPlans_addGroupBFeatures
 
-class InverseObjectFeatures(FeatureAlgorithm):
-    __swig_setmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
-    __setattr__ = lambda self, name, value: _swig_setattr(self, InverseObjectFeatures, name, value)
-    __swig_getmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
-    __getattr__ = lambda self, name: _swig_getattr(self, InverseObjectFeatures, name)
-    __repr__ = _swig_repr
-    def __init__(self): 
-        this = _pychrm.new_InverseObjectFeatures()
-        try: self.this.append(this)
-        except: self.this = this
-    def calculate(self, *args): return _pychrm.InverseObjectFeatures_calculate(self, *args)
-    __swig_destroy__ = _pychrm.delete_InverseObjectFeatures
-    __del__ = lambda self : None;
-InverseObjectFeatures_swigregister = _pychrm.InverseObjectFeatures_swigregister
-InverseObjectFeatures_swigregister(InverseObjectFeatures)
+def StdFeatureComputationPlans_addGroupCFeatures(*args):
+  return _pychrm.StdFeatureComputationPlans_addGroupCFeatures(*args)
+StdFeatureComputationPlans_addGroupCFeatures = _pychrm.StdFeatureComputationPlans_addGroupCFeatures
 
-class GaborTextures(FeatureAlgorithm):
-    __swig_setmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
-    __setattr__ = lambda self, name, value: _swig_setattr(self, GaborTextures, name, value)
-    __swig_getmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
-    __getattr__ = lambda self, name: _swig_getattr(self, GaborTextures, name)
-    __repr__ = _swig_repr
-    def __init__(self): 
-        this = _pychrm.new_GaborTextures()
-        try: self.this.append(this)
-        except: self.this = this
-    def calculate(self, *args): return _pychrm.GaborTextures_calculate(self, *args)
-    __swig_destroy__ = _pychrm.delete_GaborTextures
-    __del__ = lambda self : None;
-GaborTextures_swigregister = _pychrm.GaborTextures_swigregister
-GaborTextures_swigregister(GaborTextures)
+def StdFeatureComputationPlans_addColorFeatures(*args):
+  return _pychrm.StdFeatureComputationPlans_addColorFeatures(*args)
+StdFeatureComputationPlans_addColorFeatures = _pychrm.StdFeatureComputationPlans_addColorFeatures
 
-class GiniCoefficient(FeatureAlgorithm):
-    __swig_setmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
-    __setattr__ = lambda self, name, value: _swig_setattr(self, GiniCoefficient, name, value)
-    __swig_getmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
-    __getattr__ = lambda self, name: _swig_getattr(self, GiniCoefficient, name)
-    __repr__ = _swig_repr
-    def __init__(self): 
-        this = _pychrm.new_GiniCoefficient()
-        try: self.this.append(this)
-        except: self.this = this
-    def calculate(self, *args): return _pychrm.GiniCoefficient_calculate(self, *args)
-    __swig_destroy__ = _pychrm.delete_GiniCoefficient
-    __del__ = lambda self : None;
-GiniCoefficient_swigregister = _pychrm.GiniCoefficient_swigregister
-GiniCoefficient_swigregister(GiniCoefficient)
-
-class ColorHistogram(FeatureAlgorithm):
-    __swig_setmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
-    __setattr__ = lambda self, name, value: _swig_setattr(self, ColorHistogram, name, value)
-    __swig_getmethods__ = {}
-    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
-    __getattr__ = lambda self, name: _swig_getattr(self, ColorHistogram, name)
-    __repr__ = _swig_repr
-    def __init__(self): 
-        this = _pychrm.new_ColorHistogram()
-        try: self.this.append(this)
-        except: self.this = this
-    def calculate(self, *args): return _pychrm.ColorHistogram_calculate(self, *args)
-    __swig_destroy__ = _pychrm.delete_ColorHistogram
-    __del__ = lambda self : None;
-ColorHistogram_swigregister = _pychrm.ColorHistogram_swigregister
-ColorHistogram_swigregister(ColorHistogram)
+def StdFeatureComputationPlans_addStdFeatures(*args):
+  return _pychrm.StdFeatureComputationPlans_addStdFeatures(*args)
+StdFeatureComputationPlans_addStdFeatures = _pychrm.StdFeatureComputationPlans_addStdFeatures
 
 class ConstImageTransformPtrVector(_object):
     __swig_setmethods__ = {}
@@ -736,18 +780,531 @@ class ConstImageTransformPtrVector(_object):
 ConstImageTransformPtrVector_swigregister = _pychrm.ConstImageTransformPtrVector_swigregister
 ConstImageTransformPtrVector_swigregister(ConstImageTransformPtrVector)
 
-class ImageTransform(_object):
+class ConstFeatureGroupPtrVector(_object):
     __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, ConstFeatureGroupPtrVector, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, ConstFeatureGroupPtrVector, name)
+    __repr__ = _swig_repr
+    def iterator(self): return _pychrm.ConstFeatureGroupPtrVector_iterator(self)
+    def __iter__(self): return self.iterator()
+    def __nonzero__(self): return _pychrm.ConstFeatureGroupPtrVector___nonzero__(self)
+    def __bool__(self): return _pychrm.ConstFeatureGroupPtrVector___bool__(self)
+    def __len__(self): return _pychrm.ConstFeatureGroupPtrVector___len__(self)
+    def pop(self): return _pychrm.ConstFeatureGroupPtrVector_pop(self)
+    def __getslice__(self, *args): return _pychrm.ConstFeatureGroupPtrVector___getslice__(self, *args)
+    def __setslice__(self, *args): return _pychrm.ConstFeatureGroupPtrVector___setslice__(self, *args)
+    def __delslice__(self, *args): return _pychrm.ConstFeatureGroupPtrVector___delslice__(self, *args)
+    def __delitem__(self, *args): return _pychrm.ConstFeatureGroupPtrVector___delitem__(self, *args)
+    def __getitem__(self, *args): return _pychrm.ConstFeatureGroupPtrVector___getitem__(self, *args)
+    def __setitem__(self, *args): return _pychrm.ConstFeatureGroupPtrVector___setitem__(self, *args)
+    def append(self, *args): return _pychrm.ConstFeatureGroupPtrVector_append(self, *args)
+    def empty(self): return _pychrm.ConstFeatureGroupPtrVector_empty(self)
+    def size(self): return _pychrm.ConstFeatureGroupPtrVector_size(self)
+    def clear(self): return _pychrm.ConstFeatureGroupPtrVector_clear(self)
+    def swap(self, *args): return _pychrm.ConstFeatureGroupPtrVector_swap(self, *args)
+    def get_allocator(self): return _pychrm.ConstFeatureGroupPtrVector_get_allocator(self)
+    def begin(self): return _pychrm.ConstFeatureGroupPtrVector_begin(self)
+    def end(self): return _pychrm.ConstFeatureGroupPtrVector_end(self)
+    def rbegin(self): return _pychrm.ConstFeatureGroupPtrVector_rbegin(self)
+    def rend(self): return _pychrm.ConstFeatureGroupPtrVector_rend(self)
+    def pop_back(self): return _pychrm.ConstFeatureGroupPtrVector_pop_back(self)
+    def erase(self, *args): return _pychrm.ConstFeatureGroupPtrVector_erase(self, *args)
+    def __init__(self, *args): 
+        this = _pychrm.new_ConstFeatureGroupPtrVector(*args)
+        try: self.this.append(this)
+        except: self.this = this
+    def push_back(self, *args): return _pychrm.ConstFeatureGroupPtrVector_push_back(self, *args)
+    def front(self): return _pychrm.ConstFeatureGroupPtrVector_front(self)
+    def back(self): return _pychrm.ConstFeatureGroupPtrVector_back(self)
+    def assign(self, *args): return _pychrm.ConstFeatureGroupPtrVector_assign(self, *args)
+    def resize(self, *args): return _pychrm.ConstFeatureGroupPtrVector_resize(self, *args)
+    def insert(self, *args): return _pychrm.ConstFeatureGroupPtrVector_insert(self, *args)
+    def reserve(self, *args): return _pychrm.ConstFeatureGroupPtrVector_reserve(self, *args)
+    def capacity(self): return _pychrm.ConstFeatureGroupPtrVector_capacity(self)
+    __swig_destroy__ = _pychrm.delete_ConstFeatureGroupPtrVector
+    __del__ = lambda self : None;
+ConstFeatureGroupPtrVector_swigregister = _pychrm.ConstFeatureGroupPtrVector_swigregister
+ConstFeatureGroupPtrVector_swigregister(ConstFeatureGroupPtrVector)
+
+class Channel(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, Channel, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, Channel, name)
+    __repr__ = _swig_repr
+    __swig_setmethods__["name"] = _pychrm.Channel_name_set
+    __swig_getmethods__["name"] = _pychrm.Channel_name_get
+    if _newclass:name = _swig_property(_pychrm.Channel_name_get, _pychrm.Channel_name_set)
+    def __init__(self, *args): 
+        this = _pychrm.new_Channel(*args)
+        try: self.this.append(this)
+        except: self.this = this
+    __swig_destroy__ = _pychrm.delete_Channel
+    __del__ = lambda self : None;
+Channel_swigregister = _pychrm.Channel_swigregister
+Channel_swigregister(Channel)
+
+class FeatureGroup(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, FeatureGroup, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, FeatureGroup, name)
+    __repr__ = _swig_repr
+    __swig_setmethods__["name"] = _pychrm.FeatureGroup_name_set
+    __swig_getmethods__["name"] = _pychrm.FeatureGroup_name_get
+    if _newclass:name = _swig_property(_pychrm.FeatureGroup_name_get, _pychrm.FeatureGroup_name_set)
+    __swig_setmethods__["algorithm"] = _pychrm.FeatureGroup_algorithm_set
+    __swig_getmethods__["algorithm"] = _pychrm.FeatureGroup_algorithm_get
+    if _newclass:algorithm = _swig_property(_pychrm.FeatureGroup_algorithm_get, _pychrm.FeatureGroup_algorithm_set)
+    __swig_setmethods__["channel"] = _pychrm.FeatureGroup_channel_set
+    __swig_getmethods__["channel"] = _pychrm.FeatureGroup_channel_get
+    if _newclass:channel = _swig_property(_pychrm.FeatureGroup_channel_get, _pychrm.FeatureGroup_channel_set)
+    __swig_setmethods__["transforms"] = _pychrm.FeatureGroup_transforms_set
+    __swig_getmethods__["transforms"] = _pychrm.FeatureGroup_transforms_get
+    if _newclass:transforms = _swig_property(_pychrm.FeatureGroup_transforms_get, _pychrm.FeatureGroup_transforms_set)
+    __swig_setmethods__["labels"] = _pychrm.FeatureGroup_labels_set
+    __swig_getmethods__["labels"] = _pychrm.FeatureGroup_labels_get
+    if _newclass:labels = _swig_property(_pychrm.FeatureGroup_labels_get, _pychrm.FeatureGroup_labels_set)
+    def __init__(self, *args): 
+        this = _pychrm.new_FeatureGroup(*args)
+        try: self.this.append(this)
+        except: self.this = this
+    __swig_destroy__ = _pychrm.delete_FeatureGroup
+    __del__ = lambda self : None;
+FeatureGroup_swigregister = _pychrm.FeatureGroup_swigregister
+FeatureGroup_swigregister(FeatureGroup)
+
+class FeatureInfo(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, FeatureInfo, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, FeatureInfo, name)
+    __repr__ = _swig_repr
+    __swig_setmethods__["name"] = _pychrm.FeatureInfo_name_set
+    __swig_getmethods__["name"] = _pychrm.FeatureInfo_name_get
+    if _newclass:name = _swig_property(_pychrm.FeatureInfo_name_get, _pychrm.FeatureInfo_name_set)
+    __swig_setmethods__["group"] = _pychrm.FeatureInfo_group_set
+    __swig_getmethods__["group"] = _pychrm.FeatureInfo_group_get
+    if _newclass:group = _swig_property(_pychrm.FeatureInfo_group_get, _pychrm.FeatureInfo_group_set)
+    __swig_setmethods__["index"] = _pychrm.FeatureInfo_index_set
+    __swig_getmethods__["index"] = _pychrm.FeatureInfo_index_get
+    if _newclass:index = _swig_property(_pychrm.FeatureInfo_index_get, _pychrm.FeatureInfo_index_set)
+    def __init__(self, *args): 
+        this = _pychrm.new_FeatureInfo(*args)
+        try: self.this.append(this)
+        except: self.this = this
+    __swig_destroy__ = _pychrm.delete_FeatureInfo
+    __del__ = lambda self : None;
+FeatureInfo_swigregister = _pychrm.FeatureInfo_swigregister
+FeatureInfo_swigregister(FeatureInfo)
+
+class FeatureNames(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, FeatureNames, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, FeatureNames, name)
+    __repr__ = _swig_repr
+    __swig_getmethods__["getChannelByName"] = lambda x: _pychrm.FeatureNames_getChannelByName
+    if _newclass:getChannelByName = staticmethod(_pychrm.FeatureNames_getChannelByName)
+    __swig_getmethods__["getTransformByName"] = lambda x: _pychrm.FeatureNames_getTransformByName
+    if _newclass:getTransformByName = staticmethod(_pychrm.FeatureNames_getTransformByName)
+    __swig_getmethods__["registerImageTransform"] = lambda x: _pychrm.FeatureNames_registerImageTransform
+    if _newclass:registerImageTransform = staticmethod(_pychrm.FeatureNames_registerImageTransform)
+    __swig_getmethods__["getFeatureAlgorithmByName"] = lambda x: _pychrm.FeatureNames_getFeatureAlgorithmByName
+    if _newclass:getFeatureAlgorithmByName = staticmethod(_pychrm.FeatureNames_getFeatureAlgorithmByName)
+    __swig_getmethods__["registerFeatureAlgorithm"] = lambda x: _pychrm.FeatureNames_registerFeatureAlgorithm
+    if _newclass:registerFeatureAlgorithm = staticmethod(_pychrm.FeatureNames_registerFeatureAlgorithm)
+    __swig_getmethods__["getGroupByName"] = lambda x: _pychrm.FeatureNames_getGroupByName
+    if _newclass:getGroupByName = staticmethod(_pychrm.FeatureNames_getGroupByName)
+    __swig_getmethods__["getFeatureInfoByName"] = lambda x: _pychrm.FeatureNames_getFeatureInfoByName
+    if _newclass:getFeatureInfoByName = staticmethod(_pychrm.FeatureNames_getFeatureInfoByName)
+    __swig_getmethods__["oldFeatureNameLookup"] = lambda x: _pychrm.FeatureNames_oldFeatureNameLookup
+    if _newclass:oldFeatureNameLookup = staticmethod(_pychrm.FeatureNames_oldFeatureNameLookup)
+    __swig_getmethods__["initialized"] = lambda x: _pychrm.FeatureNames_initialized
+    if _newclass:initialized = staticmethod(_pychrm.FeatureNames_initialized)
+    def __init__(self): 
+        this = _pychrm.new_FeatureNames()
+        try: self.this.append(this)
+        except: self.this = this
+    __swig_destroy__ = _pychrm.delete_FeatureNames
+    __del__ = lambda self : None;
+FeatureNames_swigregister = _pychrm.FeatureNames_swigregister
+FeatureNames_swigregister(FeatureNames)
+
+def FeatureNames_getChannelByName(*args):
+  return _pychrm.FeatureNames_getChannelByName(*args)
+FeatureNames_getChannelByName = _pychrm.FeatureNames_getChannelByName
+
+def FeatureNames_getTransformByName(*args):
+  return _pychrm.FeatureNames_getTransformByName(*args)
+FeatureNames_getTransformByName = _pychrm.FeatureNames_getTransformByName
+
+def FeatureNames_registerImageTransform(*args):
+  return _pychrm.FeatureNames_registerImageTransform(*args)
+FeatureNames_registerImageTransform = _pychrm.FeatureNames_registerImageTransform
+
+def FeatureNames_getFeatureAlgorithmByName(*args):
+  return _pychrm.FeatureNames_getFeatureAlgorithmByName(*args)
+FeatureNames_getFeatureAlgorithmByName = _pychrm.FeatureNames_getFeatureAlgorithmByName
+
+def FeatureNames_registerFeatureAlgorithm(*args):
+  return _pychrm.FeatureNames_registerFeatureAlgorithm(*args)
+FeatureNames_registerFeatureAlgorithm = _pychrm.FeatureNames_registerFeatureAlgorithm
+
+def FeatureNames_getGroupByName(*args):
+  return _pychrm.FeatureNames_getGroupByName(*args)
+FeatureNames_getGroupByName = _pychrm.FeatureNames_getGroupByName
+
+def FeatureNames_getFeatureInfoByName(*args):
+  return _pychrm.FeatureNames_getFeatureInfoByName(*args)
+FeatureNames_getFeatureInfoByName = _pychrm.FeatureNames_getFeatureInfoByName
+
+def FeatureNames_oldFeatureNameLookup(*args):
+  return _pychrm.FeatureNames_oldFeatureNameLookup(*args)
+FeatureNames_oldFeatureNameLookup = _pychrm.FeatureNames_oldFeatureNameLookup
+
+def FeatureNames_initialized():
+  return _pychrm.FeatureNames_initialized()
+FeatureNames_initialized = _pychrm.FeatureNames_initialized
+
+class FeatureAlgorithm(ComputationTask):
+    __swig_setmethods__ = {}
+    for _s in [ComputationTask]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, FeatureAlgorithm, name, value)
+    __swig_getmethods__ = {}
+    for _s in [ComputationTask]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, FeatureAlgorithm, name)
+    def __init__(self, *args, **kwargs): raise AttributeError("No constructor defined")
+    __repr__ = _swig_repr
+    __swig_setmethods__["n_features"] = _pychrm.FeatureAlgorithm_n_features_set
+    __swig_getmethods__["n_features"] = _pychrm.FeatureAlgorithm_n_features_get
+    if _newclass:n_features = _swig_property(_pychrm.FeatureAlgorithm_n_features_get, _pychrm.FeatureAlgorithm_n_features_set)
+    def execute(self, *args): return _pychrm.FeatureAlgorithm_execute(self, *args)
+    def print_info(self): return _pychrm.FeatureAlgorithm_print_info(self)
+    def register_task(self): return _pychrm.FeatureAlgorithm_register_task(self)
+    __swig_destroy__ = _pychrm.delete_FeatureAlgorithm
+    __del__ = lambda self : None;
+FeatureAlgorithm_swigregister = _pychrm.FeatureAlgorithm_swigregister
+FeatureAlgorithm_swigregister(FeatureAlgorithm)
+
+class EmptyFeatureAlgorithm(FeatureAlgorithm):
+    __swig_setmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, EmptyFeatureAlgorithm, name, value)
+    __swig_getmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, EmptyFeatureAlgorithm, name)
+    __repr__ = _swig_repr
+    def execute(self, *args): return _pychrm.EmptyFeatureAlgorithm_execute(self, *args)
+    def __init__(self, *args): 
+        this = _pychrm.new_EmptyFeatureAlgorithm(*args)
+        try: self.this.append(this)
+        except: self.this = this
+    __swig_destroy__ = _pychrm.delete_EmptyFeatureAlgorithm
+    __del__ = lambda self : None;
+EmptyFeatureAlgorithm_swigregister = _pychrm.EmptyFeatureAlgorithm_swigregister
+EmptyFeatureAlgorithm_swigregister(EmptyFeatureAlgorithm)
+
+class ChebyshevFourierCoefficients(FeatureAlgorithm):
+    __swig_setmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, ChebyshevFourierCoefficients, name, value)
+    __swig_getmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, ChebyshevFourierCoefficients, name)
+    __repr__ = _swig_repr
+    def __init__(self): 
+        this = _pychrm.new_ChebyshevFourierCoefficients()
+        try: self.this.append(this)
+        except: self.this = this
+    def execute(self, *args): return _pychrm.ChebyshevFourierCoefficients_execute(self, *args)
+    __swig_destroy__ = _pychrm.delete_ChebyshevFourierCoefficients
+    __del__ = lambda self : None;
+ChebyshevFourierCoefficients_swigregister = _pychrm.ChebyshevFourierCoefficients_swigregister
+ChebyshevFourierCoefficients_swigregister(ChebyshevFourierCoefficients)
+
+class ChebyshevCoefficients(FeatureAlgorithm):
+    __swig_setmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, ChebyshevCoefficients, name, value)
+    __swig_getmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, ChebyshevCoefficients, name)
+    __repr__ = _swig_repr
+    def __init__(self): 
+        this = _pychrm.new_ChebyshevCoefficients()
+        try: self.this.append(this)
+        except: self.this = this
+    def execute(self, *args): return _pychrm.ChebyshevCoefficients_execute(self, *args)
+    __swig_destroy__ = _pychrm.delete_ChebyshevCoefficients
+    __del__ = lambda self : None;
+ChebyshevCoefficients_swigregister = _pychrm.ChebyshevCoefficients_swigregister
+ChebyshevCoefficients_swigregister(ChebyshevCoefficients)
+
+class ZernikeCoefficients(FeatureAlgorithm):
+    __swig_setmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, ZernikeCoefficients, name, value)
+    __swig_getmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, ZernikeCoefficients, name)
+    __repr__ = _swig_repr
+    def __init__(self): 
+        this = _pychrm.new_ZernikeCoefficients()
+        try: self.this.append(this)
+        except: self.this = this
+    def execute(self, *args): return _pychrm.ZernikeCoefficients_execute(self, *args)
+    __swig_destroy__ = _pychrm.delete_ZernikeCoefficients
+    __del__ = lambda self : None;
+ZernikeCoefficients_swigregister = _pychrm.ZernikeCoefficients_swigregister
+ZernikeCoefficients_swigregister(ZernikeCoefficients)
+
+class HaralickTextures(FeatureAlgorithm):
+    __swig_setmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, HaralickTextures, name, value)
+    __swig_getmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, HaralickTextures, name)
+    __repr__ = _swig_repr
+    def __init__(self): 
+        this = _pychrm.new_HaralickTextures()
+        try: self.this.append(this)
+        except: self.this = this
+    def execute(self, *args): return _pychrm.HaralickTextures_execute(self, *args)
+    __swig_destroy__ = _pychrm.delete_HaralickTextures
+    __del__ = lambda self : None;
+HaralickTextures_swigregister = _pychrm.HaralickTextures_swigregister
+HaralickTextures_swigregister(HaralickTextures)
+
+class MultiscaleHistograms(FeatureAlgorithm):
+    __swig_setmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, MultiscaleHistograms, name, value)
+    __swig_getmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, MultiscaleHistograms, name)
+    __repr__ = _swig_repr
+    def __init__(self): 
+        this = _pychrm.new_MultiscaleHistograms()
+        try: self.this.append(this)
+        except: self.this = this
+    def execute(self, *args): return _pychrm.MultiscaleHistograms_execute(self, *args)
+    __swig_destroy__ = _pychrm.delete_MultiscaleHistograms
+    __del__ = lambda self : None;
+MultiscaleHistograms_swigregister = _pychrm.MultiscaleHistograms_swigregister
+MultiscaleHistograms_swigregister(MultiscaleHistograms)
+
+class TamuraTextures(FeatureAlgorithm):
+    __swig_setmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, TamuraTextures, name, value)
+    __swig_getmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, TamuraTextures, name)
+    __repr__ = _swig_repr
+    def __init__(self): 
+        this = _pychrm.new_TamuraTextures()
+        try: self.this.append(this)
+        except: self.this = this
+    def execute(self, *args): return _pychrm.TamuraTextures_execute(self, *args)
+    __swig_destroy__ = _pychrm.delete_TamuraTextures
+    __del__ = lambda self : None;
+TamuraTextures_swigregister = _pychrm.TamuraTextures_swigregister
+TamuraTextures_swigregister(TamuraTextures)
+
+class CombFirstFourMoments(FeatureAlgorithm):
+    __swig_setmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, CombFirstFourMoments, name, value)
+    __swig_getmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, CombFirstFourMoments, name)
+    __repr__ = _swig_repr
+    def __init__(self): 
+        this = _pychrm.new_CombFirstFourMoments()
+        try: self.this.append(this)
+        except: self.this = this
+    def execute(self, *args): return _pychrm.CombFirstFourMoments_execute(self, *args)
+    __swig_destroy__ = _pychrm.delete_CombFirstFourMoments
+    __del__ = lambda self : None;
+CombFirstFourMoments_swigregister = _pychrm.CombFirstFourMoments_swigregister
+CombFirstFourMoments_swigregister(CombFirstFourMoments)
+
+class RadonCoefficients(FeatureAlgorithm):
+    __swig_setmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, RadonCoefficients, name, value)
+    __swig_getmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, RadonCoefficients, name)
+    __repr__ = _swig_repr
+    def __init__(self): 
+        this = _pychrm.new_RadonCoefficients()
+        try: self.this.append(this)
+        except: self.this = this
+    def execute(self, *args): return _pychrm.RadonCoefficients_execute(self, *args)
+    __swig_destroy__ = _pychrm.delete_RadonCoefficients
+    __del__ = lambda self : None;
+RadonCoefficients_swigregister = _pychrm.RadonCoefficients_swigregister
+RadonCoefficients_swigregister(RadonCoefficients)
+
+class FractalFeatures(FeatureAlgorithm):
+    __swig_setmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, FractalFeatures, name, value)
+    __swig_getmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, FractalFeatures, name)
+    __repr__ = _swig_repr
+    def __init__(self): 
+        this = _pychrm.new_FractalFeatures()
+        try: self.this.append(this)
+        except: self.this = this
+    def execute(self, *args): return _pychrm.FractalFeatures_execute(self, *args)
+    __swig_destroy__ = _pychrm.delete_FractalFeatures
+    __del__ = lambda self : None;
+FractalFeatures_swigregister = _pychrm.FractalFeatures_swigregister
+FractalFeatures_swigregister(FractalFeatures)
+
+class PixelIntensityStatistics(FeatureAlgorithm):
+    __swig_setmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, PixelIntensityStatistics, name, value)
+    __swig_getmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, PixelIntensityStatistics, name)
+    __repr__ = _swig_repr
+    def __init__(self): 
+        this = _pychrm.new_PixelIntensityStatistics()
+        try: self.this.append(this)
+        except: self.this = this
+    def execute(self, *args): return _pychrm.PixelIntensityStatistics_execute(self, *args)
+    __swig_destroy__ = _pychrm.delete_PixelIntensityStatistics
+    __del__ = lambda self : None;
+PixelIntensityStatistics_swigregister = _pychrm.PixelIntensityStatistics_swigregister
+PixelIntensityStatistics_swigregister(PixelIntensityStatistics)
+
+class EdgeFeatures(FeatureAlgorithm):
+    __swig_setmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, EdgeFeatures, name, value)
+    __swig_getmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, EdgeFeatures, name)
+    __repr__ = _swig_repr
+    def __init__(self): 
+        this = _pychrm.new_EdgeFeatures()
+        try: self.this.append(this)
+        except: self.this = this
+    def execute(self, *args): return _pychrm.EdgeFeatures_execute(self, *args)
+    __swig_destroy__ = _pychrm.delete_EdgeFeatures
+    __del__ = lambda self : None;
+EdgeFeatures_swigregister = _pychrm.EdgeFeatures_swigregister
+EdgeFeatures_swigregister(EdgeFeatures)
+
+class ObjectFeatures(FeatureAlgorithm):
+    __swig_setmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, ObjectFeatures, name, value)
+    __swig_getmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, ObjectFeatures, name)
+    __repr__ = _swig_repr
+    def __init__(self): 
+        this = _pychrm.new_ObjectFeatures()
+        try: self.this.append(this)
+        except: self.this = this
+    def execute(self, *args): return _pychrm.ObjectFeatures_execute(self, *args)
+    __swig_destroy__ = _pychrm.delete_ObjectFeatures
+    __del__ = lambda self : None;
+ObjectFeatures_swigregister = _pychrm.ObjectFeatures_swigregister
+ObjectFeatures_swigregister(ObjectFeatures)
+
+class InverseObjectFeatures(FeatureAlgorithm):
+    __swig_setmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, InverseObjectFeatures, name, value)
+    __swig_getmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, InverseObjectFeatures, name)
+    __repr__ = _swig_repr
+    def __init__(self): 
+        this = _pychrm.new_InverseObjectFeatures()
+        try: self.this.append(this)
+        except: self.this = this
+    def execute(self, *args): return _pychrm.InverseObjectFeatures_execute(self, *args)
+    __swig_destroy__ = _pychrm.delete_InverseObjectFeatures
+    __del__ = lambda self : None;
+InverseObjectFeatures_swigregister = _pychrm.InverseObjectFeatures_swigregister
+InverseObjectFeatures_swigregister(InverseObjectFeatures)
+
+class GaborTextures(FeatureAlgorithm):
+    __swig_setmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, GaborTextures, name, value)
+    __swig_getmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, GaborTextures, name)
+    __repr__ = _swig_repr
+    def __init__(self): 
+        this = _pychrm.new_GaborTextures()
+        try: self.this.append(this)
+        except: self.this = this
+    def execute(self, *args): return _pychrm.GaborTextures_execute(self, *args)
+    __swig_destroy__ = _pychrm.delete_GaborTextures
+    __del__ = lambda self : None;
+GaborTextures_swigregister = _pychrm.GaborTextures_swigregister
+GaborTextures_swigregister(GaborTextures)
+
+class GiniCoefficient(FeatureAlgorithm):
+    __swig_setmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, GiniCoefficient, name, value)
+    __swig_getmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, GiniCoefficient, name)
+    __repr__ = _swig_repr
+    def __init__(self): 
+        this = _pychrm.new_GiniCoefficient()
+        try: self.this.append(this)
+        except: self.this = this
+    def execute(self, *args): return _pychrm.GiniCoefficient_execute(self, *args)
+    __swig_destroy__ = _pychrm.delete_GiniCoefficient
+    __del__ = lambda self : None;
+GiniCoefficient_swigregister = _pychrm.GiniCoefficient_swigregister
+GiniCoefficient_swigregister(GiniCoefficient)
+
+class ColorHistogram(FeatureAlgorithm):
+    __swig_setmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, ColorHistogram, name, value)
+    __swig_getmethods__ = {}
+    for _s in [FeatureAlgorithm]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, ColorHistogram, name)
+    __repr__ = _swig_repr
+    def __init__(self): 
+        this = _pychrm.new_ColorHistogram()
+        try: self.this.append(this)
+        except: self.this = this
+    def execute(self, *args): return _pychrm.ColorHistogram_execute(self, *args)
+    __swig_destroy__ = _pychrm.delete_ColorHistogram
+    __del__ = lambda self : None;
+ColorHistogram_swigregister = _pychrm.ColorHistogram_swigregister
+ColorHistogram_swigregister(ColorHistogram)
+
+class ImageTransform(ComputationTask):
+    __swig_setmethods__ = {}
+    for _s in [ComputationTask]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
     __setattr__ = lambda self, name, value: _swig_setattr(self, ImageTransform, name, value)
     __swig_getmethods__ = {}
+    for _s in [ComputationTask]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
     __getattr__ = lambda self, name: _swig_getattr(self, ImageTransform, name)
     def __init__(self, *args, **kwargs): raise AttributeError("No constructor defined - class is abstract")
     __repr__ = _swig_repr
-    __swig_setmethods__["name"] = _pychrm.ImageTransform_name_set
-    __swig_getmethods__["name"] = _pychrm.ImageTransform_name_get
-    if _newclass:name = _swig_property(_pychrm.ImageTransform_name_get, _pychrm.ImageTransform_name_set)
     def execute(self, *args): return _pychrm.ImageTransform_execute(self, *args)
-    def print_info(self): return _pychrm.ImageTransform_print_info(self)
+    def register_task(self): return _pychrm.ImageTransform_register_task(self)
     __swig_destroy__ = _pychrm.delete_ImageTransform
     __del__ = lambda self : None;
 ImageTransform_swigregister = _pychrm.ImageTransform_swigregister

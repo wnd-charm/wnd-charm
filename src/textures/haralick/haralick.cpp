@@ -9,7 +9,7 @@
    output -array of double- a pre-allocated array of 28 doubles
 */
 
-void haralick2D(ImageMatrix &Im, double distance, double *out) {
+void haralick2D(const ImageMatrix &Im, double distance, double *out) {
 	unsigned int a,x,y;
 	unsigned char **p_gray;
 	TEXTURE *features;
@@ -25,7 +25,12 @@ void haralick2D(ImageMatrix &Im, double distance, double *out) {
 	for (y = 0; y < Im.height; y++)
 		p_gray[y] = new unsigned char[Im.width];
 
-	Im.BasicStatistics(NULL, NULL, NULL, &min_value, &max_value, NULL, 0);
+	// to keep this method from modifying the const Im, we use GetStats on a local Moments2 object
+	Moments2 local_stats;
+	Im.GetStats (local_stats);
+	min_value = local_stats.min();
+	max_value = local_stats.max();
+
 	scale255 = (255.0/(max_value-min_value));
 	for (y = 0; y < Im.height; y++)
 		for (x = 0; x < Im.width; x++)

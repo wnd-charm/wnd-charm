@@ -62,20 +62,6 @@ try:
 except:
 	import pychrm
 
-# FeatureRegistration.py is where the SWIG wrapped objects get put into a dict
-# for use in signature calculation
-try:
-	from . import FeatureRegistration 
-except:
-	import FeatureRegistration
-
-# FeatureNameMap.py contains mapping from old style names to new style
-# and the function TranslateFeatureNames()
-try:
-	from . import FeatureNameMap
-except:
-	import FeatureNameMap
-
 # ============================================================
 # Imports from Python core or other installed packages
 import numpy as np
@@ -93,12 +79,8 @@ import logging
 
 # ============================================================
 # BEGIN: Initialize module level globals
-Algorithms = None
-Transforms = None
-small_featureset_featuregroup_strings = None
-large_featureset_featuregroup_strings = None
-small_featureset_featuregroup_list = None
-large_featureset_featuregroup_list = None
+Algorithms = []
+Transforms = []
 # The numbers *must* be consistent with what's defined in wndchrm C-codebase.
 feature_vector_major_version = 2
 # Feature vector lengths in current version
@@ -146,31 +128,46 @@ def initialize_module():
 	
 	global Algorithms
 	global Transforms
-	global small_featureset_featuregroup_strings
-	global large_featureset_featuregroup_strings
-	global small_featureset_featuregroup_list
-	global large_featureset_featuregroup_list
+	# The verbosity is set by the environment variable WNDCHRM_VERBOSITY, in wndchrm_error.cpp
+	# pychrm.cvar.verbosity = 7
 
-	Algorithms = FeatureRegistration.LoadFeatureAlgorithms()
-	Transforms = FeatureRegistration.LoadFeatureTransforms()
 
-	feature_lists = FeatureRegistration.LoadSmallAndLargeFeatureSetStringLists()
+	# These are the auto-registered ComputationTasks, which come in different flavors
+	all_tasks = pychrm.ComputationTaskInstances.getInstances()
+	for task in all_tasks:
+		if task.type == task.ImageTransformTask:
+			Transforms.append (task)
+#			print task.name + " added to Transforms"
+		elif task.type == task.FeatureAlgorithmTask:
+			Algorithms.append (task)
+#			print task.name + " added to Algorithms"
 
-	small_featureset_featuregroup_strings = feature_lists[0]
-	full_list = "\n"
-	large_featureset_featuregroup_strings = full_list.join( feature_lists )
+	# The standard feature plans get loaded as needed from C++ statics, so they don't need to be initialized.
+	# Standard sets (other plan "parts" are in Tasks.h under StdFeatureComputationPlans)
+	# 	getFeatureSet();
+	# 	getFeatureSetColor();
+	# 	getFeatureSetLong();
+	# 	getFeatureSetLongColor();
 
-	small_featureset_featuregroup_list = []
-	for fg_str in small_featureset_featuregroup_strings.splitlines():
-		fg = FeatureGroup.NewFromString( fg_str )
-		if fg:
-			small_featureset_featuregroup_list.append( fg )
+	# e. g.:
+# 	small_feature_plan = pychrm.StdFeatureComputationPlans.getFeatureSet()
+# 	print "small feature set groups:"
+# 	last_feature_group = None;
+# 	for i in range( 0, small_feature_plan.n_features):
+# 		feature_group = small_feature_plan.getFeatureGroupByIndex(i)
+# 		feature_name = small_feature_plan.getFeatureNameByIndex(i)
+# 		if feature_group.name != last_feature_group:
+# 			print "feature_group "+feature_group.name
+# 		last_feature_group = feature_group.name
+# 		print "  feature_name "+feature_name
 
-	large_featureset_featuregroup_list = []
-	for fg_str in large_featureset_featuregroup_strings.splitlines():
-		fg = FeatureGroup.NewFromString( fg_str )
-		if fg:
-			large_featureset_featuregroup_list.append( fg )
+
+		
+# 	feature_groups = small_feature_plan.getFeatureGroups()
+# 	print dir (feature_groups)
+# 	for feature_group in feature_groups:
+# 		print "  feature_group.name: "+feature_group.name+", algorithm.name: "+feature_group.algorithm.name
+	
 
 	# while we're debugging, raise exceptions for numerical weirdness, since it all has to be dealt with somehow
 	# In cases where numerical weirdness is expected and dealt with explicitly, these exceptions are
@@ -939,9 +936,9 @@ class Signatures( FeatureVector ):
 
 		print "====================================================================="
 		print "Calculating small feature set for file:"
-		global small_featureset_featuregroup_list
-		the_sigs = cls.NewFromFeatureGroupList( imagepath, small_featureset_featuregroup_list, options )
-		the_sigs.version = str (feature_vector_major_version)+"."+str(feature_vector_minor_version_from_vector_type['short'])
+		feature_plan = pychrm.StdFeatureComputationPlans.getFeatureSet ();
+		the_sigs = cls.NewFromFeatureComputationPlan( imagepath, feature_plan, options )
+		the_sigs.version = str (feature_vector_major_version)+"."+str(feature_plan.feature_vec_type)
 
 		return the_sigs
 
@@ -982,37 +979,35 @@ class Signatures( FeatureVector ):
 		# incomplete, or calculated with different options, e.g., -S1441
 		# FIXME: Here's where you'd calculate a small subset of features
 		# and see if they match what was loaded from file
+		feature_plan = pychrm.StdFeatureComputationPlans.getFeatureSetLong ()
 		if len( the_sigs.names ) <= 0:
 			# All hope is lost. Calculate sigs
 			print "Calculating large feature set for file: {0}".format( imagepath )
-			global large_featureset_featuregroup_list
 			if options == None:
-				the_sigs = cls.NewFromFeatureGroupList( imagepath, large_featureset_featuregroup_list, "-l" )
-				the_sigs.version = str (feature_vector_major_version)+"."+str(feature_vector_minor_version_from_vector_type['long'])
+				the_sigs = cls.NewFromFeatureComputationPlan( imagepath, feature_plan, "-l" )
+				the_sigs.version = str (feature_vector_major_version)+"."+str(feature_plan.feature_vec_type)
 			else:
 				# FIXME: dummyproofing: does options already contain '-l'?
 				# This retval is never mentioned again, so is it really just supposed to be dropped?
-				retval = cls.NewFromFeatureGroupList( imagepath, large_featureset_featuregroup_list, \
-						options + "-l" )
-				retval.version = str (feature_vector_major_version)+"."+str(feature_vector_minor_version_from_vector_type['long'])
+				retval = cls.NewFromFeatureComputationPlan( imagepath, feature_plan, options + "-l" )
+				retval.version = str (feature_vector_major_version)+"."+str(feature_plan.feature_vec_type)
 
 		# Compare the number of features to the expected length for this type of feature vector
-		elif len( the_sigs.names ) != feature_vector_num_features_from_vector_type['long']:
+		elif len( the_sigs.names ) != feature_plan.n_features:
 			# FIXME: Calculate the difference of features between what was loaded
 			# from file, and what is supposed to be present in large feature set
 			# and calculate only those. They might also need to be placed in an order
 			# that makes sense.
 			err_msg = "There are only {0} signatures in file '{1}'".format(
 				len( the_sigs.names ), sigpath )
-			err_msg += "where there are supposed to be {0}.".format (
-				feature_vector_num_features_from_vector_type['long'])
+			err_msg += "where there are supposed to be {0}.".format (feature_plan.n_features)
 			raise ValueError( err_msg )
 		return the_sigs
 
 
 	#================================================================
 	@classmethod
-	def NewFromFeatureGroupList( cls, image_path_or_mat, feature_groups, options = None ):
+	def NewFromFeatureComputationPlan ( cls, image_path_or_mat, computation_plan, options = None ):
 		"""@brief calculates signatures
 		@argument image_path_or_mat - path to a tiff file as a string or a pychrm.ImageMatrix object
 		"""
@@ -1032,8 +1027,6 @@ class Signatures( FeatureVector ):
 			raise ValueError("image parameter 'image_path_or_mat' is not a string or a pychrm.ImageMatrix")
 
 		print path_to_image
-		im_cache = {}
-		im_cache[ '' ] = original
 
 		# instantiate an empty Signatures object
 		signatures = cls()
@@ -1041,16 +1034,19 @@ class Signatures( FeatureVector ):
 		signatures.path_to_image = path_to_image
 		signatures.options = options
 
-		for fg in feature_groups:
-			print "Group {0}".format( fg.name )
-			returned_feature_vals = fg.CalculateFeatures( im_cache )
-			count = 0
-			for value in returned_feature_vals:
-				signatures.names.append( fg.name + " [{0}]".format( count ) )
-				signatures.values.append( value )	
-				count += 1
-		# The minor version is 0 because this is not one of the standard feature vectors
-		signatures.version = str (feature_vector_major_version)+".0"
+		# pre-allocate space where the features will be stored (C++ std::vector<double>)
+		signatures.values = pychrm.DoubleVector (computation_plan.n_features)
+
+		# get the feature names from the plan
+		for i in range( 0, computation_plan.n_features):
+			signatures.names.append (computation_plan.getFeatureNameByIndex(i))
+
+		# Get an executor for this plan and run it
+		plan_exec = pychrm.FeatureComputationPlanExecutor(computation_plan)
+		plan_exec.run (original, signatures.values, 0)
+
+		# set the version
+		signatures.version = str (feature_vector_major_version)+"."+str(computation_plan.feature_vec_type)
 
 		return signatures
 
@@ -1059,8 +1055,8 @@ class Signatures( FeatureVector ):
 	def NewFromFeatureNameList( cls, path_to_image, feature_names, options = None ):
 		"""@brief calculates signatures"""
 
-		work_order, num_features = GenerateWorkOrderFromListOfFeatureStrings( feature_names )
-		sig = cls.NewFromFeatureGroupList( path_to_image, work_order, options )
+		computation_plan = GenerateComputationPlanFromListOfFeatureStrings( feature_names )
+		sig = cls.NewFromFeatureComputationPlan( path_to_image, computation_plan, options )
 		return sig.FeatureReduce( feature_names ) 
 
 	#================================================================
@@ -1121,8 +1117,9 @@ class Signatures( FeatureVector ):
 					pass
 				else:
 					value, name = line.strip().split(None, 1 )
-					signatures.values.append( float( value ) )	
-					signatures.names.append( name )
+					FI = pychrm.FeatureNames.getFeatureInfoByName (name)
+					signatures.values.append( float( value ) )
+					signatures.names.append( FI.name )
 				linenum += 1
 			#print "Loaded {0} features.".format( len( signatures.values ) )
 
@@ -1133,9 +1130,6 @@ class Signatures( FeatureVector ):
 			signatures.version = "1." + str(
 				feature_vector_minor_version_from_num_features_v1.get ( len (signatures.values),0 )
 			)
-
-		# Check if the feature name follows the old convention
-		signatures.names = FeatureNameMap.TranslateToNewStyle( signatures.names ) 
 		
 		print "Features version from file: {0}".format (signatures.version)
 		return signatures
@@ -1248,138 +1242,40 @@ class Signatures( FeatureVector ):
 
 #############################################################################
 # class definition of FeatureGroup
+# N.B.: Now implemented in C++ with the FeatureGroup class (originally in FeatureNames.h/.cpp)
 #############################################################################
-class FeatureGroup( object ):
-	"""A FeatureGroup is a concrete class that fully defines a family of image features. 
-
-	Its member function CalculateFeatures() is the interface which receives a pixel plane
-	as input and returns a vector of doubles which are the image descriptor values 
-	derived from that input pixel plane.
-
-	In the WND-CHARM sense, a FeatureGroup is composed of: 1. A list of transforms to apply 
-	sequentially to an input image/ROI/pixel plane, and 2. The algorithm to apply to 
-	that transformed pixel plane which produces the image descriptor values.
-
-	The member "algorithm" is a reference to the SWIG-wrapped C++ class FeatureAlgorithm.
-	The member "transform_list" is a list of references to the SWIG-wrapped C++ class
-	FeatureTransform.
-	The member "name" is a string representation of the algorithm and transform list,
-	following the convention "AlgorithmName ( [Transform A ( [Transform B (] )] )."""
-
-	name = None
-	algorithm = None
-	transform_list = None
-	#================================================================
-	def __init__( self, name_str = "", algorithm = None, tform_list = [] ):
-		#print "Creating new FeatureGroup for string {0}:".format(name_str)
-		#print "\talgorithm: {0}, transform list: {1}".format( algorithm, tform_list )
-		self.name = name_str 
-		self.algorithm = algorithm
-		self.transform_list = tform_list
-	#================================================================
-	def CalculateFeatures( self, cached_pixel_planes ):
-		"""Returns a tuple with the features"""
-		pixel_plane = None
-		#print "transforms: {0}".format( self.Tforms )
-		pixel_plane = RetrievePixelPlane( cached_pixel_planes, self.transform_list )
-		return self.algorithm.calculate( pixel_plane )
-
-	#================================================================
-	@classmethod
-	def NewFromString( cls, name ):
-		"""Takes a string input, parses, and returns an instance of a FeatureGroup class"""
-
-		# The ability to comment out lines with a hashmark at the beginning of the line
-		if name.startswith( '#' ):
-			return None
-		global Algorithms
-		global Transforms
-		string_rep = name.rstrip( ")" )
-		parsed = string_rep.split( ' (' )
-		
-		alg = parsed[0]
-		if alg not in Algorithms:
-			raise KeyError( "Don't know about a feature algorithm with the name {0}".format(alg) )
-		
-		tform_list = parsed[1:]
-		try:
-			tform_list.remove( "" )
-		except ValueError:
-			pass
-		if len(tform_list) != 0:
-			for tform in tform_list:
-				if tform not in Transforms:
-					raise KeyError( "Don't know about a transform named {0}".format( tform ) )
-
-		tform_swig_obj_list = [ Transforms[ tform ] for tform in tform_list ]
-
-		return cls( name, Algorithms[ alg ], tform_swig_obj_list )
-
-#############################################################################
-# Some more global functions related to Signatures and FeatureGroups:
-#############################################################################
-def RetrievePixelPlane( image_matrix_cache, tform_list ):
-	"""
-	Returns the image matrix prescribed in tform_list
-	If it already exists in cache, just return.
-	If it doesn't exist calculates it
-	Recurses through the compound transform chain in tform_list
-	"""
-	#print "passed in: {0}".format( tform_list )
-	requested_transform = " ".join( [ tform.name for tform in tform_list ] )
-	#print "requesting pixel plane: '{0}'".format( requested_transform )
-	if requested_transform in image_matrix_cache:
-		return image_matrix_cache[ requested_transform ]
-	
-	# Required transform isn't in the cache, gotta make it
-	# Pop transforms off the end sequentially and check to see if
-	# lower-level transforms have already been calculated and stored in cache
-
-	# Can't begin if there isn't at least the raw (untransformed) pixel plane
-	# already stored in the cache
-	if image_matrix_cache is None or len(image_matrix_cache) == 0:
-		raise ValueError( "Can't calculate features: couldn't find the original pixel plane" +\
-		                  "to calculate features {0}.".format( self.Name ) )
-
-	sublist = tform_list[:]
-	sublist.reverse()
-	top_level_transform = sublist.pop()
-	intermediate_pixel_plane = RetrievePixelPlane( image_matrix_cache, sublist )
-
-	tformed_pp = pychrm.ImageMatrix()
-	tformed_pp.transform (intermediate_pixel_plane, top_level_transform)
-	#assert( intermediate_pixel_plane ), "Pixel Plane returned from transform() was NULL"
-	image_matrix_cache[ requested_transform ] = tformed_pp
-	return tformed_pp
-
-
+# 
+# 	A FeatureGroup is composed of: 1. A list of transforms to apply 
+# 	sequentially to an input image/ROI/pixel plane, and 2. The algorithm to apply to 
+# 	that transformed pixel plane which produces the image descriptor values.
+# 
+# 	The member "algorithm" is a reference to the SWIG-wrapped C++ class FeatureAlgorithm.
+# 	The member "transform_list" is a list of references to the SWIG-wrapped C++ class
+# 	FeatureTransform.
+# 	The member "name" is a string representation of the algorithm and transform list,
+# 	following the convention "AlgorithmName ([Transform A ([Transform B (])])."""
+#   e.g.: "Tamura Textures (Wavelet (Edge ()))"
+#   These FeatureGroup names are keys to a static cache of FeatureGroups.
+# 
 #================================================================
-def GenerateWorkOrderFromListOfFeatureStrings( feature_list ):
+def GenerateComputationPlanFromListOfFeatureStrings( feature_list ):
 	"""Takes list of feature strings and chops off bin number at the first space on right, e.g.,
-	"feature alg (transform()) [bin]" ... Returns a list of FeatureGroups.
+	"feature alg (transform()) [bin]" ... Returns a FeatureComputationPlan
 
-	WARNING, RETURNS A TUPLE OF TWO THINGS!
-
-	@return work_order - list of FeatureGroup instances
-	@return output_features_count - total number of individual features contained in work_order
+	@return work_order - a FeatureComputationPlan
 	"""
+	feature_plan = pychrm.FeatureComputationPlan ('custom')
 
-	feature_group_strings = set()
-	output_features_count = 0
-
+	feature_groups = set()
 	for feature in feature_list:
 		split_line = feature.rsplit( " ", 1 )
 		# add to set to ensure uniqueness
-		feature_group_strings.add( split_line[0] )
+		if split_line[0] not in feature_groups:
+			feature_plan.add( split_line[0] )
+			feature_groups.add( split_line[0] )
+	feature_plan.finalize()
 
-	# iterate over set and construct feature groups
-	work_order = []
-	for feature_group in feature_group_strings:
-		fg = FeatureGroup.NewFromString( feature_group )
-		output_features_count += fg.algorithm.n_features
-		work_order.append( fg )
-
-	return work_order, output_features_count
+	return feature_plan
 
 #############################################################################
 # class definition of FeatureSet
@@ -2685,7 +2581,7 @@ class FeatureSet_Continuous( FeatureSet ):
 			err_str += "The training set '{0}' is missing ".format( self.source_path )
 			err_str += "{0}/{1} features that were requested in the feature reduction list.".format(\
 					len( missing_features_from_req ), len( requested_features ) )
-			err_str += "\nDid you forget to convert the feature names from the C++ implementation style into their modern counterparts using FeatureNameMap.TranslateToNewStyle()?"
+			err_str += "\nDid you forget to convert the feature names from the C++ implementation style into their modern counterparts using FeatureNames.getGroupByName()?"
 
 			raise ValueError( err_str )
 

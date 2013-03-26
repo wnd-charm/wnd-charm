@@ -22,8 +22,12 @@ std::ostringstream error_messages;
 // 		0-Classification accuracy and similarity and confusion matrices only
 // 		1-Individual
 // 		2-Everything except the confusion and similarity matrices when printing to std out only
-// 		>2-Everything
-int verbosity = 2;
+//      > 3 - report things that are being calculated
+//      > 4 - report algorithms being registered (this is done pre-main, possibly prior to verbosity being set)
+//      > 5 - report execution task execution
+//      > 6 - report execution tasks added/removed from queue
+//      > 7 - report memory allocation/deallocation for matrixes
+int verbosity = getenv("WNDCHRM_VERBOSITY") ? atoi (getenv("WNDCHRM_VERBOSITY")) : 2;
 
 // appends the system error message for the current errno
 void catErrno () {

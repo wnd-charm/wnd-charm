@@ -33,7 +33,6 @@
 #include <assert.h>
 #include <vector>
 #include <string>
-#include <set>
 // defines OUR_UNORDERED_MAP based on what's available
 #include "unordered_map_dfn.h"
 
@@ -267,10 +266,12 @@ class ComputationPlanExecutor {
 		// The only reason its not an actual std::priority_queue is that we want to add nodes to it in a block, then heapify.
 		typedef std::vector<const ComputationTaskNode *> executable_nodes_t;
 		executable_nodes_t executable_nodes;
-		// The executing_nodes is an std::set of nodes (no order, just a list we can add/remove from)
+		// The executing_nodes is a map of node pointers keyed on node_key
 		typedef OUR_UNORDERED_MAP<std::string, const ComputationTaskNode *> executing_nodes_t;
 		executing_nodes_t executing_nodes;
 
+		// execute_node in the parent only knows about executing_nodes, so it inserts it into its executing_nodes map
+		// Also, it asserts that this node isn't already in the executing_nodes map
 		virtual void execute_node (const ComputationTaskNode *exec_node) {
 			assert (executing_nodes.find(exec_node->node_key) == executing_nodes.end() && "Attempt to execute a node which is already executing.");
 			executing_nodes.insert ( std::pair<std::string, const ComputationTaskNode *>(exec_node->node_key, exec_node) );
@@ -290,7 +291,8 @@ class ComputationPlanExecutor {
 // forward declarations
 class ImageMatrix;
 class FeatureGroup;
-// This class has additional members and methods specific for computing features
+// This class has additional members and methods specific for a feature computation plan
+// Plans aren't executable themselves because they do not hold state durring an execution.
 #define CURRENT_FEATURE_VERSION 2
 class FeatureComputationPlan : public ComputationPlan {
 	public:
@@ -308,7 +310,8 @@ class FeatureComputationPlan : public ComputationPlan {
 				return -1;
 		}
 
-		const std::string &getFeatureName (size_t offset) const;
+		const std::string &getFeatureNameByIndex (size_t offset) const;
+		const FeatureGroup *getFeatureGroupByIndex (size_t offset) const;
 		FeatureComputationPlan (const std::string &name_in) : ComputationPlan (name_in) {
 			n_features = 0;
 			feature_vec_type = 0;

@@ -34,6 +34,6 @@
 
 #include "cmatrix.h"
 
-void ChebyshevFourier2D(ImageMatrix *Im, unsigned long N, double *coeff_packed, unsigned int packingOrder);
+void ChebyshevFourier2D(const ImageMatrix &Im, unsigned long N, double *coeff_packed, unsigned int packingOrder);
 
 #endif

@@ -56,22 +56,22 @@ double *ChebPol(double x,unsigned long N, double *out) {
 ChebyshevFourier - Chebyshev Fourier transform
 "coeff_packed" -array of doubles- a pre-allocated array of 32 doubles
 */
-void ChebyshevFourier2D(ImageMatrix *Im, unsigned long N, double *coeff_packed, unsigned int packingOrder) {
+void ChebyshevFourier2D(const ImageMatrix &Im, unsigned long N, double *coeff_packed, unsigned int packingOrder) {
 	unsigned long a,m,n,x,y,nLast,NN,Nmax,ind;
 	double *sum_r,*sum_i,*f,*r,*img,*Tn,*coeff;
 	double min,max;
 	long *kk;
 
 	if (N==0) N=11;
-	m=Im->height;
-	n=Im->width;
+	m=Im.height;
+	n=Im.width;
 
 	img = new double[m*n];
 	f   = new double[m*n];
 	r   = new double[m*n];
 	kk  = new long[m*n];  /* the required size of kk is equal to nLast */
 
-	readOnlyPixels Im_pix_plane = Im->ReadablePixels();
+	readOnlyPixels Im_pix_plane = Im.ReadablePixels();
 	double x_ind,x_2, y_ind;
 	double two_over_n_minus_1 = (2.0/((double)n-1));
 	double two_over_m_minus_1 = (2.0/((double)m-1));

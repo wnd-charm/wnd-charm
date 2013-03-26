@@ -67,6 +67,11 @@ libchrm_la_SOURCES = \
        ImageTransforms.h \
        FeatureAlgorithms.cpp \
        FeatureAlgorithms.h \
+       OldFeatureNamesFileStr.h \
+       FeatureNames.cpp \
+       FeatureNames.h \
+       Tasks.cpp \
+       Tasks.h \
        gsl/specfunc.cpp \
        gsl/specfunc.h
 

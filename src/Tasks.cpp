@@ -153,7 +153,7 @@ void FeatureComputationPlan::add (const std::string &fg_name) {
 	add ( FeatureNames::getGroupByName (fg_name) );
 };
 
-const std::string &FeatureComputationPlan::getFeatureName (size_t offset) const {
+const std::string &FeatureComputationPlan::getFeatureNameByIndex (size_t offset) const {
 	static const std::string null_string = "";
 	offset_FN_map_t::const_iterator it = offset_FN_map.find (offset);
 	if (it != offset_FN_map.end()) {
@@ -162,6 +162,17 @@ const std::string &FeatureComputationPlan::getFeatureName (size_t offset) const 
 		return null_string;
 	}
 }
+
+const FeatureGroup *FeatureComputationPlan::getFeatureGroupByIndex (size_t offset) const {
+
+	offset_FG_map_t::const_iterator it = offset_FG_map.find (offset);
+	if (it != offset_FG_map.end()) {
+		return it->second;
+	} else {
+		return NULL;
+	}
+}
+
 
 
 bool compare_dependencies (const ComputationTaskNode *first, const ComputationTaskNode *second) {

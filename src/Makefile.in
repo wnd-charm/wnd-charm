@@ -66,6 +66,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac_pkg_swig.m4 \
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
+CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
@@ -113,12 +114,13 @@ am_libchrm_la_OBJECTS = libchrm_la-FuzzyCalc.lo \
 	libchrm_la-WaveletMedium.lo libchrm_la-wt.lo \
 	libchrm_la-cmatrix.lo libchrm_la-wndchrm_error.lo \
 	libchrm_la-ImageTransforms.lo libchrm_la-FeatureAlgorithms.lo \
+	libchrm_la-FeatureNames.lo libchrm_la-Tasks.lo \
 	libchrm_la-specfunc.lo
 libchrm_la_OBJECTS = $(am_libchrm_la_OBJECTS)
 libchrm_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(libchrm_la_CXXFLAGS) \
 	$(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-DEFAULT_INCLUDES = -I.@am__isrc@
+DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__depfiles_maybe = depfiles
 am__mv = mv -f
@@ -649,6 +651,11 @@ libchrm_la_SOURCES = \
        ImageTransforms.h \
        FeatureAlgorithms.cpp \
        FeatureAlgorithms.h \
+       OldFeatureNamesFileStr.h \
+       FeatureNames.cpp \
+       FeatureNames.h \
+       Tasks.cpp \
+       Tasks.h \
        gsl/specfunc.cpp \
        gsl/specfunc.h
 
@@ -739,12 +746,14 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-DataGrid2D.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-DataGrid3D.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-FeatureAlgorithms.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-FeatureNames.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-FeatureStatistics.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-Filter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-FilterSet.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-FuzzyCalc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-ImageTransforms.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-Symlet5.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-Tasks.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-Wavelet.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-WaveletHigh.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_la-WaveletLow.Plo@am__quote@
@@ -978,6 +987,20 @@ libchrm_la-FeatureAlgorithms.lo: FeatureAlgorithms.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='FeatureAlgorithms.cpp' object='libchrm_la-FeatureAlgorithms.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_la-FeatureAlgorithms.lo `test -f 'FeatureAlgorithms.cpp' || echo '$(srcdir)/'`FeatureAlgorithms.cpp
+
+libchrm_la-FeatureNames.lo: FeatureNames.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -MT libchrm_la-FeatureNames.lo -MD -MP -MF $(DEPDIR)/libchrm_la-FeatureNames.Tpo -c -o libchrm_la-FeatureNames.lo `test -f 'FeatureNames.cpp' || echo '$(srcdir)/'`FeatureNames.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libchrm_la-FeatureNames.Tpo $(DEPDIR)/libchrm_la-FeatureNames.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='FeatureNames.cpp' object='libchrm_la-FeatureNames.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_la-FeatureNames.lo `test -f 'FeatureNames.cpp' || echo '$(srcdir)/'`FeatureNames.cpp
+
+libchrm_la-Tasks.lo: Tasks.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -MT libchrm_la-Tasks.lo -MD -MP -MF $(DEPDIR)/libchrm_la-Tasks.Tpo -c -o libchrm_la-Tasks.lo `test -f 'Tasks.cpp' || echo '$(srcdir)/'`Tasks.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libchrm_la-Tasks.Tpo $(DEPDIR)/libchrm_la-Tasks.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='Tasks.cpp' object='libchrm_la-Tasks.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_la-Tasks.lo `test -f 'Tasks.cpp' || echo '$(srcdir)/'`Tasks.cpp
 
 libchrm_la-specfunc.lo: gsl/specfunc.cpp
 @am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_la_CXXFLAGS) $(CXXFLAGS) -MT libchrm_la-specfunc.lo -MD -MP -MF $(DEPDIR)/libchrm_la-specfunc.Tpo -c -o libchrm_la-specfunc.lo `test -f 'gsl/specfunc.cpp' || echo '$(srcdir)/'`gsl/specfunc.cpp

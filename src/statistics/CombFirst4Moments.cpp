@@ -75,22 +75,22 @@ int matr4moments_to_hist(double matr4moments[4][N_COMB_SAMPLES], double *vec, in
 }
 
 //---------------------------------------------------------------------------
-int CombFirst4Moments2D(ImageMatrix *Im, double *vec) {
+int CombFirst4Moments2D(const ImageMatrix &Im, double *vec) {
 	double **I,**J,**J1,z4[4]={0,0,0,0},z[4];
 	double matr4moments[4][N_COMB_SAMPLES];
 	long m,n,n2,m2;
 	long a,x,y,ii;
 	int matr4moments_index;
 	int vec_count=0;
-	readOnlyPixels pix_plane = Im->ReadablePixels();
+	readOnlyPixels pix_plane = Im.ReadablePixels();
 	long step;
-	Moments tmpMoments;
+	Moments4 tmpMoments;
 	for (a = 0; a < 4; a++)    /* initialize */
 		for (matr4moments_index = 0; matr4moments_index < N_COMB_SAMPLES; matr4moments_index++)
 			matr4moments[a][matr4moments_index] = 0;
 
-	m=Im->height;
-	n=Im->width;
+	m=Im.height;
+	n=Im.width;
 	I=new double*[n];
 	J=new double*[n];
 	J1=new double*[n];

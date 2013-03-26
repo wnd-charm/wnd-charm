@@ -74,7 +74,7 @@ public:
 	std::vector<ImageTransform const *> transforms; // these are in order of application
 	std::vector<std::string> labels;
 
-	FeatureGroup (const std::string &s, const FeatureAlgorithm *f, const Channel *c, std::vector<ImageTransform const *> &t);
+	FeatureGroup (const std::string &s, const FeatureAlgorithm *f, const Channel *c, std::vector<const ImageTransform *> &t);
 };
 
 

@@ -232,7 +232,7 @@ void GaborTextureFilters2D(const ImageMatrix &Im, double *ratios) {
 		e2 = GaborEnergy(Im,f0[ii],sig2lam,gamma,theta,n);
 		e2img.remap_pix_plane(e2, Im.width, Im.height);
 		writeablePixels e2_pix_plane = e2img.WriteablePixels();
-		e2_pix_plane.array() /= e2_pix_plane.maxCoeff();
+		e2_pix_plane.array() = (e2_pix_plane.array() / e2_pix_plane.maxCoeff()).unaryExpr (Moments2func(e2img.stats));
 		GRAYthr = e2img.Otsu();
 		afterGaborScore = (e2_pix_plane.array() > GRAYthr).count();
 		ratios[ii] = (double)afterGaborScore/(double)originalScore;

@@ -17,13 +17,14 @@
 /*  License along with this library; if not, write to the Free Software     */
 /*  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 /*                                                                          */
-/*  Contact:    igg@nih.gov, igg@cathilya.org                               */
+/*  Contact:    igg@nih.gov                                                 */
 /*              http://code.google.com/p/wnd-charm/                         */
 /****************************************************************************/
 
 #include "cmatrix.h"
 #include "wndchrm_error.h"
 #include "Tasks.h"
+#include "FeatureNames.h"
 #include "FeatureAlgorithms.h"
 #include "ImageTransforms.h"
 %}
@@ -34,5 +35,6 @@
 %include "cmatrix.i"
 %include "wndchrm_error.i"
 %include "Tasks.i"
+%include "FeatureNames.i"
 %include "FeatureAlgorithms.i"
 %include "ImageTransforms.i"

@@ -37,9 +37,9 @@
 #undef NDEBUG
 #include <assert.h>
 #include <string> // for source field
-#include <Eigen/Dense>
+#include "Eigen/Dense"
 #include "colors/FuzzyCalc.h"
-#include "ImageTransforms.h"
+#include "statistics/Moments.h"
 //#define min(a,b) (((a) < (b)) ? (a) : (b))
 //#define max(a,b) (((a) < (b)) ? (b) : (a))
 
@@ -47,9 +47,8 @@
 #define INF 10E200
 #define EPSILON 10E-20
 
-using namespace std;
-
-class FeatureGroup;
+// Forward declarations
+class ImageTransform;
 
 typedef unsigned char byte;
 typedef struct {
@@ -167,16 +166,18 @@ private:
 	clrData _clr_plane;                              // 3-channel color data
 	bool _is_pix_writeable;
 	bool _is_clr_writeable;
-	double _min, _max, _mean, _std, _median;        // min, max, mean, std computed in single pass, median in separate pass
+	double _median;
 public:
 	std::string source;                             // path of image source file
 	enum ColorModes ColorMode;                       // can be cmRGB, cmHSV or cmGRAY
 	unsigned short bits;                            // the number of intensity bits (8,16, etc)
 	unsigned int width,height;                               // width and height of the picture
-	bool has_stats, has_median;                     // has_stats applies to min, max, mean, std. has_median only to median
+	Moments2 stats;        // min, max, mean, std computed in single pass, median in separate pass
+	bool has_median;                     // if the median has been computed
 	inline writeablePixels WriteablePixels() {
 		assert(_is_pix_writeable && "Attempt to write to read-only pixels");
-		has_stats = has_median = false;
+		has_median = false;
+		stats.reset();
 		return _pix_plane;
 	}
 	inline writeableColors WriteableColors() {
@@ -227,79 +228,72 @@ public:
 	virtual void transform (const ImageMatrix &matrix_IN, const ImageTransform *transform);
 
 	void normalize(double min, double max, long range, double mean, double stddev); // normalized an image to either min/max or mean/stddev
-	void to8bits();
+	void to8bits (const ImageMatrix &matrix_IN);
 	void flipV();                                   // flip an image around a vertical axis (left to right)
 	void flipH();                                   // flip an image around a horizontal axis (upside down)
 	void invert();                                  // invert the intensity of an image
 	void Downsample (const ImageMatrix &matrix_IN, double x_ratio, double y_ratio);// down sample an image
 	void Rotate (const ImageMatrix &matrix_IN, double angle);              // rotate an image by 90,180,270 degrees
 	void convolve(const pixDataMat &filter);
-	void BasicStatistics(double *mean, double *median, double *std, double *min, double *max, double *histogram, int bins);
+	double update_median ();
+	double get_median () const;
+	void UpdateStats();
+	void GetStats (Moments2 &moments2) const;
 	inline double min() {
-		if (!has_stats) {
-			double var;
-			BasicStatistics (&var, NULL, &var, &var, &var, NULL, 0);
-		}
-		return (_min);
+		if (! stats.n() > 0) UpdateStats();
+		return (stats.min());
 	}
 	inline double max() {
-		if (!has_stats) {
-			double var;
-			BasicStatistics (&var, NULL, &var, &var, &var, NULL, 0);
-		}
-		return (_max);
+		if (! stats.n() > 0) UpdateStats();
+		return (stats.max());
 	}
 	inline double mean() {
-		if (!has_stats) {
-			double var;
-			BasicStatistics (&var, NULL, &var, &var, &var, NULL, 0);
-		}
-		return (_mean);
+		if (! stats.n() > 0) UpdateStats();
+		return (stats.mean());
 	}
 	inline double std() {
-		if (!has_stats) {
-			double var;
-			BasicStatistics (&var, NULL, &var, &var, &var, NULL, 0);
-		}
-		return (_std);
+		if (! stats.n() > 0) UpdateStats();
+		return (stats.std());
+	}
+	inline double var() {
+		if (! stats.n() > 0) UpdateStats();
+		return (stats.var());
 	}
 	inline double median() {
-		if (!has_median) {
-			double var;
-			BasicStatistics (NULL, &var, NULL, NULL, NULL, NULL, 0);
-		}
+		if (!has_median) update_median();
 		return (_median);
 	}
-	void GetColorStatistics(double *hue_avg, double *hue_std, double *sat_avg, double *sat_std, double *val_avg, double *val_std, double *max_color, double *colors);
-	void ColorTransform();
-	void HueTransform();
-	void histogram(double *bins,unsigned short nbins, int imhist);
-   double Otsu(int dynamic_range=1);                                  /* Otsu grey threshold                  */
-	void MultiScaleHistogram(double *out);
+	void GetColorStatistics(double *hue_avg, double *hue_std, double *sat_avg, double *sat_std, double *val_avg, double *val_std, double *max_color, double *colors) const;
+	void ColorTransform(const ImageMatrix &matrix_IN);
+	void HueTransform(const ImageMatrix &matrix_IN);
+	void histogram(double *bins,unsigned short nbins, bool imhist = false, const Moments2 &in_stats = Moments2()) const; // by default, based on computed min and max.
+    double Otsu(bool dynamic_range=true) const;                                  /* Otsu grey threshold                  */
+	void MultiScaleHistogram(double *out) const;
 	//   double AverageEdge();
-	void EdgeTransform();                           // gradient binarized using otsu threshold
-	double fft2();
-	void ChebyshevTransform(unsigned int N);
-	void ChebyshevFourierTransform2D(double *coeff);
-	void Symlet5Transform();
-	void PrewittMagnitude2D(ImageMatrix *output);
-	void PrewittDirection2D(ImageMatrix *output);
-	void ChebyshevStatistics2D(double *coeff, unsigned int N, unsigned int nbins);
-	int CombFirstFourMoments2D(double *vec);
-	void EdgeStatistics(unsigned long *EdgeArea, double *MagMean, double *MagMedian, double *MagVar, double *MagHist, double *DirecMean, double *DirecMedian, double *DirecVar, double *DirecHist, double *DirecHomogeneity, double *DiffDirecHist, unsigned int nbins);
-	void RadonTransform2D(double *vec);
-	double OtsuBinaryMaskTransform();
+	void EdgeTransform(const ImageMatrix &matrix_IN);                           // gradient binarized using otsu threshold
+	double fft2 (const ImageMatrix &matrix_IN);
+	void ChebyshevTransform (const ImageMatrix &matrix_IN, unsigned int N);
+	void ChebyshevFourierTransform2D (double *coeff) const;
+	void Symlet5Transform (const ImageMatrix &matrix_IN);
+	void PrewittMagnitude2D (const ImageMatrix &matrix_IN);
+	void PrewittDirection2D (const ImageMatrix &matrix_IN);
+	void ChebyshevStatistics2D (double *coeff, unsigned int N, unsigned int nbins) const;
+	int CombFirstFourMoments2D (double *vec) const;
+	void EdgeStatistics (unsigned long *EdgeArea, double *MagMean, double *MagMedian, double *MagVar,
+		double *MagHist, double *DirecMean, double *DirecMedian, double *DirecVar, double *DirecHist,
+		double *DirecHomogeneity, double *DiffDirecHist, unsigned int nbins) const;
+	void RadonTransform2D(double *vec) const;
+	double OtsuBinaryMaskTransform (const ImageMatrix &matrix_IN);
 	unsigned long BWlabel(int level);
-	void centroid(double *x_centroid, double *y_centroid);
+	void centroid(double *x_centroid, double *y_centroid) const;
 	void FeatureStatistics(unsigned long *count, long *Euler, double *centroid_x, double *centroid_y, unsigned long *AreaMin, unsigned long *AreaMax,
 		double *AreaMean, unsigned int *AreaMedian, double *AreaVar, unsigned int *area_histogram,double *DistMin, double *DistMax,
 		double *DistMean, double *DistMedian, double *DistVar, unsigned int *dist_histogram, unsigned int nbins
-	);
-	void GaborFilters2D(double *ratios);
-	void HaralickTexture2D(double distance, double *out);
-	void TamuraTexture2D(double *vec);
-	void zernike2D(double *zvalues, long *output_size);
-	void fractal2D(unsigned int bins,double *output);
+	) const;
+	void GaborFilters2D(double *ratios) const;
+	void HaralickTexture2D(double distance, double *out) const;
+	void TamuraTexture2D(double *vec) const;
+	void zernike2D(double *zvalues, long *output_size) const;
 
 	// disable the copy constructor
 private:
