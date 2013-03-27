@@ -4,6 +4,9 @@
 #include <stddef.h>
 #include <cfloat> // DBL_MAX
 #include <cmath>
+#define MIN_VAL -FLT_MAX
+#define MAX_VAL FLT_MAX
+
 class Moments4 {
   private:
   	double _min, _max, _mean, M2, M3, M4;
@@ -11,10 +14,11 @@ class Moments4 {
 
   public:
   	Moments4() { reset(); }
-	void reset() { _mean = M2 = M3 = M4 = 0.0; _min = DBL_MAX; _max = -DBL_MAX; _n = 0;}
+	void reset() { _mean = M2 = M3 = M4 = 0.0; _min = MAX_VAL; _max = MIN_VAL; _n = 0;}
   	inline double add (const double x) {
   		size_t n1;
   		double delta, delta_n, delta_n2, term1;
+		if (std::isnan (x) || x > MAX_VAL || x < MIN_VAL) return (x);
 
 		n1 = _n;
 		_n = _n + 1;
@@ -65,6 +69,7 @@ class Moments2 {
   	inline double add (const double x) {
   		size_t n1;
   		double delta, delta_n, term1;
+		if (std::isnan (x) || x > MAX_VAL || x < MIN_VAL) return (x);
 
 		n1 = _n;
 		_n = _n + 1;
@@ -84,7 +89,7 @@ class Moments2 {
   	double max()  const { return _max; }
   	double mean() const { return _mean; }
   	double std () const { return (_n > 2 ? sqrt ( M2/(_n - 1) ) : 0.0); }
-  	double var () const { return (_n > 2 ? M2/(_n - 1) : 0.0); }
+  	double var () const { return (_n > 2 ? (M2/(_n - 1)) : 0.0); }
   	void momentVector (double *z) const { z[0] = mean(); z[1] = std(); }
 };
 
