@@ -234,7 +234,8 @@ def normalize_by_columns ( full_stack, mins = None, maxs = None ):
 	full_stack_m -= mins
 	full_stack_m /= (maxs - mins)
 	# Left over NANs and divide-by-zero from max == min become 0
-	full_stack = full_stack_m.filled (0) * 100
+	# Note the deep copy to change the numpy parameter in-place.
+	full_stack[:] = full_stack_m.filled (0) * 100.0
 
 	# return settings to original
 	np.seterr(**oldsettings)
@@ -474,7 +475,7 @@ class FisherFeatureWeights( FeatureWeights ):
 		with open( weights_filepath, 'r' ) as weights_file:
 			for line in weights_file:
 				# split line "number <space> name"
-				feature_line = line.strip().split( " ", 1 )
+				feature_line = line.strip().split(None, 1 )
 				weights.values.append( float( feature_line[0] ) )
 				weights.names.append( pychrm.FeatureNames.getFeatureInfoByName (feature_line[1]).name )
 
@@ -522,18 +523,18 @@ class FisherFeatureWeights( FeatureWeights ):
 		# ====================================
 
 		# 2D matrix shape N * F
-		intra_class_means = np.empty( \
-				 ( training_set.num_classes, len( training_set.featurenames_list ) ) )
+		intra_class_means = np.empty(
+			( training_set.num_classes, len( training_set.featurenames_list ) ) )
 		# 2D matrix shape N * F
-		intra_class_variances = np.empty( \
-				 ( training_set.num_classes, len( training_set.featurenames_list ) ) )
+		intra_class_variances = np.empty(
+			( training_set.num_classes, len( training_set.featurenames_list ) ) )
 		
 		class_index = 0
 		for class_feature_matrix in training_set.data_list:
 			intra_class_means[ class_index ] = np.mean( class_feature_matrix, axis=0 )
-			intra_class_variances[ class_index ] = np.var( class_feature_matrix, axis=0 )
+			# Note that by default, numpy divides by N instead of the more common N-1, hence ddof=1.
+			intra_class_variances[ class_index ] = np.var( class_feature_matrix, axis=0, ddof=1 )
 			class_index += 1
-
 
 		# 1D matrix 1 * F
 		# we deal with NANs/INFs separately, so turn off numpy warnings about invalid floats.
@@ -544,8 +545,8 @@ class FisherFeatureWeights( FeatureWeights ):
 		# The masked array allows for dealing with "invalid" floats, which includes nan and +/-inf
 		oldsettings = np.seterr(invalid='ignore')
 		feature_weights_m =  np.ma.masked_invalid (
-			np.square( population_means - intra_class_means ).sum( axis = 0 ) /
-		    (training_set.num_classes - 1) / np.mean( intra_class_variances, axis = 0 )
+			( np.square( population_means - intra_class_means ).sum( axis = 0 ) /
+		    (training_set.num_classes - 1) ) / np.mean( intra_class_variances, axis = 0 )
 		    )
 		# return numpy error settings to original
 		np.seterr(**oldsettings)
@@ -1604,6 +1605,7 @@ class FeatureSet( object ):
 
 			(self.feature_minima, self.feature_maxima) = normalize_by_columns (self.ContiguousDataMatrix())
 			self.normalized_against = "itself"
+
 		else:
 			# Normalize me against the given training set
 			if training_set.featurenames_list != self.featurenames_list:
