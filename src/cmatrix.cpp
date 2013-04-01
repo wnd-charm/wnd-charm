@@ -330,6 +330,11 @@ void ImageMatrix::allocate (unsigned int w, unsigned int h) {
 		if (_pix_plane.data()) Eigen::aligned_allocator<double>().deallocate (_pix_plane.data(), _pix_plane.size());
 		remap_pix_plane (Eigen::aligned_allocator<double>().allocate (w * h), w, h);
 		if (verbosity > 7 && _pix_plane.data()) fprintf (stdout, "allocated grayscale %p\n",(void *)_pix_plane.data());
+	} else {
+		// No re-allocation necessary since size didn't change
+		// The width and height are updated to the parmeters here because remap_pix_plane was not called
+		width = w;
+		height = h;
 	}
 
 	// cleanup the color plane if it changed size, or if we have a gray image.
