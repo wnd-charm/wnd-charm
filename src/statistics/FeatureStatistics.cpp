@@ -133,7 +133,6 @@ unsigned long bwlabel(ImageMatrix &Im, int level) {
 				pix_plane(y,x) -= 1;
 
 	delete [] stack;
-	Im.WriteablePixelsFinish();
 	return(group_counter-1);
 }
 

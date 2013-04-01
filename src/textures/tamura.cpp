@@ -58,8 +58,8 @@ double directionality(const ImageMatrix &image) {
 
 	deltaH.convolve(matrixH);
 	deltaV.convolve(matrixV);
-	deltaH.WriteablePixelsFinish();
-	deltaV.WriteablePixelsFinish();
+	deltaH.finish();
+	deltaV.finish();
 	readOnlyPixels deltaH_pix_plane = deltaH.ReadOnlyPixels();
 	readOnlyPixels deltaV_pix_plane = deltaV.ReadOnlyPixels();
 	
@@ -81,7 +81,7 @@ double directionality(const ImageMatrix &image) {
 		}
 	}
 	phi.stats = phi_stats;
-	phi.WriteablePixelsFinish();
+	phi.finish();
 	phi.histogram(Hd,NBINS,0);
 
 	double max = 0.0;
@@ -240,7 +240,7 @@ double coarseness(const ImageMatrix &image, double *hist,unsigned int nbins) {
 		}
 	}
 	Sbest->stats = Sbest_stats;
-	Sbest->WriteablePixelsFinish();
+	Sbest->finish();
 
 	/* calculate the average coarseness */
 	if (yDim == 32 || xDim == 32) sum /= ((xDim+1-32)*(yDim+1-32));     /* prevent division by zero */

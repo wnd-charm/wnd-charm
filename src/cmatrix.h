@@ -198,6 +198,10 @@ public:
 		assert(!_is_pix_writeable && "Attempt to read from write-only pixels");
 		return _clr_plane;
 	}
+	void finish() {
+		WriteablePixelsFinish();
+		WriteableColorsFinish();
+	}
 	void WriteablePixelsFinish () {
 		_is_pix_writeable = false;
 	}

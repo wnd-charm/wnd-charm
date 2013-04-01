@@ -49,8 +49,9 @@ bool ImageTransform::register_task() const {
 //===========================================================================
 
 void EmptyTransform::execute (const ImageMatrix &matrix_IN, ImageMatrix &matrix_OUT ) const {
-	matrix_OUT.copy (matrix_IN);
 	if (verbosity > 3) std::cout << name << " transform." << std::endl;
+	matrix_OUT.copy (matrix_IN);
+	matrix_OUT.finish();
 }
 
 //===========================================================================
@@ -62,6 +63,7 @@ FourierTransform::FourierTransform () : ImageTransform ("Fourier") {};
 void FourierTransform::execute (const ImageMatrix &matrix_IN, ImageMatrix &matrix_OUT ) const {
 	if (verbosity > 3) std::cout << "Performing transform " << name << std::endl;
 	matrix_OUT.fft2(matrix_IN);
+	matrix_OUT.finish();
 }
 
 // Register a static instance of the class using a global bool
@@ -75,6 +77,7 @@ ChebyshevTransform::ChebyshevTransform () : ImageTransform ("Chebyshev") {};
 void ChebyshevTransform::execute (const ImageMatrix &matrix_IN, ImageMatrix &matrix_OUT ) const {
 	if (verbosity > 3) std::cout << "Performing transform " << name << std::endl;
 	matrix_OUT.ChebyshevTransform(matrix_IN, 0);
+	matrix_OUT.finish();
 }
 
 // Register a static instance of the class using a global bool
@@ -88,6 +91,7 @@ WaveletTransform::WaveletTransform () : ImageTransform ("Wavelet") {};
 void WaveletTransform::execute (const ImageMatrix &matrix_IN, ImageMatrix &matrix_OUT ) const {
 	if (verbosity > 3) std::cout << "Performing transform " << name << std::endl;
 	matrix_OUT.Symlet5Transform(matrix_IN);
+	matrix_OUT.finish();
 }
 
 // Register a static instance of the class using a global bool
@@ -101,6 +105,7 @@ EdgeTransform::EdgeTransform () : ImageTransform ("Edge") {};
 void EdgeTransform::execute (const ImageMatrix &matrix_IN, ImageMatrix &matrix_OUT ) const {
 	if (verbosity > 3) std::cout << "Performing transform " << name << std::endl;
 	matrix_OUT.EdgeTransform(matrix_IN);
+	matrix_OUT.finish();
 }
 
 // Register a static instance of the class using a global bool
@@ -114,6 +119,7 @@ ColorTransform::ColorTransform () : ImageTransform ("Color") {};
 void ColorTransform::execute (const ImageMatrix &matrix_IN, ImageMatrix &matrix_OUT ) const {
 	if (verbosity > 3) std::cout << "Performing transform " << name << std::endl;
 	matrix_OUT.ColorTransform(matrix_IN);
+	matrix_OUT.finish();
 }
 
 // Register a static instance of the class using a global bool
@@ -127,6 +133,7 @@ HueTransform::HueTransform () : ImageTransform ("Hue") {};
 void HueTransform::execute (const ImageMatrix &matrix_IN, ImageMatrix &matrix_OUT ) const {
 	if (verbosity > 3) std::cout << "Performing transform " << name << std::endl;
 	matrix_OUT.HueTransform(matrix_IN);
+	matrix_OUT.finish();
 }
 
 // Register a static instance of the class using a global bool

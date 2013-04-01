@@ -168,9 +168,9 @@ int ImageMatrix::LoadTIFF(char *filename) {
 		if (spp == 3 && bits > 8) {
 			size_t a, num = width*height;
 			double RGB_min=0, RGB_max=0, RGB_scale=0;
-			R_matrix.WriteablePixelsFinish();
-			G_matrix.WriteablePixelsFinish();
-			B_matrix.WriteablePixelsFinish();
+			R_matrix.finish();
+			G_matrix.finish();
+			B_matrix.finish();
 			// Get the min and max for all 3 channels
 			if (R_stats.min() <= G_stats.min() && R_stats.min() <= B_stats.min()) RGB_min = R_stats.min();
 			else if (G_stats.min() <= R_stats.min() && G_stats.min() <= B_stats.min()) RGB_min = G_stats.min();
@@ -191,8 +191,6 @@ int ImageMatrix::LoadTIFF(char *filename) {
 		_TIFFfree(buf16);
 		TIFFClose(tif);
 
-// 		WriteableColorsFinish();
-// 		WriteablePixelsFinish();
 	} else return(0);
 
 	return(1);
@@ -265,8 +263,7 @@ int ImageMatrix::OpenImage(char *image_file_name, int downsample, rect *bounding
 			normalize(-1,-1,-1,mean,stddev);
 	}
 	if (! source.length() ) source = image_file_name;
-	WriteablePixelsFinish();
-	WriteableColorsFinish();
+	finish();
 	return(res);
 }
 
@@ -423,12 +420,11 @@ void ImageMatrix::submatrix (const ImageMatrix &matrix, const unsigned int x1, c
    Allocated pixel memory gets taken care of by the Eigen destructors.
 */
 ImageMatrix::~ImageMatrix() {
-	WriteablePixelsFinish();
+	finish();
 	if (verbosity > 7 && _pix_plane.data()) fprintf (stdout, "deallocating grayscale %p\n",(void *)_pix_plane.data());
 	if (_pix_plane.data()) Eigen::aligned_allocator<double>().deallocate (_pix_plane.data(), _pix_plane.size());
 	remap_pix_plane (NULL, 0, 0);
 
-	WriteableColorsFinish();
 	if (verbosity > 7 && _clr_plane.data()) fprintf (stdout, "deallocating color %p\n",(void *)_clr_plane.data());
 	if (_clr_plane.data()) Eigen::aligned_allocator<HSVcolor>().deallocate (_clr_plane.data(), _clr_plane.size());
 	remap_clr_plane (NULL, 0, 0);
@@ -809,7 +805,7 @@ void ImageMatrix::convolve(const pixDataMat &filter) {
 	std::string tmp_string;
 	ImageMatrix temp;
 	temp.copy (*this);
-	temp.WriteablePixelsFinish();
+	temp.finish();
 	readOnlyPixels copy_pix_plane = temp.ReadablePixels();
 	writeablePixels pix_plane = WriteablePixels();
 	for (x = 0; x < width; ++x) {
@@ -1083,7 +1079,6 @@ double ImageMatrix::fft2 (const ImageMatrix &matrix_IN) {
 // 	fftw_free(in);
 // 	fftw_free(out);
 
-	WriteablePixelsFinish();
 	return(0);
 }
 
@@ -1107,7 +1102,6 @@ void ImageMatrix::ChebyshevTransform(const ImageMatrix &matrix_IN, unsigned int 
 		for(x=0;x<width;x++)
 			pix_plane (y,x) = stats.add (out[y * width + x]);
 	delete [] out;
-	WriteablePixelsFinish();
 }
 
 /* chebyshev transform
@@ -1154,7 +1148,6 @@ void ImageMatrix::Symlet5Transform(const ImageMatrix &matrix_IN) {
 		 
 	delete Sym5;
 	delete grid;
-	WriteablePixelsFinish();
 }
 
 /* chebyshev statistics
@@ -1198,7 +1191,6 @@ void ImageMatrix::EdgeTransform (const ImageMatrix &matrix_IN) {
 			if (x > 0 && x < width-1)  max_x=MAX(fabs(in_plane(y,x) - in_plane(y,x-1)), fabs(in_plane(y,x) - in_plane(y,x+1)));
 			out_plane(y,x) = stats.add (MAX(max_x,max_y));
 		}
-	WriteablePixelsFinish();
 }
 
 /* Prewitt gradient magnitude
@@ -1235,7 +1227,6 @@ void ImageMatrix::PrewittMagnitude2D (const ImageMatrix &matrix_IN) {
 			out_pix_plane(y,x) = stats.add (sqrt(sumx*sumx+sumy*sumy));
 		}
 	}
-	WriteablePixelsFinish();
 }
 
 /* Prewitt gradient direction
@@ -1273,7 +1264,6 @@ void ImageMatrix::PrewittDirection2D(const ImageMatrix &matrix_IN) {
 			if (sumy == 0 || fabs(sumy)<1/INF) out_pix_plane(y,x) = stats.add (3.1415926 * (sumx < 0 ? 1 : 0));
 			else out_pix_plane(y,x) = stats.add (atan2(sumy,sumx));
 		}
-	WriteablePixelsFinish();
 }
 
 /* edge statistics */
