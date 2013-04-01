@@ -34,16 +34,15 @@ test_fit_wght = os.path.join (test_dir,'test_fit-l.weights')
 test_tif = os.path.join (test_dir,'t45_s06_c06_ij.tif')
 
 # wndchrm classify -l -f1.0 test-l.fit test/2cell/t45_s06_c06_ij.tif
-# test/2cell/t45_s06_c06_ij.tif	2.18e-28	0.664	0.336	*	2cell	2.672
-# wndchrm classify -l -f0.15 test-l.fit test/2cell/t45_s06_c06_ij.tif
-# test/2cell/t45_s06_c06_ij.tif	4.17e-28	0.690	0.310	*	2cell	2.621
-# wndchrm classify -l -f0.0696 test-l.fit test/2cell/t45_s06_c06_ij.tif
-# test/2cell/t45_s06_c06_ij.tif	1.05e-27	0.698	0.302	*	2cell	2.604
+# test/2cell/t45_s06_c06_ij.tif	6.87e-28	0.614	0.386	*	2cell	2.771
+# wndchrm classify -l -f0.14765 test-l.fit test/2cell/t45_s06_c06_ij.tif
+# test/2cell/t45_s06_c06_ij.tif	1.34e-27	0.637	0.363	*	2cell	2.727
+# wndchrm classify -l -f0.0685 test-l.fit test/2cell/t45_s06_c06_ij.tif
+# test/2cell/t45_s06_c06_ij.tif	3.4e-27	0.649	0.351	*	2cell	2.701
 
-test_result_2873 = [0.664,0.336]
-test_result_431 = [0.690,0.310]
-test_result_200 = [0.698,0.302]
-
+test_result_2919 = [0.614,0.386]
+test_result_431 = [0.637,0.363]
+test_result_200 = [0.649,0.351]
 
 test_sigs = Signatures.NewFromSigFile( test_sig, test_tif )
 
@@ -53,17 +52,17 @@ test_wghts = FisherFeatureWeights.NewFromFile (test_fit_wght)
 ts = ts.FeatureReduce( test_wghts.names )
 test_sigs.Normalize( ts )
 
-result_2873 = DiscreteImageClassificationResult.NewWND5( ts, test_wghts, test_sigs )
+calc_result_2919 = DiscreteImageClassificationResult.NewWND5( ts, test_wghts, test_sigs )
 
 test_wghts_431 = test_wghts.Threshold( 431 )
 ts_431 = ts.FeatureReduce( test_wghts_431.names )
 test_sigs_431 = test_sigs.FeatureReduce ( test_wghts_431.names )
-result_431 = DiscreteImageClassificationResult.NewWND5( ts_431, test_wghts_431, test_sigs_431 )
+calc_result_431 = DiscreteImageClassificationResult.NewWND5( ts_431, test_wghts_431, test_sigs_431 )
 
 test_wghts_200 = test_wghts.Threshold( 200 )
 ts_200 = ts.FeatureReduce( test_wghts_200.names )
 test_sigs_200 = test_sigs.FeatureReduce ( test_wghts_200.names )
-result_200 = DiscreteImageClassificationResult.NewWND5( ts_200, test_wghts_200, test_sigs_200 )
+calc_result_200 = DiscreteImageClassificationResult.NewWND5( ts_200, test_wghts_200, test_sigs_200 )
 
 epsilon = 0.00001
 max_diff = 0.
@@ -71,19 +70,19 @@ sum_diff = 0.
 num_diffs = 0.
 
 for idx in range( ts.num_classes ):
-	test_val = test_result_2873[idx]
-	calc_val = round (result_2873.marginal_probabilities[idx],3)
+	test_val = test_result_2919[idx]
+	calc_val = round (calc_result_2919.marginal_probabilities[idx],3)
 	diff = abs(calc_val - test_val)
 	sum_diff += diff
 	num_diffs += 1.0
 	if diff > max_diff:
 		max_diff = diff
 	if ( diff > epsilon):
-		print "2873 features: class '{0}' calculated probability ({1}) differs from expected ({2}) by {3}".format (
+		print "2919 features: class '{0}' calculated probability ({1}) differs from expected ({2}) by {3}".format (
 			ts.classnames_list [idx], calc_val, test_val, diff )
 
 	test_val = test_result_431[idx]
-	calc_val = round (result_431.marginal_probabilities[idx],3)
+	calc_val = round (calc_result_431.marginal_probabilities[idx],3)
 	diff = abs(calc_val - test_val)
 	sum_diff += diff
 	num_diffs += 1.0
@@ -94,7 +93,7 @@ for idx in range( ts.num_classes ):
 			ts.classnames_list [idx], calc_val, test_val, diff )
 
 	test_val = test_result_200[idx]
-	calc_val = round (result_200.marginal_probabilities[idx],3)
+	calc_val = round (calc_result_200.marginal_probabilities[idx],3)
 	diff = abs(calc_val - test_val)
 	sum_diff += diff
 	num_diffs += 1.0

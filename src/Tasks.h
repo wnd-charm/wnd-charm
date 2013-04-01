@@ -1,9 +1,7 @@
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 /*                                                                               */
-/* Copyright (C) 2007 Open Microscopy Environment                                */
-/*       Massachusetts Institue of Technology,                                   */
-/*       National Institutes of Health,                                          */
-/*       University of Dundee                                                    */
+/* Copyright (C) 2013                                                            */
+/*       National Institutes of Health                                           */
 /*                                                                               */
 /*                                                                               */
 /*                                                                               */
@@ -36,36 +34,11 @@
 // defines OUR_UNORDERED_MAP based on what's available
 #include "unordered_map_dfn.h"
 
-// ComputationTask
-// 	hasa registration functionality
-// 	hasa name
-// FeatureAlgorithm
-// 	isa ComputationTask
-// ImageTransform
-// 	isa ComputationTask
-// 
-// ComputationTaskNode
-// 	hasa ComputationTask source_task
-// 	hasmany ComputationTask dependent_tasks
-// ComputationPlan
-// 	hasmany ComputationTaskNode
-// 	hasa vector of FeatureGroup
-// 	add (FeatureGroup)
-// 	start (src_mat, dest_mat, dest_row) // calculates column offsets
-// 	run()
-// 
-// const static char[] ShortFeatureGroups
-// const static char[] LongFeatureGroups
-// const static char[] ColorFeatureGroups
-// "static" ComputationPlan LongFeatureVector
-// "static" ComputationPlan LongColorFeatureVector
-// "static" ComputationPlan ShortFeatureVector
-// "static" ComputationPlan ShortColorFeatureVector
 
 class FeatureComputationPlan;
 class ComputationTaskNode;
 
-// This is the parent class for classes that implement algorithms that do stuff.
+// This is the parent for classes that implement algorithms that do stuff with their execute() method.
 // The parent class is virtual. Inherited classes must implement execute() and register_task()
 class ComputationTask {
 	public:
