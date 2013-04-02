@@ -501,6 +501,9 @@ class FisherFeatureWeights( FeatureWeights ):
 		if not training_set.__class__.__name__ == "FeatureSet_Discrete":
 			raise ValueError( "Cannot create Fisher weights from anything other than a FeatureSet_Discrete." )
 
+		# we deal with NANs/INFs separately, so turn off numpy warnings about invalid floats.
+		oldsettings = np.seterr(all='ignore')
+
 		# 1D matrix 1 * F
 		population_means = np.mean( training_set.data_matrix, axis = 0 )
 
@@ -543,7 +546,6 @@ class FisherFeatureWeights( FeatureWeights ):
 		#     0./0. = nan,  nan/0. = nan, 0/nan = nan, nan/nan = nan, nan/inf = nan, inf/nan = nan
 		# We can't deal with NANs only, must also deal with pos/neg infs
 		# The masked array allows for dealing with "invalid" floats, which includes nan and +/-inf
-		oldsettings = np.seterr(invalid='ignore')
 		feature_weights_m =  np.ma.masked_invalid (
 			( np.square( population_means - intra_class_means ).sum( axis = 0 ) /
 		    (training_set.num_classes - 1) ) / np.mean( intra_class_variances, axis = 0 )
