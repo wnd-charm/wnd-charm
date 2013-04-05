@@ -2966,71 +2966,72 @@ SWIG_Python_NonDynamicSetAttr(PyObject *obj, PyObject *name, PyObject *value) {
 #define SWIGTYPE_p_ComputationTask swig_types[9]
 #define SWIGTYPE_p_ComputationTaskInstances swig_types[10]
 #define SWIGTYPE_p_ComputationTaskNode swig_types[11]
-#define SWIGTYPE_p_EdgeFeatures swig_types[12]
-#define SWIGTYPE_p_EdgeTransform swig_types[13]
-#define SWIGTYPE_p_Eigen__MapT_clrDataMat_Eigen__Aligned_t swig_types[14]
-#define SWIGTYPE_p_Eigen__MapT_pixDataMat_Eigen__Aligned_t swig_types[15]
-#define SWIGTYPE_p_Eigen__MatrixT_HSVcolor_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t swig_types[16]
-#define SWIGTYPE_p_Eigen__MatrixT_double_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t swig_types[17]
-#define SWIGTYPE_p_EmptyFeatureAlgorithm swig_types[18]
-#define SWIGTYPE_p_EmptyTransform swig_types[19]
-#define SWIGTYPE_p_FeatureAlgorithm swig_types[20]
-#define SWIGTYPE_p_FeatureComputationPlan swig_types[21]
-#define SWIGTYPE_p_FeatureComputationPlanExecutor swig_types[22]
-#define SWIGTYPE_p_FeatureGroup swig_types[23]
-#define SWIGTYPE_p_FeatureInfo swig_types[24]
-#define SWIGTYPE_p_FeatureNames swig_types[25]
-#define SWIGTYPE_p_FourierTransform swig_types[26]
-#define SWIGTYPE_p_FractalFeatures swig_types[27]
-#define SWIGTYPE_p_GaborTextures swig_types[28]
-#define SWIGTYPE_p_GiniCoefficient swig_types[29]
-#define SWIGTYPE_p_HSVcolor swig_types[30]
-#define SWIGTYPE_p_HaralickTextures swig_types[31]
-#define SWIGTYPE_p_HueTransform swig_types[32]
-#define SWIGTYPE_p_ImageMatrix swig_types[33]
-#define SWIGTYPE_p_ImageTransform swig_types[34]
-#define SWIGTYPE_p_InverseObjectFeatures swig_types[35]
-#define SWIGTYPE_p_Moments2 swig_types[36]
-#define SWIGTYPE_p_MultiscaleHistograms swig_types[37]
-#define SWIGTYPE_p_ObjectFeatures swig_types[38]
-#define SWIGTYPE_p_PixelIntensityStatistics swig_types[39]
-#define SWIGTYPE_p_RGBcolor swig_types[40]
-#define SWIGTYPE_p_RadonCoefficients swig_types[41]
-#define SWIGTYPE_p_StdFeatureComputationPlans swig_types[42]
-#define SWIGTYPE_p_TamuraTextures swig_types[43]
-#define SWIGTYPE_p_WaveletTransform swig_types[44]
-#define SWIGTYPE_p_ZernikeCoefficients swig_types[45]
-#define SWIGTYPE_p_allocator_type swig_types[46]
-#define SWIGTYPE_p_char swig_types[47]
-#define SWIGTYPE_p_const_reference swig_types[48]
-#define SWIGTYPE_p_difference_type swig_types[49]
-#define SWIGTYPE_p_double swig_types[50]
-#define SWIGTYPE_p_long swig_types[51]
-#define SWIGTYPE_p_p_PyObject swig_types[52]
-#define SWIGTYPE_p_rect swig_types[53]
-#define SWIGTYPE_p_reference swig_types[54]
-#define SWIGTYPE_p_size_type swig_types[55]
-#define SWIGTYPE_p_std__allocatorT_ComputationTaskNode_const_p_t swig_types[56]
-#define SWIGTYPE_p_std__allocatorT_ComputationTask_const_p_t swig_types[57]
-#define SWIGTYPE_p_std__allocatorT_FeatureGroup_const_p_t swig_types[58]
-#define SWIGTYPE_p_std__allocatorT_ImageTransform_const_p_t swig_types[59]
-#define SWIGTYPE_p_std__allocatorT_double_t swig_types[60]
-#define SWIGTYPE_p_std__invalid_argument swig_types[61]
-#define SWIGTYPE_p_std__vectorT_ComputationTaskNode_const_p_std__allocatorT_ComputationTaskNode_const_p_t_t swig_types[62]
-#define SWIGTYPE_p_std__vectorT_ComputationTask_const_p_std__allocatorT_ComputationTask_const_p_t_t swig_types[63]
-#define SWIGTYPE_p_std__vectorT_FeatureGroup_const_p_std__allocatorT_FeatureGroup_const_p_t_t swig_types[64]
-#define SWIGTYPE_p_std__vectorT_ImageTransform_const_p_std__allocatorT_ImageTransform_const_p_t_t swig_types[65]
-#define SWIGTYPE_p_std__vectorT__Tp__Alloc_t swig_types[66]
-#define SWIGTYPE_p_std__vectorT__Tp_const_p__Alloc_t swig_types[67]
-#define SWIGTYPE_p_std__vectorT_double_std__allocatorT_double_t_t swig_types[68]
-#define SWIGTYPE_p_std__vectorT_std__string_std__allocatorT_std__string_t_t swig_types[69]
-#define SWIGTYPE_p_swig__SwigPyIterator swig_types[70]
-#define SWIGTYPE_p_unsigned_char swig_types[71]
-#define SWIGTYPE_p_unsigned_int swig_types[72]
-#define SWIGTYPE_p_unsigned_long swig_types[73]
-#define SWIGTYPE_p_value_type swig_types[74]
-static swig_type_info *swig_types[76];
-static swig_module_info swig_module = {swig_types, 75, 0, 0, 0, 0};
+#define SWIGTYPE_p_DoubleArray swig_types[12]
+#define SWIGTYPE_p_EdgeFeatures swig_types[13]
+#define SWIGTYPE_p_EdgeTransform swig_types[14]
+#define SWIGTYPE_p_Eigen__MapT_clrDataMat_Eigen__Aligned_t swig_types[15]
+#define SWIGTYPE_p_Eigen__MapT_pixDataMat_Eigen__Aligned_t swig_types[16]
+#define SWIGTYPE_p_Eigen__MatrixT_HSVcolor_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t swig_types[17]
+#define SWIGTYPE_p_Eigen__MatrixT_double_Eigen__Dynamic_Eigen__Dynamic_Eigen__RowMajor_t swig_types[18]
+#define SWIGTYPE_p_EmptyFeatureAlgorithm swig_types[19]
+#define SWIGTYPE_p_EmptyTransform swig_types[20]
+#define SWIGTYPE_p_FeatureAlgorithm swig_types[21]
+#define SWIGTYPE_p_FeatureComputationPlan swig_types[22]
+#define SWIGTYPE_p_FeatureComputationPlanExecutor swig_types[23]
+#define SWIGTYPE_p_FeatureGroup swig_types[24]
+#define SWIGTYPE_p_FeatureInfo swig_types[25]
+#define SWIGTYPE_p_FeatureNames swig_types[26]
+#define SWIGTYPE_p_FourierTransform swig_types[27]
+#define SWIGTYPE_p_FractalFeatures swig_types[28]
+#define SWIGTYPE_p_GaborTextures swig_types[29]
+#define SWIGTYPE_p_GiniCoefficient swig_types[30]
+#define SWIGTYPE_p_HSVcolor swig_types[31]
+#define SWIGTYPE_p_HaralickTextures swig_types[32]
+#define SWIGTYPE_p_HueTransform swig_types[33]
+#define SWIGTYPE_p_ImageMatrix swig_types[34]
+#define SWIGTYPE_p_ImageTransform swig_types[35]
+#define SWIGTYPE_p_InverseObjectFeatures swig_types[36]
+#define SWIGTYPE_p_Moments2 swig_types[37]
+#define SWIGTYPE_p_MultiscaleHistograms swig_types[38]
+#define SWIGTYPE_p_ObjectFeatures swig_types[39]
+#define SWIGTYPE_p_PixelIntensityStatistics swig_types[40]
+#define SWIGTYPE_p_RGBcolor swig_types[41]
+#define SWIGTYPE_p_RadonCoefficients swig_types[42]
+#define SWIGTYPE_p_StdFeatureComputationPlans swig_types[43]
+#define SWIGTYPE_p_TamuraTextures swig_types[44]
+#define SWIGTYPE_p_WaveletTransform swig_types[45]
+#define SWIGTYPE_p_ZernikeCoefficients swig_types[46]
+#define SWIGTYPE_p_allocator_type swig_types[47]
+#define SWIGTYPE_p_char swig_types[48]
+#define SWIGTYPE_p_const_reference swig_types[49]
+#define SWIGTYPE_p_difference_type swig_types[50]
+#define SWIGTYPE_p_double swig_types[51]
+#define SWIGTYPE_p_long swig_types[52]
+#define SWIGTYPE_p_p_PyObject swig_types[53]
+#define SWIGTYPE_p_rect swig_types[54]
+#define SWIGTYPE_p_reference swig_types[55]
+#define SWIGTYPE_p_size_type swig_types[56]
+#define SWIGTYPE_p_std__allocatorT_ComputationTaskNode_const_p_t swig_types[57]
+#define SWIGTYPE_p_std__allocatorT_ComputationTask_const_p_t swig_types[58]
+#define SWIGTYPE_p_std__allocatorT_FeatureGroup_const_p_t swig_types[59]
+#define SWIGTYPE_p_std__allocatorT_ImageTransform_const_p_t swig_types[60]
+#define SWIGTYPE_p_std__allocatorT_double_t swig_types[61]
+#define SWIGTYPE_p_std__invalid_argument swig_types[62]
+#define SWIGTYPE_p_std__vectorT_ComputationTaskNode_const_p_std__allocatorT_ComputationTaskNode_const_p_t_t swig_types[63]
+#define SWIGTYPE_p_std__vectorT_ComputationTask_const_p_std__allocatorT_ComputationTask_const_p_t_t swig_types[64]
+#define SWIGTYPE_p_std__vectorT_FeatureGroup_const_p_std__allocatorT_FeatureGroup_const_p_t_t swig_types[65]
+#define SWIGTYPE_p_std__vectorT_ImageTransform_const_p_std__allocatorT_ImageTransform_const_p_t_t swig_types[66]
+#define SWIGTYPE_p_std__vectorT__Tp__Alloc_t swig_types[67]
+#define SWIGTYPE_p_std__vectorT__Tp_const_p__Alloc_t swig_types[68]
+#define SWIGTYPE_p_std__vectorT_double_std__allocatorT_double_t_t swig_types[69]
+#define SWIGTYPE_p_std__vectorT_std__string_std__allocatorT_std__string_t_t swig_types[70]
+#define SWIGTYPE_p_swig__SwigPyIterator swig_types[71]
+#define SWIGTYPE_p_unsigned_char swig_types[72]
+#define SWIGTYPE_p_unsigned_int swig_types[73]
+#define SWIGTYPE_p_unsigned_long swig_types[74]
+#define SWIGTYPE_p_value_type swig_types[75]
+static swig_type_info *swig_types[77];
+static swig_module_info swig_module = {swig_types, 76, 0, 0, 0, 0};
 #define SWIG_TypeQuery(name) SWIG_TypeQueryModule(&swig_module, &swig_module, name)
 #define SWIG_MangledTypeQuery(name) SWIG_MangledTypeQueryModule(&swig_module, &swig_module, name)
 
@@ -3163,17 +3164,7 @@ namespace swig {
 #include <string>
 
 
-  #define SWIG_From_double   PyFloat_FromDouble 
-
-
-#include <limits.h>
-#if !defined(SWIG_NO_LLONG_MAX)
-# if !defined(LLONG_MAX) && defined(__GNUC__) && defined (__LONG_LONG_MAX__)
-#   define LLONG_MAX __LONG_LONG_MAX__
-#   define LLONG_MIN (-LLONG_MAX - 1LL)
-#   define ULLONG_MAX (LLONG_MAX * 2ULL + 1ULL)
-# endif
-#endif
+typedef double DoubleArray;
 
 
 SWIGINTERN int
@@ -3298,6 +3289,47 @@ SWIG_AsVal_unsigned_SS_long (PyObject *obj, unsigned long *val)
 #endif
   return SWIG_TypeError;
 }
+
+
+SWIGINTERNINLINE int
+SWIG_AsVal_size_t (PyObject * obj, size_t *val)
+{
+  unsigned long v;
+  int res = SWIG_AsVal_unsigned_SS_long (obj, val ? &v : 0);
+  if (SWIG_IsOK(res) && val) *val = static_cast< size_t >(v);
+  return res;
+}
+
+SWIGINTERN DoubleArray *new_DoubleArray(size_t nelements){
+    return (new double[nelements]);
+  }
+SWIGINTERN void delete_DoubleArray(DoubleArray *self){
+    delete[] self;
+  }
+SWIGINTERN double DoubleArray___getitem__(DoubleArray *self,size_t index){
+    return self[index];
+  }
+
+  #define SWIG_From_double   PyFloat_FromDouble 
+
+SWIGINTERN void DoubleArray___setitem__(DoubleArray *self,size_t index,double value){
+    self[index] = value;
+  }
+SWIGINTERN double *DoubleArray_cast(DoubleArray *self){
+    return self;
+  }
+SWIGINTERN DoubleArray *DoubleArray_frompointer(double *t){
+    return static_cast< DoubleArray * >(t);
+  }
+
+#include <limits.h>
+#if !defined(SWIG_NO_LLONG_MAX)
+# if !defined(LLONG_MAX) && defined(__GNUC__) && defined (__LONG_LONG_MAX__)
+#   define LLONG_MAX __LONG_LONG_MAX__
+#   define LLONG_MIN (-LLONG_MAX - 1LL)
+#   define ULLONG_MAX (LLONG_MAX * 2ULL + 1ULL)
+# endif
+#endif
 
 
 SWIGINTERN int
@@ -3777,16 +3809,6 @@ namespace swig {
     return pyself;
   }
 #endif
-}
-
-
-SWIGINTERNINLINE int
-SWIG_AsVal_size_t (PyObject * obj, size_t *val)
-{
-  unsigned long v;
-  int res = SWIG_AsVal_unsigned_SS_long (obj, val ? &v : 0);
-  if (SWIG_IsOK(res) && val) *val = static_cast< size_t >(v);
-  return res;
 }
 
 
@@ -5468,6 +5490,170 @@ SWIGINTERN void std_vector_Sl_FeatureGroup_SS_const_Sm__Sg__append(std::vector< 
 #ifdef __cplusplus
 extern "C" {
 #endif
+SWIGINTERN PyObject *_wrap_new_DoubleArray(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  size_t arg1 ;
+  size_t val1 ;
+  int ecode1 = 0 ;
+  PyObject * obj0 = 0 ;
+  DoubleArray *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:new_DoubleArray",&obj0)) SWIG_fail;
+  ecode1 = SWIG_AsVal_size_t(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "new_DoubleArray" "', argument " "1"" of type '" "size_t""'");
+  } 
+  arg1 = static_cast< size_t >(val1);
+  result = (DoubleArray *)new_DoubleArray(arg1);
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_DoubleArray, SWIG_POINTER_NEW |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_delete_DoubleArray(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  DoubleArray *arg1 = (DoubleArray *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:delete_DoubleArray",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_DoubleArray, SWIG_POINTER_DISOWN |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "delete_DoubleArray" "', argument " "1"" of type '" "DoubleArray *""'"); 
+  }
+  arg1 = reinterpret_cast< DoubleArray * >(argp1);
+  delete_DoubleArray(arg1);
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_DoubleArray___getitem__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  DoubleArray *arg1 = (DoubleArray *) 0 ;
+  size_t arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  size_t val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:DoubleArray___getitem__",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_DoubleArray, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "DoubleArray___getitem__" "', argument " "1"" of type '" "DoubleArray *""'"); 
+  }
+  arg1 = reinterpret_cast< DoubleArray * >(argp1);
+  ecode2 = SWIG_AsVal_size_t(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "DoubleArray___getitem__" "', argument " "2"" of type '" "size_t""'");
+  } 
+  arg2 = static_cast< size_t >(val2);
+  result = (double)DoubleArray___getitem__(arg1,arg2);
+  resultobj = SWIG_From_double(static_cast< double >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_DoubleArray___setitem__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  DoubleArray *arg1 = (DoubleArray *) 0 ;
+  size_t arg2 ;
+  double arg3 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  size_t val2 ;
+  int ecode2 = 0 ;
+  double val3 ;
+  int ecode3 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOO:DoubleArray___setitem__",&obj0,&obj1,&obj2)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_DoubleArray, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "DoubleArray___setitem__" "', argument " "1"" of type '" "DoubleArray *""'"); 
+  }
+  arg1 = reinterpret_cast< DoubleArray * >(argp1);
+  ecode2 = SWIG_AsVal_size_t(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "DoubleArray___setitem__" "', argument " "2"" of type '" "size_t""'");
+  } 
+  arg2 = static_cast< size_t >(val2);
+  ecode3 = SWIG_AsVal_double(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "DoubleArray___setitem__" "', argument " "3"" of type '" "double""'");
+  } 
+  arg3 = static_cast< double >(val3);
+  DoubleArray___setitem__(arg1,arg2,arg3);
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_DoubleArray_cast(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  DoubleArray *arg1 = (DoubleArray *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  double *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:DoubleArray_cast",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_DoubleArray, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "DoubleArray_cast" "', argument " "1"" of type '" "DoubleArray *""'"); 
+  }
+  arg1 = reinterpret_cast< DoubleArray * >(argp1);
+  result = (double *)DoubleArray_cast(arg1);
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_double, 0 |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_DoubleArray_frompointer(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double *arg1 = (double *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  DoubleArray *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:DoubleArray_frompointer",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_double, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "DoubleArray_frompointer" "', argument " "1"" of type '" "double *""'"); 
+  }
+  arg1 = reinterpret_cast< double * >(argp1);
+  result = (DoubleArray *)DoubleArray_frompointer(arg1);
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_DoubleArray, 0 |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *DoubleArray_swigregister(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *obj;
+  if (!PyArg_ParseTuple(args,(char*)"O:swigregister", &obj)) return NULL;
+  SWIG_TypeNewClientData(SWIGTYPE_p_DoubleArray, SWIG_NewClientData(obj));
+  return SWIG_Py_Void();
+}
+
 SWIGINTERN PyObject *_wrap_RGBcolor_r_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   RGBcolor *arg1 = (RGBcolor *) 0 ;
@@ -6607,6 +6793,28 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_ImageMatrix_data_ptr(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  double *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:ImageMatrix_data_ptr",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix_data_ptr" "', argument " "1"" of type '" "ImageMatrix const *""'"); 
+  }
+  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
+  result = (double *)((ImageMatrix const *)arg1)->data_ptr();
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_double, 0 |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_ImageMatrix_WriteablePixels(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   ImageMatrix *arg1 = (ImageMatrix *) 0 ;
@@ -6733,6 +6941,27 @@ SWIGINTERN PyObject *_wrap_ImageMatrix_ReadOnlyColors(PyObject *SWIGUNUSEDPARM(s
   arg1 = reinterpret_cast< ImageMatrix * >(argp1);
   result = (clrData *) &((ImageMatrix const *)arg1)->ReadOnlyColors();
   resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_Eigen__MapT_clrDataMat_Eigen__Aligned_t, 0 |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_ImageMatrix_finish(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  ImageMatrix *arg1 = (ImageMatrix *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:ImageMatrix_finish",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ImageMatrix, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ImageMatrix_finish" "', argument " "1"" of type '" "ImageMatrix *""'"); 
+  }
+  arg1 = reinterpret_cast< ImageMatrix * >(argp1);
+  (arg1)->finish();
+  resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
   return NULL;
@@ -25740,6 +25969,13 @@ SWIGINTERN PyObject *HueTransform_swigregister(PyObject *SWIGUNUSEDPARM(self), P
 
 static PyMethodDef SwigMethods[] = {
 	 { (char *)"SWIG_PyInstanceMethod_New", (PyCFunction)SWIG_PyInstanceMethod_New, METH_O, NULL},
+	 { (char *)"new_DoubleArray", _wrap_new_DoubleArray, METH_VARARGS, NULL},
+	 { (char *)"delete_DoubleArray", _wrap_delete_DoubleArray, METH_VARARGS, NULL},
+	 { (char *)"DoubleArray___getitem__", _wrap_DoubleArray___getitem__, METH_VARARGS, NULL},
+	 { (char *)"DoubleArray___setitem__", _wrap_DoubleArray___setitem__, METH_VARARGS, NULL},
+	 { (char *)"DoubleArray_cast", _wrap_DoubleArray_cast, METH_VARARGS, NULL},
+	 { (char *)"DoubleArray_frompointer", _wrap_DoubleArray_frompointer, METH_VARARGS, NULL},
+	 { (char *)"DoubleArray_swigregister", DoubleArray_swigregister, METH_VARARGS, NULL},
 	 { (char *)"RGBcolor_r_set", _wrap_RGBcolor_r_set, METH_VARARGS, NULL},
 	 { (char *)"RGBcolor_r_get", _wrap_RGBcolor_r_get, METH_VARARGS, NULL},
 	 { (char *)"RGBcolor_g_set", _wrap_RGBcolor_g_set, METH_VARARGS, NULL},
@@ -25787,12 +26023,14 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"ImageMatrix_stats_get", _wrap_ImageMatrix_stats_get, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_has_median_set", _wrap_ImageMatrix_has_median_set, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_has_median_get", _wrap_ImageMatrix_has_median_get, METH_VARARGS, NULL},
+	 { (char *)"ImageMatrix_data_ptr", _wrap_ImageMatrix_data_ptr, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_WriteablePixels", _wrap_ImageMatrix_WriteablePixels, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_WriteableColors", _wrap_ImageMatrix_WriteableColors, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_ReadablePixels", _wrap_ImageMatrix_ReadablePixels, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_ReadableColors", _wrap_ImageMatrix_ReadableColors, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_ReadOnlyPixels", _wrap_ImageMatrix_ReadOnlyPixels, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_ReadOnlyColors", _wrap_ImageMatrix_ReadOnlyColors, METH_VARARGS, NULL},
+	 { (char *)"ImageMatrix_finish", _wrap_ImageMatrix_finish, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_WriteablePixelsFinish", _wrap_ImageMatrix_WriteablePixelsFinish, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_WriteableColorsFinish", _wrap_ImageMatrix_WriteableColorsFinish, METH_VARARGS, NULL},
 	 { (char *)"ImageMatrix_LoadTIFF", _wrap_ImageMatrix_LoadTIFF, METH_VARARGS, NULL},
@@ -26284,6 +26522,9 @@ static PyMethodDef SwigMethods[] = {
 
 /* -------- TYPE CONVERSION AND EQUIVALENCE RULES (BEGIN) -------- */
 
+static void *_p_DoubleArrayTo_p_double(void *x, int *SWIGUNUSEDPARM(newmemory)) {
+    return (void *)((double *)  ((DoubleArray *) x));
+}
 static void *_p_EmptyFeatureAlgorithmTo_p_FeatureAlgorithm(void *x, int *SWIGUNUSEDPARM(newmemory)) {
     return (void *)((FeatureAlgorithm *)  ((EmptyFeatureAlgorithm *) x));
 }
@@ -26452,6 +26693,7 @@ static swig_type_info _swigt__p_ComputationPlanExecutor = {"_p_ComputationPlanEx
 static swig_type_info _swigt__p_ComputationTask = {"_p_ComputationTask", "std::vector< ComputationTask const * >::value_type|ComputationTask *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_ComputationTaskInstances = {"_p_ComputationTaskInstances", "ComputationTaskInstances *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_ComputationTaskNode = {"_p_ComputationTaskNode", "ComputationTaskNode *|std::vector< ComputationTaskNode const * >::value_type", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_DoubleArray = {"_p_DoubleArray", "DoubleArray *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_EdgeFeatures = {"_p_EdgeFeatures", "EdgeFeatures *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_EdgeTransform = {"_p_EdgeTransform", "EdgeTransform *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_Eigen__MapT_clrDataMat_Eigen__Aligned_t = {"_p_Eigen__MapT_clrDataMat_Eigen__Aligned_t", "clrData *|Eigen::Map< clrDataMat,Eigen::Aligned > *|clrDataMap *", 0, 0, (void*)0, 0};
@@ -26529,6 +26771,7 @@ static swig_type_info *swig_type_initial[] = {
   &_swigt__p_ComputationTask,
   &_swigt__p_ComputationTaskInstances,
   &_swigt__p_ComputationTaskNode,
+  &_swigt__p_DoubleArray,
   &_swigt__p_EdgeFeatures,
   &_swigt__p_EdgeTransform,
   &_swigt__p_Eigen__MapT_clrDataMat_Eigen__Aligned_t,
@@ -26606,6 +26849,7 @@ static swig_cast_info _swigc__p_ComputationPlanExecutor[] = {  {&_swigt__p_Compu
 static swig_cast_info _swigc__p_ComputationTask[] = {  {&_swigt__p_ImageTransform, _p_ImageTransformTo_p_ComputationTask, 0, 0},  {&_swigt__p_EmptyTransform, _p_EmptyTransformTo_p_ComputationTask, 0, 0},  {&_swigt__p_FourierTransform, _p_FourierTransformTo_p_ComputationTask, 0, 0},  {&_swigt__p_ChebyshevTransform, _p_ChebyshevTransformTo_p_ComputationTask, 0, 0},  {&_swigt__p_WaveletTransform, _p_WaveletTransformTo_p_ComputationTask, 0, 0},  {&_swigt__p_EdgeTransform, _p_EdgeTransformTo_p_ComputationTask, 0, 0},  {&_swigt__p_ColorTransform, _p_ColorTransformTo_p_ComputationTask, 0, 0},  {&_swigt__p_HueTransform, _p_HueTransformTo_p_ComputationTask, 0, 0},  {&_swigt__p_EmptyFeatureAlgorithm, _p_EmptyFeatureAlgorithmTo_p_ComputationTask, 0, 0},  {&_swigt__p_FeatureAlgorithm, _p_FeatureAlgorithmTo_p_ComputationTask, 0, 0},  {&_swigt__p_ColorHistogram, _p_ColorHistogramTo_p_ComputationTask, 0, 0},  {&_swigt__p_GiniCoefficient, _p_GiniCoefficientTo_p_ComputationTask, 0, 0},  {&_swigt__p_PixelIntensityStatistics, _p_PixelIntensityStatisticsTo_p_ComputationTask, 0, 0},  {&_swigt__p_ComputationTask, 0, 0, 0},  {&_swigt__p_MultiscaleHistograms, _p_MultiscaleHistogramsTo_p_ComputationTask, 0, 0},  {&_swigt__p_GaborTextures, _p_GaborTexturesTo_p_ComputationTask, 0, 0},  {&_swigt__p_HaralickTextures, _p_HaralickTexturesTo_p_ComputationTask, 0, 0},  {&_swigt__p_TamuraTextures, _p_TamuraTexturesTo_p_ComputationTask, 0, 0},  {&_swigt__p_ChebyshevFourierCoefficients, _p_ChebyshevFourierCoefficientsTo_p_ComputationTask, 0, 0},  {&_swigt__p_ChebyshevCoefficients, _p_ChebyshevCoefficientsTo_p_ComputationTask, 0, 0},  {&_swigt__p_ZernikeCoefficients, _p_ZernikeCoefficientsTo_p_ComputationTask, 0, 0},  {&_swigt__p_RadonCoefficients, _p_RadonCoefficientsTo_p_ComputationTask, 0, 0},  {&_swigt__p_CombFirstFourMoments, _p_CombFirstFourMomentsTo_p_ComputationTask, 0, 0},  {&_swigt__p_InverseObjectFeatures, _p_InverseObjectFeaturesTo_p_ComputationTask, 0, 0},  {&_swigt__p_ObjectFeatures, _p_ObjectFeaturesTo_p_ComputationTask, 0, 0},  {&_swigt__p_EdgeFeatures, _p_EdgeFeaturesTo_p_ComputationTask, 0, 0},  {&_swigt__p_FractalFeatures, _p_FractalFeaturesTo_p_ComputationTask, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_ComputationTaskInstances[] = {  {&_swigt__p_ComputationTaskInstances, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_ComputationTaskNode[] = {  {&_swigt__p_ComputationTaskNode, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_DoubleArray[] = {  {&_swigt__p_DoubleArray, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_EdgeFeatures[] = {  {&_swigt__p_EdgeFeatures, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_EdgeTransform[] = {  {&_swigt__p_EdgeTransform, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_Eigen__MapT_clrDataMat_Eigen__Aligned_t[] = {  {&_swigt__p_Eigen__MapT_clrDataMat_Eigen__Aligned_t, 0, 0, 0},{0, 0, 0, 0}};
@@ -26644,7 +26888,7 @@ static swig_cast_info _swigc__p_allocator_type[] = {  {&_swigt__p_allocator_type
 static swig_cast_info _swigc__p_char[] = {  {&_swigt__p_char, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_const_reference[] = {  {&_swigt__p_const_reference, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_difference_type[] = {  {&_swigt__p_difference_type, 0, 0, 0},{0, 0, 0, 0}};
-static swig_cast_info _swigc__p_double[] = {  {&_swigt__p_double, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_double[] = {  {&_swigt__p_DoubleArray, _p_DoubleArrayTo_p_double, 0, 0},  {&_swigt__p_double, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_long[] = {  {&_swigt__p_long, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_p_PyObject[] = {  {&_swigt__p_p_PyObject, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_rect[] = {  {&_swigt__p_rect, 0, 0, 0},{0, 0, 0, 0}};
@@ -26683,6 +26927,7 @@ static swig_cast_info *swig_cast_initial[] = {
   _swigc__p_ComputationTask,
   _swigc__p_ComputationTaskInstances,
   _swigc__p_ComputationTaskNode,
+  _swigc__p_DoubleArray,
   _swigc__p_EdgeFeatures,
   _swigc__p_EdgeTransform,
   _swigc__p_Eigen__MapT_clrDataMat_Eigen__Aligned_t,

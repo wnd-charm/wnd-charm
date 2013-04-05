@@ -67,6 +67,30 @@ except AttributeError:
     _newclass = 0
 
 
+class DoubleArray(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, DoubleArray, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, DoubleArray, name)
+    __repr__ = _swig_repr
+    def __init__(self, *args): 
+        this = _pychrm.new_DoubleArray(*args)
+        try: self.this.append(this)
+        except: self.this = this
+    __swig_destroy__ = _pychrm.delete_DoubleArray
+    __del__ = lambda self : None;
+    def __getitem__(self, *args): return _pychrm.DoubleArray___getitem__(self, *args)
+    def __setitem__(self, *args): return _pychrm.DoubleArray___setitem__(self, *args)
+    def cast(self): return _pychrm.DoubleArray_cast(self)
+    __swig_getmethods__["frompointer"] = lambda x: _pychrm.DoubleArray_frompointer
+    if _newclass:frompointer = staticmethod(_pychrm.DoubleArray_frompointer)
+DoubleArray_swigregister = _pychrm.DoubleArray_swigregister
+DoubleArray_swigregister(DoubleArray)
+
+def DoubleArray_frompointer(*args):
+  return _pychrm.DoubleArray_frompointer(*args)
+DoubleArray_frompointer = _pychrm.DoubleArray_frompointer
+
 INF = _pychrm.INF
 EPSILON = _pychrm.EPSILON
 class RGBcolor(_object):
@@ -190,12 +214,14 @@ class ImageMatrix(_object):
     __swig_setmethods__["has_median"] = _pychrm.ImageMatrix_has_median_set
     __swig_getmethods__["has_median"] = _pychrm.ImageMatrix_has_median_get
     if _newclass:has_median = _swig_property(_pychrm.ImageMatrix_has_median_get, _pychrm.ImageMatrix_has_median_set)
+    def data_ptr(self): return _pychrm.ImageMatrix_data_ptr(self)
     def WriteablePixels(self): return _pychrm.ImageMatrix_WriteablePixels(self)
     def WriteableColors(self): return _pychrm.ImageMatrix_WriteableColors(self)
     def ReadablePixels(self): return _pychrm.ImageMatrix_ReadablePixels(self)
     def ReadableColors(self): return _pychrm.ImageMatrix_ReadableColors(self)
     def ReadOnlyPixels(self): return _pychrm.ImageMatrix_ReadOnlyPixels(self)
     def ReadOnlyColors(self): return _pychrm.ImageMatrix_ReadOnlyColors(self)
+    def finish(self): return _pychrm.ImageMatrix_finish(self)
     def WriteablePixelsFinish(self): return _pychrm.ImageMatrix_WriteablePixelsFinish(self)
     def WriteableColorsFinish(self): return _pychrm.ImageMatrix_WriteableColorsFinish(self)
     def LoadTIFF(self, *args): return _pychrm.ImageMatrix_LoadTIFF(self, *args)
