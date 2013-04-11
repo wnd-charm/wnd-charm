@@ -323,10 +323,10 @@ void ImageMatrix::allocate (unsigned int w, unsigned int h) {
 	if ((unsigned int) _pix_plane.cols() != w || (unsigned int)_pix_plane.rows() != h) {
 		// These throw exceptions, which we don't catch (catch in main?)
 		// FIXME: We could check for shrinkage and simply remap instead of allocating.
-		if (verbosity > 7 && _pix_plane.data()) fprintf (stdout, "deallocating grayscale %p ",(void *)_pix_plane.data());
+		if (verbosity > 7 && _pix_plane.data()) fprintf (stdout, "deallocating grayscale %p\n",(void *)_pix_plane.data());
 		if (_pix_plane.data()) Eigen::aligned_allocator<double>().deallocate (_pix_plane.data(), _pix_plane.size());
 		remap_pix_plane (Eigen::aligned_allocator<double>().allocate (w * h), w, h);
-		if (verbosity > 7 && _pix_plane.data()) fprintf (stdout, "allocated grayscale %p\n",(void *)_pix_plane.data());
+		if (verbosity > 7 && _pix_plane.data()) fprintf (stdout, "allocated grayscale %p (%d,%d)\n",(void *)_pix_plane.data(), w, h);
 	} else {
 		// No re-allocation necessary since size didn't change
 		// The width and height are updated to the parmeters here because remap_pix_plane was not called
@@ -346,7 +346,7 @@ void ImageMatrix::allocate (unsigned int w, unsigned int h) {
 		// These throw exceptions, which we don't catch (catch in main?)
 		// FIXME: We could check for shrinkage and simply remap instead of allocating.
 		remap_clr_plane (Eigen::aligned_allocator<HSVcolor>().allocate (w * h), w, h);
-		if (verbosity > 7 && _clr_plane.data()) fprintf (stdout, "  allocated color %p\n",(void *)_clr_plane.data());
+		if (verbosity > 7 && _clr_plane.data()) fprintf (stdout, "  allocated color %p (%d,%d)\n",(void *)_clr_plane.data(), w, h);
 	}
 }
 
@@ -629,12 +629,12 @@ void ImageMatrix::Downsample (const ImageMatrix &matrix_IN, double x_ratio, doub
 			}
 			if (new_x < new_width && new_y < new_height) {
 				copy_pix_y (new_y,new_x) = stats.add (sum_i/dy);
-			}
-			if (ColorMode != cmGRAY) {
-				hsv.h = (byte)(sum_h/(dy));
-				hsv.s = (byte)(sum_s/(dy));
-				hsv.v = (byte)(sum_v/(dy));
-				copy_clr_y (new_y, new_x) = hsv;
+				if (ColorMode != cmGRAY) {
+					hsv.h = (byte)(sum_h/(dy));
+					hsv.s = (byte)(sum_s/(dy));
+					hsv.v = (byte)(sum_v/(dy));
+					copy_clr_y (new_y, new_x) = hsv;
+				}
 			}
 
 			y+=dy;
