@@ -1171,7 +1171,7 @@ class Signatures( FeatureVector ):
 
 		with open( outfile_path, "w" ) as out_file:
 			# FIXME: line 1 contains class membership and version, just hardcode the class membership for now
-			out_file.write( "0\t{1}\n".format (self.version) )
+			out_file.write( "0\t{0}\n".format (self.version) )
 			out_file.write( "{0}\n".format( self.source_file ) )
 			for i in range( 0, len( self.names ) ):
 				out_file.write( "{val:0.6f} {name}\n".format( val=self.values[i], name=self.names[i] ) )
