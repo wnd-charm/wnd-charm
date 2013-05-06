@@ -57,10 +57,7 @@ Pychrm TODO (in no particular order):
 
 # pychrm.py has the definitions of all the SWIG-wrapped primitive
 # C++ WND_CHARM objects.
-try:
-	from . import pychrm
-except:
-	import pychrm
+import pychrm
 
 # ============================================================
 # Imports from Python core or other installed packages
@@ -2871,7 +2868,7 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 			# predicted class:
 			output_str += self.predicted_class_name + "\t"
 			# interpolated value, if applicable
-			if self.predicted_value:
+			if self.predicted_value is not None:
 				output_str += "{val:0.3f}".format( val=self.predicted_value )
 			print output_str
 		else:
@@ -2881,7 +2878,7 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 					[ "{val:0.3f}".format( val=prob ) for prob in self.marginal_probabilities ] )
 			print "Ground truth class:\t {0}".format( self.ground_truth_class_name ) 
 			print "Predicted class:\t {0}".format( self.predicted_class_name ) 
-			if self.predicted_value:
+			if self.predicted_value is not None:
 				print "Interpolated Value:\t{0}".format( self.predicted_value )
 				#print "Interpolated Value:\t{val=0.3f}".format( val=self.predicted_value )
 
@@ -3085,9 +3082,6 @@ class BatchClassificationResult( ClassificationResult ):
 	pearson_std_err = None
 	spearman_coeff = None
 	spearman_p_value = None
-	ground_truth_values = None
-	predicted_values = None
-
 
 	#==============================================================
 	def __init__( self, training_set = None, test_set = None, feature_weights = None ):
@@ -3604,7 +3598,9 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 		"""Only partially implemented.
 		
 		Completed functionality:
-		1. Aggregation of ground truth->predicted values across splits	
+		1. Simple aggregation of ground truth->predicted value pairs across splits.
+		   Use the function PredictedValueAnalysis() to average results for specific
+			 images across splits.
 		2. Calculation of aggregated feature weight statistics
 
 		Considerations for future implementation.
@@ -3614,8 +3610,10 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 		4. Hybrid test sets (discrete test sets loaded into a continuous test set)
 		   have "pseudo-classes," i.e., easily binnable ground truth values."""
 
-		# Step 0: if batch results have corresponding ground truth-predicted value pairs
-		#         aggregate them here.
+		# Simple result aggregation.
+		# Calls GenerateStats() on the individual batches if the 
+		# ground truth->predicted value pairs haven't been scraped
+		# from the batch's list of individual ImageClassificationResults.
 		from itertools import chain
 
 		lists_of_ground_truths = []
@@ -3632,10 +3630,11 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 		self.ground_truth_values = list( chain( *lists_of_ground_truths ) )
 		self.predicted_values = list( chain( *lists_of_predicted_values ) )
 
-		# Step 1: feature weight statistics:
-
+		# Aggregate feature weight statistics across splits, if any:
 		feature_weight_lists = {}
 		for batch_result in self.individual_results:
+			if not batch_result.feature_weights:
+				continue
 			weight_names_and_values = zip( batch_result.feature_weights.names, 
 					                                        batch_result.feature_weights.values)
 			for name, weight in weight_names_and_values:
@@ -3643,24 +3642,22 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 					feature_weight_lists[ name ] = []
 				feature_weight_lists[ name ].append( weight )
 
-		for feature_name in feature_weight_lists:
-			feature_weight_lists[ feature_name ] = np.array( feature_weight_lists[ feature_name ] )
+		if feature_weight_lists is not {}:
+			for feature_name in feature_weight_lists:
+				feature_weight_lists[ feature_name ] = np.array( feature_weight_lists[ feature_name ] )
 
-		feature_weight_stats = []
-		for fname in feature_weight_lists:
-			fwl = feature_weight_lists[ fname ]
-			count = len( fwl )
-			fwl_w_zeros = np.zeros( len( self.individual_results ) )
-			fwl_w_zeros[0:count] = fwl
-			feature_weight_stats.append( ( np.mean( fwl_w_zeros ),
-				                          count, np.std(fwl), np.min(fwl), np.max(fwl), fname ) )
+			feature_weight_stats = []
+			for fname in feature_weight_lists:
+				fwl = feature_weight_lists[ fname ]
+				count = len( fwl )
+				fwl_w_zeros = np.zeros( len( self.individual_results ) )
+				fwl_w_zeros[0:count] = fwl
+				feature_weight_stats.append( ( np.mean( fwl_w_zeros ),
+				                             count, np.std(fwl), np.min(fwl), np.max(fwl), fname ) )
 
-		# Sort on mean values, i.e. index 0 of tuple created above
-		sort_func = lambda A, B: cmp( A[0], B[0] )
-		self.feature_weight_statistics = sorted( feature_weight_stats, sort_func, reverse = True )
-
-		#Step 2: aggregate all results across splits for individual images
-		# FIXME: Do it!
+			# Sort on mean values, i.e. index 0 of tuple created above
+			sort_func = lambda A, B: cmp( A[0], B[0] )
+			self.feature_weight_statistics = sorted( feature_weight_stats, sort_func, reverse = True )
 
 	#=====================================================================
 	@output_railroad_switch
@@ -3809,6 +3806,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		# Base class does feature weight analysis, ground truth-pred. value aggregation
 		super( DiscreteClassificationExperimentResult, self ).GenerateStats()
 		
+		self.num_classifications = 0
 		self.num_correct_classifications = 0
 		for batch_result in self.individual_results:
 			for indiv_result in batch_result.individual_results:
@@ -3836,7 +3834,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		print "Number of batches: {0}".format( len( self.individual_results ) )
 		print "Total number of classifications: {0}".format( self.num_classifications )
 		print "Total number of CORRECT classifications: {0}".format( self.num_correct_classifications )
-		print "Total classification accuracy: {0:0.4f}\n".format( self.figure_of_merit )
+		print "Total classification accuracy: {0:0.4f}\n".format( self.classification_accuracy )
 
 		print "Batch Accuracies:"
 		print "#\tname\tclassification accuracy"
@@ -3845,7 +3843,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		for count, batch_result in enumerate( self.individual_results, 1 ):
 			if batch_result.figure_of_merit == None:
 				batch_result.GenerateStats()
-			print "{0}\t{1}\t{2:0.4f}".format( count, batch_name, batch_result.classification_accuracy )
+			print "{0}\t{1}\t{2:0.4f}".format( count, batch_result.name, batch_result.classification_accuracy )
 
 		outstr = "{0}\t{1:0.3f}\t{2:>3}\t{3:0.3f}\t{4:0.3f}\t{5:0.3f}\t{6}"
 		print "Feature Weight Analysis:"
@@ -3854,6 +3852,112 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		for count, fw_stat in enumerate( self.feature_weight_statistics, 1 ):
 			print outstr.format( count, *fw_stat )
 
+	#=====================================================================
+	@classmethod
+	@output_railroad_switch
+	def NewFromHTMLReport( cls, path_to_html ):
+		"""Takes as input an HTML report generated by C++ implementation wndchrm
+		Parses the report and builds up a Pychrm representation of the results,
+		which facilitates analysis, graphing, etc."""
+
+		import re
+		p = re.compile( r'"(.+?)"' )
+
+		# The following will be determined once the number of classes has been ascertained
+		normalization_col = None
+		mp_col = None
+		ground_truth_col = None
+		predicted_col = None
+		interp_val_col = None
+		name_col = None
+
+		ts = FeatureSet_Discrete()
+		exp = cls( training_set=ts, test_set=ts )
+		exp.name = path_to_html
+
+		classnames_list = []
+		interpolation_coefficients = []
+		class_values_dict = {}
+
+		trainingset_definition = False
+		trainingset_html = ""
+		insidesplit = False
+		split = None
+		splitcount = 0
+		split_linecount = None
+		with open( path_to_html ) as file:
+			for line in file:
+				if 'trainset_summary' in line:
+					trainingset_definition = True
+				if trainingset_definition == True:
+					trainingset_html += line.strip()
+				if '</table>' in line:
+					trainingset_definition = False
+				if trainingset_definition == False and trainingset_html is not "":
+					rows = re.findall( r'<tr>(.+?)</tr>', trainingset_html )
+					trainingset_html = ""
+					classcount = 0
+					for rownum, row in enumerate( rows ):
+						if rownum == 0:
+							continue # skip column header
+						classcount += 1
+						classname = re.search( r'<th>(.+?)</th>', row ).group(1)
+						classnames_list.append( classname )
+						coeff = float( re.search( r'(\d*\.?\d+)', classname ).group(1) )
+						interpolation_coefficients.append( coeff )
+						class_values_dict[ classname ] = coeff
+
+					ts.classnames_list = classnames_list
+					ts.interpolation_coefficients = interpolation_coefficients
+					num_classes = ts.num_classes = len( ts.classnames_list )
+					normalization_col = 1
+					mp_col = 2
+					ground_truth_col = num_classes + 3
+					predicted_col = num_classes + 4
+					interp_val_col = num_classes + 6
+					name_col = num_classes + 7
+
+				if line.startswith( '<TABLE ID="IndividualImages_split' ):
+					insidesplit = True
+					split = DiscreteBatchClassificationResult( training_set=ts, test_set=ts )
+					split.predicted_values = []
+					split.ground_truth_values = []
+					splitcount += 1
+					split_linecount = 0
+				elif line.startswith( '</table><br><br>' ):
+					insidesplit = False
+					exp.individual_results.append( split )
+					split.Print()
+					print '==============================================================='
+				elif insidesplit:
+					split_linecount += 1
+					if split_linecount == 1:
+						# First line in individual results is column headers
+						continue
+					noends = line.strip( '<trd/>\n' ) # take the tr and td tags off front end
+					values = noends.split( '</td><td>' )
+					result = DiscreteImageClassificationResult()
+
+					result.normalization_factor = float( values[ normalization_col ] )
+					result.marginal_probabilities = \
+							[ float( val.strip( '</b>' ) ) for val in values[ mp_col : mp_col + num_classes ] ]
+					result.predicted_class_name = values[ predicted_col ]
+					result.ground_truth_class_name = values[ ground_truth_col ]
+					result.name = p.search( values[ name_col ] ).groups()[0]
+					result.source_file = result.name
+					result.ground_truth_value = class_values_dict[ result.ground_truth_class_name ]
+					#result.predicted_value = float( values[ interp_val_col ] )
+					result.predicted_value = \
+					 sum( [ x*y for x,y in zip( result.marginal_probabilities, interpolation_coefficients ) ] )
+					#result.Print( line_item = True )
+					result.batch_number = splitcount
+					split.individual_results.append(result)
+					split.ground_truth_values.append( result.ground_truth_value )
+					split.predicted_values.append( result.predicted_value )
+		return exp
+
+
+# END class definition for DiscreteClassificationExperimentResult
 
 #============================================================================
 class ContinuousClassificationExperimentResult( ClassificationExperimentResult ):
@@ -3970,6 +4074,19 @@ class PredictedValuesGraph( BaseGraph ):
 			class_index += 1
 
 	#=====================================================================
+	@classmethod
+	@output_railroad_switch
+	def NewFromHTMLFile( cls, filepath ):
+		"""Helper function to facilitate the fast generation of graphs from C++-generated
+		HTML Report files."""
+
+		exp = DiscreteClassificationExperimentResult.NewFromHTMLReport( filepath )
+		exp.GenerateStats()
+		exp.PredictedValueAnalysis( )
+		newgraphobj = cls( exp )
+		return newgraphobj
+
+	#=====================================================================
 	def SaveToFile( self, filepath ):
 		"""Calls base class function"""
 		super( PredictedValuesGraph, self ).SaveToFile( filepath )
@@ -3983,6 +4100,7 @@ class PredictedValuesGraph( BaseGraph ):
 		
 		Required the package matplotlib to be installed."""
 
+		print "Rendering rank-ordered predicted values graph"
 		from matplotlib import pyplot
 
 		color = itertools.cycle(['r', 'g', 'b', 'c', 'm', 'y', 'k'])
@@ -4016,6 +4134,7 @@ class PredictedValuesGraph( BaseGraph ):
 		Requires the packages matplotlib and scipy. Uses scipy.stats.gaussian_kde to
 		generate kernel-smoothed probability density functions."""
 
+		print "Rendering kernel-smoothed probability density estimate graph"
 		from matplotlib import pyplot
 
 		color = itertools.cycle(['r', 'g', 'b', 'c', 'm', 'y', 'k'])
