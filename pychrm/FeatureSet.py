@@ -3942,7 +3942,8 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 					result.marginal_probabilities = \
 							[ float( val.strip( '</b>' ) ) for val in values[ mp_col : mp_col + num_classes ] ]
 					result.predicted_class_name = values[ predicted_col ]
-					result.ground_truth_class_name = values[ ground_truth_col ]
+					# Sometimes c-chrm labels classes with a * to say it's not part of the training set
+					result.ground_truth_class_name = values[ ground_truth_col ].strip('*')
 					result.name = p.search( values[ name_col ] ).groups()[0]
 					result.source_file = result.name
 					result.ground_truth_value = class_values_dict[ result.ground_truth_class_name ]
