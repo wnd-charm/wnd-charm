@@ -3659,6 +3659,8 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 			sort_func = lambda A, B: cmp( A[0], B[0] )
 			self.feature_weight_statistics = sorted( feature_weight_stats, sort_func, reverse = True )
 
+		# Remember, there's no such thing as a confusion matrix for a continuous class
+
 	#=====================================================================
 	@output_railroad_switch
 	def PredictedValueAnalysis( self ):
@@ -3861,7 +3863,26 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		which facilitates analysis, graphing, etc."""
 
 		import re
-		p = re.compile( r'"(.+?)"' )
+		row_re = re.compile( r'<tr>(.+?)</tr>' )
+
+		def ParseClassSummaryHTML( the_html ):
+			rows = row_re.findall( the_html )
+			ts = FeatureSet_Discrete()
+			ts.num_classes = 0
+			ts.interpolation_coefficients = []
+			ts.classnames_list = []
+			for rownum, row in enumerate( rows ):
+				if rownum == 0:
+					continue # skip column header
+				ts.num_classes += 1
+				classname = re.search( r'<th>(.+?)</th>', row ).group(1)
+				ts.classnames_list.append( classname )
+				coeff = float( num_re.search( classname ).group(1) )
+				ts.interpolation_coefficients.append( coeff )
+			return ts
+
+		name_re = re.compile( r'"(.+?)"' )
+		num_re = re.compile( r'(\d*\.?\d+)' )
 
 		# The following will be determined once the number of classes has been ascertained
 		normalization_col = None
@@ -3871,16 +3892,14 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		interp_val_col = None
 		name_col = None
 
-		ts = FeatureSet_Discrete()
-		exp = cls( training_set=ts, test_set=ts )
+		_training_set = None
+		_test_set = None
+		exp = cls()
 		exp.name = path_to_html
 
-		classnames_list = []
-		interpolation_coefficients = []
-		class_values_dict = {}
+		trainingset_definition = False; trainingset_html = ""
+		testset_definition = False; testset_html = ""
 
-		trainingset_definition = False
-		trainingset_html = ""
 		insidesplit = False
 		split = None
 		splitcount = 0
@@ -3891,35 +3910,34 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 					trainingset_definition = True
 				if trainingset_definition == True:
 					trainingset_html += line.strip()
-				if '</table>' in line:
+				if trainingset_definition and '</table>' in line:
 					trainingset_definition = False
-				if trainingset_definition == False and trainingset_html is not "":
-					rows = re.findall( r'<tr>(.+?)</tr>', trainingset_html )
+					ts = _training_set = ParseClassSummaryHTML( trainingset_html )
 					trainingset_html = ""
-					classcount = 0
-					for rownum, row in enumerate( rows ):
-						if rownum == 0:
-							continue # skip column header
-						classcount += 1
-						classname = re.search( r'<th>(.+?)</th>', row ).group(1)
-						classnames_list.append( classname )
-						coeff = float( re.search( r'(\d*\.?\d+)', classname ).group(1) )
-						interpolation_coefficients.append( coeff )
-						class_values_dict[ classname ] = coeff
 
-					ts.classnames_list = classnames_list
-					ts.interpolation_coefficients = interpolation_coefficients
-					num_classes = ts.num_classes = len( ts.classnames_list )
 					normalization_col = 1
 					mp_col = 2
-					ground_truth_col = num_classes + 3
-					predicted_col = num_classes + 4
-					interp_val_col = num_classes + 6
-					name_col = num_classes + 7
+					ground_truth_col = ts.num_classes + 3
+					predicted_col = ts.num_classes + 4
+					interp_val_col = ts.num_classes + 6
+					name_col = ts.num_classes + 7
+
+				if 'testset_summary' in line:
+					testset_definition = True
+				if testset_definition == True:
+					testset_html += line.strip()
+				if testset_definition and '</table>' in line:
+					testset_definition = False
+					_test_set = ParseClassSummaryHTML( testset_html )
+					testset_html = ""
 
 				if line.startswith( '<TABLE ID="IndividualImages_split' ):
+					# If we haven't seen a test set definition by now, we ain't gonna see one period.
+					if not _test_set:
+						_test_set = _training_set
 					insidesplit = True
-					split = DiscreteBatchClassificationResult( training_set=ts, test_set=ts )
+					split = DiscreteBatchClassificationResult( 
+					                                   training_set=_training_set, test_set=_test_set )
 					split.predicted_values = []
 					split.ground_truth_values = []
 					splitcount += 1
@@ -3927,8 +3945,6 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 				elif line.startswith( '</table><br><br>' ):
 					insidesplit = False
 					exp.individual_results.append( split )
-					split.Print()
-					print '==============================================================='
 				elif insidesplit:
 					split_linecount += 1
 					if split_linecount == 1:
@@ -3940,21 +3956,24 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 
 					result.normalization_factor = float( values[ normalization_col ] )
 					result.marginal_probabilities = \
-							[ float( val.strip( '</b>' ) ) for val in values[ mp_col : mp_col + num_classes ] ]
+							[ float( val.strip( '</b>' ) ) for val in values[ mp_col : mp_col + _training_set.num_classes ] ]
 					result.predicted_class_name = values[ predicted_col ]
 					# Sometimes c-chrm labels classes with a * to say it's not part of the training set
 					result.ground_truth_class_name = values[ ground_truth_col ].strip('*')
-					result.name = p.search( values[ name_col ] ).groups()[0]
+					result.name = name_re.search( values[ name_col ] ).groups()[0]
 					result.source_file = result.name
-					result.ground_truth_value = class_values_dict[ result.ground_truth_class_name ]
+					result.ground_truth_value = float( num_re.search( result.ground_truth_class_name ).group(1) )
 					#result.predicted_value = float( values[ interp_val_col ] )
 					result.predicted_value = \
-					 sum( [ x*y for x,y in zip( result.marginal_probabilities, interpolation_coefficients ) ] )
+					 sum( [ x*y for x,y in zip( result.marginal_probabilities, _training_set.interpolation_coefficients ) ] )
 					#result.Print( line_item = True )
 					result.batch_number = splitcount
 					split.individual_results.append(result)
 					split.ground_truth_values.append( result.ground_truth_value )
 					split.predicted_values.append( result.predicted_value )
+		exp.training_set = _training_set
+		exp.test_set = _test_set
+
 		return exp
 
 
