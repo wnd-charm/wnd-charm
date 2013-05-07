@@ -4101,11 +4101,15 @@ class PredictedValuesGraph( BaseGraph ):
 		Required the package matplotlib to be installed."""
 
 		print "Rendering rank-ordered predicted values graph"
-		from matplotlib import pyplot
+		import matplotlib
+		# Need following line to generate images on servers, see
+		# http://matplotlib.org/faq/howto_faq.html#generate-images-without-having-a-window-appear
+		matplotlib.use('Agg')
+		import matplotlib.pyplot as plt
 
 		color = itertools.cycle(['r', 'g', 'b', 'c', 'm', 'y', 'k'])
 
-		self.figure = pyplot.figure()
+		self.figure = plt.figure()
 		self.main_axes = self.figure.add_subplot(111)
 		if chart_title:
 			self.chart_title = chart_title
@@ -4135,11 +4139,13 @@ class PredictedValuesGraph( BaseGraph ):
 		generate kernel-smoothed probability density functions."""
 
 		print "Rendering kernel-smoothed probability density estimate graph"
-		from matplotlib import pyplot
+		import matplotlib
+		matplotlib.use('Agg')
+		import matplotlib.pyplot as plt
 
 		color = itertools.cycle(['r', 'g', 'b', 'c', 'm', 'y', 'k'])
 
-		self.figure = pyplot.figure()
+		self.figure = plt.figure()
 		self.main_axes = self.figure.add_subplot(111)
 		if chart_title:
 			self.chart_title = chart_title
@@ -4205,11 +4211,13 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 			batch_result.Print()
 			experiment.individual_results.append( batch_result )
 
-		from matplotlib import pyplot
+		import matplotlib
+		matplotlib.use('Agg')
+		import matplotlib.pyplot as plt
 
 		x_vals = list( range( 1, max_num_features + 1 ) )
 
-		self.figure = pyplot.figure()
+		self.figure = plt.figure()
 		self.main_axes = self.figure.add_subplot(111)
 		if chart_title == None:
 			self.chart_title = "Feature timing v. classification accuracy"	
