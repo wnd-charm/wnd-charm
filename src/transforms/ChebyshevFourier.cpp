@@ -138,10 +138,14 @@ void ChebyshevFourier2D(const ImageMatrix &Im, unsigned long N, double *coeff_pa
 
 	for (a = 0; a < packingOrder; a++)
 		coeff_packed[a] = 0;
-	if (max != min) {
+
+	if (max - min > 0) {
+		double h_scale = (double) packingOrder / double (max - min);
+		unsigned long bin;
 		for (a = 0; a < NN*NN; a++) {
-			if (coeff[a] == max) coeff_packed[31] += 1;
-			else coeff_packed[(int)(((coeff[a]-min)/(max-min))*32)] += 1;
+			bin = (unsigned long)(( (coeff[a] - min) * h_scale));
+			if (bin >= packingOrder) bin = packingOrder-1;
+			coeff_packed [bin] += 1;
 		}
 	}
 
