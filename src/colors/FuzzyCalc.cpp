@@ -794,6 +794,7 @@ double CalculateRules2(double hue, double saturation, double value, int color) {
 			/* add the rule values */
 			lower_sum=lower_sum+ret_val;
 		}
+		RulesCounter++;
 	}
 	return(lower_sum);
 }
