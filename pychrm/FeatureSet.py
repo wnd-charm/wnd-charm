@@ -81,16 +81,16 @@ Transforms = []
 # The numbers *must* be consistent with what's defined in wndchrm C-codebase.
 feature_vector_major_version = 2
 # Feature vector lengths in current version
-# #define NUM_LC_FEATURES  4054
+# #define NUM_LC_FEATURES  4059
 # #define NUM_L_FEATURES   2919
-# #define NUM_C_FEATURES   2194
+# #define NUM_C_FEATURES   2199
 # #define NUM_DEF_FEATURES 1059
 # These are definitions for Version 2 features.
 feature_vector_minor_version_from_num_features = {
 	1059:1,
 	2919:2,
-	2194:3,
-	4054:4
+	2199:3,
+	4059:4
 }
 # // original lengths prior to Version 2:
 # // no Gini coefficient, no inverse otsu features
@@ -113,8 +113,8 @@ feature_vector_minor_version_from_vector_type = {
 feature_vector_num_features_from_vector_type = {
 	'short':1059,
 	'long':2919,
-	'short_color':2194,
-	'long_color':4054
+	'short_color':2199,
+	'long_color':4059
 }
 
 error_banner = "\n*************************************************************************\n"
