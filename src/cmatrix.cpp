@@ -154,6 +154,7 @@ int ImageMatrix::LoadTIFF(char *filename) {
 					}
 				}
 				if (spp == 3 && bits == 8) {
+					pix_plane (y, x) = RGB2GRAY (rgb);
 					clr_plane (y, x) = RGB2HSV(rgb);
 				} else if (spp == 1) {
 					pix_plane (y, x) = val;
@@ -187,6 +188,7 @@ int ImageMatrix::LoadTIFF(char *filename) {
 				rgb.r = (unsigned char)( (R_matrix.ReadablePixels().array().coeff(a) - RGB_min) * RGB_scale);
 				rgb.g = (unsigned char)( (G_matrix.ReadablePixels().array().coeff(a) - RGB_min) * RGB_scale);
 				rgb.b = (unsigned char)( (B_matrix.ReadablePixels().array().coeff(a) - RGB_min) * RGB_scale);
+				pix_plane (y, x) = RGB2GRAY (rgb);
 				clr_plane (y, x) = RGB2HSV(rgb);
 			}
 		}
@@ -331,10 +333,15 @@ void ImageMatrix::allocate (unsigned int w, unsigned int h) {
 	if ((unsigned int) _pix_plane.cols() != w || (unsigned int)_pix_plane.rows() != h) {
 		// These throw exceptions, which we don't catch (catch in main?)
 		// FIXME: We could check for shrinkage and simply remap instead of allocating.
-		if (verbosity > 7 && _pix_plane.data()) fprintf (stdout, "deallocating grayscale %p ",(void *)_pix_plane.data());
+		if (verbosity > 7 && _pix_plane.data()) fprintf (stdout, "deallocating grayscale %p\n",(void *)_pix_plane.data());
 		if (_pix_plane.data()) Eigen::aligned_allocator<double>().deallocate (_pix_plane.data(), _pix_plane.size());
 		remap_pix_plane (Eigen::aligned_allocator<double>().allocate (w * h), w, h);
-		if (verbosity > 7 && _pix_plane.data()) fprintf (stdout, "allocated grayscale %p\n",(void *)_pix_plane.data());
+		if (verbosity > 7 && _pix_plane.data()) fprintf (stdout, "allocated grayscale %p (%d,%d)\n",(void *)_pix_plane.data(), w, h);
+	} else {
+		// No re-allocation necessary since size didn't change
+		// The width and height are updated to the parmeters here because remap_pix_plane was not called
+		width = w;
+		height = h;
 	}
 
 	// cleanup the color plane if it changed size, or if we have a gray image.
@@ -349,7 +356,7 @@ void ImageMatrix::allocate (unsigned int w, unsigned int h) {
 		// These throw exceptions, which we don't catch (catch in main?)
 		// FIXME: We could check for shrinkage and simply remap instead of allocating.
 		remap_clr_plane (Eigen::aligned_allocator<HSVcolor>().allocate (w * h), w, h);
-		if (verbosity > 7 && _clr_plane.data()) fprintf (stdout, "  allocated color %p\n",(void *)_clr_plane.data());
+		if (verbosity > 7 && _clr_plane.data()) fprintf (stdout, "  allocated color %p (%d,%d)\n",(void *)_clr_plane.data(), w, h);
 	}
 }
 
