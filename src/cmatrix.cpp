@@ -155,6 +155,7 @@ int ImageMatrix::LoadTIFF(char *filename) {
 					}
 				}
 				if (spp == 3 && bits == 8) {
+					pix_plane (y, x) = stats.add (RGB2GRAY (rgb));
 					clr_plane (y, x) = RGB2HSV(rgb);
 				} else if (spp == 1) {
 					pix_plane (y, x) = stats.add (val);
@@ -184,6 +185,7 @@ int ImageMatrix::LoadTIFF(char *filename) {
 				rgb.r = (unsigned char)( (R_matrix.ReadablePixels().array().coeff(a) - RGB_min) * RGB_scale);
 				rgb.g = (unsigned char)( (G_matrix.ReadablePixels().array().coeff(a) - RGB_min) * RGB_scale);
 				rgb.b = (unsigned char)( (B_matrix.ReadablePixels().array().coeff(a) - RGB_min) * RGB_scale);
+				pix_plane (y, x) = stats.add (RGB2GRAY (rgb));
 				clr_plane (y, x) = RGB2HSV(rgb);
 			}
 		}
