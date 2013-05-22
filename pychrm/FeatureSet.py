@@ -2041,10 +2041,11 @@ class FeatureSet_Discrete( FeatureSet ):
 		reduced_ts._RegenerateClassViews()
 		
 		# if the feature vectors sizes changed then they are no longer standard feature vectors.
-		if (reduced_ts.num_features != self.num_features):
-			reduced_ts.feature_vector_version = "{0}.0".format (self.feature_vector_version.split('.',1)[0])
-		else:
-			reduced_ts.feature_vector_version = self.feature_vector_version
+		if self.feature_vector_version is not None:
+			if (reduced_ts.num_features != self.num_features):
+				reduced_ts.feature_vector_version = "{0}.0".format (self.feature_vector_version.split('.',1)[0])
+			else:
+				reduced_ts.feature_vector_version = self.feature_vector_version
 
 		return reduced_ts
 
@@ -2221,15 +2222,15 @@ Y 	Y 	R 	R 	N 	balanced training and test sets, as above but with 75-25 default 
 		# Step 0: General Dummyproofing
 		smallest_class_size = self.NumSamplesInSmallestClass()
 
-		if i and( i <= 0 or i > smallest_class ):
+		if i and( i <= 0 or i > smallest_class_size ):
 			raise ValueError( 'i must be greater than zero and less than total number of images'\
-			    + ' in smallest class ({0})'.format( smallest_class ) )
+			    + ' in smallest class ({0})'.format( smallest_class_size ) )
 
-		if j and( j <= 0 or j > smallest_class ):
+		if j and( j <= 0 or j > smallest_class_size ):
 			raise ValueError( 'j must be greater than zero and less than total number of images'\
-			    + ' in smallest class ({0})'.format( smallest_class ) )
+			    + ' in smallest class ({0})'.format( smallest_class_size ) )
 
-		if ( i and j ) and ( ( i + j ) > smallest_class ):
+		if ( i and j ) and ( ( i + j ) > smallest_class_size ):
 			raise ValueError( 'Values for i and j cannot add up to more than total number of images in smallest class ({0})'.format( smallest_class ) )
 		
 		if training_set_fraction and ( training_set_fraction < 0 or training_set_fraction > 1 ):
@@ -2372,9 +2373,12 @@ Y 	Y 	R 	R 	N 	balanced training and test sets, as above but with 75-25 default 
 					test_samp_count += 1
 				test_set.data_list[ class_index ] = test_matrix
 
+		training_set.ContiguousDataMatrix()
+
 		if training_set_only:
 			return training_set
 
+		test_set.ContiguousDataMatrix()
 		return training_set, test_set
 
 	#==============================================================
@@ -2939,7 +2943,12 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 				class_similarities[ class_index ] += w_dist ** -5
 			#print "\n"
 
-			class_similarities[ class_index ] /= ( num_tiles - num_collisions )
+			denom = num_tiles - num_collisions
+			if denom == 0:
+				# This sample collided with every sample in the test set
+				# return a non-call
+				return cls()
+			class_similarities[ class_index ] /= denom
 #			print "class_similarities: "+str(class_similarities)
 
 		result = cls()
@@ -3065,6 +3074,7 @@ class BatchClassificationResult( ClassificationResult ):
 	train/test splits."""
 
 	name = None
+	batch_number = None
 	training_set = None
 	test_set = None
 	feature_weights = None
@@ -3093,6 +3103,20 @@ class BatchClassificationResult( ClassificationResult ):
 		self.individual_results = []
 
 		self.num_classifications = 0
+	#==============================================================	
+	def __str__( self ):
+		outstr = self.__class__.__name__
+		if self.name is None and self.batch_number is None:
+			return outstr + " id({})".format( id( self ))
+		else:
+			if self.batch_number is not None:
+				outstr += ' batch # {}'.format( self.batch_number )
+			if self.name is not None:
+				outstr += ' "{}"'.format( self.name )
+			return outstr
+	#==============================================================
+	def __repr__( self ):
+		return str(self)
 
 	#==============================================================
 	def GenerateStats( self ):
@@ -3172,6 +3196,8 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 	confusion_matrix = None
 	similarity_matrix = None
 	average_class_probability_matrix = None
+
+	batch_count = 0
 
 	#==============================================================
 	def __init__( self, training_set = None, test_set = None, feature_weights = None ):
@@ -3450,6 +3476,10 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 		batch_result = cls( training_set, test_set, feature_weights )
 		batch_result.name = batch_name
+		if not batch_number:
+			batch_number = DiscreteBatchClassificationResult.batch_count
+			DiscreteBatchClassificationResult.batch_count += 1
+		batch_result.batch_number = batch_number
 
 		train_set_interp_coeffs = None
 		if training_set.interpolation_coefficients:
@@ -3473,8 +3503,11 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 				result.ground_truth_class_name = test_set.classnames_list[ test_class_index ]
 				result.batch_number = batch_number
 				result.name = batch_name
-				marg_probs = np.array( result.marginal_probabilities )
-				result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
+				if result.marginal_probabilities:
+					# Sometimes the result comes back with a non-call, like when the sample image
+					# collides with every test image
+					marg_probs = np.array( result.marginal_probabilities )
+					result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
 
 				# interpolated value, if applicable
 				if train_set_interp_coeffs is not None:
@@ -3624,11 +3657,15 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 			self.num_classifications += len( batch_result.individual_results )
 			if batch_result.figure_of_merit == None:
 				batch_result.GenerateStats()
-			lists_of_ground_truths.append( batch_result.ground_truth_values )
-			lists_of_predicted_values.append( batch_result.predicted_values )
+			if batch_result.ground_truth_values:
+				lists_of_ground_truths.append( batch_result.ground_truth_values )
+			if batch_result.predicted_values:
+				lists_of_predicted_values.append( batch_result.predicted_values )
 
-		self.ground_truth_values = list( chain( *lists_of_ground_truths ) )
-		self.predicted_values = list( chain( *lists_of_predicted_values ) )
+		if lists_of_ground_truths:
+			self.ground_truth_values = list( chain( *lists_of_ground_truths ) )
+		if lists_of_predicted_values:
+			self.predicted_values = list( chain( *lists_of_predicted_values ) )
 
 		# Aggregate feature weight statistics across splits, if any:
 		feature_weight_lists = {}
@@ -3817,6 +3854,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 					self.num_correct_classifications += 1
 
 		self.figure_of_merit = float( self.num_correct_classifications) / float( self.num_classifications )
+		self.classification_accuracy = self.figure_of_merit
 
 		#FIXME: Create confusion, similarity, and class probability matrices
 
@@ -3839,13 +3877,14 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		print "Total classification accuracy: {0:0.4f}\n".format( self.classification_accuracy )
 
 		print "Batch Accuracies:"
-		print "#\tname\tclassification accuracy"
+		print "#\tAcc.\tName"
 		print "------------------------------------"
 
-		for count, batch_result in enumerate( self.individual_results, 1 ):
+		for batch_result in sorted( self.individual_results, key=lambda X: X.classification_accuracy, reverse=True ):
 			if batch_result.figure_of_merit == None:
 				batch_result.GenerateStats()
-			print "{0}\t{1}\t{2:0.4f}".format( count, batch_result.name, batch_result.classification_accuracy )
+			print "{0}\t{1:0.4f}\t{2}".format( batch_result.batch_number,
+			                  batch_result.classification_accuracy, batch_result.name )
 
 		outstr = "{0}\t{1:0.3f}\t{2:>3}\t{3:0.3f}\t{4:0.3f}\t{5:0.3f}\t{6}"
 		print "Feature Weight Analysis:"
