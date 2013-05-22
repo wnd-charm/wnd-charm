@@ -2839,16 +2839,14 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 	"""Concrete class that contains the result of a classification for a single image/ROI.
 	which includes predicted class, marginal probabilities, etc."""
 
-	normalization_factor = None
-	marginal_probabilities = None
-	#: predicted_class_name will always be a string
-	#: the interpolated value, if applicable, gets stored in self.predicted_vlaue
-	predicted_class_name = None
-	ground_truth_class_name = None
-
 	def __init__( self ):
 		self.marginal_probabilities = []
-
+		self.normalization_factor = None
+		self.marginal_probabilities = None
+		#: predicted_class_name will always be a string
+		#: the interpolated value, if applicable, gets stored in self.predicted_vlaue
+		self.predicted_class_name = 'UNKNOWN'
+		self.ground_truth_class_name = 'UNKNOWN'
 	#==============================================================
 	@output_railroad_switch
 	def Print( self, line_item = False ):
@@ -2859,10 +2857,15 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 			# img name:
 			output_str = self.source_file
 			# normalization factor:
-			output_str += "\t{val:0.3g}\t".format( val=self.normalization_factor )
+			if self.normalization_factor is None:
+				# no normalization factor means this is a non-call
+				print output_str + "\t----------------COLLISION----------------"
+				return
+			output_str += "\t{:0.3g}\t".format( self.normalization_factor )
+
 			# marginal probabilities:
 			output_str += "\t".join(\
-					[ "{val:0.3f}".format( val=prob ) for prob in self.marginal_probabilities ] )
+			     [ "{:0.3f}".format( prob ) for prob in self.marginal_probabilities ] )
 			output_str += "\t"
 			# actual class:
 			if self.ground_truth_class_name:
@@ -2873,7 +2876,7 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 			output_str += self.predicted_class_name + "\t"
 			# interpolated value, if applicable
 			if self.predicted_value is not None:
-				output_str += "{val:0.3f}".format( val=self.predicted_value )
+				output_str += "{:0.3f}".format( self.predicted_value )
 			print output_str
 		else:
 			print "Image:             \t{0}".format( self.source_file )
@@ -3218,6 +3221,8 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 		# Remember! Dicts are not guaranteed to maintain key order but lists are
 		# When cycling through the matrix, iterate over the lists, and not the keys of the dict
+		from collections import defaultdict
+
 		self.confusion_matrix = {}
 		self.average_class_probability_matrix = {}
 
@@ -3225,20 +3230,14 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		# Does the test set have ground truth?
 		if self.test_set.classnames_list:
 			for test_set_class_name in self.test_set.classnames_list:
-				self.confusion_matrix[ test_set_class_name ] = {}
-				self.average_class_probability_matrix[ test_set_class_name ] = {}
+				self.confusion_matrix[ test_set_class_name ] = defaultdict(int) 
+				self.average_class_probability_matrix[ test_set_class_name ] = defaultdict(float)
 		else:
-			self.confusion_matrix[ "UNKNOWN" ] = {}
-			self.average_class_probability_matrix[ "UNKNOWN" ] = {}
-		# now the columns:
-		for training_set_class_name in self.training_set.classnames_list:
-			for test_set_class_name in self.test_set.classnames_list:
-				self.confusion_matrix[ test_set_class_name ][ training_set_class_name ] = 0
-				self.average_class_probability_matrix[ test_set_class_name ][ training_set_class_name ] = 0
+			self.confusion_matrix[ "UNKNOWN" ] = defaultdict( int )
+			self.average_class_probability_matrix[ "UNKNOWN" ] = defaultdict( float )
 
 		self.num_correct_classifications = 0
 
-		from collections import defaultdict
 		self.num_classifications_per_class = defaultdict( int )
 		self.num_correct_classifications_per_class = defaultdict( int )
 
@@ -3251,16 +3250,17 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 			test_set_class = indiv_result.ground_truth_class_name
 			if test_set_class == None: test_set_class = "UNKNOWN"
-
+			
 			self.confusion_matrix[ test_set_class ][ indiv_result.predicted_class_name ] += 1
 
 			# FIXME: is there any possibility that the order of the values in the marginal
 			# probability array don't correspond with the order of the training set classes?
 			index = 0
 			for training_set_class_name in self.training_set.classnames_list:
-				val = indiv_result.marginal_probabilities[ index ]
-				self.average_class_probability_matrix[ test_set_class ][ training_set_class_name ] += val
-				index += 1
+				if indiv_result.marginal_probabilities:
+					val = indiv_result.marginal_probabilities[ index ]
+					self.average_class_probability_matrix[ test_set_class ][ training_set_class_name ] += val
+					index += 1
 
 		# Do the averaging for the similarity and avg prob matrices.
 		for row in self.test_set.classnames_list:
@@ -3277,8 +3277,9 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 			self.similarity_matrix = deepcopy( self.average_class_probability_matrix )
 			for row in self.test_set.classnames_list:
 				for col in self.training_set.classnames_list:
-					self.similarity_matrix[ row ][ col ] /= self.similarity_matrix[ row ][ row ]
-					self.similarity_matrix[ col ][ row ] /= self.similarity_matrix[ row ][ row ]
+					if self.similarity_matrix[ row ][ row ]:
+						self.similarity_matrix[ row ][ col ] /= self.similarity_matrix[ row ][ row ]
+						self.similarity_matrix[ col ][ row ] /= self.similarity_matrix[ row ][ row ]
 
 
 		self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
