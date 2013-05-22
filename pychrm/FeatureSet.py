@@ -2861,11 +2861,11 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 				# no normalization factor means this is a non-call
 				print output_str + "\t----------------COLLISION----------------"
 				return
-			output_str += "\t{:0.3g}\t".format( self.normalization_factor )
+			output_str += "\t{0:0.3g}\t".format( self.normalization_factor )
 
 			# marginal probabilities:
 			output_str += "\t".join(\
-			     [ "{:0.3f}".format( prob ) for prob in self.marginal_probabilities ] )
+			     [ "{0:0.3f}".format( prob ) for prob in self.marginal_probabilities ] )
 			output_str += "\t"
 			# actual class:
 			if self.ground_truth_class_name:
@@ -2876,7 +2876,7 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 			output_str += self.predicted_class_name + "\t"
 			# interpolated value, if applicable
 			if self.predicted_value is not None:
-				output_str += "{:0.3f}".format( self.predicted_value )
+				output_str += "{0:0.3f}".format( self.predicted_value )
 			print output_str
 		else:
 			print "Image:             \t{0}".format( self.source_file )
