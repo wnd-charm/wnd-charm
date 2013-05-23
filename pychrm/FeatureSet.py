@@ -543,9 +543,11 @@ class FisherFeatureWeights( FeatureWeights ):
 		#     0./0. = nan,  nan/0. = nan, 0/nan = nan, nan/nan = nan, nan/inf = nan, inf/nan = nan
 		# We can't deal with NANs only, must also deal with pos/neg infs
 		# The masked array allows for dealing with "invalid" floats, which includes nan and +/-inf
+		denom = np.mean( intra_class_variances, axis = 0 )
+		denom[denom == 0] = np.nan
 		feature_weights_m =  np.ma.masked_invalid (
 			( np.square( population_means - intra_class_means ).sum( axis = 0 ) /
-		    (training_set.num_classes - 1) ) / np.mean( intra_class_variances, axis = 0 )
+		    (training_set.num_classes - 1) ) / denom
 		    )
 		# return numpy error settings to original
 		np.seterr(**oldsettings)
@@ -2073,6 +2075,8 @@ class FeatureSet_Discrete( FeatureSet ):
 			# make sure there's something there when you try to dereference that index
 			self.data_list = []
 			self.data_list.append( None )
+			self.num_images = 0
+			self.num_classes = 0
 
 			self.featurenames_list = signature.names
 			self.num_features = len( signature.names )
@@ -2087,7 +2091,7 @@ class FeatureSet_Discrete( FeatureSet ):
 		while (len( self.imagenames_list ) ) < class_id_index + 1:
 			self.imagenames_list.append( [] )
 		while (len( self.classnames_list ) ) < class_id_index + 1:
-			self.classnames_list.append( "UNKNOWN"+str(class_id_index + 1) )
+			self.classnames_list.append( "UNKNOWN"+str(len( self.classnames_list ) + 1) )
 		while (len( self.classsizes_list ) ) < class_id_index + 1:
 			self.classsizes_list.append( 0 )
 
@@ -2102,6 +2106,7 @@ class FeatureSet_Discrete( FeatureSet ):
 
 		self.num_images += 1
 		self.classsizes_list[class_id_index] += 1
+		self.num_classes = len( self.data_list )
 
 		#print 'Added file "{0}" to class {1} "{2}" ({3} images)'.format( signature.source_file, \
 		#    class_id_index, self.classnames_list[class_id_index], len( self.imagenames_list[ class_id_index ] ) ) 
