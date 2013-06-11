@@ -163,13 +163,12 @@ double *Gabor(double f0, double sig2lam, double gamma, double theta, double fi, 
 
 /* Computes Gabor energy */
 //Function [e2] = GaborEnergy(Im,f0,sig2lam,gamma,theta,n),
-double *GaborEnergy(const ImageMatrix &Im, double f0, double sig2lam, double gamma, double theta, int n) {
-	double *Gexp, *image, *c,*out;
+double *GaborEnergy(const ImageMatrix &Im, double* out, double f0, double sig2lam, double gamma, double theta, int n) {
+	double *Gexp, *image, *c;
 	double fi = 0;
 	unsigned int a,b,x,y;
 	Gexp = Gabor(f0,sig2lam,gamma,theta,fi,n);
 	readOnlyPixels pix_plane = Im.ReadablePixels();
-
 
 	c = new double[(Im.width+n-1)*(Im.height+n-1)*2];
 	image = new double[Im.width*Im.height];
@@ -179,7 +178,6 @@ double *GaborEnergy(const ImageMatrix &Im, double f0, double sig2lam, double gam
 
 	conv2comp(c, image, Gexp, Im.width, Im.height, n, n);
 
-	out = new double[Im.height*Im.width];
 	b = 0;
 	for (y = (int)ceil((double)n/2); b < Im.height; y++) {
 		a = 0;
@@ -208,36 +206,26 @@ void GaborTextureFilters2D(const ImageMatrix &Im, double *ratios) {
 	double f0[7] = {1,2,3,4,5,6,7};       // frequencies for several HP Gabor filters
 	double f0LP = 0.1;     // frequencies for one LP Gabor filter
 	double theta = 3.14159265/2;
-	double *e2LP;
 	unsigned int ii;
 	unsigned long originalScore = 0;
 
 	ImageMatrix e2img;
+	e2img.allocate(Im.width, Im.height);
 
 	// compute the original score before Gabor
-	e2LP = GaborEnergy(Im,f0LP,sig2lam,gamma,theta,n);
-	e2img.remap_pix_plane(e2LP, Im.width, Im.height);
+	GaborEnergy(Im, e2img.writable_data_ptr(), f0LP,sig2lam,gamma,theta,n);
 	readOnlyPixels pix_plane = e2img.ReadablePixels();
 	// N.B.: for the base of the ratios, the threshold is 0.4 of max energy,
 	// while the comparison thresholds are Otsu.
 	originalScore = (pix_plane.array() > pix_plane.maxCoeff() * 0.4).count();
 
-	// cleanup the mapping
-	e2img.remap_pix_plane(NULL, 0, 0);
-	delete [] e2LP;
-
 	for (ii = 0; ii < 7; ii++) {
-		double *e2;
 		unsigned long afterGaborScore = 0;
-		e2 = GaborEnergy(Im,f0[ii],sig2lam,gamma,theta,n);
-		e2img.remap_pix_plane(e2, Im.width, Im.height);
+		GaborEnergy(Im, e2img.writable_data_ptr(),f0[ii],sig2lam,gamma,theta,n);
 		writeablePixels e2_pix_plane = e2img.WriteablePixels();
 		e2_pix_plane.array() = (e2_pix_plane.array() / e2_pix_plane.maxCoeff()).unaryExpr (Moments2func(e2img.stats));
 		GRAYthr = e2img.Otsu();
 		afterGaborScore = (e2_pix_plane.array() > GRAYthr).count();
 		ratios[ii] = (double)afterGaborScore/(double)originalScore;
-
-		e2img.remap_pix_plane(NULL, 0, 0);
-		delete [] e2;
 	}
 }

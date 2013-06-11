@@ -175,6 +175,7 @@ public:
 	Moments2 stats;        // min, max, mean, std computed in single pass, median in separate pass
 	bool has_median;                     // if the median has been computed
 	const double *data_ptr() const { return _pix_plane.data(); }
+	double *writable_data_ptr() { return _pix_plane.data(); }
 	inline writeablePixels WriteablePixels() {
 		assert(_is_pix_writeable && "Attempt to write to read-only pixels");
 		has_median = false;
