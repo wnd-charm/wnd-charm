@@ -174,6 +174,9 @@ public:
 	unsigned short bits;                            // the number of intensity bits (8,16, etc)
 	unsigned int width,height;                               // width and height of the picture
 	bool has_stats, has_median;                     // has_stats applies to min, max, mean, std. has_median only to median
+	const double *data_ptr() const { return _pix_plane.data(); }
+	double *writable_data_ptr() { return _pix_plane.data(); }
+	
 	inline writeablePixels WriteablePixels() {
 		assert(_is_pix_writeable && "Attempt to write to read-only pixels");
 		has_stats = has_median = false;
