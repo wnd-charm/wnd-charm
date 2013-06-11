@@ -2,11 +2,11 @@
 
 %{
 /* Include in the generated wrapper file */
-typedef unsigned long size_t;
+/*typedef unsigned long size_t;*/
 #include "Tasks.h"
 %}
 /* Tell SWIG about size_t */
-typedef unsigned long size_t;
+/*typedef unsigned long size_t;*/
 
 %include "std_string.i"
 %include "std_vector.i"
