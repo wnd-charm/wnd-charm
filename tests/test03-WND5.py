@@ -28,10 +28,10 @@ from pychrm import __version__ as pychrm_version
 test_name = "WND5 Classification"
 max_diff_pass = 0.000001
 max_mean_pass = 0.000001
-test_sig = os.path.join (test_dir,'t45_s06_c06_ij-l_precalculated.sig')
+test_sig = os.path.join (test_dir,'t1_s01_c05_ij-l_precalculated.sig')
 test_fit = os.path.join (test_dir,'test-l.fit')
 test_fit_wght = os.path.join (test_dir,'test_fit-l.weights')
-test_tif = os.path.join (test_dir,'t45_s06_c06_ij.tif')
+test_tif = os.path.join (test_dir,'t1_s01_c05_ij.tif')
 
 # wndchrm classify -l -f1.0 test-l.fit test/2cell/t45_s06_c06_ij.tif
 # test/2cell/t45_s06_c06_ij.tif	6.87e-28	0.614	0.386	*	2cell	2.771
@@ -40,9 +40,9 @@ test_tif = os.path.join (test_dir,'t45_s06_c06_ij.tif')
 # wndchrm classify -l -f0.0685 test-l.fit test/2cell/t45_s06_c06_ij.tif
 # test/2cell/t45_s06_c06_ij.tif	3.4e-27	0.649	0.351	*	2cell	2.701
 
-test_result_2919 = [0.614,0.386]
-test_result_431 = [0.637,0.363]
-test_result_200 = [0.649,0.351]
+test_result_2919 = [0.047,0.953]
+test_result_431 = [0.039,0.961]
+test_result_200 = [0.032,0.968]
 
 test_sigs = Signatures.NewFromSigFile( test_sig, test_tif )
 
