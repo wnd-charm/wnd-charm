@@ -982,9 +982,8 @@ class Signatures( FeatureVector ):
 				the_sigs.version = str (feature_vector_major_version)+"."+str(feature_plan.feature_vec_type)
 			else:
 				# FIXME: dummyproofing: does options already contain '-l'?
-				# This retval is never mentioned again, so is it really just supposed to be dropped?
-				retval = cls.NewFromFeatureComputationPlan( imagepath, feature_plan, options + "-l" )
-				retval.version = str (feature_vector_major_version)+"."+str(feature_plan.feature_vec_type)
+				the_sigs = cls.NewFromFeatureComputationPlan( imagepath, feature_plan, options + "-l" )
+				the_sigs.version = str (feature_vector_major_version)+"."+str(feature_plan.feature_vec_type)
 
 		# Compare the number of features to the expected length for this type of feature vector
 		elif len( the_sigs.names ) != feature_plan.n_features:
@@ -1029,7 +1028,7 @@ class Signatures( FeatureVector ):
 		signatures.options = options
 
 		# pre-allocate space where the features will be stored (C++ std::vector<double>)
-		signatures.values = pychrm.DoubleVector (computation_plan.n_features)
+		tmp_vec = pychrm.DoubleVector (computation_plan.n_features)
 
 		# get the feature names from the plan
 		for i in range( 0, computation_plan.n_features):
@@ -1037,7 +1036,10 @@ class Signatures( FeatureVector ):
 
 		# Get an executor for this plan and run it
 		plan_exec = pychrm.FeatureComputationPlanExecutor(computation_plan)
-		plan_exec.run (original, signatures.values, 0)
+		plan_exec.run (original, tmp_vec, 0)
+
+		# convert std::vector<double> to native python list of floats
+		signatures.values = list( tmp_vec )
 
 		# set the version
 		signatures.version = str (feature_vector_major_version)+"."+str(computation_plan.feature_vec_type)
@@ -1431,8 +1433,9 @@ class FeatureSet( object ):
 
 		if (the_training_set.feature_vector_version is None):
 			the_training_set.feature_vector_version = "1." + str(
-				feature_vector_minor_version_from_num_features_v1.get ( len (signatures.values),0 )
-			)
+				feature_vector_minor_version_from_num_features_v1.get( 
+					len(the_training_set.featurenames_list), 0 ) )
+
 		# it might already be normalized!
 		# FIXME: check for that
 		# the_training_set.Normalize()
@@ -2252,7 +2255,7 @@ Y 	Y 	R 	R 	N 	balanced training and test sets, as above but with 75-25 default 
 		if i and j and training_set_fraction:
 			raise ValueError( 'Conflicting input: You specified i, j and training_set fraction, which is redundant.' )
 
-		if j and ( j > 0 ):
+		if j and training_set_only and ( j > 0 ):
 			raise ValueError( 'Conflicting input: You specified both a non-zero value for j, but also training_set_only set to true.')
 
 		# Specify defaults here instead of in method argument for the purpose of dummyproofing
@@ -2860,7 +2863,7 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 		
 		if line_item:
 			# img name:
-			output_str = self.source_file
+			output_str = self.source_file if self.source_file else ""
 			# normalization factor:
 			if self.normalization_factor is None:
 				# no normalization factor means this is a non-call
