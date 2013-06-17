@@ -33,18 +33,16 @@ test_fit = os.path.join (test_dir,'test-l.fit')
 test_fit_wght = os.path.join (test_dir,'test_fit-l.weights')
 test_tif = os.path.join (test_dir,'t1_s01_c05_ij.tif')
 
-test_result_2873 = [0.033,0.967]
-test_result_431 = [0.030,0.970]
-test_result_200 = [0.017,0.983]
+test_result_2919 = [0.047,0.953]
+test_result_431 = [0.039,0.961]
+test_result_200 = [0.032,0.968]
 
 
 test_sigs = Signatures.NewFromSigFile( test_sig, test_tif )
 
 ts = FeatureSet_Discrete.NewFromFitFile( test_fit )
-ts.featurenames_list = FeatureNameMap.TranslateToNewStyle( ts.featurenames_list )
 ts.Normalize()
 test_wghts = FisherFeatureWeights.NewFromFile (test_fit_wght)
-test_wghts.names = FeatureNameMap.TranslateToNewStyle( test_wghts.names )
 ts = ts.FeatureReduce( test_wghts.names )
 test_sigs.Normalize( ts )
 
@@ -66,7 +64,7 @@ sum_diff = 0.
 num_diffs = 0.
 
 for idx in range( ts.num_classes ):
-	test_val = test_result_2873[idx]
+	test_val = test_result_2919[idx]
 	calc_val = round (result_2873.marginal_probabilities[idx],3)
 	diff = abs(calc_val - test_val)
 	sum_diff += diff
