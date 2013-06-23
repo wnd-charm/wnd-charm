@@ -1504,10 +1504,9 @@ class FeatureSet( object ):
 		print 'Feature Vector Version: {0}'.format( self.feature_vector_version )
 
 	#==============================================================
-	@classmethod
-	def CompatibleFeatureVectorVersion( cls, version ):
+	def CompatibleFeatureVectorVersion( self, version ):
 		in_major, in_minor = tuple (int (v) for v in version.split('.',1))
-		our_major, our_minor = tuple (int (v) for v in cls.feature_vector_version.split('.',1))
+		our_major, our_minor = tuple (int (v) for v in self.feature_vector_version.split('.',1))
 		if (in_major != our_major): return False
 		if (our_minor and in_minor and in_minor != our_minor): return False
 		# Note that if either minor version is 0 (i.e not a standard feature vector),
@@ -1619,7 +1618,7 @@ class FeatureSet( object ):
 
 	#==============================================================
 	@classmethod
-	def NewFromDirectory( cls, top_level_dir_path, feature_set = "large", write_sig_files_todisk = True ):
+	def NewFromDirectory( cls, top_level_dir_path, feature_set = "large", write_sig_files_to_disk = True ):
 		"""The equivalent of the C++ implementation of the command "wndchrm train" """
 		raise NotImplementedError()
 
@@ -1679,8 +1678,14 @@ class FeatureSet( object ):
 		raise NotImplementedError()
 
 	#==============================================================
-	def _ProcessSigCalculation(self, imagenames_list, parallel, feature_set_name,
-			feature_group_list, feature_name_list, write_sig_files_todisk ): 
+	def _ProcessSigCalculation( self,
+	                            imagenames_list,
+	                            feature_set_name="large",
+	                            options="",
+	                            feature_group_list=None,
+	                            feature_name_list=None,
+	                            write_sig_files_to_disk=True,
+	                            parallel=False ):
 		"""Virtual method."""
 		raise NotImplementedError()
 
@@ -1992,7 +1997,7 @@ class FeatureSet_Discrete( FeatureSet ):
 
 	#==============================================================
 	@classmethod
-	def NewFromDirectory( cls, top_level_dir_path, parallel = True,
+	def NewFromDirectory( cls, top_level_dir_path, parallel = False,
 	                                               feature_set_name = "large",
 	                                               feature_group_list = None,
 	                                               feature_name_list = None,
@@ -2060,9 +2065,11 @@ class FeatureSet_Discrete( FeatureSet ):
 
 		# Uncomment this after the change to AddSignature is made:
 		# new_ts._InitializeFeatureMatrix()
-		new_ts._ProcessSigCalculation( imagenames_list, feature_set_name,
-		       parallel, feature_group_list, feature_name_list, write_sig_files_to_disk )
-		if feature_set == "large":
+		# options here with be sampling options, pixel intensity corrections, etc.
+		options = ""
+		new_ts._ProcessSigCalculation( imagenames_list, feature_set_name, options,
+		       feature_group_list, feature_name_list, write_sig_files_to_disk, parallel )
+		if feature_set_name == "large":
 			# FIXME: add other options
 			new_ts.feature_options = "-l"
 		new_ts.interpolation_coefficients = CheckIfClassNamesAreInterpolatable( classnames_list )
@@ -2070,8 +2077,14 @@ class FeatureSet_Discrete( FeatureSet ):
 		return new_ts
 
 	#==============================================================
-	def _ProcessSigCalculation( self, imagenames_list,  feature_set_name = 'large', parallel = False,
-			feature_group_list = None, feature_name_list = None, write_sig_files_to_disk = True ):
+	def _ProcessSigCalculation( self,
+	                            imagenames_list,
+	                            feature_set_name="large",
+	                            options="",
+	                            feature_group_list=None,
+	                            feature_name_list=None,
+	                            write_sig_files_to_disk=True,
+	                            parallel=False ):
 		"""Calculate image descriptors for all the images contained in self.imagenames_list"""
 
 		# FIXME: check to see if any .sig, or .pysig files exist that match our
@@ -2086,7 +2099,7 @@ class FeatureSet_Discrete( FeatureSet ):
 					elif feature_set_name == "small":
 						sig = Signatures.SmallFeatureSet( sourcefile, parallel )
 					else:
-						raise ValueError( "You requested '{0}' feature set... sig calculation other than small and large feature set hasn't been implemented yet.".format( feature_set ) )
+						raise ValueError( "You requested '{0}' feature set... sig calculation other than small and large feature set hasn't been implemented yet.".format( feature_set_name ) )
 					# FIXME: add all the other options
 					# check validity
 					if not sig:
@@ -2328,7 +2341,9 @@ class FeatureSet_Discrete( FeatureSet ):
 		if None == class_id_index:
 			raise ValueError( 'Must specify either a class_index' )
 		
-		if ( not self.CompatibleFeatureVectorVersion (signature.version) ):
+		if self.feature_vector_version is None:
+			self.feature_vector_version = signature.version
+		elif ( not self.CompatibleFeatureVectorVersion (signature.version) ):
 			raise ValueError("Can't add feature vector {0} version {1} to feature set {2} with version {3} features: Feature vector versions don't match.".format (
 				signature.source_path, signature.version, self.source_path, self.feature_vector_version ) )
 			
@@ -2783,14 +2798,17 @@ class FeatureSet_Continuous( FeatureSet ):
 		return new_ts
 
 	#==============================================================
-	def _ProcessSigCalculation(self, imagenames_list, parallel, feature_set_name,
-			feature_group_list, feature_name_list, write_sig_files_todisk ):
+	def _ProcessSigCalculation( self,
+	                            imagenames_list,
+	                            feature_set_name="large",
+	                            options="",
+	                            feature_group_list=None,
+	                            feature_name_list=None,
+	                            write_sig_files_to_disk=True,
+		                        parallel=False ):
  
 		"""Begin calculation of image features for the images listed in self.imagenames_list,
 		but do not use parallel computing/ create child processes to do so."""
-
-		# FIXME: check to see if any .sig, or .pysig files exist that match our
-		#        Signature calculation criteria, and if so read them in and incorporate them
 
 		# SUBCLASSING ISSUE: This function only works on subdirectories of images that are arranged
 		# in the way that discrete Featuresets are. There is no such thing as class_ids where 
