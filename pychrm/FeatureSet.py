@@ -2664,6 +2664,8 @@ class FeatureSet_Continuous( FeatureSet ):
 		"""@argument signature is a valid signature
 		@argument class_id_index identifies the class to which the signature belongs"""
 
+		if self.feature_vector_version is None:
+			self.feature_vector_version = signature.version
 		if ( not self.CompatibleFeatureVectorVersion (signature.version) ):
 			raise ValueError("Can't add feature vector {0} version {1} to feature set {2} with version {3} features: Feature vector versions don't match.".format (
 				signature.source_path, signature.version, self.source_path, self.feature_vector_version ) )
