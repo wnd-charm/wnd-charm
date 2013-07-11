@@ -1008,7 +1008,7 @@ class Signatures( FeatureVector ):
 		if isinstance (image_path_or_mat, str):
 			path_to_image = image_path_or_mat
 			if not os.path.exists( path_to_image ):
-				raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( outfile_pathname ) )
+				raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( path_to_image ) )
 			original = pychrm.ImageMatrix()
 			if 1 != original.OpenImage( path_to_image, 0, None, 0, 0 ):
 				raise ValueError( 'Could not build an ImageMatrix from {0}, check the file.'.\
