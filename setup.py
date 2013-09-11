@@ -41,16 +41,16 @@ try:
 except:
 	pass
 
-# Third-party modules - we depend on numpy for everything
-import numpy
+# Since there's a large C++ underpinning for Pychrm, run autotools to test build environment
+import os
+cmd = os.getcwd() + os.sep + 'configure'
+import subprocess
+p = subprocess.call( [cmd] )
 
-try:
-	numpy_include = numpy.get_include()
-except AttributeError:
-	numpy_include = numpy.get_numpy_include()
-
-
-print "numpy_include "+numpy_include
+if p != 0:
+	print "Error running configure script"
+	import sys
+	sys.exit(p)
 
 wndchrm_module = Extension('_pychrm',
 	sources=[
@@ -87,12 +87,10 @@ wndchrm_module = Extension('_pychrm',
 		'src/FeatureNames.cpp',
 		'src/gsl/specfunc.cpp',
 	],
-	include_dirs=['./','src/',numpy_include],
-#	swig_opts=['-modern', '-c++', '-I./', '-I./src', '-outdir', 'pychrm'],
+	include_dirs=['./','src/'],
 	swig_opts=['-c++', '-I./', '-I./src', '-outdir', 'pychrm'],
 	libraries=['tiff','fftw3'],
 )
-
 
 setup (name = 'pychrm',
 	version = __version__,
@@ -102,11 +100,9 @@ setup (name = 'pychrm',
 	ext_modules = [wndchrm_module],
 	packages = ['pychrm'],
 	install_requires=[
-		'numpy',
-		'stringformat >= 0.4',
 		'argparse',
+		'numpy',
+		'scipy',
+		'matplotlib'
 	],
-	dependency_links = [
-        "https://github.com/igg/stringformat/tarball/0.4egg=stringformat-0.4"
-    ],
 )
