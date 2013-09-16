@@ -122,6 +122,5 @@ AC_ARG_ENABLE(class-prob-tsv,
  [ AC_DEFINE(AVG_CLASS_PROB_TSV,,[Define optional output. ]) 
  ])
 
-AC_CONFIG_FILES([Makefile
-                 src/Makefile])
+AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
