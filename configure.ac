@@ -123,6 +123,5 @@ AC_ARG_ENABLE(class-prob-tsv,
  ])
 
 AC_CONFIG_FILES([Makefile
-                 pychrm/Makefile
                  src/Makefile])
 AC_OUTPUT
