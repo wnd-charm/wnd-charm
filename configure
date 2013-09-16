@@ -773,6 +773,7 @@ enable_fast_install
 enable_dependency_tracking
 with_gnu_ld
 enable_libtool_lock
+enable_class_prob_tsv
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1417,6 +1418,9 @@ Optional Features:
   --disable-dependency-tracking
                           speeds up one-time build
   --disable-libtool-lock  avoid locking (might break parallel builds)
+  --enable-class-prob-tsv   When creating a report, output a tsv\
+  containing the Average Class Probability Matrix data for the purpose \
+  of computing Morphological Divergence Scores
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -16285,6 +16289,205 @@ _ACEOF
 
 fi
 done
+
+
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for tr1/unordered_map" >&5
+$as_echo_n "checking for tr1/unordered_map... " >&6; }
+if ${ac_cv_cxx_tr1_unordered_map+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+
+  ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <tr1/unordered_map>
+int
+main ()
+{
+using std::tr1::unordered_map;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  ac_cv_cxx_tr1_unordered_map=yes
+else
+  ac_cv_cxx_tr1_unordered_map=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_cxx_tr1_unordered_map" >&5
+$as_echo "$ac_cv_cxx_tr1_unordered_map" >&6; }
+  if test "$ac_cv_cxx_tr1_unordered_map" = yes; then
+
+$as_echo "#define HAVE_TR1_UNORDERED_MAP /**/" >>confdefs.h
+
+  fi
+
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for tr1/unordered_set" >&5
+$as_echo_n "checking for tr1/unordered_set... " >&6; }
+if ${ac_cv_cxx_tr1_unordered_set+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+
+  ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <tr1/unordered_set>
+int
+main ()
+{
+using std::tr1::unordered_set;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  ac_cv_cxx_tr1_unordered_set=yes
+else
+  ac_cv_cxx_tr1_unordered_set=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_cxx_tr1_unordered_set" >&5
+$as_echo "$ac_cv_cxx_tr1_unordered_set" >&6; }
+  if test "$ac_cv_cxx_tr1_unordered_set" = yes; then
+
+$as_echo "#define HAVE_TR1_UNORDERED_SET /**/" >>confdefs.h
+
+  fi
+
+
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for native unordered_map" >&5
+$as_echo_n "checking for native unordered_map... " >&6; }
+if ${ac_unordered_map+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+
+  ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <unordered_map>
+int
+main ()
+{
+using std::unordered_map;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  ac_unordered_map=yes
+else
+  ac_unordered_map=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_unordered_map" >&5
+$as_echo "$ac_unordered_map" >&6; }
+  if test "$ac_unordered_map" = yes; then
+
+$as_echo "#define HAVE_UNORDERED_MAP /**/" >>confdefs.h
+
+  fi
+
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for native unordered_set" >&5
+$as_echo_n "checking for native unordered_set... " >&6; }
+if ${ac_unordered_set+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+
+  ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <unordered_set>
+int
+main ()
+{
+using std::unordered_set;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  ac_unordered_set=yes
+else
+  ac_unordered_set=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_unordered_set" >&5
+$as_echo "$ac_unordered_set" >&6; }
+  if test "$ac_unordered_set" = yes; then
+
+$as_echo "#define HAVE_UNORDERED_SET /**/" >>confdefs.h
+
+  fi
+
+
+# Check whether --enable-class-prob-tsv was given.
+if test "${enable_class_prob_tsv+set}" = set; then :
+  enableval=$enable_class_prob_tsv;
+$as_echo "#define AVG_CLASS_PROB_TSV /**/" >>confdefs.h
+
+
+fi
 
 
 ac_config_files="$ac_config_files Makefile pychrm/Makefile src/Makefile"

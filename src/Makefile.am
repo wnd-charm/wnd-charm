@@ -9,6 +9,7 @@ AM_CPPFLAGS = -fPIC
 noinst_LIBRARIES = libchrm.a
 
 libchrm_a_SOURCES = \
+  unordered_map_dfn.h \
   FeatureAlgorithms.cpp \
   FeatureAlgorithms.h \
   FeatureNames.cpp \
@@ -78,7 +79,6 @@ libchrm_a_SOURCES = \
   wndchrm/WORMfile.h \
   wndchrm/signatures.cpp \
   wndchrm/signatures.h \
-  wndchrm/unordered_map_dfn.h \
   wndchrm_error.cpp \
   wndchrm_error.h
 

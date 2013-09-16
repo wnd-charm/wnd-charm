@@ -51,6 +51,77 @@ AC_FUNC_STRERROR_R
 AC_FUNC_STRTOD
 AC_CHECK_FUNCS([bzero floor ftruncate memmove memset mkdir pow select sqrt strchr strerror strrchr strstr strtol])
 
+dnl ------------------------------------------------------------
+dnl check for TR1 stuff individually
+dnl ------------------------------------------------------------
+AC_DEFUN([AC_HEADER_TR1_UNORDERED_MAP], [
+  AC_CACHE_CHECK(for tr1/unordered_map,
+  ac_cv_cxx_tr1_unordered_map,
+  [AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  AC_TRY_COMPILE([#include <tr1/unordered_map>], [using std::tr1::unordered_map;],
+  ac_cv_cxx_tr1_unordered_map=yes, ac_cv_cxx_tr1_unordered_map=no)
+  AC_LANG_RESTORE
+  ])
+  if test "$ac_cv_cxx_tr1_unordered_map" = yes; then
+    AC_DEFINE(HAVE_TR1_UNORDERED_MAP,,[Define if tr1/unordered_map is present. ])
+  fi
+])
+AC_HEADER_TR1_UNORDERED_MAP
+AC_DEFUN([AC_HEADER_TR1_UNORDERED_SET], [
+  AC_CACHE_CHECK(for tr1/unordered_set,
+  ac_cv_cxx_tr1_unordered_set,
+  [AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  AC_TRY_COMPILE([#include <tr1/unordered_set>], [using std::tr1::unordered_set;],
+  ac_cv_cxx_tr1_unordered_set=yes, ac_cv_cxx_tr1_unordered_set=no)
+  AC_LANG_RESTORE
+  ])
+  if test "$ac_cv_cxx_tr1_unordered_set" = yes; then
+    AC_DEFINE(HAVE_TR1_UNORDERED_SET,,[Define if tr1/unordered_set is present. ])
+  fi
+])
+AC_HEADER_TR1_UNORDERED_SET
+
+dnl ------------------------------------------------------------
+dnl check for native unordered_map and unordered_set individually
+dnl ------------------------------------------------------------
+AC_DEFUN([AC_HEADER_UNORDERED_MAP], [
+  AC_CACHE_CHECK(for native unordered_map,
+  ac_unordered_map,
+  [AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  AC_TRY_COMPILE([#include <unordered_map>], [using std::unordered_map;],
+  ac_unordered_map=yes, ac_unordered_map=no)
+  AC_LANG_RESTORE
+  ])
+  if test "$ac_unordered_map" = yes; then
+    AC_DEFINE(HAVE_UNORDERED_MAP,,[Define if native unordered_map is present. ])
+  fi
+])
+AC_HEADER_UNORDERED_MAP
+AC_DEFUN([AC_HEADER_UNORDERED_SET], [
+  AC_CACHE_CHECK(for native unordered_set,
+  ac_unordered_set,
+  [AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  AC_TRY_COMPILE([#include <unordered_set>], [using std::unordered_set;],
+  ac_unordered_set=yes, ac_unordered_set=no)
+  AC_LANG_RESTORE
+  ])
+  if test "$ac_unordered_set" = yes; then
+    AC_DEFINE(HAVE_UNORDERED_SET,,[Define if native unordered_set is present. ])
+  fi
+])
+AC_HEADER_UNORDERED_SET
+
+AC_ARG_ENABLE(class-prob-tsv,
+ [  --enable-class-prob-tsv   When creating a report, output a tsv\
+  containing the Average Class Probability Matrix data for the purpose \
+  of computing Morphological Divergence Scores],
+ [ AC_DEFINE(AVG_CLASS_PROB_TSV,,[Define optional output. ]) 
+ ])
+
 AC_CONFIG_FILES([Makefile
                  pychrm/Makefile
                  src/Makefile])

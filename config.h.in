@@ -1,5 +1,8 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Define optional output. */
+#undef AVG_CLASS_PROB_TSV
+
 /* Define to 1 if you have the `bzero' function. */
 #undef HAVE_BZERO
 
@@ -111,8 +114,20 @@
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
 
+/* Define if tr1/unordered_map is present. */
+#undef HAVE_TR1_UNORDERED_MAP
+
+/* Define if tr1/unordered_set is present. */
+#undef HAVE_TR1_UNORDERED_SET
+
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* Define if native unordered_map is present. */
+#undef HAVE_UNORDERED_MAP
+
+/* Define if native unordered_set is present. */
+#undef HAVE_UNORDERED_SET
 
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
