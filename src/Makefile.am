@@ -73,12 +73,12 @@ libchrm_a_SOURCES = \
   transforms/wavelet/convolution.h \
   transforms/wavelet/wt.cpp \
   transforms/wavelet/wt.h \
-  wndchrm/TrainingSet.cpp \
-  wndchrm/TrainingSet.h \
-  wndchrm/WORMfile.cpp \
-  wndchrm/WORMfile.h \
-  wndchrm/signatures.cpp \
-  wndchrm/signatures.h \
+  wndchrm_src/TrainingSet.cpp \
+  wndchrm_src/TrainingSet.h \
+  wndchrm_src/WORMfile.cpp \
+  wndchrm_src/WORMfile.h \
+  wndchrm_src/signatures.cpp \
+  wndchrm_src/signatures.h \
   wndchrm_error.cpp \
   wndchrm_error.h
 
@@ -86,6 +86,6 @@ libchrm_a_CXXFLAGS = -Wall -g -Os
 
 bin_PROGRAMS=wndchrm
 
-wndchrm_SOURCES = wndchrm/wndchrm.cpp
+wndchrm_SOURCES = wndchrm_src/wndchrm.cpp
 
 wndchrm_LDADD = libchrm.a -lm -ltiff -L. -lchrm -lfftw3
