@@ -23,15 +23,36 @@ AC_PROG_MAKE_SET
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-lchrm':
 AC_CHECK_LIB([chrm], [main])
-# FIXME: Replace `main' with a function in `-lfftw3':
-AC_CHECK_LIB([fftw3], [main])
+
+dnl ------------------------------------------------------------
+dnl check for FFTW3
+dnl ------------------------------------------------------------
+AC_CHECK_LIB(fftw3,fftw_execute,[AC_DEFINE(HAVE_FFTW3,1,"Turn on FFTW3 support.")],
+	[AC_MSG_ERROR([
+    FFTW3 library not found.
+    Please download+install FFTW 3.x from http://www.fftw.org/download.html
+])]
+)
+AC_CHECK_HEADER(fftw3.h, [],
+        AC_MSG_ERROR([
+    the <fftw3.h> header file from FFTW3 could not be found.
+    Please download+install FFTW 3.x from http://www.fftw.org/download.html
+]))
+
 # FIXME: Replace `main' with a function in `-lm':
 AC_CHECK_LIB([m], [main])
-# FIXME: Replace `main' with a function in `-ltiff':
-AC_CHECK_LIB([tiff], [main])
+
+dnl ------------------------------------------------------------
+dnl check for libtiff
+dnl ------------------------------------------------------------
+AC_CHECK_LIB(tiff, TIFFReadScanline)
+AC_CHECK_HEADER(tiffio.h,LIBTIFF='yes',AC_MSG_ERROR([
+    *** WND_CHARM requires libtiff; (Required TIFF headers not found) ***
+    Please download+install libtiff from http://www.libtiff.org/
+]))
 
 # Checks for header files.
-AC_CHECK_HEADERS([fcntl.h limits.h memory.h stddef.h stdlib.h string.h sys/time.h unistd.h])
+AC_CHECK_HEADERS([fcntl.h float.h limits.h memory.h stddef.h stdlib.h string.h sys/time.h unistd.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL

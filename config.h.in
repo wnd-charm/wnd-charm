@@ -16,6 +16,12 @@
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
 
+/* "Turn on FFTW3 support." */
+#undef HAVE_FFTW3
+
+/* Define to 1 if you have the <float.h> header file. */
+#undef HAVE_FLOAT_H
+
 /* Define to 1 if you have the `floor' function. */
 #undef HAVE_FLOOR
 
@@ -27,9 +33,6 @@
 
 /* Define to 1 if you have the `chrm' library (-lchrm). */
 #undef HAVE_LIBCHRM
-
-/* Define to 1 if you have the `fftw3' library (-lfftw3). */
-#undef HAVE_LIBFFTW3
 
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
