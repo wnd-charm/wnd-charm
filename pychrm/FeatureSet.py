@@ -1532,7 +1532,11 @@ class FeatureSet( object ):
 		with open( fof_path ) as fof:
 			for line in fof:
 				class_id_index = None
-				file_path, class_name = line.strip().split( "\t" )
+				try:
+					file_path, class_name = line.strip().split( "\t" )
+				except ValueError:
+					print "Error reading file of files. Please make sure each line contains a path to a file and a class id, separated by a single tab character."
+					raise
 				if not os.path.exists( file_path ):
 					raise ValueError(\
 					    "The file '{0}' doesn't exist, maybe you need to specify the full path?".\
