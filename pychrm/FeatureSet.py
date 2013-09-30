@@ -2091,7 +2091,7 @@ class FeatureSet_Discrete( FeatureSet ):
 			self.feature_vector_version = signature.version
 		elif ( not self.CompatibleFeatureVectorVersion (signature.version) ):
 			raise ValueError("Can't add feature vector {0} version {1} to feature set {2} with version {3} features: Feature vector versions don't match.".format (
-				signature.source_path, signature.version, self.source_path, self.feature_vector_version ) )
+				signature.source_file, signature.version, self.source_path, self.feature_vector_version ) )
 			
 		if( self.data_list == None ) or ( len( self.data_list ) == 0 ) :
 			# If no class_id_index is specified, sig goes in first matrix in the list by default
@@ -2672,7 +2672,7 @@ class FeatureSet_Continuous( FeatureSet ):
 			self.feature_vector_version = signature.version
 		if ( not self.CompatibleFeatureVectorVersion (signature.version) ):
 			raise ValueError("Can't add feature vector {0} version {1} to feature set {2} with version {3} features: Feature vector versions don't match.".format (
-				signature.source_path, signature.version, self.source_path, self.feature_vector_version ) )
+				signature.source_file, signature.version, self.source_path, self.feature_vector_version ) )
 
 		if (self.data_matrix == None) or ( len( self.data_matrix ) == 0 ) :
 			self.data_matrix = np.array( signature.values )
