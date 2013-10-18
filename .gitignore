@@ -1,0 +1,57 @@
+# Python build directories #
+######################
+build/
+.deps/
+dist/
+pychrm.egg-info/
+pychrm/pychrm.py
+pychrm/swig/pychrm_wrap.cpp
+src/Makefile
+Makefile
+config.h
+config.log
+config.status
+libtool
+stamp-h1
+
+
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# backup and lock files #
+#########################
+*~
+.~*
+*-bak
+*.bak
+_autosave*
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
