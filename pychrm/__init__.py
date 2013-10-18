@@ -1,6 +1,6 @@
 __version__ = "unknown"
 
-__all__ = [ 'pychrm', 'FeatureSet' ]
+#__all__ = [ 'pychrm', 'FeatureSet' ]
 
 from pychrm import *
 
