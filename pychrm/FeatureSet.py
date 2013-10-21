@@ -729,7 +729,8 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			r_val_squared_sum += pearson_coeff * pearson_coeff
 			#r_val_cubed_sum += pearson_coeff * pearson_coeff * pearson_coeff
 
-			spearman_coeff, spearman_p_val = stats.spearmanr( ground_truths, feature_values )
+			# CEC spearman_coeff, spearman_p_val = stats.spearmanr( ground_truths, feature_values )
+			spearman_coeff, spearman_p_val = (0, 1 ) 
 			new_fw.spearman_coeffs.append( spearman_coeff )
 			new_fw.spearman_p_values.append( spearman_p_val )
 
@@ -1516,55 +1517,8 @@ class FeatureSet( object ):
 	#==============================================================
 	@classmethod
 	def NewFromFileOfFiles( cls, fof_path, options = None ):
-		"""FIXME: add ability to specify which features are wanted if none have been calculated yet"""
-
-		if not os.path.exists( fof_path ):
-			raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( fof_path ) )
-
-		print 'Loading {0} from file of files "{1}"'.format( cls.__name__, fof_path )
-		
-		new_ts = cls()
-		new_ts.num_images = 0
-		new_ts.source_path = fof_path
-
-		classnames_set = set()
-
-		with open( fof_path ) as fof:
-			for line in fof:
-				class_id_index = None
-				try:
-					file_path, class_name = line.strip().split( "\t" )
-				except ValueError:
-					print "Error reading file of files. Please make sure each line contains a path to a file and a class id, separated by a single tab character."
-					raise
-				if not os.path.exists( file_path ):
-					raise ValueError(\
-					    "The file '{0}' doesn't exist, maybe you need to specify the full path?".\
-					    format( file_path ) )
-				
-				if not class_name in classnames_set:
-					classnames_set.add( class_name )
-					new_ts.classnames_list.append( class_name )
-					class_id_index = len( new_ts.classnames_list ) - 1
-				else:
-					class_id_index = new_ts.classnames_list.index( class_name )
-
-				if file_path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ): 
-					sig = Signatures.NewFromTiffFile( file_path, options )
-				elif file_path.endswith( (".sig", "pysig" ) ): 
-					sig = Signatures.NewFromSigFile( file_path, options = options )
-				else:
-					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
-				new_ts.AddSignature( sig, class_id_index )
-
-		new_ts.interpolation_coefficients = \
-		                    CheckIfClassNamesAreInterpolatable( new_ts.classnames_list )
-		
-		if isinstance( new_ts, FeatureSet_Discrete ):
-			new_ts.num_classes = len( new_ts.data_list )
-
-		new_ts.Print()
-		return new_ts
+		"""Create feature set from a file of files. Implemented in subclasses."""
+		raise NotImplementedError()
 	
 	#==============================================================
 	@classmethod
@@ -1973,6 +1927,59 @@ class FeatureSet_Discrete( FeatureSet ):
 			new_ts.feature_options = "-l"
 		new_ts.interpolation_coefficients = CheckIfClassNamesAreInterpolatable( classnames_list )
 
+		return new_ts
+
+	#==============================================================
+	@classmethod
+	def NewFromFileOfFiles( cls, fof_path, options = None ):
+		"""FIXME: add ability to specify which features are wanted if none have been calculated yet"""
+
+		if not os.path.exists( fof_path ):
+			raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( fof_path ) )
+
+		print 'Loading {0} from file of files "{1}"'.format( cls.__name__, fof_path )
+		
+		new_ts = cls()
+		new_ts.num_images = 0
+		new_ts.source_path = fof_path
+
+		classnames_set = set()
+
+		with open( fof_path ) as fof:
+			for line in fof:
+				class_id_index = None
+				try:
+					file_path, class_name = line.strip().split( "\t" )
+				except ValueError:
+					print "Error reading file of files. Please make sure each line contains a path to a file and a class id, separated by a single tab character."
+					raise
+				if not os.path.exists( file_path ):
+					raise ValueError(\
+					    "The file '{0}' doesn't exist, maybe you need to specify the full path?".\
+					    format( file_path ) )
+				
+				if not class_name in classnames_set:
+					classnames_set.add( class_name )
+					new_ts.classnames_list.append( class_name )
+					class_id_index = len( new_ts.classnames_list ) - 1
+				else:
+					class_id_index = new_ts.classnames_list.index( class_name )
+
+				if file_path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ): 
+					sig = Signatures.NewFromTiffFile( file_path, options )
+				elif file_path.endswith( (".sig", "pysig" ) ): 
+					sig = Signatures.NewFromSigFile( file_path, options = options )
+				else:
+					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
+				new_ts.AddSignature( sig, class_id_index )
+
+		new_ts.interpolation_coefficients = \
+		                    CheckIfClassNamesAreInterpolatable( new_ts.classnames_list )
+		
+		if isinstance( new_ts, FeatureSet_Discrete ):
+			new_ts.num_classes = len( new_ts.data_list )
+
+		new_ts.Print()
 		return new_ts
 
 	#==============================================================
@@ -2493,10 +2500,11 @@ class FeatureSet_Continuous( FeatureSet ):
 			num_features = 0
 
 			import re
+			p = re.compile('^(\S+)\s*(\S+)?$')
 
 			for line in fitfile:
 				if line_num is 0:
-					num_classes, new_ts.feature_vector_version = re.compile('^(\S+)\s*(\S+)?$').match(line.strip()).group (1, 2)
+					num_classes, new_ts.feature_vector_version = p.match(line.strip()).group (1, 2)
 					if new_ts.feature_vector_version is None: new_ts.feature_vector_version = "1.0"
 					num_classes = int( num_classes )
 
@@ -2547,6 +2555,75 @@ class FeatureSet_Continuous( FeatureSet ):
 		new_ts.data_matrix = np.genfromtxt( StringIO( string_data.join( tmp_string_data_list ) ) )
 		print "Features version from .fit file: {0}".format (new_ts.feature_vector_version)
 
+		return new_ts
+
+	#==============================================================
+	@classmethod
+	def NewFromFileOfFiles( cls, fof_path, options = None ):
+		"""Create a continuous feature set from a file of files."""
+
+		if not os.path.exists( fof_path ):
+			raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( fof_path ) )
+
+		print 'Loading {0} from file of files "{1}"'.format( cls.__name__, fof_path )
+		
+		new_ts = cls()
+		new_ts.num_images = 0
+		new_ts.source_path = fof_path
+
+		classnames_set = set()
+
+		with open( fof_path ) as fof:
+			for line in fof:
+				class_id_index = None
+				try:
+					file_path, class_name = line.strip().split( "\t" )
+				except ValueError:
+					print "Error reading file of files. Please make sure each line contains a path to an image and its corresponding ground truth value, separated by a single tab character."
+					raise
+				if not os.path.exists( file_path ):
+					raise ValueError(\
+					    "The file '{0}' doesn't exist, maybe you need to specify the full path?".\
+					    format( file_path ) )
+				
+				if not class_name in classnames_set:
+					classnames_set.add( class_name )
+					new_ts.classnames_list.append( class_name )
+					
+				if file_path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ): 
+					sig = Signatures.NewFromTiffFile( file_path, options )
+				elif file_path.endswith( (".sig", "pysig" ) ): 
+					sig = Signatures.NewFromSigFile( file_path, options = options )
+				else:
+					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
+				
+				# FIXME: For Continuous Feature sets, the call to AddSignature is made with the
+				# ground truth value, but for Discrete Feature Sets, it's made with the 
+				# class_id_index. There must be a way to unify the two interfaces so
+				# AddSignature can be implemented in the base class and work for all sub classes.
+
+				# This is the Discrete Method:
+				#	class_id_index = len( new_ts.classnames_list ) - 1
+				#else:
+				#	class_id_index = new_ts.classnames_list.index( class_name )
+				#new_ts.AddSignature( sig, class_id_index )
+
+				# This is the Continuous method:
+				ground_truth_val = None
+				try:
+					ground_truth_val = float( class_name )
+				except ValueError:
+					print 'Could not convert the string "{0}" to a number, please check/edit your input file accordingly.'
+					raise
+				new_ts.AddSignature( sig, ground_truth_val )
+
+		new_ts.interpolation_coefficients = \
+		                    CheckIfClassNamesAreInterpolatable( new_ts.classnames_list )
+		
+		if isinstance( new_ts, FeatureSet_Discrete ):
+			new_ts.num_classes = len( new_ts.data_list )
+
+		new_ts.Print()
 		return new_ts
 
 	#==============================================================
