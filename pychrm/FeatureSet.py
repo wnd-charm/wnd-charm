@@ -2465,6 +2465,11 @@ class FeatureSet_Continuous( FeatureSet ):
 				self.ground_truths = data_dict[ 'ground_truths' ]
 
 	#==============================================================
+	# FIXME: Implement!
+	#def __deepcopy__(self):	
+	#	pass
+
+	#==============================================================
 	def Print( self ):
 		"""Calls parent class method"""
 		super( FeatureSet_Continuous, self ).Print()
@@ -2776,13 +2781,15 @@ class FeatureSet_Continuous( FeatureSet ):
 		self.source_path += " (scrambled)"
 
 	#==============================================================
-	def Split( self, randomize = True, training_set_fraction = 0.75,\
-	           i = None, j = None, training_set_only = False, quiet = False ):
+	def Split( self, randomize=True, training_set_fraction=0.75,\
+	           i=None, j=None, training_set_only=False, leave_out=None, quiet=False ):
 		"""Used for dividing the current FeatureSet into two subsets used for classifier
 		cross-validation (i.e., training set and test set).
 		
 		Number of images in training and test sets are allocated by i and j, respectively
 		Otherwise they are given by training_set fraction.
+
+		"leave_out" is a tuple containing the indices of the samples to go into test_set.
 		"""
 
 		# FIXME: use np.random.shuffle(arr) - shuffles first dimension (rows) of multi-D numpy, so images in our case.
@@ -2797,51 +2804,68 @@ class FeatureSet_Continuous( FeatureSet ):
 		#	p = numpy.random.permuation(len(a))
 		#	return a[p], b[p]
 		# Figure out how many images will be in which class
-		if i and j:
-			if (i + j) > self.num_images:
-				raise ValueError( 'Values for i and j cannot add up to more than total number of images in parent set ({0})'.format( self.num_images ) )
 
-		if i:
-			if i <= 0 or i > self.num_images:
-				raise ValueError( 'i must be greater than zero and less than total number of images'\
-				    + ' in parent set ({0})'.format( self.num_images ) )
+		if leave_out:
+			# FIXME: check to see if specified indices are valid
+			try:
+				num_images_in_test_set = len( leave_out )
+			except TypeError:
+				raise ValueError( 'The argument leave_out must be an iterable containing the sample index/indices.')
+			num_images_in_training_set = self.num_images - num_images_in_test_set
+			randomize = False
+		else:
+			if i and j:
+				if (i + j) > self.num_images:
+					raise ValueError( 'Values for i and j cannot add up to more than total number of images in parent set ({0})'.format( self.num_images ) )
+
+			if i:
+				if i <= 0 or i > self.num_images:
+					raise ValueError( 'i must be greater than zero and less than total number of images'\
+							+ ' in parent set ({0})'.format( self.num_images ) )
 				num_images_in_training_set = i
-		else:
-			if training_set_fraction <= 0 or training_set_fraction >= 1:
-				raise ValueError( "Training set fraction must be a number between 0 and 1" )
-			num_images_in_training_set = int( round( training_set_fraction * self.num_images ) )
+			else:
+				if training_set_fraction <= 0 or training_set_fraction >= 1:
+					raise ValueError( "Training set fraction must be a number between 0 and 1" )
+				num_images_in_training_set = int( round( training_set_fraction * self.num_images ) )
 
-		if j:
-			if j <= 0:
-				training_set_only = True
-			elif j > ( self.num_images - num_images_in_training_set ):
-				raise ValueError( 'j must be less than total number of images in parent set ({0}) minus # images in training set ({1})'.format( self.num_images, num_images_in_training_set ) )
-			training_set_only = False
-			num_images_in_test_set = j
-		else:
-			num_images_in_test_set = self.num_images - num_images_in_training_set
+			if j:
+				if j <= 0:
+					training_set_only = True
+				elif j > ( self.num_images - num_images_in_training_set ):
+					raise ValueError( 'j must be less than total number of images in parent set ({0}) minus # images in training set ({1})'.format( self.num_images, num_images_in_training_set ) )
+				training_set_only = False
+				num_images_in_test_set = j
+			else:
+				num_images_in_test_set = self.num_images - num_images_in_training_set
+
 
 		# Say what we're gonna do:
 		if not quiet:
-			out_str = ''
 			if randomize:
-				out_str += 'Randomly splitting '
+				out_str = 'Randomly splitting '
 			else:
-				out_str += 'Splitting '
+				out_str = 'Splitting '
 			out_str += '{0} "{1}" ({2} images) into '.format( type( self ).__name__, \
 				 self.source_path, self.num_images )
 			out_str += "training set ({0} images)".format( num_images_in_training_set )
 			if not training_set_only:
 				out_str += " and test set ({0} images)".format( num_images_in_test_set )
+			if leave_out:
+				out_str += ', with test set containing sample(s) ' + str( leave_out )
 			print out_str
 
 		# initialize everything
 		training_set = None
 		test_set = None
 		training_set = self.__class__()
+		training_set.feature_vector_version = self.feature_vector_version
 		training_set.num_images = num_images_in_training_set
 		training_set.featurenames_list = self.featurenames_list
-		training_set.num_features = len( self.featurenames_list )
+		# Who are you going to believe, me, or your own eyes?!?!
+		#training_set.num_features = len( self.featurenames_list )
+		# sometimes we augment the data matrix for linear algebra purposes and therefore 
+		# self.num_features may not match len( self.featurenames_list )
+		training_set.num_features = self.num_features
 		training_set.imagenames_list = []
 		training_set.source_path = self.source_path + " (subset)"
 		if self.classnames_list:
@@ -2853,9 +2877,12 @@ class FeatureSet_Continuous( FeatureSet ):
 	
 		if not training_set_only:
 			test_set = self.__class__()
+			test_set.feature_vector_version = self.feature_vector_version
 			test_set.num_images = num_images_in_test_set
 			test_set.featurenames_list = self.featurenames_list
-			test_set.num_features = len( self.featurenames_list )
+			# see note above re: training_set.num_features
+			#test_set.num_features = len( self.featurenames_list )
+			test_set.num_features = self.num_features
 			test_set.imagenames_list = []
 			test_set.source_path = self.source_path + " (subset)"
 			if self.classnames_list:
@@ -2866,12 +2893,18 @@ class FeatureSet_Continuous( FeatureSet ):
 				test_set.interpolation_coefficients = self.interpolation_coefficients
 
 		image_lottery = range( self.num_images )
-		if randomize:
-			import random
-			random.shuffle( image_lottery )
 
-		train_image_lottery = image_lottery[:num_images_in_training_set]
-		test_image_lottery = image_lottery[num_images_in_training_set: \
+		if leave_out:
+			test_image_lottery = list( leave_out )
+			for sample_index in leave_out:
+				del image_lottery[ sample_index ]
+			train_image_lottery = image_lottery
+		else:
+			if randomize:
+				import random
+				random.shuffle( image_lottery )
+			train_image_lottery = image_lottery[:num_images_in_training_set]
+			test_image_lottery = image_lottery[num_images_in_training_set: \
 		                                   num_images_in_training_set + num_images_in_test_set ]
 
 		# build the training and test sets such that their ground truths are sorted in 
@@ -2883,7 +2916,7 @@ class FeatureSet_Continuous( FeatureSet ):
 
 		# Training Set first
 		train_image_count = 0
-		training_matrix = np.empty( ( num_images_in_training_set, len( self.featurenames_list ) ) ) 
+		training_matrix = np.empty( ( num_images_in_training_set, self.num_features ) ) 
 		while train_image_count < num_images_in_training_set:
 			image_index = train_image_lottery[ train_image_count ]
 			image_name = self.imagenames_list[ image_index ]
@@ -2896,7 +2929,7 @@ class FeatureSet_Continuous( FeatureSet ):
 		# Now Test Set, if applicable
 		test_matrix = None
 		if not training_set_only:
-			test_matrix = np.empty( ( num_images_in_test_set, len( self.featurenames_list ) ) )
+			test_matrix = np.empty( ( num_images_in_test_set, self.num_features ) )
 			test_image_count = 0
 			while test_image_count < num_images_in_test_set:
 				image_index = test_image_lottery[ test_image_count ]
@@ -2907,7 +2940,10 @@ class FeatureSet_Continuous( FeatureSet ):
 				test_image_count += 1
 			test_set.data_matrix = test_matrix
 		
-		return training_set, test_set
+			return training_set, test_set
+
+		# Would have returned already if not training_set_only
+		return training_set
 
 # END FeatureSet_Continuous class definition
 
@@ -3180,6 +3216,24 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 
 		return result
 
+	#==============================================================
+	@classmethod
+	def _LeastSquaresRegression( cls, one_image_features, training_set ):
+		"""Produce a predicted value for a single image based on numpy.linalg.lstsq().
+		
+		Don't call this function directly, but instead use the member function
+		NewLeastSquaresRegression() on the ContinuousBatchClassificationResult class
+		which has dummyproofing and performs the necessary matrix augmentation."""
+
+		from numpy.linalg import lstsq
+		from numpy import dot
+
+		A = lstsq( training_set.data_matrix, np.array( training_set.ground_truths ) )[0]
+		
+		result = cls()
+		result.predicted_value = dot( one_image_features, A)
+		return result
+
 #=================================================================================
 class BatchClassificationResult( ClassificationResult ):
 	"""An abstract base class which serves as container for individual 
@@ -3263,14 +3317,16 @@ class BatchClassificationResult( ClassificationResult ):
 			import math; from scipy import stats
 			self.figure_of_merit = math.sqrt( err_sum / self.num_classifications )
 
-			# For now, ignore "FloatingPointError: 'underflow encountered in stdtr'"
-			np.seterr (under='ignore')
-			slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
+			# no point in doing regression stuff if there's only 1 individual result:
+			if len( self.individual_results ) == 1:
+				# For now, ignore "FloatingPointError: 'underflow encountered in stdtr'"
+				np.seterr (under='ignore')
+				slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
 			             stats.linregress( self.ground_truth_values, self.predicted_values )
 
-			self.spearman_coeff, self.spearman_p_value =\
+				self.spearman_coeff, self.spearman_p_value =\
 			       stats.spearmanr( self.ground_truth_values, self.predicted_values )
-			np.seterr (all='raise')
+				np.seterr (all='raise')
 
 	#==============================================================
 	def RankOrderSort( self ):
@@ -3724,6 +3780,111 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		batch_result.GenerateStats()
 		return batch_result
 
+	#=====================================================================
+	@classmethod
+	def NewLeastSquaresRegression( cls, training_set, test_set, feature_weights, quiet = False, batch_number = None, batch_name = None):
+		"""The equivalent of "wndchrm classify -C" in the command line implenentation of
+		WND-CHARM.
+		
+		Use cases:
+		1. if training_set is not None and test_set is None = LEAVE ONE OUT CROSS VALIDATION
+		2. if training_set == test_set == not None: CROSS VALIDATION WITHOUT LEAVE ONE OUT
+		3. if training_set != test_set: classification of test_set against training_set
+		"""
+
+		# Type checking
+		# First arg must be a FeatureSet_Continuous
+		if not isinstance( training_set, FeatureSet_Continuous ):
+			raise ValueError( 'First argument to NewLeastSquaresRegression must be of type "FeatureSet_Continuous", you gave a {0}'.format( type( test_set ).__name__ ) )	
+		# Second arg must be a FeatureSet_Continuous or a None
+		if (not isinstance( test_set, FeatureSet_Continuous )) and (test_set is not None):
+			raise ValueError( 'Second argument to NewLeastSquaresRegression must be of type "FeatureSet_Continuous" or None, you gave a {0}'.format( type( test_set ).__name__ ) )	
+		if not isinstance( feature_weights, ContinuousFeatureWeights ):
+			raise ValueError( 'Third argument to New must be of type "ContinuousFeatureWeights", you gave a {0}'.format( type( feature_weights ).__name__ ) )
+
+		# If there's both a training_set and a test_set, they both have to have the same features
+		if training_set and test_set:
+			if training_set.featurenames_list != training_set.featurenames_list:
+				raise ValueError("Can't classify, features don't match. Try a FeatureReduce()" )
+
+		# Least squares regression requires a featres matrix augmented with ones
+		# signifying the constant, i.e., the y-intercept
+		# Make a copy of the feature sets to augment while leaving original matrices unchanged.
+		from copy import deepcopy
+		augmented_train_set = deepcopy( training_set )
+
+		# figure out what we're gonna do
+		if training_set and not test_set:
+			leave_one_out = True
+			cross_validation = True
+			augmented_test_set = augmented_train_set 
+		elif training_set is test_set:
+			cross_validation = True
+			augmented_test_set = augmented_train_set
+		else:
+			augmented_test_set = deepcopy( test_set )
+			cross_validation = False
+
+		# say what we're gonna do
+		if not quiet:
+			if cross_validation:
+				out_str = 'Cross validation of training set "{0}" ({1} images, {2} features)'.format(
+			          training_set.source_path, training_set.num_images, len( training_set.featurenames_list ) )
+
+				out_str += "\nWITH"
+				if not leave_one_out:
+					out_str += "OUT"
+				out_str += " using leave-one-out analysis.\n"
+			
+			else:
+				out_str = 'Classifying test set "{0}" ({1} images, {2} features)'.format(
+			          test_set.source_path, test_set.num_images, len( test_set.featurenames_list ) )
+				out_str += '\n\tagainst training set "{0}" ({1} images)'.format(
+				            training_set.source_path, training_set.num_images )
+			print out_str
+
+		# Now, build the augmented feature matrices, which includes multiplying the feature
+		# space by the weights, and augmenting the matrices with 1's
+
+		augmented_train_set.data_matrix *= feature_weights.values
+		augmented_train_set.data_matrix = np.hstack( 
+		      [ augmented_train_set.data_matrix, np.ones( ( augmented_train_set.num_images, 1 ) ) ] )
+		augmented_train_set.num_features += 1 # Tell the object it has a new feature column
+		if not cross_validation:
+			augmented_test_set.data_matrix *= feature_weights.values
+			augmented_test_set.data_matrix = np.hstack( 
+		      [ augmented_test_set.data_matrix, np.ones( ( augmented_test_set.num_images, 1 ) ) ] )
+			augmented_test_set.num_features += 1 # Tell the object it has a new feature column
+
+		if not quiet:
+			print "image\tground truth\tpred. val."
+
+		batch_result = cls( training_set, test_set, feature_weights )
+		batch_result.name = batch_name
+
+		if augmented_test_set.ground_truths is not None and len( augmented_test_set.ground_truths ) != 0:
+			batch_result.ground_truth_values = augmented_test_set.ground_truths
+
+		intermediate_train_set = augmented_train_set
+		for test_image_index in range( augmented_test_set.num_images ):
+			if leave_one_out:
+				intermediate_train_set = augmented_train_set.Split( training_set_only=True,
+				                            leave_out=(test_image_index,), quiet=True )
+			one_image_features = augmented_test_set.data_matrix[ test_image_index,: ]
+			result = ContinuousImageClassificationResult._LeastSquaresRegression(
+			               one_image_features, intermediate_train_set )
+			result.batch_number = batch_number
+			result.name = batch_name
+			result.source_file = augmented_test_set.imagenames_list[ test_image_index ]
+			result.ground_truth_value = augmented_test_set.ground_truths[ test_image_index ]
+			batch_result.predicted_values.append( result.predicted_value )
+
+			if not quiet:
+				result.Print( line_item = True )
+			batch_result.individual_results.append( result )
+
+		batch_result.GenerateStats()
+		return batch_result
 
 #============================================================================
 class ClassificationExperimentResult( BatchClassificationResult ):
@@ -4414,6 +4575,73 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 
 	def SaveToFile( self, filepath ):
 		super( FeatureTimingVersusAccuracyGraph, self ).SaveToFile( filepath )
+
+#============================================================================
+class AccuracyVersusNumFeaturesGraph( BaseGraph ):
+	"""A cost/benefit analysis of the number of features used and the time it takes to calculate
+	that number of features for a single image"""
+
+	# FIXME: roll this class into FeatureTimingVersusAccuracyGraph, allowing
+	# both Discrete and continuous data
+
+	def __init__( self, training_set, feature_weights, chart_title = None, max_num_features = 100):
+	
+		experiment = DiscreteClassificationExperimentResult( training_set, training_set, feature_weights)
+		for number_of_features_to_use in range( 1, max_num_features + 1 ):
+
+			reduced_ts = None
+			reduced_fw = None
+			three_timings = []
+			# Take the best of 3
+			for timing in range( 3 ):
+				# Time the creation and classification of a single signature
+				t1 = time.time()
+				reduced_fw = feature_weights.Threshold( number_of_features_to_use )
+				sig = Signatures.NewFromFeatureNameList( test_image_path, reduced_fw.names )
+				reduced_ts = training_set.FeatureReduce( reduced_fw.names )
+				sig.Normalize( reduced_ts )
+		
+				result = DiscreteImageClassificationResult.NewWND5( reduced_ts, reduced_fw, sig )
+				result.Print()
+				# FIXME: save intermediates just in case of interruption or parallization
+				# result.PickleMe()
+				t2 = time.time()
+				three_timings.append( t2 - t1 )
+
+			timings.append( min( three_timings ) )
+
+			# now, do a fit-on-fit test to measure classification accuracy
+			batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, reduced_fw )
+			batch_result.Print()
+			experiment.individual_results.append( batch_result )
+
+		import matplotlib
+		matplotlib.use('Agg')
+		import matplotlib.pyplot as plt
+
+		x_vals = list( range( 1, max_num_features + 1 ) )
+
+		self.figure = plt.figure()
+		self.main_axes = self.figure.add_subplot(111)
+		if chart_title == None:
+			self.chart_title = "Feature timing v. classification accuracy"	
+		else:
+			self.chart_title = chart_title
+		self.main_axes.set_title( self.chart_title )
+		self.main_axes.set_xlabel( 'Number of features' )
+		self.main_axes.set_ylabel( 'Classification accuracy (%)', color='b' )
+		classification_accuracies = \
+		  [ batch_result.classification_accuracy * 100 for batch_result in experiment.individual_results ]
+
+		self.main_axes.plot( x_vals, classification_accuracies, color='b', linewidth=2 )
+		for tl in self.main_axes.get_yticklabels():
+			tl.set_color('b')	
+
+		self.timing_axes = self.main_axes.twinx()
+		self.timing_axes.set_ylabel( 'Time to calculate features (s)', color='r' )
+		self.timing_axes.plot( x_vals, timings, color='r' )
+		for tl in self.timing_axes.get_yticklabels():
+			tl.set_color('r')	
 
 #============================================================================
 class Dendrogram( object ):
