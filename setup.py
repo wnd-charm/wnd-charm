@@ -43,14 +43,15 @@ except:
 
 # Since there's a large C++ underpinning for Pychrm, run autotools to test build environment
 import os
-cmd = os.getcwd() + os.sep + 'configure'
-import subprocess
-p = subprocess.call( [cmd] )
+if not os.path.exists( 'config.h' ):
+	cmd = os.getcwd() + os.sep + 'configure'
+	import subprocess
+	p = subprocess.call( [cmd] )
 
-if p != 0:
-	print "Error running configure script"
-	import sys
-	sys.exit(p)
+	if p != 0:
+		print "Error running configure script"
+		import sys
+		sys.exit(p)
 
 wndchrm_module = Extension('_pychrm',
 	sources=[
