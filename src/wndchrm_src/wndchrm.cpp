@@ -795,7 +795,13 @@ int main(int argc, char *argv[])
 		showError(1,"Either 'train', 'test' or 'classify' must be specified.\n");
 		return(1);
 	}
+
     arg_index++;
+    if (argc <= arg_index) {
+		ShowHelp();
+		showError(1,"An input parameter must be specified.\n");
+		return(1);
+    }
 
 	/* read the switches */
     while (argv[arg_index][0]=='-')
@@ -1052,7 +1058,10 @@ int main(int argc, char *argv[])
  
        
      } // no params left for dataset / test set.
-     else ShowHelp();
+     else {
+		ShowHelp();
+		showError(1,"An input parameter must be specified.\n");
+     }
 
      return(1);
 }
