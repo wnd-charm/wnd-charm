@@ -592,7 +592,7 @@ int split_and_test(TrainingSet *ts, char *report_file_name, int argc, char **arg
 void ShowHelp()
 {
 	printf("\n"PACKAGE_STRING".  Laboratory of Genetics/NIA/NIH \n");
-	printf("usage: \n======\nwndchrm [ train | test | classify ] [-mtslcdowfrijnpqvNSBACDTh] [<dataset>|<train set>] [<test set>|<feature file>] [<report_file>]\n");
+	printf("usage: \n======\nwndchrm [ train | test | classify | check ] [-mtslcdowfrijnpqvNSBACDTh] [<dataset>|<train set>] [<test set>|<feature file>] [<report_file>]\n");
 	printf("  <dataset> is a <root directory>, <feature file>, <file of filenames>, <image directory> or <image filename>\n");
 	printf("  <root directory> is a directory of sub-directories containing class images with one class per sub-directory.\n");
 	printf("      The sub-directory names will be used as the class labels. Currently supported file formats: TIFF, PPM. \n");
@@ -688,6 +688,8 @@ void ShowHelp()
 	printf("       Unlike 'test', 'classify' will chose the training images in order rather than randomly.\n");
 	printf("       classify will ignore the -n parameter because the result will be the same for each run or split.\n");
 	printf("       The default -r for 'classify' is 1.0 rather than the 0.75 used in 'test'.\n");
+	printf("check: Report which features will need to be computed\n");
+	printf("   wndchrm check path/to/image.tiff\n");
 	printf("\nAdditional help:\n================\n");
 	printf("A detailed description can be found in: Shamir, L., Orlov, N., Eckley, D.M., Macura, T., Johnston, J., Goldberg, I.\n");
 	printf("  [1] \"Wndchrm - an open source utility for biological image analysis\", BMC Source Code for Biology and Medicine, 3:13, 2008.\n");   
@@ -716,6 +718,7 @@ int main(int argc, char *argv[])
     int train=0;
     int test=0;
     int classify=0;
+    int check_sigs_only=0;
     char phylib_path_buffer[256];
     char *phylib_path=NULL;
     char report_file_buffer[256];
@@ -790,9 +793,13 @@ int main(int argc, char *argv[])
     	split_ratio = 1.0;
     	random_splits = 0; // use order in the input file
     }
-	if (!train && !test && !classify) {
+    if (strcmp(argv[arg_index],"check")==0) {
+    	check_sigs_only=1;
+    	feature_opts->check_sigs_only = 1;
+    }
+	if (!train && !test && !classify && !check_sigs_only) {
 		ShowHelp();
-		showError(1,"Either 'train', 'test' or 'classify' must be specified.\n");
+		showError(1,"Either 'train', 'test', 'classify' or 'check' must be specified.\n");
 		return(1);
 	}
 
@@ -870,7 +877,7 @@ int main(int argc, char *argv[])
 			}
 		}
         if (strchr(argv[arg_index],'o')) overwrite=1;
-        if (strchr(argv[arg_index],'O')) skip_sig_check=1;
+        if (strchr(argv[arg_index],'O')) feature_opts->skip_sig_check=1;
         if (strchr(argv[arg_index],'l')) feature_opts->large_set=1;
         if (strchr(argv[arg_index],'c')) feature_opts->compute_colors=1;
         if (strchr(argv[arg_index],'C')) do_continuous=1;
@@ -952,28 +959,34 @@ int main(int argc, char *argv[])
 		dataset_path=argv[arg_index++];
 		TrainingSet *dataset=new TrainingSet(MAX_SAMPLES,MAX_CLASS_NUM);
 
-		if (train) {
-			if (!dataset_save_fit && arg_index < argc && argv[arg_index] && *(argv[arg_index])) dataset_save_fit = argv[arg_index];
-			else if (!dataset_save_fit) showError (1,"No output file specified");
+		if (train || check_sigs_only) {
+			if (check_sigs_only) feature_opts->check_sigs_only = 1;
+			else feature_opts->check_sigs_only = 0;
+
+			if (train && !dataset_save_fit && arg_index < argc && argv[arg_index] && *(argv[arg_index])) dataset_save_fit = argv[arg_index];
+			else if (train && !dataset_save_fit) showError (1,"No output file specified");
 				
 		// Make sure we can write to the output file before calculating anything.
-			FILE *out_file;
-			if (!(out_file=fopen(dataset_save_fit,"a"))) {// don't truncate if exists.
+			FILE *out_file = NULL;
+			if (dataset_save_fit && !(out_file=fopen(dataset_save_fit,"a"))) {// don't truncate if exists.
 				showError (1,"Couldn't open '%s' for writing\n",dataset_save_fit);
 				return(0);
 			}
-			fclose (out_file);
-			res=dataset->LoadFromPath(dataset_path, save_sigs, &featureset, do_continuous, skip_sig_check );
+			if (out_file) fclose (out_file);
+			res=dataset->LoadFromPath(dataset_path, save_sigs, &featureset, do_continuous );
 			if (res < 1) showError(1,"Errors reading from '%s'\n",dataset_path);
-			res = dataset->SaveToFile (dataset_save_fit);
-			if (res < 1) showError (1,"Could not save dataset to '%s'.\n",dataset_save_fit);
-			if (verbosity>=2) printf ("Saved dataset to '%s'.\n",dataset_save_fit);
+			if (dataset_save_fit) {
+				res = dataset->SaveToFile (dataset_save_fit);
+				if (res < 1) showError (1,"Could not save dataset to '%s'.\n",dataset_save_fit);
+				if (verbosity>=2) printf ("Saved dataset to '%s'.\n",dataset_save_fit);
+			}
 	
 			// report any warnings
 			showError (0,NULL);
 
        } else if (test || classify) {
 			int ignore_group=0;
+			feature_opts->check_sigs_only = 0;
 			TrainingSet *testset=NULL;
 		// Make sure we can write to the dataset output file if we got one before calculating anything.
 			FILE *out_file;
@@ -990,7 +1003,7 @@ int main(int argc, char *argv[])
 
 
 			if (verbosity>=2) printf ("Processing training set '%s'.\n",dataset_path);
-			res=dataset->LoadFromPath(dataset_path, save_sigs, &featureset, do_continuous, skip_sig_check);
+			res=dataset->LoadFromPath(dataset_path, save_sigs, &featureset, do_continuous );
 			if (res < 1) showError(1,"Errors reading from '%s'\n",dataset_path);
 			if (dataset_save_fit) {
 				res = dataset->SaveToFile (dataset_save_fit);
@@ -1013,7 +1026,7 @@ int main(int argc, char *argv[])
 				} else if (testset_save_fit) fclose (out_file);
 				if (verbosity>=2) printf ("Processing test set '%s'.\n",testset_path);
 				testset=new TrainingSet(MAX_SAMPLES,MAX_CLASS_NUM);
-				res=testset->LoadFromPath(testset_path, save_sigs, &featureset, do_continuous, skip_sig_check);
+				res=testset->LoadFromPath(testset_path, save_sigs, &featureset, do_continuous);
 				if (res < 1) showError(1,"Errors reading from '%s'\n",testset_path);
 				if (testset_save_fit) {
 					res = testset->SaveToFile (testset_save_fit);

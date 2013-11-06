@@ -908,7 +908,7 @@ int TrainingSet::AddAllSignatures() {
          Unknown classes go into class 0 with value 0 (sample_class = 0).
    If multi_processor is true, AddAllSignatures is called after all the class direcories are processed to load the skipped features.
 */
-int TrainingSet::LoadFromPath(char *path, int save_sigs, featureset_t *featureset, int make_continuous, int skip_sig_comparison_check ) {
+int TrainingSet::LoadFromPath(char *path, int save_sigs, featureset_t *featureset, int make_continuous ) {
 	int path_len = strlen(path);
 	DIR *root_dir,*class_dir;
 	struct dirent *ent;
@@ -931,7 +931,7 @@ int TrainingSet::LoadFromPath(char *path, int save_sigs, featureset_t *featurese
 			if (IsSupportedFormat(buffer)) {
 			// The class assignment for these is unknown (we don't interpret directory elements in path)
 			// So, these are loaded into the unknown class (class index 0).
-				res=LoadFromFilesDir (path, 0, 0, save_sigs, featureset, skip_sig_comparison_check);
+				res=LoadFromFilesDir (path, 0, 0, save_sigs, featureset);
 				errno = 0;
 				if (res < 0) return (res);
 			// Unknown classes are not pure numeric
@@ -982,7 +982,7 @@ int TrainingSet::LoadFromPath(char *path, int save_sigs, featureset_t *featurese
 		if (IsSupportedFormat(path)) {
 
 		// A single supported image file
-			res = AddImageFile(path, 0, 0, save_sigs, featureset, skip_sig_comparison_check);
+			res = AddImageFile(path, 0, 0, save_sigs, featureset);
 			if (res < 1) return (res-1);
 		// For a set of unknowns, number of classes is 1, with all samples sample_class = 0
 			class_num = 1;
@@ -1079,7 +1079,7 @@ int TrainingSet::LoadFromPath(char *path, int save_sigs, featureset_t *featurese
 				sprintf(buffer,"%s/%s",path,classes_found[class_found_index]);
 			// reset the system error
 				errno = 0;
-				res=LoadFromFilesDir (buffer, class_index, samp_val, save_sigs, featureset, skip_sig_comparison_check);
+				res=LoadFromFilesDir (buffer, class_index, samp_val, save_sigs, featureset);
 				if (res < 0) return (res);
 			// Since we made the class, we have to get rid of it if its empty.
 				if (class_nsamples[class_index] < 1) {
@@ -1128,7 +1128,7 @@ int TrainingSet::LoadFromPath(char *path, int save_sigs, featureset_t *featurese
 	
 			// reset the system error
 				errno = 0;
-				res = AddImageFile(filename, file_class_num, samp_val, save_sigs, featureset, skip_sig_comparison_check);
+				res = AddImageFile(filename, file_class_num, samp_val, save_sigs, featureset);
 				if (res < 0) return (res);
 	
 			} // while reading file of filenames
@@ -1155,11 +1155,11 @@ int TrainingSet::LoadFromPath(char *path, int save_sigs, featureset_t *featurese
 	}
 
 // Check what we got.
-	if (count < 1) {
+	if (count < 1 && !featureset->feature_opts.check_sigs_only) {
 		catError ("No samples read from '%s'\n", path);
 		return (count);
 	}
-	if (signature_count != featureset->n_features) {
+	if (signature_count != featureset->n_features && !featureset->feature_opts.check_sigs_only) {
 		catError ("WARNING: Number of features specified (%d) do not match the number collected from '%s' (%d)\n", featureset->n_features, path, signature_count);
 		catError ("         Either command-line options don't match those stored in the dataset (.fit) file, or the file has been corrupted\n");
 	}
@@ -1176,7 +1176,7 @@ int TrainingSet::LoadFromPath(char *path, int save_sigs, featureset_t *featurese
 	strcpy(name,char_p);
 	if (strrchr(name,'.')) *strrchr(name,'.')='\0';
 
-	Summarize(featureset);
+	if (!featureset->feature_opts.check_sigs_only) Summarize(featureset);
 	return (1);
 }
 
@@ -1190,7 +1190,7 @@ int TrainingSet::LoadFromPath(char *path, int save_sigs, featureset_t *featurese
    Scan the files in the directory, calling AddImageFile on each image file encountered.
    If multi_processor is true, AddAllSignatures should be called after all the class direcories are processed to load the skipped features.
 */
-int TrainingSet::LoadFromFilesDir(char *path, unsigned short sample_class, double sample_value, int save_sigs, featureset_t *featureset, int skip_sig_comparison_check ) {
+int TrainingSet::LoadFromFilesDir(char *path, unsigned short sample_class, double sample_value, int save_sigs, featureset_t *featureset ) {
 	DIR *class_dir;
 	struct dirent *ent;
 	typedef OUR_UNORDERED_MAP<std::string, int> base_names_mapType;
@@ -1256,7 +1256,7 @@ int TrainingSet::LoadFromFilesDir(char *path, unsigned short sample_class, doubl
 	// Process the files in sort order
 	for (file_index=0; file_index<n_img_basenames; file_index++) {
 		sprintf(buffer,"%s/%s",path,base_names_vec[file_index].c_str());
-		res = AddImageFile(buffer, sample_class, sample_value, save_sigs, featureset, skip_sig_comparison_check);
+		res = AddImageFile(buffer, sample_class, sample_value, save_sigs, featureset);
 		if (res < 0) return (res);
 		else files_in_class_count += res; // May be zero
 	}
@@ -1288,13 +1288,12 @@ int TrainingSet::LoadFromFilesDir(char *path, unsigned short sample_class, doubl
      stddev -double- normalize to stddev as well as mean.
      bounding_rect -rect *- a sub image area from which features are computed. ignored if NULL.
      overwrite -int- 1 for forcely overwriting pre-computed .sig files
-   skip_sig_comparison_check -int- true if the user wants to bypass checking if the current experiment params match those in the pre-computed sig.
    Returns 0 if the image cannot be opened, 1 otherwise.
    If multi_processor is true, AddAllSignatures should be called after all the class files are processed to load the skipped features.
 */
 
  
-int TrainingSet::AddImageFile(char *filename, unsigned short sample_class, double sample_value, int save_sigs, featureset_t *featureset, int skip_sig_comparison_check ) {
+int TrainingSet::AddImageFile(char *filename, unsigned short sample_class, double sample_value, int save_sigs, featureset_t *featureset ) {
 	int res=0;
 	int sample_index;
 	signatures *ImageSignatures;
@@ -1303,6 +1302,12 @@ int TrainingSet::AddImageFile(char *filename, unsigned short sample_class, doubl
 
 	std::vector<feature_vec_info_t> our_sigs;
 	feature_vec_info_t null_sig_info = {NULL,-1, -1, -1, false, false};
+	int skip_sig_comparison_check = featureset->feature_opts.skip_sig_check;
+	if (featureset->feature_opts.check_sigs_only) {
+		if ( ! CheckImageSigs (filename, featureset) )
+			printf ("%s\n",filename);
+		return (1);
+	}
 	
 	// get a feature calculation plan based on our featureset
 	const FeatureComputationPlan *feature_plan;
@@ -1350,6 +1355,7 @@ int TrainingSet::AddImageFile(char *filename, unsigned short sample_class, doubl
 	// ask for an exclusive write-lock if file doesn't exist
 	// if its the last sample, then we wait for the lock.
 		res = ImageSignatures->ReadFromFile(0);
+
 		if (res == 0 && ImageSignatures->wf && ImageSignatures->wf->status == WORMfile::WORM_WR) { // got a lock: file didn't exist previously, and is not locked by another process.
 			if (verbosity>=2) printf ("Adding '%s' for sig calc.\n",ImageSignatures->GetFileName(buffer));
 			our_sigs[n_sigs].sig = ImageSignatures;
@@ -1523,6 +1529,36 @@ int TrainingSet::AddImageFile(char *filename, unsigned short sample_class, doubl
 	return (res);
 }
 
+int TrainingSet::CheckImageSigs (char *filename, featureset_t *featureset ) {
+	int sample_index;
+	signatures ImageSignatures;
+	char buffer[IMAGE_PATH_LENGTH];
+
+	ImageSignatures.Resize (featureset->n_features);
+	ImageSignatures.NamesTrainingSet=this;
+	strcpy(ImageSignatures.full_path,filename);
+
+	for (sample_index=0; sample_index < featureset->n_samples; sample_index++) {
+		strcpy (ImageSignatures.sample_name, featureset->samples[sample_index].sample_name);
+		ImageSignatures.Clear();
+		ImageSignatures.Resize (featureset->n_features);
+		// opens read-only, with read-lock
+		if ( ImageSignatures.LoadFromFile (NULL) ) {
+			// Unlink sig files with bogus number of features
+			if (ImageSignatures.count != featureset->n_features) {
+				unlink (ImageSignatures.GetFileName(buffer));
+				break;
+			}
+		} else {
+			break;
+		}
+	}
+
+	if (sample_index != featureset->n_samples) {
+		return (0);
+	}
+	return (1);
+}
 
 /* Classify 
    Classify a test sample.
