@@ -23,6 +23,7 @@ stamp-h1
 *.exe
 *.o
 *.so
+src/wndchrm
 
 # OS generated files #
 ######################
