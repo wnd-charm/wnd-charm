@@ -708,6 +708,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		if training_set.source_path:
 			new_fw.name = cls.__name__ + ' from training set "' + training_set.source_path + '"'
 
+		#r_val_sum = 0
 		r_val_squared_sum = 0
 		#r_val_cubed_sum = 0
 
@@ -726,14 +727,19 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			new_fw.pearson_stderrs.append( std_err )
 			new_fw.pearson_p_values.append( p_value )
 
+			#from math import fabs
+			#r_val_sum += fabs(pearson_coeff)
 			r_val_squared_sum += pearson_coeff * pearson_coeff
 			#r_val_cubed_sum += pearson_coeff * pearson_coeff * pearson_coeff
 
-			# CEC spearman_coeff, spearman_p_val = stats.spearmanr( ground_truths, feature_values )
-			spearman_coeff, spearman_p_val = (0, 1 ) 
+			try:
+				spearman_coeff, spearman_p_val = stats.spearmanr( ground_truths, feature_values )
+			except:
+				spearman_coeff, spearman_p_val = (0, 1 )
 			new_fw.spearman_coeffs.append( spearman_coeff )
 			new_fw.spearman_p_values.append( spearman_p_val )
 
+		#new_fw.values = [ fabs(val) / r_val_sum for val in new_fw.pearson_coeffs ]
 		new_fw.values = [val*val / r_val_squared_sum for val in new_fw.pearson_coeffs ]
 		#new_fw.values = [val*val*val / r_val_cubed_sum for val in new_fw.pearson_coeffs ]
 		
@@ -743,15 +749,17 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		return new_fw
 
 	#================================================================
-	def Threshold( self, num_features_to_be_used = None  ):
+	def Threshold( self, num_features_to_be_used=None, _all=False, use_spearman=False ):
 		"""Returns a new instance of a ContinuousFeatureWeights class derived from this
 		instance where the number of features has been reduced to only the top n features,
 		where n is specified by the num_features_to_be_used argument."""
 
-		# Default is top 15% of features
-		if num_features_to_be_used is None:
+		if _all == True:
+			num_features_to_be_used = len( self.values )
+		elif num_features_to_be_used is None:
+			# Default is top 15% of features
 			num_features_to_be_used = int( len( self.values ) * 0.15 )
-		elif num_features_to_be_used > len( self.values ):
+		elif num_features_to_be_used < 1 or num_features_to_be_used > len( self.values ):
 			raise ValueError('Cannot reduce a set of {0} feature weights to requested {1} features.'.\
 			                      format( len( self.values ), num_features_to_be_used ) ) 
 
@@ -762,31 +770,32 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			else:
 				new_weights.name = self.name + " (top {0} features)".format( num_features_to_be_used )
 
-		abs_val_pearson_coeffs = [ abs( val ) for val in self.pearson_coeffs ]
-		raw_featureweights = zip( self.names, abs_val_pearson_coeffs, self.pearson_coeffs, \
+		if use_spearman:
+			abs_corr_coeffs = [ abs( val ) for val in self.spearman_coeffs ]
+		else:
+			abs_corr_coeffs = [ abs( val ) for val in self.pearson_coeffs ]
+
+		raw_featureweights = zip( abs_corr_coeffs, self.names, self.pearson_coeffs, \
 		    self.slopes, self.intercepts, self.pearson_stderrs, self.pearson_p_values, \
 		    self.spearman_coeffs, self.spearman_p_values )
 		
 		# sort from max to min
-		# sort by the second item in the tuple, i.e., index 1
-		sort_func = lambda feat_a, feat_b: cmp( feat_a[1], feat_b[1] ) 
-
-		sorted_featureweights = sorted( raw_featureweights, sort_func, reverse = True )
+		sorted_featureweights = sorted( raw_featureweights, key=lambda r: r[0], reverse = True )
 		
 		# take most correllated features, both positive and negative
 		use_these_feature_weights = list( itertools.islice( \
 			sorted_featureweights, num_features_to_be_used ) )
 
 		# we want lists, not tuples!
-		new_weights.names, abs_pearson_coeffs, new_weights.pearson_coeffs, new_weights.slopes, \
+		abs_corr_coeffs, new_weights.names, new_weights.pearson_coeffs, new_weights.slopes, \
 		    new_weights.intercepts, new_weights.pearson_stderrs, new_weights.pearson_p_values,\
 		    new_weights.spearman_coeffs, new_weights. spearman_p_values =\
 		      [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
 
 		r_val_sum = 0
-		for val in abs_pearson_coeffs:
-			r_val_sum += val
-		new_weights.values = [ val / r_val_sum for val in abs_pearson_coeffs ]
+		for val in abs_corr_coeffs:
+			r_val_sum += val * val
+		new_weights.values = [ ( (val*val) / r_val_sum ) for val in abs_corr_coeffs ]
 
 		new_weights.associated_training_set = self.associated_training_set
 
@@ -3174,7 +3183,7 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 
 		if line_item:
 			# img name:
-			output_str = self.source_file
+			output_str = str( self.source_file )
 			output_str += "\t"
 			# actual class:
 			if self.ground_truth_value is not None:
@@ -3264,12 +3273,13 @@ class BatchClassificationResult( ClassificationResult ):
 	spearman_p_value = None
 
 	#==============================================================
-	def __init__( self, training_set = None, test_set = None, feature_weights = None ):
+	def __init__( self, training_set=None, test_set=None, feature_weights=None, name=None ):
 		"""BatchClassificationResult constructor"""
 
 		self.training_set = training_set
 		self.test_set = test_set
 		self.feature_weights = feature_weights
+		self.name = name
 		self.individual_results = []
 
 		self.num_classifications = 0
@@ -3372,9 +3382,10 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 	batch_count = 0
 
 	#==============================================================
-	def __init__( self, training_set = None, test_set = None, feature_weights = None ):
+	def __init__( self, training_set=None, test_set=None, feature_weights=None, name=None ):
 		"""Simply calls parent constructor."""
-		super( DiscreteBatchClassificationResult, self ).__init__( training_set, test_set, feature_weights)
+		super( DiscreteBatchClassificationResult, self ).__init__(
+				training_set, test_set, feature_weights, name )
 
 	#==============================================================
 	def GenerateStats( self ):
@@ -3848,12 +3859,14 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 
 		augmented_train_set.data_matrix *= feature_weights.values
 		augmented_train_set.data_matrix = np.hstack( 
-		      [ augmented_train_set.data_matrix, np.ones( ( augmented_train_set.num_images, 1 ) ) ] )
+		#      [ augmented_train_set.data_matrix, np.ones( ( augmented_train_set.num_images, 1 ) ) ] )
+		      [ np.ones( ( augmented_train_set.num_images, 1 ) ), augmented_train_set.data_matrix ] )
 		augmented_train_set.num_features += 1 # Tell the object it has a new feature column
 		if not cross_validation:
 			augmented_test_set.data_matrix *= feature_weights.values
 			augmented_test_set.data_matrix = np.hstack( 
-		      [ augmented_test_set.data_matrix, np.ones( ( augmented_test_set.num_images, 1 ) ) ] )
+		#      [ augmented_test_set.data_matrix, np.ones( ( augmented_test_set.num_images, 1 ) ) ] )
+		      [ np.ones( ( augmented_test_set.num_images, 1 ) ), augmented_test_set.data_matrix ] )
 			augmented_test_set.num_features += 1 # Tell the object it has a new feature column
 
 		if not quiet:
@@ -4301,9 +4314,9 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 
 	In this subclass, the figure of merit is the average standard error arcoss batches."""
 
-	def __init__( self, name = None ):
-		self.name = name
-		super( ContinuousClassificationExperimentResult, self ).__init__()
+	def __init__( self, training_set=None, test_set=None, feature_weights=None, name=None ):
+		super( ContinuousClassificationExperimentResult, self ).__init__(
+				training_set, test_set, feature_weights, name )
 
 	#=====================================================================
 	def GenerateStats( self ):
@@ -4578,68 +4591,54 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 
 #============================================================================
 class AccuracyVersusNumFeaturesGraph( BaseGraph ):
-	"""A cost/benefit analysis of the number of features used and the time it takes to calculate
-	that number of features for a single image"""
+	"""Graphing the figure of merit a a function of number of features"""
 
 	# FIXME: roll this class into FeatureTimingVersusAccuracyGraph, allowing
 	# both Discrete and continuous data
 
-	def __init__( self, training_set, feature_weights, chart_title = None, max_num_features = 100):
+	def __init__( self, training_set, feature_weights, chart_title=None, max_num_features=500, step=5):
 	
-		experiment = DiscreteClassificationExperimentResult( training_set, training_set, feature_weights)
-		for number_of_features_to_use in range( 1, max_num_features + 1 ):
+		ls_experiment = ContinuousClassificationExperimentResult( training_set, training_set, feature_weights, name="Least Squares Regression Method")
+		voting_experiment = ContinuousClassificationExperimentResult( training_set, training_set, feature_weights, name="Voting Method")
 
-			reduced_ts = None
-			reduced_fw = None
-			three_timings = []
-			# Take the best of 3
-			for timing in range( 3 ):
-				# Time the creation and classification of a single signature
-				t1 = time.time()
-				reduced_fw = feature_weights.Threshold( number_of_features_to_use )
-				sig = Signatures.NewFromFeatureNameList( test_image_path, reduced_fw.names )
-				reduced_ts = training_set.FeatureReduce( reduced_fw.names )
-				sig.Normalize( reduced_ts )
-		
-				result = DiscreteImageClassificationResult.NewWND5( reduced_ts, reduced_fw, sig )
-				result.Print()
-				# FIXME: save intermediates just in case of interruption or parallization
-				# result.PickleMe()
-				t2 = time.time()
-				three_timings.append( t2 - t1 )
+		x_vals = range( 1, max_num_features + 1, step )
 
-			timings.append( min( three_timings ) )
+		for number_of_features_to_use in x_vals:
+			reduced_fw = feature_weights.Threshold( number_of_features_to_use )
+			reduced_ts = training_set.FeatureReduce( reduced_fw.names )
 
-			# now, do a fit-on-fit test to measure classification accuracy
-			batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, reduced_fw )
-			batch_result.Print()
-			experiment.individual_results.append( batch_result )
+			ls_batch_result = ContinuousBatchClassificationResult.NewLeastSquaresRegression( reduced_ts, None, reduced_fw, batch_number=number_of_features_to_use )
+			ls_batch_result.Print()
+			ls_experiment.individual_results.append( ls_batch_result )
+
+			voting_batch_result = ContinuousBatchClassificationResult.New( reduced_ts, reduced_fw, batch_number=number_of_features_to_use )
+			voting_batch_result.Print()
+			voting_experiment.individual_results.append( voting_batch_result )
 
 		import matplotlib
 		matplotlib.use('Agg')
 		import matplotlib.pyplot as plt
 
-		x_vals = list( range( 1, max_num_features + 1 ) )
-
 		self.figure = plt.figure()
 		self.main_axes = self.figure.add_subplot(111)
 		if chart_title == None:
-			self.chart_title = "Feature timing v. classification accuracy"	
+			self.chart_title = "R vs. num features, two methods"
 		else:
 			self.chart_title = chart_title
 		self.main_axes.set_title( self.chart_title )
 		self.main_axes.set_xlabel( 'Number of features' )
-		self.main_axes.set_ylabel( 'Classification accuracy (%)', color='b' )
-		classification_accuracies = \
-		  [ batch_result.classification_accuracy * 100 for batch_result in experiment.individual_results ]
+		self.main_axes.set_ylabel( 'RMS Least Squares Method', color='b' )
+		yvals = [ batch_result.figure_of_merit for batch_result in ls_experiment.individual_results ]
 
-		self.main_axes.plot( x_vals, classification_accuracies, color='b', linewidth=2 )
+		self.main_axes.plot( x_vals, yvals, color='b', linewidth=2 )
 		for tl in self.main_axes.get_yticklabels():
 			tl.set_color('b')	
 
 		self.timing_axes = self.main_axes.twinx()
-		self.timing_axes.set_ylabel( 'Time to calculate features (s)', color='r' )
-		self.timing_axes.plot( x_vals, timings, color='r' )
+		self.timing_axes.set_ylabel( 'RMS Voting Method', color='r' )
+		yvals = [ batch_result.figure_of_merit for batch_result in voting_experiment.individual_results ]
+
+		self.timing_axes.plot( x_vals, yvals, color='r' )
 		for tl in self.timing_axes.get_yticklabels():
 			tl.set_color('r')	
 
