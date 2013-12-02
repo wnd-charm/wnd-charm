@@ -749,10 +749,13 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		return new_fw
 
 	#================================================================
-	def Threshold( self, num_features_to_be_used=None, _all=False, use_spearman=False ):
+	def Threshold( self, num_features_to_be_used=None, _all=False, use_spearman=False,
+                 min_corr_coeff=None ):
 		"""Returns a new instance of a ContinuousFeatureWeights class derived from this
 		instance where the number of features has been reduced to only the top n features,
-		where n is specified by the num_features_to_be_used argument."""
+		where n is specified by the num_features_to_be_used argument.
+		
+		If min_corr_coeff is specified, the argument num_features_to_be_used is ignored."""
 
 		if _all == True:
 			num_features_to_be_used = len( self.values )
@@ -783,8 +786,19 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		sorted_featureweights = sorted( raw_featureweights, key=lambda r: r[0], reverse = True )
 		
 		# take most correllated features, both positive and negative
-		use_these_feature_weights = list( itertools.islice( \
-			sorted_featureweights, num_features_to_be_used ) )
+		if min_corr_coeff is not None:
+			try:
+				val = abs( float( min_corr_coeff ) )
+			except:
+				raise ValueError( 'Cannot convert {0} to a float.'.format( min_corr_coeff ) )
+			if val <= 0 or val > 1:
+				raise ValueError( 'Abs val of min correlation coefficient must be between 0 and 1.' )
+
+			from itertools import takewhile
+			use_these_feature_weights = list( takewhile( lambda x: x[0]>min_corr_coeff, sorted_featureweights ) )
+		else:
+			from itertools import islice
+			use_these_feature_weights = list( islice( sorted_featureweights, num_features_to_be_used ) )
 
 		# we want lists, not tuples!
 		abs_corr_coeffs, new_weights.names, new_weights.pearson_coeffs, new_weights.slopes, \
@@ -3240,7 +3254,7 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 		A = lstsq( training_set.data_matrix, np.array( training_set.ground_truths ) )[0]
 		
 		result = cls()
-		result.predicted_value = dot( one_image_features, A)
+		result.predicted_value = dot( one_image_features, A )
 		return result
 
 #=================================================================================
@@ -3337,6 +3351,19 @@ class BatchClassificationResult( ClassificationResult ):
 				self.spearman_coeff, self.spearman_p_value =\
 			       stats.spearmanr( self.ground_truth_values, self.predicted_values )
 				np.seterr (all='raise')
+
+	#==============================================================
+	def NewNFold( self, num_folds=5, *args, **kwargs ):
+		"""Base method that's called by daughter classes.
+		
+		If this BatchClassificationResult contains ImageClassificationResults that
+		has known ground truth as well as predicted values, this method will calculate
+		statistics describing how well predicted values correlate with ground truth.
+
+		Requires scipy.stats package to be installed"""
+		raise NotImplementedError
+
+
 
 	#==============================================================
 	def RankOrderSort( self ):
@@ -3859,14 +3886,12 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 
 		augmented_train_set.data_matrix *= feature_weights.values
 		augmented_train_set.data_matrix = np.hstack( 
-		#      [ augmented_train_set.data_matrix, np.ones( ( augmented_train_set.num_images, 1 ) ) ] )
-		      [ np.ones( ( augmented_train_set.num_images, 1 ) ), augmented_train_set.data_matrix ] )
+		      [ augmented_train_set.data_matrix, np.ones( ( augmented_train_set.num_images, 1 ) ) ] )
 		augmented_train_set.num_features += 1 # Tell the object it has a new feature column
 		if not cross_validation:
 			augmented_test_set.data_matrix *= feature_weights.values
 			augmented_test_set.data_matrix = np.hstack( 
-		#      [ augmented_test_set.data_matrix, np.ones( ( augmented_test_set.num_images, 1 ) ) ] )
-		      [ np.ones( ( augmented_test_set.num_images, 1 ) ), augmented_test_set.data_matrix ] )
+		      [ augmented_test_set.data_matrix, np.ones( ( augmented_test_set.num_images, 1 ) ) ] )
 			augmented_test_set.num_features += 1 # Tell the object it has a new feature column
 
 		if not quiet:
@@ -4596,12 +4621,12 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
 	# FIXME: roll this class into FeatureTimingVersusAccuracyGraph, allowing
 	# both Discrete and continuous data
 
-	def __init__( self, training_set, feature_weights, chart_title=None, max_num_features=500, step=5):
+	def __init__( self, training_set, feature_weights, chart_title=None, min_num_features=1, max_num_features=500, step=5, y_min=None, y_max=None):
 	
 		ls_experiment = ContinuousClassificationExperimentResult( training_set, training_set, feature_weights, name="Least Squares Regression Method")
 		voting_experiment = ContinuousClassificationExperimentResult( training_set, training_set, feature_weights, name="Voting Method")
 
-		x_vals = range( 1, max_num_features + 1, step )
+		x_vals = range( min_num_features, max_num_features + 1, step )
 
 		for number_of_features_to_use in x_vals:
 			reduced_fw = feature_weights.Threshold( number_of_features_to_use )
@@ -4625,22 +4650,50 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
 			self.chart_title = "R vs. num features, two methods"
 		else:
 			self.chart_title = chart_title
+
+		# need to make axes have same range
+
+		ls_yvals = [ batch_result.figure_of_merit for batch_result in ls_experiment.individual_results ]
+		voting_yvals = [ batch_result.figure_of_merit for batch_result in voting_experiment.individual_results ]
+		all_vals = ls_yvals + voting_yvals
+
+		if y_min is not None:
+			try:
+				y_min = float(y_min)
+			except:
+				raise ValueError( "Can't convert {0} to float".format(y_min))
+			_min = y_min
+		else:
+			_min = min( all_vals )
+		if y_max is not None:
+			try:
+				y_max = float(y_max)
+			except:
+				raise ValueError( "Can't convert {0} to float".format(y_max))
+			_max = y_max
+		else:
+			_max = max( all_vals )
+
 		self.main_axes.set_title( self.chart_title )
 		self.main_axes.set_xlabel( 'Number of features' )
 		self.main_axes.set_ylabel( 'RMS Least Squares Method', color='b' )
 		yvals = [ batch_result.figure_of_merit for batch_result in ls_experiment.individual_results ]
+		self.main_axes.set_ylim( [_min, _max ] )
 
 		self.main_axes.plot( x_vals, yvals, color='b', linewidth=2 )
+		self.main_axes.plot( x_vals, ls_yvals, color='b', linewidth=2 )
 		for tl in self.main_axes.get_yticklabels():
-			tl.set_color('b')	
+			tl.set_color('b')       
 
 		self.timing_axes = self.main_axes.twinx()
 		self.timing_axes.set_ylabel( 'RMS Voting Method', color='r' )
 		yvals = [ batch_result.figure_of_merit for batch_result in voting_experiment.individual_results ]
+		self.timing_axes.set_ylim( [_min, _max ] )
 
 		self.timing_axes.plot( x_vals, yvals, color='r' )
+		self.timing_axes.plot( x_vals, voting_yvals, color='r' )
 		for tl in self.timing_axes.get_yticklabels():
-			tl.set_color('r')	
+			tl.set_color('r')
 
 #============================================================================
 class Dendrogram( object ):
