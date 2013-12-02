@@ -4644,7 +4644,7 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
 		matplotlib.use('Agg')
 		import matplotlib.pyplot as plt
 
-		self.figure = plt.figure()
+		self.figure = plt.figure( figsize=(10, 8), dpi=300 )
 		self.main_axes = self.figure.add_subplot(111)
 		if chart_title == None:
 			self.chart_title = "R vs. num features, two methods"
@@ -4655,6 +4655,12 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
 
 		ls_yvals = [ batch_result.figure_of_merit for batch_result in ls_experiment.individual_results ]
 		voting_yvals = [ batch_result.figure_of_merit for batch_result in voting_experiment.individual_results ]
+
+		min_ls_yval = min(ls_yvals)
+		optimal_num_feats_ls = ls_yvals.index( min_ls_yval ) + 1 # count from 1, not 0
+		min_voting_yval = min(voting_yvals)
+		optimal_num_feats_voting = voting_yvals.index( min_voting_yval ) + 1 # count from 1, not 0
+
 		all_vals = ls_yvals + voting_yvals
 
 		if y_min is not None:
@@ -4674,26 +4680,33 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
 		else:
 			_max = max( all_vals )
 
+		# Plot least Squares Data
 		self.main_axes.set_title( self.chart_title )
 		self.main_axes.set_xlabel( 'Number of features' )
 		self.main_axes.set_ylabel( 'RMS Least Squares Method', color='b' )
-		yvals = [ batch_result.figure_of_merit for batch_result in ls_experiment.individual_results ]
 		self.main_axes.set_ylim( [_min, _max ] )
-
-		self.main_axes.plot( x_vals, yvals, color='b', linewidth=2 )
-		self.main_axes.plot( x_vals, ls_yvals, color='b', linewidth=2 )
+		self.main_axes.plot( x_vals, ls_yvals, color='b', marker='o', linestyle='--' )
 		for tl in self.main_axes.get_yticklabels():
-			tl.set_color('b')       
+			tl.set_color('b')
 
+		self.main_axes.annotate( 'min R={0} @ {1}'.format(min_ls_yval, optimal_num_feats_ls),
+				xy=( optimal_num_feats_ls, min_ls_yval ),
+				xytext=( optimal_num_feats_ls, 0.8*( _max - _min ) ),
+				arrowprops=dict(facecolor='black', shrink=0.05) )
+
+
+		# Plot Voting method data
 		self.timing_axes = self.main_axes.twinx()
 		self.timing_axes.set_ylabel( 'RMS Voting Method', color='r' )
-		yvals = [ batch_result.figure_of_merit for batch_result in voting_experiment.individual_results ]
 		self.timing_axes.set_ylim( [_min, _max ] )
-
-		self.timing_axes.plot( x_vals, yvals, color='r' )
-		self.timing_axes.plot( x_vals, voting_yvals, color='r' )
+		self.timing_axes.plot( x_vals, voting_yvals, color='r', marker='o', linestyle='--' )
 		for tl in self.timing_axes.get_yticklabels():
 			tl.set_color('r')
+
+		self.timing_axes.annotate( 'min R={0} @ {1}'.format(min_voting_yval, optimal_num_feats_voting),
+				xy=( optimal_num_feats_voting, min_voting_yval ),
+				xytext=( optimal_num_feats_voting, 0.6*( _max - _min ) ),
+				arrowprops=dict(facecolor='black', shrink=0.05) )
 
 #============================================================================
 class Dendrogram( object ):
