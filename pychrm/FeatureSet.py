@@ -4644,7 +4644,7 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
 		matplotlib.use('Agg')
 		import matplotlib.pyplot as plt
 
-		self.figure = plt.figure( figsize=(10, 8), dpi=300 )
+		self.figure = plt.figure( figsize=(12, 8) )
 		self.main_axes = self.figure.add_subplot(111)
 		if chart_title == None:
 			self.chart_title = "R vs. num features, two methods"
@@ -4652,7 +4652,6 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
 			self.chart_title = chart_title
 
 		# need to make axes have same range
-
 		ls_yvals = [ batch_result.figure_of_merit for batch_result in ls_experiment.individual_results ]
 		voting_yvals = [ batch_result.figure_of_merit for batch_result in voting_experiment.individual_results ]
 
@@ -4689,10 +4688,12 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
 		for tl in self.main_axes.get_yticklabels():
 			tl.set_color('b')
 
-		self.main_axes.annotate( 'min R={0} @ {1}'.format(min_ls_yval, optimal_num_feats_ls),
-				xy=( optimal_num_feats_ls, min_ls_yval ),
-				xytext=( optimal_num_feats_ls, 0.8*( _max - _min ) ),
-				arrowprops=dict(facecolor='black', shrink=0.05) )
+		self.main_axes.annotate( 'min R={0:.3f} @ {1}'.format(min_ls_yval, optimal_num_feats_ls),
+		                  color='b',
+		                  xy=( optimal_num_feats_ls, min_ls_yval ),
+		                  xytext=( optimal_num_feats_ls, 0.8 * _max ),
+		                  arrowprops=dict(facecolor='black', shrink=0.05),
+		                  horizontalalignment='right' )
 
 
 		# Plot Voting method data
@@ -4703,10 +4704,12 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
 		for tl in self.timing_axes.get_yticklabels():
 			tl.set_color('r')
 
-		self.timing_axes.annotate( 'min R={0} @ {1}'.format(min_voting_yval, optimal_num_feats_voting),
-				xy=( optimal_num_feats_voting, min_voting_yval ),
-				xytext=( optimal_num_feats_voting, 0.6*( _max - _min ) ),
-				arrowprops=dict(facecolor='black', shrink=0.05) )
+		self.timing_axes.annotate( 'min R={0:.3f} @ {1}'.format(min_voting_yval, optimal_num_feats_voting),
+		                  color='r',
+		                  xy=( optimal_num_feats_voting, min_voting_yval ),
+		                  xytext=( optimal_num_feats_voting, 0.6 * _max ),
+		                  arrowprops=dict(facecolor='black', shrink=0.05),
+		                  horizontalalignment='right' )
 
 #============================================================================
 class Dendrogram( object ):
