@@ -44,7 +44,7 @@
 
 //---------------------------------------------------------------------------
 
-int matr4moments_to_hist(double matr4moments[4][N_COMB_SAMPLES], double *vec, int vec_start) {
+int matr4moments_to_hist(double matr4moments[4][N_COMB_SAMPLES], std::vector<double> vec, int vec_start) {
 	unsigned long a, b, vec_index, bin_index, nbins = 3;
 	double bins[3];
 	vec_index=vec_start;
@@ -75,7 +75,7 @@ int matr4moments_to_hist(double matr4moments[4][N_COMB_SAMPLES], double *vec, in
 }
 
 //---------------------------------------------------------------------------
-int CombFirst4Moments2D(const ImageMatrix &Im, double *vec) {
+int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> vec) {
 	double **I,**J,**J1,z4[4]={0,0,0,0},z[4];
 	double matr4moments[4][N_COMB_SAMPLES];
 	long m,n,n2,m2;
@@ -214,13 +214,9 @@ int CombFirst4Moments2D(const ImageMatrix &Im, double *vec) {
 
 
 
-void vd_Comb4Moments(double *in) {
-	double temp[48];
-	int a;
-	for (a = 0; a < 48; a++)
-		temp[a] = in[a];
+void vd_Comb4Moments(std::vector<double> in) {
 
-	in[0]  = temp[45];
+	std::vector<double> temp = in; //deep copy
 	in[1]  = temp[46];
 	in[2]  = temp[47];
 	in[3]  = temp[36];

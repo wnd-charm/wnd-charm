@@ -44,7 +44,8 @@ class TestPychrm(unittest.TestCase):
     def setUp(self):
         self.image1 = 'test-0032-0008-0008.tif'
         self.image2 = 'test-0032-0016-0016.tif'
-        self.expectedLen = 1025
+        self.SmallFSexpectedLen = 1059
+        self.LargeFSexpectedLen = 2919
 
     def createSignature(self, a, b):
         s = Signatures()
@@ -72,16 +73,32 @@ class TestPychrm(unittest.TestCase):
     def test_calculateSmallFeatureSet(self):
 
         ft1 = Signatures.SmallFeatureSet(self.image1)
-        self.assertEqual(len(ft1.names), self.expectedLen)
+        self.assertEqual(len(ft1.names), self.SmallFSexpectedLen)
         self.assertTrue(all([re.match('^.+ \[\d+\]$', n) for n in ft1.names]))
-        self.assertEqual(len(set(ft1.names)), self.expectedLen)
-        self.assertEqual(len(ft1.values), self.expectedLen)
+        self.assertEqual(len(set(ft1.names)), self.SmallFSexpectedLen)
+        self.assertEqual(len(ft1.values), self.SmallFSexpectedLen)
         self.assertFalse(any(np.isinf(ft1.values)))
         self.assertFalse(any(np.isnan(ft1.values)))
 
         ft2 = Signatures.SmallFeatureSet(self.image2)
         self.assertEqual(ft1.names, ft2.names)
-        self.assertEqual(len(ft2.values), self.expectedLen)
+        self.assertEqual(len(ft2.values), self.SmallFSexpectedLen)
+        self.assertFalse(any(np.isinf(ft2.values)))
+        self.assertFalse(any(np.isnan(ft2.values)))
+
+    def test_calculateLargeFeatureSet(self):
+
+        ft1 = Signatures.LargeFeatureSet(self.image1)
+        self.assertEqual(len(ft1.names), self.LargeFSexpectedLen)
+        self.assertTrue(all([re.match('^.+ \[\d+\]$', n) for n in ft1.names]))
+        self.assertEqual(len(set(ft1.names)), self.LargeFSexpectedLen)
+        self.assertEqual(len(ft1.values), self.LargeFSexpectedLen)
+        self.assertFalse(any(np.isinf(ft1.values)))
+        self.assertFalse(any(np.isnan(ft1.values)))
+
+        ft2 = Signatures.LargeFeatureSet(self.image2)
+        self.assertEqual(ft1.names, ft2.names)
+        self.assertEqual(len(ft2.values), self.LargeFSexpectedLen)
         self.assertFalse(any(np.isinf(ft2.values)))
         self.assertFalse(any(np.isnan(ft2.values)))
 
@@ -143,8 +160,11 @@ class TestPychrm(unittest.TestCase):
 
         # TODO: weight[1]==0, presumably because the intra-class variance=0,
         # even though feature[1] is a perfect discriminator?
+        fts.Normalize()
+
         wts = FisherFeatureWeights.NewFromFeatureSet(fts)
-        self.assertAlmostEqual(wts.values, [8.0, 0.0])
+
+        map( self.assertAlmostEqual, wts.values, [4.0, 0.0] )
         self.assertEqual(wts.names, ['ft [0]', 'ft [1]'])
 
     def test_thresholdWeights(self):

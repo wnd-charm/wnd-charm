@@ -191,7 +191,7 @@ std::vector<double> CombFirstFourMoments::execute (const ImageMatrix &IN_matrix)
 
 	coeffs.resize (n_features, 0);
 
-	IN_matrix.CombFirstFourMoments2D(coeffs.data());
+	IN_matrix.CombFirstFourMoments2D( coeffs );
 
 	return coeffs;
 }

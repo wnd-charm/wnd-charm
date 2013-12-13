@@ -37,6 +37,7 @@
 #undef NDEBUG
 #include <assert.h>
 #include <string> // for source field
+#include <vector> // CEC, required for issue 2, see https://github.com/wnd-charm/wnd-charm/issues/2
 #include "Eigen/Dense"
 #include "colors/FuzzyCalc.h"
 #include "statistics/Moments.h"
@@ -284,7 +285,7 @@ public:
 	void PrewittMagnitude2D (const ImageMatrix &matrix_IN);
 	void PrewittDirection2D (const ImageMatrix &matrix_IN);
 	void ChebyshevStatistics2D (double *coeff, unsigned int N, unsigned int nbins) const;
-	int CombFirstFourMoments2D (double *vec) const;
+	int CombFirstFourMoments2D (std::vector<double> vec) const;
 	void EdgeStatistics (unsigned long *EdgeArea, double *MagMean, double *MagMedian, double *MagVar,
 		double *MagHist, double *DirecMean, double *DirecMedian, double *DirecVar, double *DirecHist,
 		double *DirecHomogeneity, double *DiffDirecHist, unsigned int nbins) const;
