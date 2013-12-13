@@ -708,6 +708,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		if training_set.source_path:
 			new_fw.name = cls.__name__ + ' from training set "' + training_set.source_path + '"'
 
+		#r_val_sum = 0
 		r_val_squared_sum = 0
 		#r_val_cubed_sum = 0
 
@@ -726,13 +727,19 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			new_fw.pearson_stderrs.append( std_err )
 			new_fw.pearson_p_values.append( p_value )
 
+			#from math import fabs
+			#r_val_sum += fabs(pearson_coeff)
 			r_val_squared_sum += pearson_coeff * pearson_coeff
 			#r_val_cubed_sum += pearson_coeff * pearson_coeff * pearson_coeff
 
-			spearman_coeff, spearman_p_val = stats.spearmanr( ground_truths, feature_values )
+			try:
+				spearman_coeff, spearman_p_val = stats.spearmanr( ground_truths, feature_values )
+			except:
+				spearman_coeff, spearman_p_val = (0, 1 )
 			new_fw.spearman_coeffs.append( spearman_coeff )
 			new_fw.spearman_p_values.append( spearman_p_val )
 
+		#new_fw.values = [ fabs(val) / r_val_sum for val in new_fw.pearson_coeffs ]
 		new_fw.values = [val*val / r_val_squared_sum for val in new_fw.pearson_coeffs ]
 		#new_fw.values = [val*val*val / r_val_cubed_sum for val in new_fw.pearson_coeffs ]
 		
@@ -742,15 +749,20 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		return new_fw
 
 	#================================================================
-	def Threshold( self, num_features_to_be_used = None  ):
+	def Threshold( self, num_features_to_be_used=None, _all=False, use_spearman=False,
+                 min_corr_coeff=None ):
 		"""Returns a new instance of a ContinuousFeatureWeights class derived from this
 		instance where the number of features has been reduced to only the top n features,
-		where n is specified by the num_features_to_be_used argument."""
+		where n is specified by the num_features_to_be_used argument.
+		
+		If min_corr_coeff is specified, the argument num_features_to_be_used is ignored."""
 
-		# Default is top 15% of features
-		if num_features_to_be_used is None:
+		if _all == True:
+			num_features_to_be_used = len( self.values )
+		elif num_features_to_be_used is None:
+			# Default is top 15% of features
 			num_features_to_be_used = int( len( self.values ) * 0.15 )
-		elif num_features_to_be_used > len( self.values ):
+		elif num_features_to_be_used < 1 or num_features_to_be_used > len( self.values ):
 			raise ValueError('Cannot reduce a set of {0} feature weights to requested {1} features.'.\
 			                      format( len( self.values ), num_features_to_be_used ) ) 
 
@@ -761,31 +773,43 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			else:
 				new_weights.name = self.name + " (top {0} features)".format( num_features_to_be_used )
 
-		abs_val_pearson_coeffs = [ abs( val ) for val in self.pearson_coeffs ]
-		raw_featureweights = zip( self.names, abs_val_pearson_coeffs, self.pearson_coeffs, \
+		if use_spearman:
+			abs_corr_coeffs = [ abs( val ) for val in self.spearman_coeffs ]
+		else:
+			abs_corr_coeffs = [ abs( val ) for val in self.pearson_coeffs ]
+
+		raw_featureweights = zip( abs_corr_coeffs, self.names, self.pearson_coeffs, \
 		    self.slopes, self.intercepts, self.pearson_stderrs, self.pearson_p_values, \
 		    self.spearman_coeffs, self.spearman_p_values )
 		
 		# sort from max to min
-		# sort by the second item in the tuple, i.e., index 1
-		sort_func = lambda feat_a, feat_b: cmp( feat_a[1], feat_b[1] ) 
-
-		sorted_featureweights = sorted( raw_featureweights, sort_func, reverse = True )
+		sorted_featureweights = sorted( raw_featureweights, key=lambda r: r[0], reverse = True )
 		
 		# take most correllated features, both positive and negative
-		use_these_feature_weights = list( itertools.islice( \
-			sorted_featureweights, num_features_to_be_used ) )
+		if min_corr_coeff is not None:
+			try:
+				val = abs( float( min_corr_coeff ) )
+			except:
+				raise ValueError( 'Cannot convert {0} to a float.'.format( min_corr_coeff ) )
+			if val <= 0 or val > 1:
+				raise ValueError( 'Abs val of min correlation coefficient must be between 0 and 1.' )
+
+			from itertools import takewhile
+			use_these_feature_weights = list( takewhile( lambda x: x[0]>min_corr_coeff, sorted_featureweights ) )
+		else:
+			from itertools import islice
+			use_these_feature_weights = list( islice( sorted_featureweights, num_features_to_be_used ) )
 
 		# we want lists, not tuples!
-		new_weights.names, abs_pearson_coeffs, new_weights.pearson_coeffs, new_weights.slopes, \
+		abs_corr_coeffs, new_weights.names, new_weights.pearson_coeffs, new_weights.slopes, \
 		    new_weights.intercepts, new_weights.pearson_stderrs, new_weights.pearson_p_values,\
 		    new_weights.spearman_coeffs, new_weights. spearman_p_values =\
 		      [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
 
 		r_val_sum = 0
-		for val in abs_pearson_coeffs:
-			r_val_sum += val
-		new_weights.values = [ val / r_val_sum for val in abs_pearson_coeffs ]
+		for val in abs_corr_coeffs:
+			r_val_sum += val * val
+		new_weights.values = [ ( (val*val) / r_val_sum ) for val in abs_corr_coeffs ]
 
 		new_weights.associated_training_set = self.associated_training_set
 
@@ -1516,55 +1540,8 @@ class FeatureSet( object ):
 	#==============================================================
 	@classmethod
 	def NewFromFileOfFiles( cls, fof_path, options = None ):
-		"""FIXME: add ability to specify which features are wanted if none have been calculated yet"""
-
-		if not os.path.exists( fof_path ):
-			raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( fof_path ) )
-
-		print 'Loading {0} from file of files "{1}"'.format( cls.__name__, fof_path )
-		
-		new_ts = cls()
-		new_ts.num_images = 0
-		new_ts.source_path = fof_path
-
-		classnames_set = set()
-
-		with open( fof_path ) as fof:
-			for line in fof:
-				class_id_index = None
-				try:
-					file_path, class_name = line.strip().split( "\t" )
-				except ValueError:
-					print "Error reading file of files. Please make sure each line contains a path to a file and a class id, separated by a single tab character."
-					raise
-				if not os.path.exists( file_path ):
-					raise ValueError(\
-					    "The file '{0}' doesn't exist, maybe you need to specify the full path?".\
-					    format( file_path ) )
-				
-				if not class_name in classnames_set:
-					classnames_set.add( class_name )
-					new_ts.classnames_list.append( class_name )
-					class_id_index = len( new_ts.classnames_list ) - 1
-				else:
-					class_id_index = new_ts.classnames_list.index( class_name )
-
-				if file_path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ): 
-					sig = Signatures.NewFromTiffFile( file_path, options )
-				elif file_path.endswith( (".sig", "pysig" ) ): 
-					sig = Signatures.NewFromSigFile( file_path, options = options )
-				else:
-					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
-				new_ts.AddSignature( sig, class_id_index )
-
-		new_ts.interpolation_coefficients = \
-		                    CheckIfClassNamesAreInterpolatable( new_ts.classnames_list )
-		
-		if isinstance( new_ts, FeatureSet_Discrete ):
-			new_ts.num_classes = len( new_ts.data_list )
-
-		new_ts.Print()
-		return new_ts
+		"""Create feature set from a file of files. Implemented in subclasses."""
+		raise NotImplementedError()
 	
 	#==============================================================
 	@classmethod
@@ -1973,6 +1950,59 @@ class FeatureSet_Discrete( FeatureSet ):
 			new_ts.feature_options = "-l"
 		new_ts.interpolation_coefficients = CheckIfClassNamesAreInterpolatable( classnames_list )
 
+		return new_ts
+
+	#==============================================================
+	@classmethod
+	def NewFromFileOfFiles( cls, fof_path, options = None ):
+		"""FIXME: add ability to specify which features are wanted if none have been calculated yet"""
+
+		if not os.path.exists( fof_path ):
+			raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( fof_path ) )
+
+		print 'Loading {0} from file of files "{1}"'.format( cls.__name__, fof_path )
+		
+		new_ts = cls()
+		new_ts.num_images = 0
+		new_ts.source_path = fof_path
+
+		classnames_set = set()
+
+		with open( fof_path ) as fof:
+			for line in fof:
+				class_id_index = None
+				try:
+					file_path, class_name = line.strip().split( "\t" )
+				except ValueError:
+					print "Error reading file of files. Please make sure each line contains a path to a file and a class id, separated by a single tab character."
+					raise
+				if not os.path.exists( file_path ):
+					raise ValueError(\
+					    "The file '{0}' doesn't exist, maybe you need to specify the full path?".\
+					    format( file_path ) )
+				
+				if not class_name in classnames_set:
+					classnames_set.add( class_name )
+					new_ts.classnames_list.append( class_name )
+					class_id_index = len( new_ts.classnames_list ) - 1
+				else:
+					class_id_index = new_ts.classnames_list.index( class_name )
+
+				if file_path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ): 
+					sig = Signatures.NewFromTiffFile( file_path, options )
+				elif file_path.endswith( (".sig", "pysig" ) ): 
+					sig = Signatures.NewFromSigFile( file_path, options = options )
+				else:
+					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
+				new_ts.AddSignature( sig, class_id_index )
+
+		new_ts.interpolation_coefficients = \
+		                    CheckIfClassNamesAreInterpolatable( new_ts.classnames_list )
+		
+		if isinstance( new_ts, FeatureSet_Discrete ):
+			new_ts.num_classes = len( new_ts.data_list )
+
+		new_ts.Print()
 		return new_ts
 
 	#==============================================================
@@ -2458,6 +2488,11 @@ class FeatureSet_Continuous( FeatureSet ):
 				self.ground_truths = data_dict[ 'ground_truths' ]
 
 	#==============================================================
+	# FIXME: Implement!
+	#def __deepcopy__(self):	
+	#	pass
+
+	#==============================================================
 	def Print( self ):
 		"""Calls parent class method"""
 		super( FeatureSet_Continuous, self ).Print()
@@ -2493,10 +2528,11 @@ class FeatureSet_Continuous( FeatureSet ):
 			num_features = 0
 
 			import re
+			p = re.compile('^(\S+)\s*(\S+)?$')
 
 			for line in fitfile:
 				if line_num is 0:
-					num_classes, new_ts.feature_vector_version = re.compile('^(\S+)\s*(\S+)?$').match(line.strip()).group (1, 2)
+					num_classes, new_ts.feature_vector_version = p.match(line.strip()).group (1, 2)
 					if new_ts.feature_vector_version is None: new_ts.feature_vector_version = "1.0"
 					num_classes = int( num_classes )
 
@@ -2547,6 +2583,75 @@ class FeatureSet_Continuous( FeatureSet ):
 		new_ts.data_matrix = np.genfromtxt( StringIO( string_data.join( tmp_string_data_list ) ) )
 		print "Features version from .fit file: {0}".format (new_ts.feature_vector_version)
 
+		return new_ts
+
+	#==============================================================
+	@classmethod
+	def NewFromFileOfFiles( cls, fof_path, options = None ):
+		"""Create a continuous feature set from a file of files."""
+
+		if not os.path.exists( fof_path ):
+			raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( fof_path ) )
+
+		print 'Loading {0} from file of files "{1}"'.format( cls.__name__, fof_path )
+		
+		new_ts = cls()
+		new_ts.num_images = 0
+		new_ts.source_path = fof_path
+
+		classnames_set = set()
+
+		with open( fof_path ) as fof:
+			for line in fof:
+				class_id_index = None
+				try:
+					file_path, class_name = line.strip().split( "\t" )
+				except ValueError:
+					print "Error reading file of files. Please make sure each line contains a path to an image and its corresponding ground truth value, separated by a single tab character."
+					raise
+				if not os.path.exists( file_path ):
+					raise ValueError(\
+					    "The file '{0}' doesn't exist, maybe you need to specify the full path?".\
+					    format( file_path ) )
+				
+				if not class_name in classnames_set:
+					classnames_set.add( class_name )
+					new_ts.classnames_list.append( class_name )
+					
+				if file_path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ): 
+					sig = Signatures.NewFromTiffFile( file_path, options )
+				elif file_path.endswith( (".sig", "pysig" ) ): 
+					sig = Signatures.NewFromSigFile( file_path, options = options )
+				else:
+					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
+				
+				# FIXME: For Continuous Feature sets, the call to AddSignature is made with the
+				# ground truth value, but for Discrete Feature Sets, it's made with the 
+				# class_id_index. There must be a way to unify the two interfaces so
+				# AddSignature can be implemented in the base class and work for all sub classes.
+
+				# This is the Discrete Method:
+				#	class_id_index = len( new_ts.classnames_list ) - 1
+				#else:
+				#	class_id_index = new_ts.classnames_list.index( class_name )
+				#new_ts.AddSignature( sig, class_id_index )
+
+				# This is the Continuous method:
+				ground_truth_val = None
+				try:
+					ground_truth_val = float( class_name )
+				except ValueError:
+					print 'Could not convert the string "{0}" to a number, please check/edit your input file accordingly.'
+					raise
+				new_ts.AddSignature( sig, ground_truth_val )
+
+		new_ts.interpolation_coefficients = \
+		                    CheckIfClassNamesAreInterpolatable( new_ts.classnames_list )
+		
+		if isinstance( new_ts, FeatureSet_Discrete ):
+			new_ts.num_classes = len( new_ts.data_list )
+
+		new_ts.Print()
 		return new_ts
 
 	#==============================================================
@@ -2699,13 +2804,15 @@ class FeatureSet_Continuous( FeatureSet ):
 		self.source_path += " (scrambled)"
 
 	#==============================================================
-	def Split( self, randomize = True, training_set_fraction = 0.75,\
-	           i = None, j = None, training_set_only = False, quiet = False ):
+	def Split( self, randomize=True, training_set_fraction=0.75,\
+	           i=None, j=None, training_set_only=False, leave_out=None, quiet=False ):
 		"""Used for dividing the current FeatureSet into two subsets used for classifier
 		cross-validation (i.e., training set and test set).
 		
 		Number of images in training and test sets are allocated by i and j, respectively
 		Otherwise they are given by training_set fraction.
+
+		"leave_out" is a tuple containing the indices of the samples to go into test_set.
 		"""
 
 		# FIXME: use np.random.shuffle(arr) - shuffles first dimension (rows) of multi-D numpy, so images in our case.
@@ -2720,51 +2827,68 @@ class FeatureSet_Continuous( FeatureSet ):
 		#	p = numpy.random.permuation(len(a))
 		#	return a[p], b[p]
 		# Figure out how many images will be in which class
-		if i and j:
-			if (i + j) > self.num_images:
-				raise ValueError( 'Values for i and j cannot add up to more than total number of images in parent set ({0})'.format( self.num_images ) )
 
-		if i:
-			if i <= 0 or i > self.num_images:
-				raise ValueError( 'i must be greater than zero and less than total number of images'\
-				    + ' in parent set ({0})'.format( self.num_images ) )
+		if leave_out:
+			# FIXME: check to see if specified indices are valid
+			try:
+				num_images_in_test_set = len( leave_out )
+			except TypeError:
+				raise ValueError( 'The argument leave_out must be an iterable containing the sample index/indices.')
+			num_images_in_training_set = self.num_images - num_images_in_test_set
+			randomize = False
+		else:
+			if i and j:
+				if (i + j) > self.num_images:
+					raise ValueError( 'Values for i and j cannot add up to more than total number of images in parent set ({0})'.format( self.num_images ) )
+
+			if i:
+				if i <= 0 or i > self.num_images:
+					raise ValueError( 'i must be greater than zero and less than total number of images'\
+							+ ' in parent set ({0})'.format( self.num_images ) )
 				num_images_in_training_set = i
-		else:
-			if training_set_fraction <= 0 or training_set_fraction >= 1:
-				raise ValueError( "Training set fraction must be a number between 0 and 1" )
-			num_images_in_training_set = int( round( training_set_fraction * self.num_images ) )
+			else:
+				if training_set_fraction <= 0 or training_set_fraction >= 1:
+					raise ValueError( "Training set fraction must be a number between 0 and 1" )
+				num_images_in_training_set = int( round( training_set_fraction * self.num_images ) )
 
-		if j:
-			if j <= 0:
-				training_set_only = True
-			elif j > ( self.num_images - num_images_in_training_set ):
-				raise ValueError( 'j must be less than total number of images in parent set ({0}) minus # images in training set ({1})'.format( self.num_images, num_images_in_training_set ) )
-			training_set_only = False
-			num_images_in_test_set = j
-		else:
-			num_images_in_test_set = self.num_images - num_images_in_training_set
+			if j:
+				if j <= 0:
+					training_set_only = True
+				elif j > ( self.num_images - num_images_in_training_set ):
+					raise ValueError( 'j must be less than total number of images in parent set ({0}) minus # images in training set ({1})'.format( self.num_images, num_images_in_training_set ) )
+				training_set_only = False
+				num_images_in_test_set = j
+			else:
+				num_images_in_test_set = self.num_images - num_images_in_training_set
+
 
 		# Say what we're gonna do:
 		if not quiet:
-			out_str = ''
 			if randomize:
-				out_str += 'Randomly splitting '
+				out_str = 'Randomly splitting '
 			else:
-				out_str += 'Splitting '
+				out_str = 'Splitting '
 			out_str += '{0} "{1}" ({2} images) into '.format( type( self ).__name__, \
 				 self.source_path, self.num_images )
 			out_str += "training set ({0} images)".format( num_images_in_training_set )
 			if not training_set_only:
 				out_str += " and test set ({0} images)".format( num_images_in_test_set )
+			if leave_out:
+				out_str += ', with test set containing sample(s) ' + str( leave_out )
 			print out_str
 
 		# initialize everything
 		training_set = None
 		test_set = None
 		training_set = self.__class__()
+		training_set.feature_vector_version = self.feature_vector_version
 		training_set.num_images = num_images_in_training_set
 		training_set.featurenames_list = self.featurenames_list
-		training_set.num_features = len( self.featurenames_list )
+		# Who are you going to believe, me, or your own eyes?!?!
+		#training_set.num_features = len( self.featurenames_list )
+		# sometimes we augment the data matrix for linear algebra purposes and therefore 
+		# self.num_features may not match len( self.featurenames_list )
+		training_set.num_features = self.num_features
 		training_set.imagenames_list = []
 		training_set.source_path = self.source_path + " (subset)"
 		if self.classnames_list:
@@ -2776,9 +2900,12 @@ class FeatureSet_Continuous( FeatureSet ):
 	
 		if not training_set_only:
 			test_set = self.__class__()
+			test_set.feature_vector_version = self.feature_vector_version
 			test_set.num_images = num_images_in_test_set
 			test_set.featurenames_list = self.featurenames_list
-			test_set.num_features = len( self.featurenames_list )
+			# see note above re: training_set.num_features
+			#test_set.num_features = len( self.featurenames_list )
+			test_set.num_features = self.num_features
 			test_set.imagenames_list = []
 			test_set.source_path = self.source_path + " (subset)"
 			if self.classnames_list:
@@ -2789,12 +2916,18 @@ class FeatureSet_Continuous( FeatureSet ):
 				test_set.interpolation_coefficients = self.interpolation_coefficients
 
 		image_lottery = range( self.num_images )
-		if randomize:
-			import random
-			random.shuffle( image_lottery )
 
-		train_image_lottery = image_lottery[:num_images_in_training_set]
-		test_image_lottery = image_lottery[num_images_in_training_set: \
+		if leave_out:
+			test_image_lottery = list( leave_out )
+			for sample_index in leave_out:
+				del image_lottery[ sample_index ]
+			train_image_lottery = image_lottery
+		else:
+			if randomize:
+				import random
+				random.shuffle( image_lottery )
+			train_image_lottery = image_lottery[:num_images_in_training_set]
+			test_image_lottery = image_lottery[num_images_in_training_set: \
 		                                   num_images_in_training_set + num_images_in_test_set ]
 
 		# build the training and test sets such that their ground truths are sorted in 
@@ -2806,7 +2939,7 @@ class FeatureSet_Continuous( FeatureSet ):
 
 		# Training Set first
 		train_image_count = 0
-		training_matrix = np.empty( ( num_images_in_training_set, len( self.featurenames_list ) ) ) 
+		training_matrix = np.empty( ( num_images_in_training_set, self.num_features ) ) 
 		while train_image_count < num_images_in_training_set:
 			image_index = train_image_lottery[ train_image_count ]
 			image_name = self.imagenames_list[ image_index ]
@@ -2819,7 +2952,7 @@ class FeatureSet_Continuous( FeatureSet ):
 		# Now Test Set, if applicable
 		test_matrix = None
 		if not training_set_only:
-			test_matrix = np.empty( ( num_images_in_test_set, len( self.featurenames_list ) ) )
+			test_matrix = np.empty( ( num_images_in_test_set, self.num_features ) )
 			test_image_count = 0
 			while test_image_count < num_images_in_test_set:
 				image_index = test_image_lottery[ test_image_count ]
@@ -2830,7 +2963,10 @@ class FeatureSet_Continuous( FeatureSet ):
 				test_image_count += 1
 			test_set.data_matrix = test_matrix
 		
-		return training_set, test_set
+			return training_set, test_set
+
+		# Would have returned already if not training_set_only
+		return training_set
 
 # END FeatureSet_Continuous class definition
 
@@ -3061,7 +3197,7 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 
 		if line_item:
 			# img name:
-			output_str = self.source_file
+			output_str = str( self.source_file )
 			output_str += "\t"
 			# actual class:
 			if self.ground_truth_value is not None:
@@ -3103,6 +3239,24 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 
 		return result
 
+	#==============================================================
+	@classmethod
+	def _LeastSquaresRegression( cls, one_image_features, training_set ):
+		"""Produce a predicted value for a single image based on numpy.linalg.lstsq().
+		
+		Don't call this function directly, but instead use the member function
+		NewLeastSquaresRegression() on the ContinuousBatchClassificationResult class
+		which has dummyproofing and performs the necessary matrix augmentation."""
+
+		from numpy.linalg import lstsq
+		from numpy import dot
+
+		A = lstsq( training_set.data_matrix, np.array( training_set.ground_truths ) )[0]
+		
+		result = cls()
+		result.predicted_value = dot( one_image_features, A )
+		return result
+
 #=================================================================================
 class BatchClassificationResult( ClassificationResult ):
 	"""An abstract base class which serves as container for individual 
@@ -3133,12 +3287,13 @@ class BatchClassificationResult( ClassificationResult ):
 	spearman_p_value = None
 
 	#==============================================================
-	def __init__( self, training_set = None, test_set = None, feature_weights = None ):
+	def __init__( self, training_set=None, test_set=None, feature_weights=None, name=None ):
 		"""BatchClassificationResult constructor"""
 
 		self.training_set = training_set
 		self.test_set = test_set
 		self.feature_weights = feature_weights
+		self.name = name
 		self.individual_results = []
 
 		self.num_classifications = 0
@@ -3186,14 +3341,29 @@ class BatchClassificationResult( ClassificationResult ):
 			import math; from scipy import stats
 			self.figure_of_merit = math.sqrt( err_sum / self.num_classifications )
 
-			# For now, ignore "FloatingPointError: 'underflow encountered in stdtr'"
-			np.seterr (under='ignore')
-			slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
+			# no point in doing regression stuff if there's only 1 individual result:
+			if len( self.individual_results ) == 1:
+				# For now, ignore "FloatingPointError: 'underflow encountered in stdtr'"
+				np.seterr (under='ignore')
+				slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
 			             stats.linregress( self.ground_truth_values, self.predicted_values )
 
-			self.spearman_coeff, self.spearman_p_value =\
+				self.spearman_coeff, self.spearman_p_value =\
 			       stats.spearmanr( self.ground_truth_values, self.predicted_values )
-			np.seterr (all='raise')
+				np.seterr (all='raise')
+
+	#==============================================================
+	def NewNFold( self, num_folds=5, *args, **kwargs ):
+		"""Base method that's called by daughter classes.
+		
+		If this BatchClassificationResult contains ImageClassificationResults that
+		has known ground truth as well as predicted values, this method will calculate
+		statistics describing how well predicted values correlate with ground truth.
+
+		Requires scipy.stats package to be installed"""
+		raise NotImplementedError
+
+
 
 	#==============================================================
 	def RankOrderSort( self ):
@@ -3239,9 +3409,10 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 	batch_count = 0
 
 	#==============================================================
-	def __init__( self, training_set = None, test_set = None, feature_weights = None ):
+	def __init__( self, training_set=None, test_set=None, feature_weights=None, name=None ):
 		"""Simply calls parent constructor."""
-		super( DiscreteBatchClassificationResult, self ).__init__( training_set, test_set, feature_weights)
+		super( DiscreteBatchClassificationResult, self ).__init__(
+				training_set, test_set, feature_weights, name )
 
 	#==============================================================
 	def GenerateStats( self ):
@@ -3647,6 +3818,111 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		batch_result.GenerateStats()
 		return batch_result
 
+	#=====================================================================
+	@classmethod
+	def NewLeastSquaresRegression( cls, training_set, test_set, feature_weights, quiet = False, batch_number = None, batch_name = None):
+		"""The equivalent of "wndchrm classify -C" in the command line implenentation of
+		WND-CHARM.
+		
+		Use cases:
+		1. if training_set is not None and test_set is None = LEAVE ONE OUT CROSS VALIDATION
+		2. if training_set == test_set == not None: CROSS VALIDATION WITHOUT LEAVE ONE OUT
+		3. if training_set != test_set: classification of test_set against training_set
+		"""
+
+		# Type checking
+		# First arg must be a FeatureSet_Continuous
+		if not isinstance( training_set, FeatureSet_Continuous ):
+			raise ValueError( 'First argument to NewLeastSquaresRegression must be of type "FeatureSet_Continuous", you gave a {0}'.format( type( test_set ).__name__ ) )	
+		# Second arg must be a FeatureSet_Continuous or a None
+		if (not isinstance( test_set, FeatureSet_Continuous )) and (test_set is not None):
+			raise ValueError( 'Second argument to NewLeastSquaresRegression must be of type "FeatureSet_Continuous" or None, you gave a {0}'.format( type( test_set ).__name__ ) )	
+		if not isinstance( feature_weights, ContinuousFeatureWeights ):
+			raise ValueError( 'Third argument to New must be of type "ContinuousFeatureWeights", you gave a {0}'.format( type( feature_weights ).__name__ ) )
+
+		# If there's both a training_set and a test_set, they both have to have the same features
+		if training_set and test_set:
+			if training_set.featurenames_list != training_set.featurenames_list:
+				raise ValueError("Can't classify, features don't match. Try a FeatureReduce()" )
+
+		# Least squares regression requires a featres matrix augmented with ones
+		# signifying the constant, i.e., the y-intercept
+		# Make a copy of the feature sets to augment while leaving original matrices unchanged.
+		from copy import deepcopy
+		augmented_train_set = deepcopy( training_set )
+
+		# figure out what we're gonna do
+		if training_set and not test_set:
+			leave_one_out = True
+			cross_validation = True
+			augmented_test_set = augmented_train_set 
+		elif training_set is test_set:
+			cross_validation = True
+			augmented_test_set = augmented_train_set
+		else:
+			augmented_test_set = deepcopy( test_set )
+			cross_validation = False
+
+		# say what we're gonna do
+		if not quiet:
+			if cross_validation:
+				out_str = 'Cross validation of training set "{0}" ({1} images, {2} features)'.format(
+			          training_set.source_path, training_set.num_images, len( training_set.featurenames_list ) )
+
+				out_str += "\nWITH"
+				if not leave_one_out:
+					out_str += "OUT"
+				out_str += " using leave-one-out analysis.\n"
+			
+			else:
+				out_str = 'Classifying test set "{0}" ({1} images, {2} features)'.format(
+			          test_set.source_path, test_set.num_images, len( test_set.featurenames_list ) )
+				out_str += '\n\tagainst training set "{0}" ({1} images)'.format(
+				            training_set.source_path, training_set.num_images )
+			print out_str
+
+		# Now, build the augmented feature matrices, which includes multiplying the feature
+		# space by the weights, and augmenting the matrices with 1's
+
+		augmented_train_set.data_matrix *= feature_weights.values
+		augmented_train_set.data_matrix = np.hstack( 
+		      [ augmented_train_set.data_matrix, np.ones( ( augmented_train_set.num_images, 1 ) ) ] )
+		augmented_train_set.num_features += 1 # Tell the object it has a new feature column
+		if not cross_validation:
+			augmented_test_set.data_matrix *= feature_weights.values
+			augmented_test_set.data_matrix = np.hstack( 
+		      [ augmented_test_set.data_matrix, np.ones( ( augmented_test_set.num_images, 1 ) ) ] )
+			augmented_test_set.num_features += 1 # Tell the object it has a new feature column
+
+		if not quiet:
+			print "image\tground truth\tpred. val."
+
+		batch_result = cls( training_set, test_set, feature_weights )
+		batch_result.name = batch_name
+
+		if augmented_test_set.ground_truths is not None and len( augmented_test_set.ground_truths ) != 0:
+			batch_result.ground_truth_values = augmented_test_set.ground_truths
+
+		intermediate_train_set = augmented_train_set
+		for test_image_index in range( augmented_test_set.num_images ):
+			if leave_one_out:
+				intermediate_train_set = augmented_train_set.Split( training_set_only=True,
+				                            leave_out=(test_image_index,), quiet=True )
+			one_image_features = augmented_test_set.data_matrix[ test_image_index,: ]
+			result = ContinuousImageClassificationResult._LeastSquaresRegression(
+			               one_image_features, intermediate_train_set )
+			result.batch_number = batch_number
+			result.name = batch_name
+			result.source_file = augmented_test_set.imagenames_list[ test_image_index ]
+			result.ground_truth_value = augmented_test_set.ground_truths[ test_image_index ]
+			batch_result.predicted_values.append( result.predicted_value )
+
+			if not quiet:
+				result.Print( line_item = True )
+			batch_result.individual_results.append( result )
+
+		batch_result.GenerateStats()
+		return batch_result
 
 #============================================================================
 class ClassificationExperimentResult( BatchClassificationResult ):
@@ -4063,9 +4339,9 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 
 	In this subclass, the figure of merit is the average standard error arcoss batches."""
 
-	def __init__( self, name = None ):
-		self.name = name
-		super( ContinuousClassificationExperimentResult, self ).__init__()
+	def __init__( self, training_set=None, test_set=None, feature_weights=None, name=None ):
+		super( ContinuousClassificationExperimentResult, self ).__init__(
+				training_set, test_set, feature_weights, name )
 
 	#=====================================================================
 	def GenerateStats( self ):
@@ -4337,6 +4613,103 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 
 	def SaveToFile( self, filepath ):
 		super( FeatureTimingVersusAccuracyGraph, self ).SaveToFile( filepath )
+
+#============================================================================
+class AccuracyVersusNumFeaturesGraph( BaseGraph ):
+	"""Graphing the figure of merit a a function of number of features"""
+
+	# FIXME: roll this class into FeatureTimingVersusAccuracyGraph, allowing
+	# both Discrete and continuous data
+
+	def __init__( self, training_set, feature_weights, chart_title=None, min_num_features=1, max_num_features=500, step=5, y_min=None, y_max=None):
+	
+		ls_experiment = ContinuousClassificationExperimentResult( training_set, training_set, feature_weights, name="Least Squares Regression Method")
+		voting_experiment = ContinuousClassificationExperimentResult( training_set, training_set, feature_weights, name="Voting Method")
+
+		x_vals = range( min_num_features, max_num_features + 1, step )
+
+		for number_of_features_to_use in x_vals:
+			reduced_fw = feature_weights.Threshold( number_of_features_to_use )
+			reduced_ts = training_set.FeatureReduce( reduced_fw.names )
+
+			ls_batch_result = ContinuousBatchClassificationResult.NewLeastSquaresRegression( reduced_ts, None, reduced_fw, batch_number=number_of_features_to_use )
+			ls_batch_result.Print()
+			ls_experiment.individual_results.append( ls_batch_result )
+
+			voting_batch_result = ContinuousBatchClassificationResult.New( reduced_ts, reduced_fw, batch_number=number_of_features_to_use )
+			voting_batch_result.Print()
+			voting_experiment.individual_results.append( voting_batch_result )
+
+		import matplotlib
+		matplotlib.use('Agg')
+		import matplotlib.pyplot as plt
+
+		self.figure = plt.figure( figsize=(12, 8) )
+		self.main_axes = self.figure.add_subplot(111)
+		if chart_title == None:
+			self.chart_title = "R vs. num features, two methods"
+		else:
+			self.chart_title = chart_title
+
+		# need to make axes have same range
+		ls_yvals = [ batch_result.figure_of_merit for batch_result in ls_experiment.individual_results ]
+		voting_yvals = [ batch_result.figure_of_merit for batch_result in voting_experiment.individual_results ]
+
+		min_ls_yval = min(ls_yvals)
+		optimal_num_feats_ls = ls_yvals.index( min_ls_yval ) + 1 # count from 1, not 0
+		min_voting_yval = min(voting_yvals)
+		optimal_num_feats_voting = voting_yvals.index( min_voting_yval ) + 1 # count from 1, not 0
+
+		all_vals = ls_yvals + voting_yvals
+
+		if y_min is not None:
+			try:
+				y_min = float(y_min)
+			except:
+				raise ValueError( "Can't convert {0} to float".format(y_min))
+			_min = y_min
+		else:
+			_min = min( all_vals )
+		if y_max is not None:
+			try:
+				y_max = float(y_max)
+			except:
+				raise ValueError( "Can't convert {0} to float".format(y_max))
+			_max = y_max
+		else:
+			_max = max( all_vals )
+
+		# Plot least Squares Data
+		self.main_axes.set_title( self.chart_title )
+		self.main_axes.set_xlabel( 'Number of features' )
+		self.main_axes.set_ylabel( 'RMS Least Squares Method', color='b' )
+		self.main_axes.set_ylim( [_min, _max ] )
+		self.main_axes.plot( x_vals, ls_yvals, color='b', marker='o', linestyle='--' )
+		for tl in self.main_axes.get_yticklabels():
+			tl.set_color('b')
+
+		self.main_axes.annotate( 'min R={0:.3f} @ {1}'.format(min_ls_yval, optimal_num_feats_ls),
+		                  color='b',
+		                  xy=( optimal_num_feats_ls, min_ls_yval ),
+		                  xytext=( optimal_num_feats_ls, 0.8 * _max ),
+		                  arrowprops=dict(facecolor='black', shrink=0.05),
+		                  horizontalalignment='right' )
+
+
+		# Plot Voting method data
+		self.timing_axes = self.main_axes.twinx()
+		self.timing_axes.set_ylabel( 'RMS Voting Method', color='r' )
+		self.timing_axes.set_ylim( [_min, _max ] )
+		self.timing_axes.plot( x_vals, voting_yvals, color='r', marker='o', linestyle='--' )
+		for tl in self.timing_axes.get_yticklabels():
+			tl.set_color('r')
+
+		self.timing_axes.annotate( 'min R={0:.3f} @ {1}'.format(min_voting_yval, optimal_num_feats_voting),
+		                  color='r',
+		                  xy=( optimal_num_feats_voting, min_voting_yval ),
+		                  xytext=( optimal_num_feats_voting, 0.6 * _max ),
+		                  arrowprops=dict(facecolor='black', shrink=0.05),
+		                  horizontalalignment='right' )
 
 #============================================================================
 class Dendrogram( object ):
