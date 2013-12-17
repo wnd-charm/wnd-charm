@@ -28,7 +28,6 @@ if sys.version_info < (2, 7):
 else:
     import unittest
 
-
 import re
 import numpy as np
 
@@ -44,6 +43,7 @@ class TestPychrm(unittest.TestCase):
     def setUp(self):
         self.image1 = 'test-0032-0008-0008.tif'
         self.image2 = 'test-0032-0016-0016.tif'
+        self.feature_vector_version = '12345.45689'
         self.SmallFSexpectedLen = 1059
         self.LargeFSexpectedLen = 2919
 
@@ -52,6 +52,7 @@ class TestPychrm(unittest.TestCase):
         s.names = ['ft [0]', 'ft [1]']
         s.values = [a, b]
         s.source_file = '%s %s' % (a, b)
+        s.version = self.feature_vector_version
         return s
 
     def createSignatures(self):
@@ -62,9 +63,8 @@ class TestPychrm(unittest.TestCase):
         return s1, s2, s3, s4
 
 
-    @unittest.expectedFailure
     def test_featuresInvalidImagePath(self):
-        nonExistentImage = 'non0existent-image.tif'
+        nonExistentImage = 'non-existent-image.tif'
         self.assertRaises(
             ValueError, Signatures.SmallFeatureSet, nonExistentImage)
         self.assertRaises(
@@ -115,7 +115,7 @@ class TestPychrm(unittest.TestCase):
         self.assertEqual(len(fts.data_list), 2)
         self.assertIsNone(fts.data_list[0])
         #self.assertSequenceEqual
-        np.testing.assert_allclose(fts.data_list[1], sig3.values)
+        np.testing.assert_almost_equal(fts.data_list[1], sig3.values)
 
         self.assertEqual(fts.classsizes_list, [0, 1])
         self.assertEqual(fts.classnames_list, ['UNKNOWN1', 'UNKNOWN2'])
@@ -126,8 +126,8 @@ class TestPychrm(unittest.TestCase):
         self.assertEqual(fts.num_features, 2)
         self.assertEqual(fts.num_images, 2)
         self.assertEqual(len(fts.data_list), 2)
-        np.testing.assert_allclose(fts.data_list[0], sig1.values)
-        np.testing.assert_allclose(fts.data_list[1], sig3.values)
+        np.testing.assert_almost_equal(fts.data_list[0], sig1.values)
+        np.testing.assert_almost_equal(fts.data_list[1], sig3.values)
 
         self.assertEqual(fts.classsizes_list, [1, 1])
         self.assertEqual(fts.classnames_list, ['UNKNOWN1', 'UNKNOWN2'])
@@ -142,11 +142,16 @@ class TestPychrm(unittest.TestCase):
 
         tmp = fts.ContiguousDataMatrix()
         self.assertEqual(fts.data_matrix.shape, (4, 2))
-        np.testing.assert_allclose(fts.data_matrix[0], sig1.values)
-        np.testing.assert_allclose(fts.data_matrix[1], sig2.values)
-        np.testing.assert_allclose(fts.data_matrix[2], sig3.values)
-        np.testing.assert_allclose(fts.data_matrix[3], sig4.values)
+        np.testing.assert_almost_equal(fts.data_matrix[0], sig1.values)
+        np.testing.assert_almost_equal(fts.data_matrix[1], sig2.values)
+        np.testing.assert_almost_equal(fts.data_matrix[2], sig3.values)
+        np.testing.assert_almost_equal(fts.data_matrix[3], sig4.values)
 
+    def test_incompatibleFeatureVersion(self):
+        s = self.createSignature(1, 10)
+        fts = FeatureSet_Discrete()
+        fts.feature_vector_version = '0.0'
+        self.assertRaises(ValueError, fts.AddSignature, s, 1)
 
     def test_fisherFeatureWeights(self):
         sig1, sig2, sig3, sig4 = self.createSignatures()
@@ -164,7 +169,7 @@ class TestPychrm(unittest.TestCase):
 
         wts = FisherFeatureWeights.NewFromFeatureSet(fts)
 
-        map( self.assertAlmostEqual, wts.values, [4.0, 0.0] )
+        np.testing.assert_almost_equal(wts.values, [4.0, 0.0])
         self.assertEqual(wts.names, ['ft [0]', 'ft [1]'])
 
     def test_thresholdWeights(self):
@@ -218,10 +223,10 @@ class TestPychrm(unittest.TestCase):
         pred = DiscreteBatchClassificationResult.New(trainFts, testFts, weights)
         self.assertEqual(len(pred.individual_results), 2)
         r1, r2 = pred.individual_results
-        np.testing.assert_allclose(r1.marginal_probabilities, [0.975, 0.025],
-                                   atol=1e-3)
-        np.testing.assert_allclose(r2.marginal_probabilities, [0.025, 0.975],
-                                   atol=1e-3)
+        np.testing.assert_almost_equal(
+            r1.marginal_probabilities, [0.975, 0.025], decimal=3)
+        np.testing.assert_almost_equal(
+            r2.marginal_probabilities, [0.025, 0.975], decimal=3)
 
         weights = FisherFeatureWeights()
         weights.names = ['ft [0]', 'ft [1]']
@@ -230,10 +235,10 @@ class TestPychrm(unittest.TestCase):
         pred = DiscreteBatchClassificationResult.New(trainFts, testFts, weights)
         self.assertEqual(len(pred.individual_results), 2)
         r1, r2 = pred.individual_results
-        np.testing.assert_allclose(r1.marginal_probabilities, [0.025, 0.975],
-                                   atol=1e-3)
-        np.testing.assert_allclose(r2.marginal_probabilities, [0.975, 0.025],
-                                   atol=1e-3)
+        np.testing.assert_almost_equal(
+            r1.marginal_probabilities, [0.025, 0.975], decimal=3)
+        np.testing.assert_almost_equal(
+            r2.marginal_probabilities, [0.975, 0.025], decimal=3)
 
 
 
