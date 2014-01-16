@@ -44,4 +44,4 @@ Recommended Hardware
 
 Test Images
 -----------
-Please also visit the [IICBU Biological Image Repository](link: http://ome.grc.nia.nih.gov/iicbu2008), which provides a benchmark for testing and comparing the performance of image analysis algorithms for biological imaging.
+Please also visit the [IICBU Biological Image Repository](http://ome.grc.nia.nih.gov/iicbu2008), which provides a benchmark for testing and comparing the performance of image analysis algorithms for biological imaging.
