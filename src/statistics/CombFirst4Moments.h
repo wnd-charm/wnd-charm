@@ -34,7 +34,7 @@
 
 #include "cmatrix.h"
 
-int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> vec);
-void vd_Comb4Moments(std::vector<double> in);
+int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec);
+void vd_Comb4Moments(std::vector<double> &in);
 
 #endif
