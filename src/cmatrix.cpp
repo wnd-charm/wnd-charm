@@ -1168,7 +1168,7 @@ void ImageMatrix::ChebyshevStatistics2D(double *coeff, unsigned int N, unsigned 
 /* CombFirstFourMoments
    vec should be pre-alocated array of 48 doubles
 */
-int ImageMatrix::CombFirstFourMoments2D(std::vector<double> vec) const {
+int ImageMatrix::CombFirstFourMoments2D(std::vector<double> &vec) const {
 	int count;
 	count = CombFirst4Moments2D (*this, vec);
 	vd_Comb4Moments(vec);
