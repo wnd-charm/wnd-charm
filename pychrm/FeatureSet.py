@@ -2225,8 +2225,8 @@ class FeatureSet_Discrete( FeatureSet ):
 		return new_ts
 
 	#==============================================================
-	def Split( self, randomize = True, balanced_classes = False, training_set_fraction = None,\
-	           i = None, j = None, training_set_only = False, quiet = False ):
+	def Split( self, randomize=True, balanced_classes=True, training_set_fraction=None,\
+	           i=None, j=None, training_set_only=False, quiet=False ):
 		"""
 Used for dividing the current FeatureSet into two subsets used for classifier
 cross-validation (i.e., training set and test set).
@@ -2342,8 +2342,7 @@ Y 	Y 	R 	R 	N 	balanced training and test sets, as above but with 75-25 default 
 				num_samples_in_test_set = [ ( num - i ) for num in self.classsizes_list ]
 			else:
 				# you want an unbalanced test set
-				num_samples_in_test_set = [ int(round( (1.0-training_set_fraction) * num )) for num in self.classsizes_list ]
-
+				num_samples_in_test_set = [ a - b for a, b in zip( self.classsizes_list, num_samples_in_training_set ) ]
 
 		# Say what we're gonna do:
 		if not quiet:
@@ -2370,6 +2369,10 @@ Y 	Y 	R 	R 	N 	balanced training and test sets, as above but with 75-25 default 
 		training_set.num_features = len( self.featurenames_list )
 		training_set.imagenames_list = [ [] for j in range( self.num_classes ) ]
 		training_set.source_path = self.source_path + " (subset)"
+		if self.feature_vector_version:
+			training_set.feature_vector_version = self.feature_vector_version
+		else:
+			training_set.feature_vector_version = '2.0'
 		if self.interpolation_coefficients:
 			training_set.interpolation_coefficients = self.interpolation_coefficients
 	
@@ -2384,6 +2387,10 @@ Y 	Y 	R 	R 	N 	balanced training and test sets, as above but with 75-25 default 
 			test_set.num_features = len( self.featurenames_list )
 			test_set.imagenames_list = [ [] for j in range( self.num_classes ) ]
 			test_set.source_path = self.source_path + " (subset)"
+			if self.feature_vector_version:
+				test_set.feature_vector_version = self.feature_vector_version
+			else:
+				test_set.feature_vector_version = '2.0'
 			if self.interpolation_coefficients:
 				test_set.interpolation_coefficients = self.interpolation_coefficients
 
@@ -3506,9 +3513,11 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		print "Total number of classifications: {0}".format( self.num_classifications )
 		print "Total number of CORRECT classifications: {0}".format( self.num_correct_classifications )
 		print "Total classification accuracy: {0:0.4f}".format( self.classification_accuracy )
-		if not self.figure_of_merit == None:
+		if self.figure_of_merit is not None:
 			print "Standard Error: {0:0.4f}".format( self.figure_of_merit )
+		if self.pearson_coeff is not None:
 			print "Pearson Coefficient: {0:0.4f}".format( self.pearson_coeff )
+		if self.spearman_coeff is not None:
 			print "Spearman Coefficient: {0:0.4f}".format( self.spearman_coeff )
 
 		print ""
