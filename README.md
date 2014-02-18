@@ -29,10 +29,13 @@ Dependencies
     * We use GCC 4.2 on MacOS, and 4.4/4.6 on Linux
   * [LibTIFF 3.x](http://www.libtiff.org):
     * CentOS/RedHat: `sudo yum install libtiff-devel`
-    * Ubuntu/Debian: `sudo apt-get libtiff4-dev`
+    * Ubuntu/Debian: `sudo apt-get install libtiff4-dev`
   * [FFTW 3.x](http://www.fftw.org/download.html):
     * CentOS/RedHat: `sudo yum install fftw-static fftw-devel`
-    * Ubuntu/Debian: `sudo apt-get libfftw3-dev `
+    * Ubuntu/Debian: `sudo apt-get install libfftw3-dev`
+  * Pychrm requires the Python development package and SWIG
+    * CentOS/RedHat: `sudo yum install python-devel swig`
+    * Ubuntu/Debian: `sudo apt-get install python-dev swig`
   * Optional for dendrograms: [PHYLIP](http://evolution.genetics.washington.edu/phylip/install.html)
       * Some X11 libraries must be installed prior to compiling/installing PHYLIP (`make install` in the src dir.)
         * CentOS/RedHat: `sudo yum install libX11-devel libXt-devel libXaw-devel`
