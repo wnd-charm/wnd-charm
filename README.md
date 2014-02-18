@@ -5,7 +5,7 @@ WND-CHARM is a multi-purpose image classifier that can be applied to a wide vari
 
 This package contains two implementations both of which use common image transform and feature extraction code:
 * `wndchrm` - A command-line program written in C++ that streamlines the WND-CHARM algorithm workflow. It reads images and their class membership from a directory hierarchy or text file, and outputs classifier statistics to an HTML report or STDOUT. To build, use `./configure && make`.
-* `pychrm` - A Python library that provides an API to do many of the same things as wndchrm while providing the flexibility of a scripting language to perform low manipulation and visualization of pixel intensities, generated features and classification results. To build, use `python setup.py build`.
+* `pychrm` - A Python library that provides an API to do many of the same things as wndchrm while providing the flexibility of a scripting language to perform low manipulation and visualization of pixel intensities, generated features and classification results. To build, use `python setup.py build`, followed by `python setup.py install` to install the library.
 
 This research was supported entirely by the Intramural Research Program of the National Institutes of Health, National Institute on Aging, Ilya Goldberg, Investigator. Address: Laboratory of Genetics/NIA/NIH, 251 Bayview Blvd., Suite 100, Baltimore, MD, 21224, USA
 
