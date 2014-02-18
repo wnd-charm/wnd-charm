@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.69])
 AC_INIT([wndchrm], [1.60], [christopher.coletta@nih.gov])
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([foreign])
 AM_PATH_PYTHON
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADERS([config.h])
