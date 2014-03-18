@@ -89,7 +89,7 @@ wndchrm_module = Extension('_pychrm',
 		'src/gsl/specfunc.cpp',
 	],
 	include_dirs=['./','src/', '/usr/local/include'],
-	swig_opts=['-c++', '-I./', '-I./src', '-outdir', 'pychrm'],
+	swig_opts=['-threads', '-c++', '-I./', '-I./src', '-outdir', 'pychrm'],
 	libraries=['tiff','fftw3'],
 )
 
