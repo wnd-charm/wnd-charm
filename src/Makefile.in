@@ -103,32 +103,43 @@ am__v_AR_0 = @echo "  AR      " $@;
 am__v_AR_1 = 
 libchrm_a_AR = $(AR) $(ARFLAGS)
 libchrm_a_LIBADD =
+am__dirstamp = $(am__leading_dot)dirstamp
 am_libchrm_a_OBJECTS = libchrm_a-FeatureAlgorithms.$(OBJEXT) \
 	libchrm_a-FeatureNames.$(OBJEXT) \
 	libchrm_a-ImageTransforms.$(OBJEXT) libchrm_a-Tasks.$(OBJEXT) \
-	libchrm_a-cmatrix.$(OBJEXT) libchrm_a-FuzzyCalc.$(OBJEXT) \
-	libchrm_a-specfunc.$(OBJEXT) \
-	libchrm_a-CombFirst4Moments.$(OBJEXT) \
-	libchrm_a-FeatureStatistics.$(OBJEXT) \
-	libchrm_a-gabor.$(OBJEXT) libchrm_a-CVIPtexture.$(OBJEXT) \
-	libchrm_a-haralick.$(OBJEXT) libchrm_a-tamura.$(OBJEXT) \
-	libchrm_a-zernike.$(OBJEXT) \
-	libchrm_a-ChebyshevFourier.$(OBJEXT) \
-	libchrm_a-chebyshev.$(OBJEXT) libchrm_a-radon.$(OBJEXT) \
-	libchrm_a-Common.$(OBJEXT) libchrm_a-DataGrid2D.$(OBJEXT) \
-	libchrm_a-DataGrid3D.$(OBJEXT) libchrm_a-Filter.$(OBJEXT) \
-	libchrm_a-FilterSet.$(OBJEXT) libchrm_a-Symlet5.$(OBJEXT) \
-	libchrm_a-Wavelet.$(OBJEXT) libchrm_a-WaveletHigh.$(OBJEXT) \
-	libchrm_a-WaveletLow.$(OBJEXT) \
-	libchrm_a-WaveletMedium.$(OBJEXT) \
-	libchrm_a-convolution.$(OBJEXT) libchrm_a-wt.$(OBJEXT) \
-	libchrm_a-TrainingSet.$(OBJEXT) libchrm_a-WORMfile.$(OBJEXT) \
-	libchrm_a-signatures.$(OBJEXT) \
+	libchrm_a-cmatrix.$(OBJEXT) \
+	colors/libchrm_a-FuzzyCalc.$(OBJEXT) \
+	gsl/libchrm_a-specfunc.$(OBJEXT) \
+	statistics/libchrm_a-CombFirst4Moments.$(OBJEXT) \
+	statistics/libchrm_a-FeatureStatistics.$(OBJEXT) \
+	textures/libchrm_a-gabor.$(OBJEXT) \
+	textures/haralick/libchrm_a-CVIPtexture.$(OBJEXT) \
+	textures/haralick/libchrm_a-haralick.$(OBJEXT) \
+	textures/libchrm_a-tamura.$(OBJEXT) \
+	textures/zernike/libchrm_a-zernike.$(OBJEXT) \
+	transforms/libchrm_a-ChebyshevFourier.$(OBJEXT) \
+	transforms/libchrm_a-chebyshev.$(OBJEXT) \
+	transforms/libchrm_a-radon.$(OBJEXT) \
+	transforms/wavelet/libchrm_a-Common.$(OBJEXT) \
+	transforms/wavelet/libchrm_a-DataGrid2D.$(OBJEXT) \
+	transforms/wavelet/libchrm_a-DataGrid3D.$(OBJEXT) \
+	transforms/wavelet/libchrm_a-Filter.$(OBJEXT) \
+	transforms/wavelet/libchrm_a-FilterSet.$(OBJEXT) \
+	transforms/wavelet/libchrm_a-Symlet5.$(OBJEXT) \
+	transforms/wavelet/libchrm_a-Wavelet.$(OBJEXT) \
+	transforms/wavelet/libchrm_a-WaveletHigh.$(OBJEXT) \
+	transforms/wavelet/libchrm_a-WaveletLow.$(OBJEXT) \
+	transforms/wavelet/libchrm_a-WaveletMedium.$(OBJEXT) \
+	transforms/wavelet/libchrm_a-convolution.$(OBJEXT) \
+	transforms/wavelet/libchrm_a-wt.$(OBJEXT) \
+	wndchrm_src/libchrm_a-TrainingSet.$(OBJEXT) \
+	wndchrm_src/libchrm_a-WORMfile.$(OBJEXT) \
+	wndchrm_src/libchrm_a-signatures.$(OBJEXT) \
 	libchrm_a-wndchrm_error.$(OBJEXT)
 libchrm_a_OBJECTS = $(am_libchrm_a_OBJECTS)
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_wndchrm_OBJECTS = wndchrm.$(OBJEXT)
+am_wndchrm_OBJECTS = wndchrm_src/wndchrm.$(OBJEXT)
 wndchrm_OBJECTS = $(am_wndchrm_OBJECTS)
 wndchrm_DEPENDENCIES = libchrm.a
 AM_V_lt = $(am__v_lt_@AM_V@)
@@ -753,6 +764,134 @@ $(am__aclocal_m4_deps):
 
 clean-noinstLIBRARIES:
 	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
+colors/$(am__dirstamp):
+	@$(MKDIR_P) colors
+	@: > colors/$(am__dirstamp)
+colors/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) colors/$(DEPDIR)
+	@: > colors/$(DEPDIR)/$(am__dirstamp)
+colors/libchrm_a-FuzzyCalc.$(OBJEXT): colors/$(am__dirstamp) \
+	colors/$(DEPDIR)/$(am__dirstamp)
+gsl/$(am__dirstamp):
+	@$(MKDIR_P) gsl
+	@: > gsl/$(am__dirstamp)
+gsl/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) gsl/$(DEPDIR)
+	@: > gsl/$(DEPDIR)/$(am__dirstamp)
+gsl/libchrm_a-specfunc.$(OBJEXT): gsl/$(am__dirstamp) \
+	gsl/$(DEPDIR)/$(am__dirstamp)
+statistics/$(am__dirstamp):
+	@$(MKDIR_P) statistics
+	@: > statistics/$(am__dirstamp)
+statistics/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) statistics/$(DEPDIR)
+	@: > statistics/$(DEPDIR)/$(am__dirstamp)
+statistics/libchrm_a-CombFirst4Moments.$(OBJEXT):  \
+	statistics/$(am__dirstamp) \
+	statistics/$(DEPDIR)/$(am__dirstamp)
+statistics/libchrm_a-FeatureStatistics.$(OBJEXT):  \
+	statistics/$(am__dirstamp) \
+	statistics/$(DEPDIR)/$(am__dirstamp)
+textures/$(am__dirstamp):
+	@$(MKDIR_P) textures
+	@: > textures/$(am__dirstamp)
+textures/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) textures/$(DEPDIR)
+	@: > textures/$(DEPDIR)/$(am__dirstamp)
+textures/libchrm_a-gabor.$(OBJEXT): textures/$(am__dirstamp) \
+	textures/$(DEPDIR)/$(am__dirstamp)
+textures/haralick/$(am__dirstamp):
+	@$(MKDIR_P) textures/haralick
+	@: > textures/haralick/$(am__dirstamp)
+textures/haralick/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) textures/haralick/$(DEPDIR)
+	@: > textures/haralick/$(DEPDIR)/$(am__dirstamp)
+textures/haralick/libchrm_a-CVIPtexture.$(OBJEXT):  \
+	textures/haralick/$(am__dirstamp) \
+	textures/haralick/$(DEPDIR)/$(am__dirstamp)
+textures/haralick/libchrm_a-haralick.$(OBJEXT):  \
+	textures/haralick/$(am__dirstamp) \
+	textures/haralick/$(DEPDIR)/$(am__dirstamp)
+textures/libchrm_a-tamura.$(OBJEXT): textures/$(am__dirstamp) \
+	textures/$(DEPDIR)/$(am__dirstamp)
+textures/zernike/$(am__dirstamp):
+	@$(MKDIR_P) textures/zernike
+	@: > textures/zernike/$(am__dirstamp)
+textures/zernike/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) textures/zernike/$(DEPDIR)
+	@: > textures/zernike/$(DEPDIR)/$(am__dirstamp)
+textures/zernike/libchrm_a-zernike.$(OBJEXT):  \
+	textures/zernike/$(am__dirstamp) \
+	textures/zernike/$(DEPDIR)/$(am__dirstamp)
+transforms/$(am__dirstamp):
+	@$(MKDIR_P) transforms
+	@: > transforms/$(am__dirstamp)
+transforms/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) transforms/$(DEPDIR)
+	@: > transforms/$(DEPDIR)/$(am__dirstamp)
+transforms/libchrm_a-ChebyshevFourier.$(OBJEXT):  \
+	transforms/$(am__dirstamp) \
+	transforms/$(DEPDIR)/$(am__dirstamp)
+transforms/libchrm_a-chebyshev.$(OBJEXT): transforms/$(am__dirstamp) \
+	transforms/$(DEPDIR)/$(am__dirstamp)
+transforms/libchrm_a-radon.$(OBJEXT): transforms/$(am__dirstamp) \
+	transforms/$(DEPDIR)/$(am__dirstamp)
+transforms/wavelet/$(am__dirstamp):
+	@$(MKDIR_P) transforms/wavelet
+	@: > transforms/wavelet/$(am__dirstamp)
+transforms/wavelet/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) transforms/wavelet/$(DEPDIR)
+	@: > transforms/wavelet/$(DEPDIR)/$(am__dirstamp)
+transforms/wavelet/libchrm_a-Common.$(OBJEXT):  \
+	transforms/wavelet/$(am__dirstamp) \
+	transforms/wavelet/$(DEPDIR)/$(am__dirstamp)
+transforms/wavelet/libchrm_a-DataGrid2D.$(OBJEXT):  \
+	transforms/wavelet/$(am__dirstamp) \
+	transforms/wavelet/$(DEPDIR)/$(am__dirstamp)
+transforms/wavelet/libchrm_a-DataGrid3D.$(OBJEXT):  \
+	transforms/wavelet/$(am__dirstamp) \
+	transforms/wavelet/$(DEPDIR)/$(am__dirstamp)
+transforms/wavelet/libchrm_a-Filter.$(OBJEXT):  \
+	transforms/wavelet/$(am__dirstamp) \
+	transforms/wavelet/$(DEPDIR)/$(am__dirstamp)
+transforms/wavelet/libchrm_a-FilterSet.$(OBJEXT):  \
+	transforms/wavelet/$(am__dirstamp) \
+	transforms/wavelet/$(DEPDIR)/$(am__dirstamp)
+transforms/wavelet/libchrm_a-Symlet5.$(OBJEXT):  \
+	transforms/wavelet/$(am__dirstamp) \
+	transforms/wavelet/$(DEPDIR)/$(am__dirstamp)
+transforms/wavelet/libchrm_a-Wavelet.$(OBJEXT):  \
+	transforms/wavelet/$(am__dirstamp) \
+	transforms/wavelet/$(DEPDIR)/$(am__dirstamp)
+transforms/wavelet/libchrm_a-WaveletHigh.$(OBJEXT):  \
+	transforms/wavelet/$(am__dirstamp) \
+	transforms/wavelet/$(DEPDIR)/$(am__dirstamp)
+transforms/wavelet/libchrm_a-WaveletLow.$(OBJEXT):  \
+	transforms/wavelet/$(am__dirstamp) \
+	transforms/wavelet/$(DEPDIR)/$(am__dirstamp)
+transforms/wavelet/libchrm_a-WaveletMedium.$(OBJEXT):  \
+	transforms/wavelet/$(am__dirstamp) \
+	transforms/wavelet/$(DEPDIR)/$(am__dirstamp)
+transforms/wavelet/libchrm_a-convolution.$(OBJEXT):  \
+	transforms/wavelet/$(am__dirstamp) \
+	transforms/wavelet/$(DEPDIR)/$(am__dirstamp)
+transforms/wavelet/libchrm_a-wt.$(OBJEXT):  \
+	transforms/wavelet/$(am__dirstamp) \
+	transforms/wavelet/$(DEPDIR)/$(am__dirstamp)
+wndchrm_src/$(am__dirstamp):
+	@$(MKDIR_P) wndchrm_src
+	@: > wndchrm_src/$(am__dirstamp)
+wndchrm_src/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) wndchrm_src/$(DEPDIR)
+	@: > wndchrm_src/$(DEPDIR)/$(am__dirstamp)
+wndchrm_src/libchrm_a-TrainingSet.$(OBJEXT):  \
+	wndchrm_src/$(am__dirstamp) \
+	wndchrm_src/$(DEPDIR)/$(am__dirstamp)
+wndchrm_src/libchrm_a-WORMfile.$(OBJEXT): wndchrm_src/$(am__dirstamp) \
+	wndchrm_src/$(DEPDIR)/$(am__dirstamp)
+wndchrm_src/libchrm_a-signatures.$(OBJEXT):  \
+	wndchrm_src/$(am__dirstamp) \
+	wndchrm_src/$(DEPDIR)/$(am__dirstamp)
 
 libchrm.a: $(libchrm_a_OBJECTS) $(libchrm_a_DEPENDENCIES) $(EXTRA_libchrm_a_DEPENDENCIES) 
 	$(AM_V_at)-rm -f libchrm.a
@@ -807,6 +946,8 @@ clean-binPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
+wndchrm_src/wndchrm.$(OBJEXT): wndchrm_src/$(am__dirstamp) \
+	wndchrm_src/$(DEPDIR)/$(am__dirstamp)
 
 wndchrm$(EXEEXT): $(wndchrm_OBJECTS) $(wndchrm_DEPENDENCIES) $(EXTRA_wndchrm_DEPENDENCIES) 
 	@rm -f wndchrm$(EXEEXT)
@@ -814,62 +955,74 @@ wndchrm$(EXEEXT): $(wndchrm_OBJECTS) $(wndchrm_DEPENDENCIES) $(EXTRA_wndchrm_DEP
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
+	-rm -f colors/*.$(OBJEXT)
+	-rm -f gsl/*.$(OBJEXT)
+	-rm -f statistics/*.$(OBJEXT)
+	-rm -f textures/*.$(OBJEXT)
+	-rm -f textures/haralick/*.$(OBJEXT)
+	-rm -f textures/zernike/*.$(OBJEXT)
+	-rm -f transforms/*.$(OBJEXT)
+	-rm -f transforms/wavelet/*.$(OBJEXT)
+	-rm -f wndchrm_src/*.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-CVIPtexture.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-ChebyshevFourier.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-CombFirst4Moments.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-Common.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-DataGrid2D.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-DataGrid3D.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-FeatureAlgorithms.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-FeatureNames.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-FeatureStatistics.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-Filter.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-FilterSet.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-FuzzyCalc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-ImageTransforms.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-Symlet5.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-Tasks.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-TrainingSet.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-WORMfile.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-Wavelet.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-WaveletHigh.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-WaveletLow.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-WaveletMedium.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-chebyshev.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-cmatrix.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-convolution.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-gabor.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-haralick.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-radon.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-signatures.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-specfunc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-tamura.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-wndchrm_error.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-wt.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libchrm_a-zernike.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wndchrm.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@colors/$(DEPDIR)/libchrm_a-FuzzyCalc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@gsl/$(DEPDIR)/libchrm_a-specfunc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@statistics/$(DEPDIR)/libchrm_a-CombFirst4Moments.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@statistics/$(DEPDIR)/libchrm_a-FeatureStatistics.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@textures/$(DEPDIR)/libchrm_a-gabor.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@textures/$(DEPDIR)/libchrm_a-tamura.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@textures/haralick/$(DEPDIR)/libchrm_a-CVIPtexture.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@textures/haralick/$(DEPDIR)/libchrm_a-haralick.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@textures/zernike/$(DEPDIR)/libchrm_a-zernike.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@transforms/$(DEPDIR)/libchrm_a-ChebyshevFourier.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@transforms/$(DEPDIR)/libchrm_a-chebyshev.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@transforms/$(DEPDIR)/libchrm_a-radon.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@transforms/wavelet/$(DEPDIR)/libchrm_a-Common.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@transforms/wavelet/$(DEPDIR)/libchrm_a-DataGrid2D.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@transforms/wavelet/$(DEPDIR)/libchrm_a-DataGrid3D.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@transforms/wavelet/$(DEPDIR)/libchrm_a-Filter.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@transforms/wavelet/$(DEPDIR)/libchrm_a-FilterSet.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@transforms/wavelet/$(DEPDIR)/libchrm_a-Symlet5.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@transforms/wavelet/$(DEPDIR)/libchrm_a-Wavelet.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletHigh.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletLow.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletMedium.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@transforms/wavelet/$(DEPDIR)/libchrm_a-convolution.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@transforms/wavelet/$(DEPDIR)/libchrm_a-wt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@wndchrm_src/$(DEPDIR)/libchrm_a-TrainingSet.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@wndchrm_src/$(DEPDIR)/libchrm_a-WORMfile.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@wndchrm_src/$(DEPDIR)/libchrm_a-signatures.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@wndchrm_src/$(DEPDIR)/wndchrm.Po@am__quote@
 
 .cpp.o:
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
+@am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCXX_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXXCOMPILE) -c -o $@ $<
 
 .cpp.obj:
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
+@am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
+@am__fastdepCXX_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
 .cpp.lo:
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LTCXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.lo$$||'`;\
+@am__fastdepCXX_TRUE@	$(LTCXXCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCXX_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Plo
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LTCXXCOMPILE) -c -o $@ $<
@@ -944,383 +1097,383 @@ libchrm_a-cmatrix.obj: cmatrix.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-cmatrix.obj `if test -f 'cmatrix.cpp'; then $(CYGPATH_W) 'cmatrix.cpp'; else $(CYGPATH_W) '$(srcdir)/cmatrix.cpp'; fi`
 
-libchrm_a-FuzzyCalc.o: colors/FuzzyCalc.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-FuzzyCalc.o -MD -MP -MF $(DEPDIR)/libchrm_a-FuzzyCalc.Tpo -c -o libchrm_a-FuzzyCalc.o `test -f 'colors/FuzzyCalc.cpp' || echo '$(srcdir)/'`colors/FuzzyCalc.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-FuzzyCalc.Tpo $(DEPDIR)/libchrm_a-FuzzyCalc.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='colors/FuzzyCalc.cpp' object='libchrm_a-FuzzyCalc.o' libtool=no @AMDEPBACKSLASH@
+colors/libchrm_a-FuzzyCalc.o: colors/FuzzyCalc.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT colors/libchrm_a-FuzzyCalc.o -MD -MP -MF colors/$(DEPDIR)/libchrm_a-FuzzyCalc.Tpo -c -o colors/libchrm_a-FuzzyCalc.o `test -f 'colors/FuzzyCalc.cpp' || echo '$(srcdir)/'`colors/FuzzyCalc.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) colors/$(DEPDIR)/libchrm_a-FuzzyCalc.Tpo colors/$(DEPDIR)/libchrm_a-FuzzyCalc.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='colors/FuzzyCalc.cpp' object='colors/libchrm_a-FuzzyCalc.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-FuzzyCalc.o `test -f 'colors/FuzzyCalc.cpp' || echo '$(srcdir)/'`colors/FuzzyCalc.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o colors/libchrm_a-FuzzyCalc.o `test -f 'colors/FuzzyCalc.cpp' || echo '$(srcdir)/'`colors/FuzzyCalc.cpp
 
-libchrm_a-FuzzyCalc.obj: colors/FuzzyCalc.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-FuzzyCalc.obj -MD -MP -MF $(DEPDIR)/libchrm_a-FuzzyCalc.Tpo -c -o libchrm_a-FuzzyCalc.obj `if test -f 'colors/FuzzyCalc.cpp'; then $(CYGPATH_W) 'colors/FuzzyCalc.cpp'; else $(CYGPATH_W) '$(srcdir)/colors/FuzzyCalc.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-FuzzyCalc.Tpo $(DEPDIR)/libchrm_a-FuzzyCalc.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='colors/FuzzyCalc.cpp' object='libchrm_a-FuzzyCalc.obj' libtool=no @AMDEPBACKSLASH@
+colors/libchrm_a-FuzzyCalc.obj: colors/FuzzyCalc.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT colors/libchrm_a-FuzzyCalc.obj -MD -MP -MF colors/$(DEPDIR)/libchrm_a-FuzzyCalc.Tpo -c -o colors/libchrm_a-FuzzyCalc.obj `if test -f 'colors/FuzzyCalc.cpp'; then $(CYGPATH_W) 'colors/FuzzyCalc.cpp'; else $(CYGPATH_W) '$(srcdir)/colors/FuzzyCalc.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) colors/$(DEPDIR)/libchrm_a-FuzzyCalc.Tpo colors/$(DEPDIR)/libchrm_a-FuzzyCalc.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='colors/FuzzyCalc.cpp' object='colors/libchrm_a-FuzzyCalc.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-FuzzyCalc.obj `if test -f 'colors/FuzzyCalc.cpp'; then $(CYGPATH_W) 'colors/FuzzyCalc.cpp'; else $(CYGPATH_W) '$(srcdir)/colors/FuzzyCalc.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o colors/libchrm_a-FuzzyCalc.obj `if test -f 'colors/FuzzyCalc.cpp'; then $(CYGPATH_W) 'colors/FuzzyCalc.cpp'; else $(CYGPATH_W) '$(srcdir)/colors/FuzzyCalc.cpp'; fi`
 
-libchrm_a-specfunc.o: gsl/specfunc.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-specfunc.o -MD -MP -MF $(DEPDIR)/libchrm_a-specfunc.Tpo -c -o libchrm_a-specfunc.o `test -f 'gsl/specfunc.cpp' || echo '$(srcdir)/'`gsl/specfunc.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-specfunc.Tpo $(DEPDIR)/libchrm_a-specfunc.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='gsl/specfunc.cpp' object='libchrm_a-specfunc.o' libtool=no @AMDEPBACKSLASH@
+gsl/libchrm_a-specfunc.o: gsl/specfunc.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT gsl/libchrm_a-specfunc.o -MD -MP -MF gsl/$(DEPDIR)/libchrm_a-specfunc.Tpo -c -o gsl/libchrm_a-specfunc.o `test -f 'gsl/specfunc.cpp' || echo '$(srcdir)/'`gsl/specfunc.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) gsl/$(DEPDIR)/libchrm_a-specfunc.Tpo gsl/$(DEPDIR)/libchrm_a-specfunc.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='gsl/specfunc.cpp' object='gsl/libchrm_a-specfunc.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-specfunc.o `test -f 'gsl/specfunc.cpp' || echo '$(srcdir)/'`gsl/specfunc.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o gsl/libchrm_a-specfunc.o `test -f 'gsl/specfunc.cpp' || echo '$(srcdir)/'`gsl/specfunc.cpp
 
-libchrm_a-specfunc.obj: gsl/specfunc.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-specfunc.obj -MD -MP -MF $(DEPDIR)/libchrm_a-specfunc.Tpo -c -o libchrm_a-specfunc.obj `if test -f 'gsl/specfunc.cpp'; then $(CYGPATH_W) 'gsl/specfunc.cpp'; else $(CYGPATH_W) '$(srcdir)/gsl/specfunc.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-specfunc.Tpo $(DEPDIR)/libchrm_a-specfunc.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='gsl/specfunc.cpp' object='libchrm_a-specfunc.obj' libtool=no @AMDEPBACKSLASH@
+gsl/libchrm_a-specfunc.obj: gsl/specfunc.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT gsl/libchrm_a-specfunc.obj -MD -MP -MF gsl/$(DEPDIR)/libchrm_a-specfunc.Tpo -c -o gsl/libchrm_a-specfunc.obj `if test -f 'gsl/specfunc.cpp'; then $(CYGPATH_W) 'gsl/specfunc.cpp'; else $(CYGPATH_W) '$(srcdir)/gsl/specfunc.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) gsl/$(DEPDIR)/libchrm_a-specfunc.Tpo gsl/$(DEPDIR)/libchrm_a-specfunc.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='gsl/specfunc.cpp' object='gsl/libchrm_a-specfunc.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-specfunc.obj `if test -f 'gsl/specfunc.cpp'; then $(CYGPATH_W) 'gsl/specfunc.cpp'; else $(CYGPATH_W) '$(srcdir)/gsl/specfunc.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o gsl/libchrm_a-specfunc.obj `if test -f 'gsl/specfunc.cpp'; then $(CYGPATH_W) 'gsl/specfunc.cpp'; else $(CYGPATH_W) '$(srcdir)/gsl/specfunc.cpp'; fi`
 
-libchrm_a-CombFirst4Moments.o: statistics/CombFirst4Moments.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-CombFirst4Moments.o -MD -MP -MF $(DEPDIR)/libchrm_a-CombFirst4Moments.Tpo -c -o libchrm_a-CombFirst4Moments.o `test -f 'statistics/CombFirst4Moments.cpp' || echo '$(srcdir)/'`statistics/CombFirst4Moments.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-CombFirst4Moments.Tpo $(DEPDIR)/libchrm_a-CombFirst4Moments.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='statistics/CombFirst4Moments.cpp' object='libchrm_a-CombFirst4Moments.o' libtool=no @AMDEPBACKSLASH@
+statistics/libchrm_a-CombFirst4Moments.o: statistics/CombFirst4Moments.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT statistics/libchrm_a-CombFirst4Moments.o -MD -MP -MF statistics/$(DEPDIR)/libchrm_a-CombFirst4Moments.Tpo -c -o statistics/libchrm_a-CombFirst4Moments.o `test -f 'statistics/CombFirst4Moments.cpp' || echo '$(srcdir)/'`statistics/CombFirst4Moments.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) statistics/$(DEPDIR)/libchrm_a-CombFirst4Moments.Tpo statistics/$(DEPDIR)/libchrm_a-CombFirst4Moments.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='statistics/CombFirst4Moments.cpp' object='statistics/libchrm_a-CombFirst4Moments.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-CombFirst4Moments.o `test -f 'statistics/CombFirst4Moments.cpp' || echo '$(srcdir)/'`statistics/CombFirst4Moments.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o statistics/libchrm_a-CombFirst4Moments.o `test -f 'statistics/CombFirst4Moments.cpp' || echo '$(srcdir)/'`statistics/CombFirst4Moments.cpp
 
-libchrm_a-CombFirst4Moments.obj: statistics/CombFirst4Moments.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-CombFirst4Moments.obj -MD -MP -MF $(DEPDIR)/libchrm_a-CombFirst4Moments.Tpo -c -o libchrm_a-CombFirst4Moments.obj `if test -f 'statistics/CombFirst4Moments.cpp'; then $(CYGPATH_W) 'statistics/CombFirst4Moments.cpp'; else $(CYGPATH_W) '$(srcdir)/statistics/CombFirst4Moments.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-CombFirst4Moments.Tpo $(DEPDIR)/libchrm_a-CombFirst4Moments.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='statistics/CombFirst4Moments.cpp' object='libchrm_a-CombFirst4Moments.obj' libtool=no @AMDEPBACKSLASH@
+statistics/libchrm_a-CombFirst4Moments.obj: statistics/CombFirst4Moments.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT statistics/libchrm_a-CombFirst4Moments.obj -MD -MP -MF statistics/$(DEPDIR)/libchrm_a-CombFirst4Moments.Tpo -c -o statistics/libchrm_a-CombFirst4Moments.obj `if test -f 'statistics/CombFirst4Moments.cpp'; then $(CYGPATH_W) 'statistics/CombFirst4Moments.cpp'; else $(CYGPATH_W) '$(srcdir)/statistics/CombFirst4Moments.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) statistics/$(DEPDIR)/libchrm_a-CombFirst4Moments.Tpo statistics/$(DEPDIR)/libchrm_a-CombFirst4Moments.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='statistics/CombFirst4Moments.cpp' object='statistics/libchrm_a-CombFirst4Moments.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-CombFirst4Moments.obj `if test -f 'statistics/CombFirst4Moments.cpp'; then $(CYGPATH_W) 'statistics/CombFirst4Moments.cpp'; else $(CYGPATH_W) '$(srcdir)/statistics/CombFirst4Moments.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o statistics/libchrm_a-CombFirst4Moments.obj `if test -f 'statistics/CombFirst4Moments.cpp'; then $(CYGPATH_W) 'statistics/CombFirst4Moments.cpp'; else $(CYGPATH_W) '$(srcdir)/statistics/CombFirst4Moments.cpp'; fi`
 
-libchrm_a-FeatureStatistics.o: statistics/FeatureStatistics.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-FeatureStatistics.o -MD -MP -MF $(DEPDIR)/libchrm_a-FeatureStatistics.Tpo -c -o libchrm_a-FeatureStatistics.o `test -f 'statistics/FeatureStatistics.cpp' || echo '$(srcdir)/'`statistics/FeatureStatistics.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-FeatureStatistics.Tpo $(DEPDIR)/libchrm_a-FeatureStatistics.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='statistics/FeatureStatistics.cpp' object='libchrm_a-FeatureStatistics.o' libtool=no @AMDEPBACKSLASH@
+statistics/libchrm_a-FeatureStatistics.o: statistics/FeatureStatistics.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT statistics/libchrm_a-FeatureStatistics.o -MD -MP -MF statistics/$(DEPDIR)/libchrm_a-FeatureStatistics.Tpo -c -o statistics/libchrm_a-FeatureStatistics.o `test -f 'statistics/FeatureStatistics.cpp' || echo '$(srcdir)/'`statistics/FeatureStatistics.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) statistics/$(DEPDIR)/libchrm_a-FeatureStatistics.Tpo statistics/$(DEPDIR)/libchrm_a-FeatureStatistics.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='statistics/FeatureStatistics.cpp' object='statistics/libchrm_a-FeatureStatistics.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-FeatureStatistics.o `test -f 'statistics/FeatureStatistics.cpp' || echo '$(srcdir)/'`statistics/FeatureStatistics.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o statistics/libchrm_a-FeatureStatistics.o `test -f 'statistics/FeatureStatistics.cpp' || echo '$(srcdir)/'`statistics/FeatureStatistics.cpp
 
-libchrm_a-FeatureStatistics.obj: statistics/FeatureStatistics.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-FeatureStatistics.obj -MD -MP -MF $(DEPDIR)/libchrm_a-FeatureStatistics.Tpo -c -o libchrm_a-FeatureStatistics.obj `if test -f 'statistics/FeatureStatistics.cpp'; then $(CYGPATH_W) 'statistics/FeatureStatistics.cpp'; else $(CYGPATH_W) '$(srcdir)/statistics/FeatureStatistics.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-FeatureStatistics.Tpo $(DEPDIR)/libchrm_a-FeatureStatistics.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='statistics/FeatureStatistics.cpp' object='libchrm_a-FeatureStatistics.obj' libtool=no @AMDEPBACKSLASH@
+statistics/libchrm_a-FeatureStatistics.obj: statistics/FeatureStatistics.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT statistics/libchrm_a-FeatureStatistics.obj -MD -MP -MF statistics/$(DEPDIR)/libchrm_a-FeatureStatistics.Tpo -c -o statistics/libchrm_a-FeatureStatistics.obj `if test -f 'statistics/FeatureStatistics.cpp'; then $(CYGPATH_W) 'statistics/FeatureStatistics.cpp'; else $(CYGPATH_W) '$(srcdir)/statistics/FeatureStatistics.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) statistics/$(DEPDIR)/libchrm_a-FeatureStatistics.Tpo statistics/$(DEPDIR)/libchrm_a-FeatureStatistics.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='statistics/FeatureStatistics.cpp' object='statistics/libchrm_a-FeatureStatistics.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-FeatureStatistics.obj `if test -f 'statistics/FeatureStatistics.cpp'; then $(CYGPATH_W) 'statistics/FeatureStatistics.cpp'; else $(CYGPATH_W) '$(srcdir)/statistics/FeatureStatistics.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o statistics/libchrm_a-FeatureStatistics.obj `if test -f 'statistics/FeatureStatistics.cpp'; then $(CYGPATH_W) 'statistics/FeatureStatistics.cpp'; else $(CYGPATH_W) '$(srcdir)/statistics/FeatureStatistics.cpp'; fi`
 
-libchrm_a-gabor.o: textures/gabor.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-gabor.o -MD -MP -MF $(DEPDIR)/libchrm_a-gabor.Tpo -c -o libchrm_a-gabor.o `test -f 'textures/gabor.cpp' || echo '$(srcdir)/'`textures/gabor.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-gabor.Tpo $(DEPDIR)/libchrm_a-gabor.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/gabor.cpp' object='libchrm_a-gabor.o' libtool=no @AMDEPBACKSLASH@
+textures/libchrm_a-gabor.o: textures/gabor.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT textures/libchrm_a-gabor.o -MD -MP -MF textures/$(DEPDIR)/libchrm_a-gabor.Tpo -c -o textures/libchrm_a-gabor.o `test -f 'textures/gabor.cpp' || echo '$(srcdir)/'`textures/gabor.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) textures/$(DEPDIR)/libchrm_a-gabor.Tpo textures/$(DEPDIR)/libchrm_a-gabor.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/gabor.cpp' object='textures/libchrm_a-gabor.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-gabor.o `test -f 'textures/gabor.cpp' || echo '$(srcdir)/'`textures/gabor.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o textures/libchrm_a-gabor.o `test -f 'textures/gabor.cpp' || echo '$(srcdir)/'`textures/gabor.cpp
 
-libchrm_a-gabor.obj: textures/gabor.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-gabor.obj -MD -MP -MF $(DEPDIR)/libchrm_a-gabor.Tpo -c -o libchrm_a-gabor.obj `if test -f 'textures/gabor.cpp'; then $(CYGPATH_W) 'textures/gabor.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/gabor.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-gabor.Tpo $(DEPDIR)/libchrm_a-gabor.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/gabor.cpp' object='libchrm_a-gabor.obj' libtool=no @AMDEPBACKSLASH@
+textures/libchrm_a-gabor.obj: textures/gabor.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT textures/libchrm_a-gabor.obj -MD -MP -MF textures/$(DEPDIR)/libchrm_a-gabor.Tpo -c -o textures/libchrm_a-gabor.obj `if test -f 'textures/gabor.cpp'; then $(CYGPATH_W) 'textures/gabor.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/gabor.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) textures/$(DEPDIR)/libchrm_a-gabor.Tpo textures/$(DEPDIR)/libchrm_a-gabor.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/gabor.cpp' object='textures/libchrm_a-gabor.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-gabor.obj `if test -f 'textures/gabor.cpp'; then $(CYGPATH_W) 'textures/gabor.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/gabor.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o textures/libchrm_a-gabor.obj `if test -f 'textures/gabor.cpp'; then $(CYGPATH_W) 'textures/gabor.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/gabor.cpp'; fi`
 
-libchrm_a-CVIPtexture.o: textures/haralick/CVIPtexture.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-CVIPtexture.o -MD -MP -MF $(DEPDIR)/libchrm_a-CVIPtexture.Tpo -c -o libchrm_a-CVIPtexture.o `test -f 'textures/haralick/CVIPtexture.cpp' || echo '$(srcdir)/'`textures/haralick/CVIPtexture.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-CVIPtexture.Tpo $(DEPDIR)/libchrm_a-CVIPtexture.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/haralick/CVIPtexture.cpp' object='libchrm_a-CVIPtexture.o' libtool=no @AMDEPBACKSLASH@
+textures/haralick/libchrm_a-CVIPtexture.o: textures/haralick/CVIPtexture.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT textures/haralick/libchrm_a-CVIPtexture.o -MD -MP -MF textures/haralick/$(DEPDIR)/libchrm_a-CVIPtexture.Tpo -c -o textures/haralick/libchrm_a-CVIPtexture.o `test -f 'textures/haralick/CVIPtexture.cpp' || echo '$(srcdir)/'`textures/haralick/CVIPtexture.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) textures/haralick/$(DEPDIR)/libchrm_a-CVIPtexture.Tpo textures/haralick/$(DEPDIR)/libchrm_a-CVIPtexture.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/haralick/CVIPtexture.cpp' object='textures/haralick/libchrm_a-CVIPtexture.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-CVIPtexture.o `test -f 'textures/haralick/CVIPtexture.cpp' || echo '$(srcdir)/'`textures/haralick/CVIPtexture.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o textures/haralick/libchrm_a-CVIPtexture.o `test -f 'textures/haralick/CVIPtexture.cpp' || echo '$(srcdir)/'`textures/haralick/CVIPtexture.cpp
 
-libchrm_a-CVIPtexture.obj: textures/haralick/CVIPtexture.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-CVIPtexture.obj -MD -MP -MF $(DEPDIR)/libchrm_a-CVIPtexture.Tpo -c -o libchrm_a-CVIPtexture.obj `if test -f 'textures/haralick/CVIPtexture.cpp'; then $(CYGPATH_W) 'textures/haralick/CVIPtexture.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/haralick/CVIPtexture.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-CVIPtexture.Tpo $(DEPDIR)/libchrm_a-CVIPtexture.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/haralick/CVIPtexture.cpp' object='libchrm_a-CVIPtexture.obj' libtool=no @AMDEPBACKSLASH@
+textures/haralick/libchrm_a-CVIPtexture.obj: textures/haralick/CVIPtexture.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT textures/haralick/libchrm_a-CVIPtexture.obj -MD -MP -MF textures/haralick/$(DEPDIR)/libchrm_a-CVIPtexture.Tpo -c -o textures/haralick/libchrm_a-CVIPtexture.obj `if test -f 'textures/haralick/CVIPtexture.cpp'; then $(CYGPATH_W) 'textures/haralick/CVIPtexture.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/haralick/CVIPtexture.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) textures/haralick/$(DEPDIR)/libchrm_a-CVIPtexture.Tpo textures/haralick/$(DEPDIR)/libchrm_a-CVIPtexture.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/haralick/CVIPtexture.cpp' object='textures/haralick/libchrm_a-CVIPtexture.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-CVIPtexture.obj `if test -f 'textures/haralick/CVIPtexture.cpp'; then $(CYGPATH_W) 'textures/haralick/CVIPtexture.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/haralick/CVIPtexture.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o textures/haralick/libchrm_a-CVIPtexture.obj `if test -f 'textures/haralick/CVIPtexture.cpp'; then $(CYGPATH_W) 'textures/haralick/CVIPtexture.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/haralick/CVIPtexture.cpp'; fi`
 
-libchrm_a-haralick.o: textures/haralick/haralick.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-haralick.o -MD -MP -MF $(DEPDIR)/libchrm_a-haralick.Tpo -c -o libchrm_a-haralick.o `test -f 'textures/haralick/haralick.cpp' || echo '$(srcdir)/'`textures/haralick/haralick.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-haralick.Tpo $(DEPDIR)/libchrm_a-haralick.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/haralick/haralick.cpp' object='libchrm_a-haralick.o' libtool=no @AMDEPBACKSLASH@
+textures/haralick/libchrm_a-haralick.o: textures/haralick/haralick.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT textures/haralick/libchrm_a-haralick.o -MD -MP -MF textures/haralick/$(DEPDIR)/libchrm_a-haralick.Tpo -c -o textures/haralick/libchrm_a-haralick.o `test -f 'textures/haralick/haralick.cpp' || echo '$(srcdir)/'`textures/haralick/haralick.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) textures/haralick/$(DEPDIR)/libchrm_a-haralick.Tpo textures/haralick/$(DEPDIR)/libchrm_a-haralick.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/haralick/haralick.cpp' object='textures/haralick/libchrm_a-haralick.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-haralick.o `test -f 'textures/haralick/haralick.cpp' || echo '$(srcdir)/'`textures/haralick/haralick.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o textures/haralick/libchrm_a-haralick.o `test -f 'textures/haralick/haralick.cpp' || echo '$(srcdir)/'`textures/haralick/haralick.cpp
 
-libchrm_a-haralick.obj: textures/haralick/haralick.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-haralick.obj -MD -MP -MF $(DEPDIR)/libchrm_a-haralick.Tpo -c -o libchrm_a-haralick.obj `if test -f 'textures/haralick/haralick.cpp'; then $(CYGPATH_W) 'textures/haralick/haralick.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/haralick/haralick.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-haralick.Tpo $(DEPDIR)/libchrm_a-haralick.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/haralick/haralick.cpp' object='libchrm_a-haralick.obj' libtool=no @AMDEPBACKSLASH@
+textures/haralick/libchrm_a-haralick.obj: textures/haralick/haralick.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT textures/haralick/libchrm_a-haralick.obj -MD -MP -MF textures/haralick/$(DEPDIR)/libchrm_a-haralick.Tpo -c -o textures/haralick/libchrm_a-haralick.obj `if test -f 'textures/haralick/haralick.cpp'; then $(CYGPATH_W) 'textures/haralick/haralick.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/haralick/haralick.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) textures/haralick/$(DEPDIR)/libchrm_a-haralick.Tpo textures/haralick/$(DEPDIR)/libchrm_a-haralick.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/haralick/haralick.cpp' object='textures/haralick/libchrm_a-haralick.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-haralick.obj `if test -f 'textures/haralick/haralick.cpp'; then $(CYGPATH_W) 'textures/haralick/haralick.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/haralick/haralick.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o textures/haralick/libchrm_a-haralick.obj `if test -f 'textures/haralick/haralick.cpp'; then $(CYGPATH_W) 'textures/haralick/haralick.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/haralick/haralick.cpp'; fi`
 
-libchrm_a-tamura.o: textures/tamura.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-tamura.o -MD -MP -MF $(DEPDIR)/libchrm_a-tamura.Tpo -c -o libchrm_a-tamura.o `test -f 'textures/tamura.cpp' || echo '$(srcdir)/'`textures/tamura.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-tamura.Tpo $(DEPDIR)/libchrm_a-tamura.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/tamura.cpp' object='libchrm_a-tamura.o' libtool=no @AMDEPBACKSLASH@
+textures/libchrm_a-tamura.o: textures/tamura.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT textures/libchrm_a-tamura.o -MD -MP -MF textures/$(DEPDIR)/libchrm_a-tamura.Tpo -c -o textures/libchrm_a-tamura.o `test -f 'textures/tamura.cpp' || echo '$(srcdir)/'`textures/tamura.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) textures/$(DEPDIR)/libchrm_a-tamura.Tpo textures/$(DEPDIR)/libchrm_a-tamura.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/tamura.cpp' object='textures/libchrm_a-tamura.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-tamura.o `test -f 'textures/tamura.cpp' || echo '$(srcdir)/'`textures/tamura.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o textures/libchrm_a-tamura.o `test -f 'textures/tamura.cpp' || echo '$(srcdir)/'`textures/tamura.cpp
 
-libchrm_a-tamura.obj: textures/tamura.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-tamura.obj -MD -MP -MF $(DEPDIR)/libchrm_a-tamura.Tpo -c -o libchrm_a-tamura.obj `if test -f 'textures/tamura.cpp'; then $(CYGPATH_W) 'textures/tamura.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/tamura.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-tamura.Tpo $(DEPDIR)/libchrm_a-tamura.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/tamura.cpp' object='libchrm_a-tamura.obj' libtool=no @AMDEPBACKSLASH@
+textures/libchrm_a-tamura.obj: textures/tamura.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT textures/libchrm_a-tamura.obj -MD -MP -MF textures/$(DEPDIR)/libchrm_a-tamura.Tpo -c -o textures/libchrm_a-tamura.obj `if test -f 'textures/tamura.cpp'; then $(CYGPATH_W) 'textures/tamura.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/tamura.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) textures/$(DEPDIR)/libchrm_a-tamura.Tpo textures/$(DEPDIR)/libchrm_a-tamura.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/tamura.cpp' object='textures/libchrm_a-tamura.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-tamura.obj `if test -f 'textures/tamura.cpp'; then $(CYGPATH_W) 'textures/tamura.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/tamura.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o textures/libchrm_a-tamura.obj `if test -f 'textures/tamura.cpp'; then $(CYGPATH_W) 'textures/tamura.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/tamura.cpp'; fi`
 
-libchrm_a-zernike.o: textures/zernike/zernike.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-zernike.o -MD -MP -MF $(DEPDIR)/libchrm_a-zernike.Tpo -c -o libchrm_a-zernike.o `test -f 'textures/zernike/zernike.cpp' || echo '$(srcdir)/'`textures/zernike/zernike.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-zernike.Tpo $(DEPDIR)/libchrm_a-zernike.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/zernike/zernike.cpp' object='libchrm_a-zernike.o' libtool=no @AMDEPBACKSLASH@
+textures/zernike/libchrm_a-zernike.o: textures/zernike/zernike.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT textures/zernike/libchrm_a-zernike.o -MD -MP -MF textures/zernike/$(DEPDIR)/libchrm_a-zernike.Tpo -c -o textures/zernike/libchrm_a-zernike.o `test -f 'textures/zernike/zernike.cpp' || echo '$(srcdir)/'`textures/zernike/zernike.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) textures/zernike/$(DEPDIR)/libchrm_a-zernike.Tpo textures/zernike/$(DEPDIR)/libchrm_a-zernike.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/zernike/zernike.cpp' object='textures/zernike/libchrm_a-zernike.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-zernike.o `test -f 'textures/zernike/zernike.cpp' || echo '$(srcdir)/'`textures/zernike/zernike.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o textures/zernike/libchrm_a-zernike.o `test -f 'textures/zernike/zernike.cpp' || echo '$(srcdir)/'`textures/zernike/zernike.cpp
 
-libchrm_a-zernike.obj: textures/zernike/zernike.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-zernike.obj -MD -MP -MF $(DEPDIR)/libchrm_a-zernike.Tpo -c -o libchrm_a-zernike.obj `if test -f 'textures/zernike/zernike.cpp'; then $(CYGPATH_W) 'textures/zernike/zernike.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/zernike/zernike.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-zernike.Tpo $(DEPDIR)/libchrm_a-zernike.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/zernike/zernike.cpp' object='libchrm_a-zernike.obj' libtool=no @AMDEPBACKSLASH@
+textures/zernike/libchrm_a-zernike.obj: textures/zernike/zernike.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT textures/zernike/libchrm_a-zernike.obj -MD -MP -MF textures/zernike/$(DEPDIR)/libchrm_a-zernike.Tpo -c -o textures/zernike/libchrm_a-zernike.obj `if test -f 'textures/zernike/zernike.cpp'; then $(CYGPATH_W) 'textures/zernike/zernike.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/zernike/zernike.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) textures/zernike/$(DEPDIR)/libchrm_a-zernike.Tpo textures/zernike/$(DEPDIR)/libchrm_a-zernike.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='textures/zernike/zernike.cpp' object='textures/zernike/libchrm_a-zernike.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-zernike.obj `if test -f 'textures/zernike/zernike.cpp'; then $(CYGPATH_W) 'textures/zernike/zernike.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/zernike/zernike.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o textures/zernike/libchrm_a-zernike.obj `if test -f 'textures/zernike/zernike.cpp'; then $(CYGPATH_W) 'textures/zernike/zernike.cpp'; else $(CYGPATH_W) '$(srcdir)/textures/zernike/zernike.cpp'; fi`
 
-libchrm_a-ChebyshevFourier.o: transforms/ChebyshevFourier.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-ChebyshevFourier.o -MD -MP -MF $(DEPDIR)/libchrm_a-ChebyshevFourier.Tpo -c -o libchrm_a-ChebyshevFourier.o `test -f 'transforms/ChebyshevFourier.cpp' || echo '$(srcdir)/'`transforms/ChebyshevFourier.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-ChebyshevFourier.Tpo $(DEPDIR)/libchrm_a-ChebyshevFourier.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/ChebyshevFourier.cpp' object='libchrm_a-ChebyshevFourier.o' libtool=no @AMDEPBACKSLASH@
+transforms/libchrm_a-ChebyshevFourier.o: transforms/ChebyshevFourier.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/libchrm_a-ChebyshevFourier.o -MD -MP -MF transforms/$(DEPDIR)/libchrm_a-ChebyshevFourier.Tpo -c -o transforms/libchrm_a-ChebyshevFourier.o `test -f 'transforms/ChebyshevFourier.cpp' || echo '$(srcdir)/'`transforms/ChebyshevFourier.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/$(DEPDIR)/libchrm_a-ChebyshevFourier.Tpo transforms/$(DEPDIR)/libchrm_a-ChebyshevFourier.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/ChebyshevFourier.cpp' object='transforms/libchrm_a-ChebyshevFourier.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-ChebyshevFourier.o `test -f 'transforms/ChebyshevFourier.cpp' || echo '$(srcdir)/'`transforms/ChebyshevFourier.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/libchrm_a-ChebyshevFourier.o `test -f 'transforms/ChebyshevFourier.cpp' || echo '$(srcdir)/'`transforms/ChebyshevFourier.cpp
 
-libchrm_a-ChebyshevFourier.obj: transforms/ChebyshevFourier.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-ChebyshevFourier.obj -MD -MP -MF $(DEPDIR)/libchrm_a-ChebyshevFourier.Tpo -c -o libchrm_a-ChebyshevFourier.obj `if test -f 'transforms/ChebyshevFourier.cpp'; then $(CYGPATH_W) 'transforms/ChebyshevFourier.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/ChebyshevFourier.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-ChebyshevFourier.Tpo $(DEPDIR)/libchrm_a-ChebyshevFourier.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/ChebyshevFourier.cpp' object='libchrm_a-ChebyshevFourier.obj' libtool=no @AMDEPBACKSLASH@
+transforms/libchrm_a-ChebyshevFourier.obj: transforms/ChebyshevFourier.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/libchrm_a-ChebyshevFourier.obj -MD -MP -MF transforms/$(DEPDIR)/libchrm_a-ChebyshevFourier.Tpo -c -o transforms/libchrm_a-ChebyshevFourier.obj `if test -f 'transforms/ChebyshevFourier.cpp'; then $(CYGPATH_W) 'transforms/ChebyshevFourier.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/ChebyshevFourier.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/$(DEPDIR)/libchrm_a-ChebyshevFourier.Tpo transforms/$(DEPDIR)/libchrm_a-ChebyshevFourier.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/ChebyshevFourier.cpp' object='transforms/libchrm_a-ChebyshevFourier.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-ChebyshevFourier.obj `if test -f 'transforms/ChebyshevFourier.cpp'; then $(CYGPATH_W) 'transforms/ChebyshevFourier.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/ChebyshevFourier.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/libchrm_a-ChebyshevFourier.obj `if test -f 'transforms/ChebyshevFourier.cpp'; then $(CYGPATH_W) 'transforms/ChebyshevFourier.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/ChebyshevFourier.cpp'; fi`
 
-libchrm_a-chebyshev.o: transforms/chebyshev.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-chebyshev.o -MD -MP -MF $(DEPDIR)/libchrm_a-chebyshev.Tpo -c -o libchrm_a-chebyshev.o `test -f 'transforms/chebyshev.cpp' || echo '$(srcdir)/'`transforms/chebyshev.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-chebyshev.Tpo $(DEPDIR)/libchrm_a-chebyshev.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/chebyshev.cpp' object='libchrm_a-chebyshev.o' libtool=no @AMDEPBACKSLASH@
+transforms/libchrm_a-chebyshev.o: transforms/chebyshev.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/libchrm_a-chebyshev.o -MD -MP -MF transforms/$(DEPDIR)/libchrm_a-chebyshev.Tpo -c -o transforms/libchrm_a-chebyshev.o `test -f 'transforms/chebyshev.cpp' || echo '$(srcdir)/'`transforms/chebyshev.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/$(DEPDIR)/libchrm_a-chebyshev.Tpo transforms/$(DEPDIR)/libchrm_a-chebyshev.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/chebyshev.cpp' object='transforms/libchrm_a-chebyshev.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-chebyshev.o `test -f 'transforms/chebyshev.cpp' || echo '$(srcdir)/'`transforms/chebyshev.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/libchrm_a-chebyshev.o `test -f 'transforms/chebyshev.cpp' || echo '$(srcdir)/'`transforms/chebyshev.cpp
 
-libchrm_a-chebyshev.obj: transforms/chebyshev.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-chebyshev.obj -MD -MP -MF $(DEPDIR)/libchrm_a-chebyshev.Tpo -c -o libchrm_a-chebyshev.obj `if test -f 'transforms/chebyshev.cpp'; then $(CYGPATH_W) 'transforms/chebyshev.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/chebyshev.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-chebyshev.Tpo $(DEPDIR)/libchrm_a-chebyshev.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/chebyshev.cpp' object='libchrm_a-chebyshev.obj' libtool=no @AMDEPBACKSLASH@
+transforms/libchrm_a-chebyshev.obj: transforms/chebyshev.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/libchrm_a-chebyshev.obj -MD -MP -MF transforms/$(DEPDIR)/libchrm_a-chebyshev.Tpo -c -o transforms/libchrm_a-chebyshev.obj `if test -f 'transforms/chebyshev.cpp'; then $(CYGPATH_W) 'transforms/chebyshev.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/chebyshev.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/$(DEPDIR)/libchrm_a-chebyshev.Tpo transforms/$(DEPDIR)/libchrm_a-chebyshev.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/chebyshev.cpp' object='transforms/libchrm_a-chebyshev.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-chebyshev.obj `if test -f 'transforms/chebyshev.cpp'; then $(CYGPATH_W) 'transforms/chebyshev.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/chebyshev.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/libchrm_a-chebyshev.obj `if test -f 'transforms/chebyshev.cpp'; then $(CYGPATH_W) 'transforms/chebyshev.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/chebyshev.cpp'; fi`
 
-libchrm_a-radon.o: transforms/radon.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-radon.o -MD -MP -MF $(DEPDIR)/libchrm_a-radon.Tpo -c -o libchrm_a-radon.o `test -f 'transforms/radon.cpp' || echo '$(srcdir)/'`transforms/radon.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-radon.Tpo $(DEPDIR)/libchrm_a-radon.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/radon.cpp' object='libchrm_a-radon.o' libtool=no @AMDEPBACKSLASH@
+transforms/libchrm_a-radon.o: transforms/radon.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/libchrm_a-radon.o -MD -MP -MF transforms/$(DEPDIR)/libchrm_a-radon.Tpo -c -o transforms/libchrm_a-radon.o `test -f 'transforms/radon.cpp' || echo '$(srcdir)/'`transforms/radon.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/$(DEPDIR)/libchrm_a-radon.Tpo transforms/$(DEPDIR)/libchrm_a-radon.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/radon.cpp' object='transforms/libchrm_a-radon.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-radon.o `test -f 'transforms/radon.cpp' || echo '$(srcdir)/'`transforms/radon.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/libchrm_a-radon.o `test -f 'transforms/radon.cpp' || echo '$(srcdir)/'`transforms/radon.cpp
 
-libchrm_a-radon.obj: transforms/radon.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-radon.obj -MD -MP -MF $(DEPDIR)/libchrm_a-radon.Tpo -c -o libchrm_a-radon.obj `if test -f 'transforms/radon.cpp'; then $(CYGPATH_W) 'transforms/radon.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/radon.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-radon.Tpo $(DEPDIR)/libchrm_a-radon.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/radon.cpp' object='libchrm_a-radon.obj' libtool=no @AMDEPBACKSLASH@
+transforms/libchrm_a-radon.obj: transforms/radon.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/libchrm_a-radon.obj -MD -MP -MF transforms/$(DEPDIR)/libchrm_a-radon.Tpo -c -o transforms/libchrm_a-radon.obj `if test -f 'transforms/radon.cpp'; then $(CYGPATH_W) 'transforms/radon.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/radon.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/$(DEPDIR)/libchrm_a-radon.Tpo transforms/$(DEPDIR)/libchrm_a-radon.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/radon.cpp' object='transforms/libchrm_a-radon.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-radon.obj `if test -f 'transforms/radon.cpp'; then $(CYGPATH_W) 'transforms/radon.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/radon.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/libchrm_a-radon.obj `if test -f 'transforms/radon.cpp'; then $(CYGPATH_W) 'transforms/radon.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/radon.cpp'; fi`
 
-libchrm_a-Common.o: transforms/wavelet/Common.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-Common.o -MD -MP -MF $(DEPDIR)/libchrm_a-Common.Tpo -c -o libchrm_a-Common.o `test -f 'transforms/wavelet/Common.cpp' || echo '$(srcdir)/'`transforms/wavelet/Common.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-Common.Tpo $(DEPDIR)/libchrm_a-Common.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/Common.cpp' object='libchrm_a-Common.o' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-Common.o: transforms/wavelet/Common.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-Common.o -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-Common.Tpo -c -o transforms/wavelet/libchrm_a-Common.o `test -f 'transforms/wavelet/Common.cpp' || echo '$(srcdir)/'`transforms/wavelet/Common.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-Common.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-Common.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/Common.cpp' object='transforms/wavelet/libchrm_a-Common.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-Common.o `test -f 'transforms/wavelet/Common.cpp' || echo '$(srcdir)/'`transforms/wavelet/Common.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-Common.o `test -f 'transforms/wavelet/Common.cpp' || echo '$(srcdir)/'`transforms/wavelet/Common.cpp
 
-libchrm_a-Common.obj: transforms/wavelet/Common.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-Common.obj -MD -MP -MF $(DEPDIR)/libchrm_a-Common.Tpo -c -o libchrm_a-Common.obj `if test -f 'transforms/wavelet/Common.cpp'; then $(CYGPATH_W) 'transforms/wavelet/Common.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/Common.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-Common.Tpo $(DEPDIR)/libchrm_a-Common.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/Common.cpp' object='libchrm_a-Common.obj' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-Common.obj: transforms/wavelet/Common.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-Common.obj -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-Common.Tpo -c -o transforms/wavelet/libchrm_a-Common.obj `if test -f 'transforms/wavelet/Common.cpp'; then $(CYGPATH_W) 'transforms/wavelet/Common.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/Common.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-Common.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-Common.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/Common.cpp' object='transforms/wavelet/libchrm_a-Common.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-Common.obj `if test -f 'transforms/wavelet/Common.cpp'; then $(CYGPATH_W) 'transforms/wavelet/Common.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/Common.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-Common.obj `if test -f 'transforms/wavelet/Common.cpp'; then $(CYGPATH_W) 'transforms/wavelet/Common.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/Common.cpp'; fi`
 
-libchrm_a-DataGrid2D.o: transforms/wavelet/DataGrid2D.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-DataGrid2D.o -MD -MP -MF $(DEPDIR)/libchrm_a-DataGrid2D.Tpo -c -o libchrm_a-DataGrid2D.o `test -f 'transforms/wavelet/DataGrid2D.cpp' || echo '$(srcdir)/'`transforms/wavelet/DataGrid2D.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-DataGrid2D.Tpo $(DEPDIR)/libchrm_a-DataGrid2D.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/DataGrid2D.cpp' object='libchrm_a-DataGrid2D.o' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-DataGrid2D.o: transforms/wavelet/DataGrid2D.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-DataGrid2D.o -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-DataGrid2D.Tpo -c -o transforms/wavelet/libchrm_a-DataGrid2D.o `test -f 'transforms/wavelet/DataGrid2D.cpp' || echo '$(srcdir)/'`transforms/wavelet/DataGrid2D.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-DataGrid2D.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-DataGrid2D.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/DataGrid2D.cpp' object='transforms/wavelet/libchrm_a-DataGrid2D.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-DataGrid2D.o `test -f 'transforms/wavelet/DataGrid2D.cpp' || echo '$(srcdir)/'`transforms/wavelet/DataGrid2D.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-DataGrid2D.o `test -f 'transforms/wavelet/DataGrid2D.cpp' || echo '$(srcdir)/'`transforms/wavelet/DataGrid2D.cpp
 
-libchrm_a-DataGrid2D.obj: transforms/wavelet/DataGrid2D.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-DataGrid2D.obj -MD -MP -MF $(DEPDIR)/libchrm_a-DataGrid2D.Tpo -c -o libchrm_a-DataGrid2D.obj `if test -f 'transforms/wavelet/DataGrid2D.cpp'; then $(CYGPATH_W) 'transforms/wavelet/DataGrid2D.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/DataGrid2D.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-DataGrid2D.Tpo $(DEPDIR)/libchrm_a-DataGrid2D.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/DataGrid2D.cpp' object='libchrm_a-DataGrid2D.obj' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-DataGrid2D.obj: transforms/wavelet/DataGrid2D.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-DataGrid2D.obj -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-DataGrid2D.Tpo -c -o transforms/wavelet/libchrm_a-DataGrid2D.obj `if test -f 'transforms/wavelet/DataGrid2D.cpp'; then $(CYGPATH_W) 'transforms/wavelet/DataGrid2D.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/DataGrid2D.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-DataGrid2D.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-DataGrid2D.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/DataGrid2D.cpp' object='transforms/wavelet/libchrm_a-DataGrid2D.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-DataGrid2D.obj `if test -f 'transforms/wavelet/DataGrid2D.cpp'; then $(CYGPATH_W) 'transforms/wavelet/DataGrid2D.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/DataGrid2D.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-DataGrid2D.obj `if test -f 'transforms/wavelet/DataGrid2D.cpp'; then $(CYGPATH_W) 'transforms/wavelet/DataGrid2D.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/DataGrid2D.cpp'; fi`
 
-libchrm_a-DataGrid3D.o: transforms/wavelet/DataGrid3D.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-DataGrid3D.o -MD -MP -MF $(DEPDIR)/libchrm_a-DataGrid3D.Tpo -c -o libchrm_a-DataGrid3D.o `test -f 'transforms/wavelet/DataGrid3D.cpp' || echo '$(srcdir)/'`transforms/wavelet/DataGrid3D.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-DataGrid3D.Tpo $(DEPDIR)/libchrm_a-DataGrid3D.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/DataGrid3D.cpp' object='libchrm_a-DataGrid3D.o' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-DataGrid3D.o: transforms/wavelet/DataGrid3D.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-DataGrid3D.o -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-DataGrid3D.Tpo -c -o transforms/wavelet/libchrm_a-DataGrid3D.o `test -f 'transforms/wavelet/DataGrid3D.cpp' || echo '$(srcdir)/'`transforms/wavelet/DataGrid3D.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-DataGrid3D.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-DataGrid3D.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/DataGrid3D.cpp' object='transforms/wavelet/libchrm_a-DataGrid3D.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-DataGrid3D.o `test -f 'transforms/wavelet/DataGrid3D.cpp' || echo '$(srcdir)/'`transforms/wavelet/DataGrid3D.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-DataGrid3D.o `test -f 'transforms/wavelet/DataGrid3D.cpp' || echo '$(srcdir)/'`transforms/wavelet/DataGrid3D.cpp
 
-libchrm_a-DataGrid3D.obj: transforms/wavelet/DataGrid3D.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-DataGrid3D.obj -MD -MP -MF $(DEPDIR)/libchrm_a-DataGrid3D.Tpo -c -o libchrm_a-DataGrid3D.obj `if test -f 'transforms/wavelet/DataGrid3D.cpp'; then $(CYGPATH_W) 'transforms/wavelet/DataGrid3D.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/DataGrid3D.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-DataGrid3D.Tpo $(DEPDIR)/libchrm_a-DataGrid3D.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/DataGrid3D.cpp' object='libchrm_a-DataGrid3D.obj' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-DataGrid3D.obj: transforms/wavelet/DataGrid3D.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-DataGrid3D.obj -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-DataGrid3D.Tpo -c -o transforms/wavelet/libchrm_a-DataGrid3D.obj `if test -f 'transforms/wavelet/DataGrid3D.cpp'; then $(CYGPATH_W) 'transforms/wavelet/DataGrid3D.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/DataGrid3D.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-DataGrid3D.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-DataGrid3D.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/DataGrid3D.cpp' object='transforms/wavelet/libchrm_a-DataGrid3D.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-DataGrid3D.obj `if test -f 'transforms/wavelet/DataGrid3D.cpp'; then $(CYGPATH_W) 'transforms/wavelet/DataGrid3D.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/DataGrid3D.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-DataGrid3D.obj `if test -f 'transforms/wavelet/DataGrid3D.cpp'; then $(CYGPATH_W) 'transforms/wavelet/DataGrid3D.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/DataGrid3D.cpp'; fi`
 
-libchrm_a-Filter.o: transforms/wavelet/Filter.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-Filter.o -MD -MP -MF $(DEPDIR)/libchrm_a-Filter.Tpo -c -o libchrm_a-Filter.o `test -f 'transforms/wavelet/Filter.cpp' || echo '$(srcdir)/'`transforms/wavelet/Filter.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-Filter.Tpo $(DEPDIR)/libchrm_a-Filter.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/Filter.cpp' object='libchrm_a-Filter.o' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-Filter.o: transforms/wavelet/Filter.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-Filter.o -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-Filter.Tpo -c -o transforms/wavelet/libchrm_a-Filter.o `test -f 'transforms/wavelet/Filter.cpp' || echo '$(srcdir)/'`transforms/wavelet/Filter.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-Filter.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-Filter.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/Filter.cpp' object='transforms/wavelet/libchrm_a-Filter.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-Filter.o `test -f 'transforms/wavelet/Filter.cpp' || echo '$(srcdir)/'`transforms/wavelet/Filter.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-Filter.o `test -f 'transforms/wavelet/Filter.cpp' || echo '$(srcdir)/'`transforms/wavelet/Filter.cpp
 
-libchrm_a-Filter.obj: transforms/wavelet/Filter.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-Filter.obj -MD -MP -MF $(DEPDIR)/libchrm_a-Filter.Tpo -c -o libchrm_a-Filter.obj `if test -f 'transforms/wavelet/Filter.cpp'; then $(CYGPATH_W) 'transforms/wavelet/Filter.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/Filter.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-Filter.Tpo $(DEPDIR)/libchrm_a-Filter.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/Filter.cpp' object='libchrm_a-Filter.obj' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-Filter.obj: transforms/wavelet/Filter.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-Filter.obj -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-Filter.Tpo -c -o transforms/wavelet/libchrm_a-Filter.obj `if test -f 'transforms/wavelet/Filter.cpp'; then $(CYGPATH_W) 'transforms/wavelet/Filter.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/Filter.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-Filter.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-Filter.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/Filter.cpp' object='transforms/wavelet/libchrm_a-Filter.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-Filter.obj `if test -f 'transforms/wavelet/Filter.cpp'; then $(CYGPATH_W) 'transforms/wavelet/Filter.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/Filter.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-Filter.obj `if test -f 'transforms/wavelet/Filter.cpp'; then $(CYGPATH_W) 'transforms/wavelet/Filter.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/Filter.cpp'; fi`
 
-libchrm_a-FilterSet.o: transforms/wavelet/FilterSet.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-FilterSet.o -MD -MP -MF $(DEPDIR)/libchrm_a-FilterSet.Tpo -c -o libchrm_a-FilterSet.o `test -f 'transforms/wavelet/FilterSet.cpp' || echo '$(srcdir)/'`transforms/wavelet/FilterSet.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-FilterSet.Tpo $(DEPDIR)/libchrm_a-FilterSet.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/FilterSet.cpp' object='libchrm_a-FilterSet.o' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-FilterSet.o: transforms/wavelet/FilterSet.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-FilterSet.o -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-FilterSet.Tpo -c -o transforms/wavelet/libchrm_a-FilterSet.o `test -f 'transforms/wavelet/FilterSet.cpp' || echo '$(srcdir)/'`transforms/wavelet/FilterSet.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-FilterSet.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-FilterSet.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/FilterSet.cpp' object='transforms/wavelet/libchrm_a-FilterSet.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-FilterSet.o `test -f 'transforms/wavelet/FilterSet.cpp' || echo '$(srcdir)/'`transforms/wavelet/FilterSet.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-FilterSet.o `test -f 'transforms/wavelet/FilterSet.cpp' || echo '$(srcdir)/'`transforms/wavelet/FilterSet.cpp
 
-libchrm_a-FilterSet.obj: transforms/wavelet/FilterSet.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-FilterSet.obj -MD -MP -MF $(DEPDIR)/libchrm_a-FilterSet.Tpo -c -o libchrm_a-FilterSet.obj `if test -f 'transforms/wavelet/FilterSet.cpp'; then $(CYGPATH_W) 'transforms/wavelet/FilterSet.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/FilterSet.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-FilterSet.Tpo $(DEPDIR)/libchrm_a-FilterSet.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/FilterSet.cpp' object='libchrm_a-FilterSet.obj' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-FilterSet.obj: transforms/wavelet/FilterSet.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-FilterSet.obj -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-FilterSet.Tpo -c -o transforms/wavelet/libchrm_a-FilterSet.obj `if test -f 'transforms/wavelet/FilterSet.cpp'; then $(CYGPATH_W) 'transforms/wavelet/FilterSet.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/FilterSet.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-FilterSet.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-FilterSet.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/FilterSet.cpp' object='transforms/wavelet/libchrm_a-FilterSet.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-FilterSet.obj `if test -f 'transforms/wavelet/FilterSet.cpp'; then $(CYGPATH_W) 'transforms/wavelet/FilterSet.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/FilterSet.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-FilterSet.obj `if test -f 'transforms/wavelet/FilterSet.cpp'; then $(CYGPATH_W) 'transforms/wavelet/FilterSet.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/FilterSet.cpp'; fi`
 
-libchrm_a-Symlet5.o: transforms/wavelet/Symlet5.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-Symlet5.o -MD -MP -MF $(DEPDIR)/libchrm_a-Symlet5.Tpo -c -o libchrm_a-Symlet5.o `test -f 'transforms/wavelet/Symlet5.cpp' || echo '$(srcdir)/'`transforms/wavelet/Symlet5.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-Symlet5.Tpo $(DEPDIR)/libchrm_a-Symlet5.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/Symlet5.cpp' object='libchrm_a-Symlet5.o' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-Symlet5.o: transforms/wavelet/Symlet5.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-Symlet5.o -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-Symlet5.Tpo -c -o transforms/wavelet/libchrm_a-Symlet5.o `test -f 'transforms/wavelet/Symlet5.cpp' || echo '$(srcdir)/'`transforms/wavelet/Symlet5.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-Symlet5.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-Symlet5.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/Symlet5.cpp' object='transforms/wavelet/libchrm_a-Symlet5.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-Symlet5.o `test -f 'transforms/wavelet/Symlet5.cpp' || echo '$(srcdir)/'`transforms/wavelet/Symlet5.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-Symlet5.o `test -f 'transforms/wavelet/Symlet5.cpp' || echo '$(srcdir)/'`transforms/wavelet/Symlet5.cpp
 
-libchrm_a-Symlet5.obj: transforms/wavelet/Symlet5.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-Symlet5.obj -MD -MP -MF $(DEPDIR)/libchrm_a-Symlet5.Tpo -c -o libchrm_a-Symlet5.obj `if test -f 'transforms/wavelet/Symlet5.cpp'; then $(CYGPATH_W) 'transforms/wavelet/Symlet5.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/Symlet5.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-Symlet5.Tpo $(DEPDIR)/libchrm_a-Symlet5.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/Symlet5.cpp' object='libchrm_a-Symlet5.obj' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-Symlet5.obj: transforms/wavelet/Symlet5.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-Symlet5.obj -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-Symlet5.Tpo -c -o transforms/wavelet/libchrm_a-Symlet5.obj `if test -f 'transforms/wavelet/Symlet5.cpp'; then $(CYGPATH_W) 'transforms/wavelet/Symlet5.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/Symlet5.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-Symlet5.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-Symlet5.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/Symlet5.cpp' object='transforms/wavelet/libchrm_a-Symlet5.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-Symlet5.obj `if test -f 'transforms/wavelet/Symlet5.cpp'; then $(CYGPATH_W) 'transforms/wavelet/Symlet5.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/Symlet5.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-Symlet5.obj `if test -f 'transforms/wavelet/Symlet5.cpp'; then $(CYGPATH_W) 'transforms/wavelet/Symlet5.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/Symlet5.cpp'; fi`
 
-libchrm_a-Wavelet.o: transforms/wavelet/Wavelet.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-Wavelet.o -MD -MP -MF $(DEPDIR)/libchrm_a-Wavelet.Tpo -c -o libchrm_a-Wavelet.o `test -f 'transforms/wavelet/Wavelet.cpp' || echo '$(srcdir)/'`transforms/wavelet/Wavelet.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-Wavelet.Tpo $(DEPDIR)/libchrm_a-Wavelet.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/Wavelet.cpp' object='libchrm_a-Wavelet.o' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-Wavelet.o: transforms/wavelet/Wavelet.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-Wavelet.o -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-Wavelet.Tpo -c -o transforms/wavelet/libchrm_a-Wavelet.o `test -f 'transforms/wavelet/Wavelet.cpp' || echo '$(srcdir)/'`transforms/wavelet/Wavelet.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-Wavelet.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-Wavelet.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/Wavelet.cpp' object='transforms/wavelet/libchrm_a-Wavelet.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-Wavelet.o `test -f 'transforms/wavelet/Wavelet.cpp' || echo '$(srcdir)/'`transforms/wavelet/Wavelet.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-Wavelet.o `test -f 'transforms/wavelet/Wavelet.cpp' || echo '$(srcdir)/'`transforms/wavelet/Wavelet.cpp
 
-libchrm_a-Wavelet.obj: transforms/wavelet/Wavelet.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-Wavelet.obj -MD -MP -MF $(DEPDIR)/libchrm_a-Wavelet.Tpo -c -o libchrm_a-Wavelet.obj `if test -f 'transforms/wavelet/Wavelet.cpp'; then $(CYGPATH_W) 'transforms/wavelet/Wavelet.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/Wavelet.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-Wavelet.Tpo $(DEPDIR)/libchrm_a-Wavelet.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/Wavelet.cpp' object='libchrm_a-Wavelet.obj' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-Wavelet.obj: transforms/wavelet/Wavelet.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-Wavelet.obj -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-Wavelet.Tpo -c -o transforms/wavelet/libchrm_a-Wavelet.obj `if test -f 'transforms/wavelet/Wavelet.cpp'; then $(CYGPATH_W) 'transforms/wavelet/Wavelet.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/Wavelet.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-Wavelet.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-Wavelet.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/Wavelet.cpp' object='transforms/wavelet/libchrm_a-Wavelet.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-Wavelet.obj `if test -f 'transforms/wavelet/Wavelet.cpp'; then $(CYGPATH_W) 'transforms/wavelet/Wavelet.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/Wavelet.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-Wavelet.obj `if test -f 'transforms/wavelet/Wavelet.cpp'; then $(CYGPATH_W) 'transforms/wavelet/Wavelet.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/Wavelet.cpp'; fi`
 
-libchrm_a-WaveletHigh.o: transforms/wavelet/WaveletHigh.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-WaveletHigh.o -MD -MP -MF $(DEPDIR)/libchrm_a-WaveletHigh.Tpo -c -o libchrm_a-WaveletHigh.o `test -f 'transforms/wavelet/WaveletHigh.cpp' || echo '$(srcdir)/'`transforms/wavelet/WaveletHigh.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-WaveletHigh.Tpo $(DEPDIR)/libchrm_a-WaveletHigh.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/WaveletHigh.cpp' object='libchrm_a-WaveletHigh.o' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-WaveletHigh.o: transforms/wavelet/WaveletHigh.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-WaveletHigh.o -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletHigh.Tpo -c -o transforms/wavelet/libchrm_a-WaveletHigh.o `test -f 'transforms/wavelet/WaveletHigh.cpp' || echo '$(srcdir)/'`transforms/wavelet/WaveletHigh.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletHigh.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletHigh.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/WaveletHigh.cpp' object='transforms/wavelet/libchrm_a-WaveletHigh.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-WaveletHigh.o `test -f 'transforms/wavelet/WaveletHigh.cpp' || echo '$(srcdir)/'`transforms/wavelet/WaveletHigh.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-WaveletHigh.o `test -f 'transforms/wavelet/WaveletHigh.cpp' || echo '$(srcdir)/'`transforms/wavelet/WaveletHigh.cpp
 
-libchrm_a-WaveletHigh.obj: transforms/wavelet/WaveletHigh.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-WaveletHigh.obj -MD -MP -MF $(DEPDIR)/libchrm_a-WaveletHigh.Tpo -c -o libchrm_a-WaveletHigh.obj `if test -f 'transforms/wavelet/WaveletHigh.cpp'; then $(CYGPATH_W) 'transforms/wavelet/WaveletHigh.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/WaveletHigh.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-WaveletHigh.Tpo $(DEPDIR)/libchrm_a-WaveletHigh.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/WaveletHigh.cpp' object='libchrm_a-WaveletHigh.obj' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-WaveletHigh.obj: transforms/wavelet/WaveletHigh.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-WaveletHigh.obj -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletHigh.Tpo -c -o transforms/wavelet/libchrm_a-WaveletHigh.obj `if test -f 'transforms/wavelet/WaveletHigh.cpp'; then $(CYGPATH_W) 'transforms/wavelet/WaveletHigh.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/WaveletHigh.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletHigh.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletHigh.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/WaveletHigh.cpp' object='transforms/wavelet/libchrm_a-WaveletHigh.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-WaveletHigh.obj `if test -f 'transforms/wavelet/WaveletHigh.cpp'; then $(CYGPATH_W) 'transforms/wavelet/WaveletHigh.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/WaveletHigh.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-WaveletHigh.obj `if test -f 'transforms/wavelet/WaveletHigh.cpp'; then $(CYGPATH_W) 'transforms/wavelet/WaveletHigh.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/WaveletHigh.cpp'; fi`
 
-libchrm_a-WaveletLow.o: transforms/wavelet/WaveletLow.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-WaveletLow.o -MD -MP -MF $(DEPDIR)/libchrm_a-WaveletLow.Tpo -c -o libchrm_a-WaveletLow.o `test -f 'transforms/wavelet/WaveletLow.cpp' || echo '$(srcdir)/'`transforms/wavelet/WaveletLow.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-WaveletLow.Tpo $(DEPDIR)/libchrm_a-WaveletLow.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/WaveletLow.cpp' object='libchrm_a-WaveletLow.o' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-WaveletLow.o: transforms/wavelet/WaveletLow.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-WaveletLow.o -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletLow.Tpo -c -o transforms/wavelet/libchrm_a-WaveletLow.o `test -f 'transforms/wavelet/WaveletLow.cpp' || echo '$(srcdir)/'`transforms/wavelet/WaveletLow.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletLow.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletLow.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/WaveletLow.cpp' object='transforms/wavelet/libchrm_a-WaveletLow.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-WaveletLow.o `test -f 'transforms/wavelet/WaveletLow.cpp' || echo '$(srcdir)/'`transforms/wavelet/WaveletLow.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-WaveletLow.o `test -f 'transforms/wavelet/WaveletLow.cpp' || echo '$(srcdir)/'`transforms/wavelet/WaveletLow.cpp
 
-libchrm_a-WaveletLow.obj: transforms/wavelet/WaveletLow.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-WaveletLow.obj -MD -MP -MF $(DEPDIR)/libchrm_a-WaveletLow.Tpo -c -o libchrm_a-WaveletLow.obj `if test -f 'transforms/wavelet/WaveletLow.cpp'; then $(CYGPATH_W) 'transforms/wavelet/WaveletLow.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/WaveletLow.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-WaveletLow.Tpo $(DEPDIR)/libchrm_a-WaveletLow.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/WaveletLow.cpp' object='libchrm_a-WaveletLow.obj' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-WaveletLow.obj: transforms/wavelet/WaveletLow.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-WaveletLow.obj -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletLow.Tpo -c -o transforms/wavelet/libchrm_a-WaveletLow.obj `if test -f 'transforms/wavelet/WaveletLow.cpp'; then $(CYGPATH_W) 'transforms/wavelet/WaveletLow.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/WaveletLow.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletLow.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletLow.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/WaveletLow.cpp' object='transforms/wavelet/libchrm_a-WaveletLow.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-WaveletLow.obj `if test -f 'transforms/wavelet/WaveletLow.cpp'; then $(CYGPATH_W) 'transforms/wavelet/WaveletLow.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/WaveletLow.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-WaveletLow.obj `if test -f 'transforms/wavelet/WaveletLow.cpp'; then $(CYGPATH_W) 'transforms/wavelet/WaveletLow.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/WaveletLow.cpp'; fi`
 
-libchrm_a-WaveletMedium.o: transforms/wavelet/WaveletMedium.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-WaveletMedium.o -MD -MP -MF $(DEPDIR)/libchrm_a-WaveletMedium.Tpo -c -o libchrm_a-WaveletMedium.o `test -f 'transforms/wavelet/WaveletMedium.cpp' || echo '$(srcdir)/'`transforms/wavelet/WaveletMedium.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-WaveletMedium.Tpo $(DEPDIR)/libchrm_a-WaveletMedium.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/WaveletMedium.cpp' object='libchrm_a-WaveletMedium.o' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-WaveletMedium.o: transforms/wavelet/WaveletMedium.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-WaveletMedium.o -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletMedium.Tpo -c -o transforms/wavelet/libchrm_a-WaveletMedium.o `test -f 'transforms/wavelet/WaveletMedium.cpp' || echo '$(srcdir)/'`transforms/wavelet/WaveletMedium.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletMedium.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletMedium.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/WaveletMedium.cpp' object='transforms/wavelet/libchrm_a-WaveletMedium.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-WaveletMedium.o `test -f 'transforms/wavelet/WaveletMedium.cpp' || echo '$(srcdir)/'`transforms/wavelet/WaveletMedium.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-WaveletMedium.o `test -f 'transforms/wavelet/WaveletMedium.cpp' || echo '$(srcdir)/'`transforms/wavelet/WaveletMedium.cpp
 
-libchrm_a-WaveletMedium.obj: transforms/wavelet/WaveletMedium.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-WaveletMedium.obj -MD -MP -MF $(DEPDIR)/libchrm_a-WaveletMedium.Tpo -c -o libchrm_a-WaveletMedium.obj `if test -f 'transforms/wavelet/WaveletMedium.cpp'; then $(CYGPATH_W) 'transforms/wavelet/WaveletMedium.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/WaveletMedium.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-WaveletMedium.Tpo $(DEPDIR)/libchrm_a-WaveletMedium.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/WaveletMedium.cpp' object='libchrm_a-WaveletMedium.obj' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-WaveletMedium.obj: transforms/wavelet/WaveletMedium.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-WaveletMedium.obj -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletMedium.Tpo -c -o transforms/wavelet/libchrm_a-WaveletMedium.obj `if test -f 'transforms/wavelet/WaveletMedium.cpp'; then $(CYGPATH_W) 'transforms/wavelet/WaveletMedium.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/WaveletMedium.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletMedium.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-WaveletMedium.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/WaveletMedium.cpp' object='transforms/wavelet/libchrm_a-WaveletMedium.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-WaveletMedium.obj `if test -f 'transforms/wavelet/WaveletMedium.cpp'; then $(CYGPATH_W) 'transforms/wavelet/WaveletMedium.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/WaveletMedium.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-WaveletMedium.obj `if test -f 'transforms/wavelet/WaveletMedium.cpp'; then $(CYGPATH_W) 'transforms/wavelet/WaveletMedium.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/WaveletMedium.cpp'; fi`
 
-libchrm_a-convolution.o: transforms/wavelet/convolution.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-convolution.o -MD -MP -MF $(DEPDIR)/libchrm_a-convolution.Tpo -c -o libchrm_a-convolution.o `test -f 'transforms/wavelet/convolution.cpp' || echo '$(srcdir)/'`transforms/wavelet/convolution.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-convolution.Tpo $(DEPDIR)/libchrm_a-convolution.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/convolution.cpp' object='libchrm_a-convolution.o' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-convolution.o: transforms/wavelet/convolution.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-convolution.o -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-convolution.Tpo -c -o transforms/wavelet/libchrm_a-convolution.o `test -f 'transforms/wavelet/convolution.cpp' || echo '$(srcdir)/'`transforms/wavelet/convolution.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-convolution.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-convolution.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/convolution.cpp' object='transforms/wavelet/libchrm_a-convolution.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-convolution.o `test -f 'transforms/wavelet/convolution.cpp' || echo '$(srcdir)/'`transforms/wavelet/convolution.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-convolution.o `test -f 'transforms/wavelet/convolution.cpp' || echo '$(srcdir)/'`transforms/wavelet/convolution.cpp
 
-libchrm_a-convolution.obj: transforms/wavelet/convolution.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-convolution.obj -MD -MP -MF $(DEPDIR)/libchrm_a-convolution.Tpo -c -o libchrm_a-convolution.obj `if test -f 'transforms/wavelet/convolution.cpp'; then $(CYGPATH_W) 'transforms/wavelet/convolution.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/convolution.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-convolution.Tpo $(DEPDIR)/libchrm_a-convolution.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/convolution.cpp' object='libchrm_a-convolution.obj' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-convolution.obj: transforms/wavelet/convolution.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-convolution.obj -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-convolution.Tpo -c -o transforms/wavelet/libchrm_a-convolution.obj `if test -f 'transforms/wavelet/convolution.cpp'; then $(CYGPATH_W) 'transforms/wavelet/convolution.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/convolution.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-convolution.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-convolution.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/convolution.cpp' object='transforms/wavelet/libchrm_a-convolution.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-convolution.obj `if test -f 'transforms/wavelet/convolution.cpp'; then $(CYGPATH_W) 'transforms/wavelet/convolution.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/convolution.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-convolution.obj `if test -f 'transforms/wavelet/convolution.cpp'; then $(CYGPATH_W) 'transforms/wavelet/convolution.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/convolution.cpp'; fi`
 
-libchrm_a-wt.o: transforms/wavelet/wt.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-wt.o -MD -MP -MF $(DEPDIR)/libchrm_a-wt.Tpo -c -o libchrm_a-wt.o `test -f 'transforms/wavelet/wt.cpp' || echo '$(srcdir)/'`transforms/wavelet/wt.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-wt.Tpo $(DEPDIR)/libchrm_a-wt.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/wt.cpp' object='libchrm_a-wt.o' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-wt.o: transforms/wavelet/wt.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-wt.o -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-wt.Tpo -c -o transforms/wavelet/libchrm_a-wt.o `test -f 'transforms/wavelet/wt.cpp' || echo '$(srcdir)/'`transforms/wavelet/wt.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-wt.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-wt.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/wt.cpp' object='transforms/wavelet/libchrm_a-wt.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-wt.o `test -f 'transforms/wavelet/wt.cpp' || echo '$(srcdir)/'`transforms/wavelet/wt.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-wt.o `test -f 'transforms/wavelet/wt.cpp' || echo '$(srcdir)/'`transforms/wavelet/wt.cpp
 
-libchrm_a-wt.obj: transforms/wavelet/wt.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-wt.obj -MD -MP -MF $(DEPDIR)/libchrm_a-wt.Tpo -c -o libchrm_a-wt.obj `if test -f 'transforms/wavelet/wt.cpp'; then $(CYGPATH_W) 'transforms/wavelet/wt.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/wt.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-wt.Tpo $(DEPDIR)/libchrm_a-wt.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/wt.cpp' object='libchrm_a-wt.obj' libtool=no @AMDEPBACKSLASH@
+transforms/wavelet/libchrm_a-wt.obj: transforms/wavelet/wt.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT transforms/wavelet/libchrm_a-wt.obj -MD -MP -MF transforms/wavelet/$(DEPDIR)/libchrm_a-wt.Tpo -c -o transforms/wavelet/libchrm_a-wt.obj `if test -f 'transforms/wavelet/wt.cpp'; then $(CYGPATH_W) 'transforms/wavelet/wt.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/wt.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) transforms/wavelet/$(DEPDIR)/libchrm_a-wt.Tpo transforms/wavelet/$(DEPDIR)/libchrm_a-wt.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='transforms/wavelet/wt.cpp' object='transforms/wavelet/libchrm_a-wt.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-wt.obj `if test -f 'transforms/wavelet/wt.cpp'; then $(CYGPATH_W) 'transforms/wavelet/wt.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/wt.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o transforms/wavelet/libchrm_a-wt.obj `if test -f 'transforms/wavelet/wt.cpp'; then $(CYGPATH_W) 'transforms/wavelet/wt.cpp'; else $(CYGPATH_W) '$(srcdir)/transforms/wavelet/wt.cpp'; fi`
 
-libchrm_a-TrainingSet.o: wndchrm_src/TrainingSet.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-TrainingSet.o -MD -MP -MF $(DEPDIR)/libchrm_a-TrainingSet.Tpo -c -o libchrm_a-TrainingSet.o `test -f 'wndchrm_src/TrainingSet.cpp' || echo '$(srcdir)/'`wndchrm_src/TrainingSet.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-TrainingSet.Tpo $(DEPDIR)/libchrm_a-TrainingSet.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='wndchrm_src/TrainingSet.cpp' object='libchrm_a-TrainingSet.o' libtool=no @AMDEPBACKSLASH@
+wndchrm_src/libchrm_a-TrainingSet.o: wndchrm_src/TrainingSet.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT wndchrm_src/libchrm_a-TrainingSet.o -MD -MP -MF wndchrm_src/$(DEPDIR)/libchrm_a-TrainingSet.Tpo -c -o wndchrm_src/libchrm_a-TrainingSet.o `test -f 'wndchrm_src/TrainingSet.cpp' || echo '$(srcdir)/'`wndchrm_src/TrainingSet.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) wndchrm_src/$(DEPDIR)/libchrm_a-TrainingSet.Tpo wndchrm_src/$(DEPDIR)/libchrm_a-TrainingSet.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='wndchrm_src/TrainingSet.cpp' object='wndchrm_src/libchrm_a-TrainingSet.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-TrainingSet.o `test -f 'wndchrm_src/TrainingSet.cpp' || echo '$(srcdir)/'`wndchrm_src/TrainingSet.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o wndchrm_src/libchrm_a-TrainingSet.o `test -f 'wndchrm_src/TrainingSet.cpp' || echo '$(srcdir)/'`wndchrm_src/TrainingSet.cpp
 
-libchrm_a-TrainingSet.obj: wndchrm_src/TrainingSet.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-TrainingSet.obj -MD -MP -MF $(DEPDIR)/libchrm_a-TrainingSet.Tpo -c -o libchrm_a-TrainingSet.obj `if test -f 'wndchrm_src/TrainingSet.cpp'; then $(CYGPATH_W) 'wndchrm_src/TrainingSet.cpp'; else $(CYGPATH_W) '$(srcdir)/wndchrm_src/TrainingSet.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-TrainingSet.Tpo $(DEPDIR)/libchrm_a-TrainingSet.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='wndchrm_src/TrainingSet.cpp' object='libchrm_a-TrainingSet.obj' libtool=no @AMDEPBACKSLASH@
+wndchrm_src/libchrm_a-TrainingSet.obj: wndchrm_src/TrainingSet.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT wndchrm_src/libchrm_a-TrainingSet.obj -MD -MP -MF wndchrm_src/$(DEPDIR)/libchrm_a-TrainingSet.Tpo -c -o wndchrm_src/libchrm_a-TrainingSet.obj `if test -f 'wndchrm_src/TrainingSet.cpp'; then $(CYGPATH_W) 'wndchrm_src/TrainingSet.cpp'; else $(CYGPATH_W) '$(srcdir)/wndchrm_src/TrainingSet.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) wndchrm_src/$(DEPDIR)/libchrm_a-TrainingSet.Tpo wndchrm_src/$(DEPDIR)/libchrm_a-TrainingSet.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='wndchrm_src/TrainingSet.cpp' object='wndchrm_src/libchrm_a-TrainingSet.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-TrainingSet.obj `if test -f 'wndchrm_src/TrainingSet.cpp'; then $(CYGPATH_W) 'wndchrm_src/TrainingSet.cpp'; else $(CYGPATH_W) '$(srcdir)/wndchrm_src/TrainingSet.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o wndchrm_src/libchrm_a-TrainingSet.obj `if test -f 'wndchrm_src/TrainingSet.cpp'; then $(CYGPATH_W) 'wndchrm_src/TrainingSet.cpp'; else $(CYGPATH_W) '$(srcdir)/wndchrm_src/TrainingSet.cpp'; fi`
 
-libchrm_a-WORMfile.o: wndchrm_src/WORMfile.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-WORMfile.o -MD -MP -MF $(DEPDIR)/libchrm_a-WORMfile.Tpo -c -o libchrm_a-WORMfile.o `test -f 'wndchrm_src/WORMfile.cpp' || echo '$(srcdir)/'`wndchrm_src/WORMfile.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-WORMfile.Tpo $(DEPDIR)/libchrm_a-WORMfile.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='wndchrm_src/WORMfile.cpp' object='libchrm_a-WORMfile.o' libtool=no @AMDEPBACKSLASH@
+wndchrm_src/libchrm_a-WORMfile.o: wndchrm_src/WORMfile.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT wndchrm_src/libchrm_a-WORMfile.o -MD -MP -MF wndchrm_src/$(DEPDIR)/libchrm_a-WORMfile.Tpo -c -o wndchrm_src/libchrm_a-WORMfile.o `test -f 'wndchrm_src/WORMfile.cpp' || echo '$(srcdir)/'`wndchrm_src/WORMfile.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) wndchrm_src/$(DEPDIR)/libchrm_a-WORMfile.Tpo wndchrm_src/$(DEPDIR)/libchrm_a-WORMfile.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='wndchrm_src/WORMfile.cpp' object='wndchrm_src/libchrm_a-WORMfile.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-WORMfile.o `test -f 'wndchrm_src/WORMfile.cpp' || echo '$(srcdir)/'`wndchrm_src/WORMfile.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o wndchrm_src/libchrm_a-WORMfile.o `test -f 'wndchrm_src/WORMfile.cpp' || echo '$(srcdir)/'`wndchrm_src/WORMfile.cpp
 
-libchrm_a-WORMfile.obj: wndchrm_src/WORMfile.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-WORMfile.obj -MD -MP -MF $(DEPDIR)/libchrm_a-WORMfile.Tpo -c -o libchrm_a-WORMfile.obj `if test -f 'wndchrm_src/WORMfile.cpp'; then $(CYGPATH_W) 'wndchrm_src/WORMfile.cpp'; else $(CYGPATH_W) '$(srcdir)/wndchrm_src/WORMfile.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-WORMfile.Tpo $(DEPDIR)/libchrm_a-WORMfile.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='wndchrm_src/WORMfile.cpp' object='libchrm_a-WORMfile.obj' libtool=no @AMDEPBACKSLASH@
+wndchrm_src/libchrm_a-WORMfile.obj: wndchrm_src/WORMfile.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT wndchrm_src/libchrm_a-WORMfile.obj -MD -MP -MF wndchrm_src/$(DEPDIR)/libchrm_a-WORMfile.Tpo -c -o wndchrm_src/libchrm_a-WORMfile.obj `if test -f 'wndchrm_src/WORMfile.cpp'; then $(CYGPATH_W) 'wndchrm_src/WORMfile.cpp'; else $(CYGPATH_W) '$(srcdir)/wndchrm_src/WORMfile.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) wndchrm_src/$(DEPDIR)/libchrm_a-WORMfile.Tpo wndchrm_src/$(DEPDIR)/libchrm_a-WORMfile.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='wndchrm_src/WORMfile.cpp' object='wndchrm_src/libchrm_a-WORMfile.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-WORMfile.obj `if test -f 'wndchrm_src/WORMfile.cpp'; then $(CYGPATH_W) 'wndchrm_src/WORMfile.cpp'; else $(CYGPATH_W) '$(srcdir)/wndchrm_src/WORMfile.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o wndchrm_src/libchrm_a-WORMfile.obj `if test -f 'wndchrm_src/WORMfile.cpp'; then $(CYGPATH_W) 'wndchrm_src/WORMfile.cpp'; else $(CYGPATH_W) '$(srcdir)/wndchrm_src/WORMfile.cpp'; fi`
 
-libchrm_a-signatures.o: wndchrm_src/signatures.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-signatures.o -MD -MP -MF $(DEPDIR)/libchrm_a-signatures.Tpo -c -o libchrm_a-signatures.o `test -f 'wndchrm_src/signatures.cpp' || echo '$(srcdir)/'`wndchrm_src/signatures.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-signatures.Tpo $(DEPDIR)/libchrm_a-signatures.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='wndchrm_src/signatures.cpp' object='libchrm_a-signatures.o' libtool=no @AMDEPBACKSLASH@
+wndchrm_src/libchrm_a-signatures.o: wndchrm_src/signatures.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT wndchrm_src/libchrm_a-signatures.o -MD -MP -MF wndchrm_src/$(DEPDIR)/libchrm_a-signatures.Tpo -c -o wndchrm_src/libchrm_a-signatures.o `test -f 'wndchrm_src/signatures.cpp' || echo '$(srcdir)/'`wndchrm_src/signatures.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) wndchrm_src/$(DEPDIR)/libchrm_a-signatures.Tpo wndchrm_src/$(DEPDIR)/libchrm_a-signatures.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='wndchrm_src/signatures.cpp' object='wndchrm_src/libchrm_a-signatures.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-signatures.o `test -f 'wndchrm_src/signatures.cpp' || echo '$(srcdir)/'`wndchrm_src/signatures.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o wndchrm_src/libchrm_a-signatures.o `test -f 'wndchrm_src/signatures.cpp' || echo '$(srcdir)/'`wndchrm_src/signatures.cpp
 
-libchrm_a-signatures.obj: wndchrm_src/signatures.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-signatures.obj -MD -MP -MF $(DEPDIR)/libchrm_a-signatures.Tpo -c -o libchrm_a-signatures.obj `if test -f 'wndchrm_src/signatures.cpp'; then $(CYGPATH_W) 'wndchrm_src/signatures.cpp'; else $(CYGPATH_W) '$(srcdir)/wndchrm_src/signatures.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libchrm_a-signatures.Tpo $(DEPDIR)/libchrm_a-signatures.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='wndchrm_src/signatures.cpp' object='libchrm_a-signatures.obj' libtool=no @AMDEPBACKSLASH@
+wndchrm_src/libchrm_a-signatures.obj: wndchrm_src/signatures.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT wndchrm_src/libchrm_a-signatures.obj -MD -MP -MF wndchrm_src/$(DEPDIR)/libchrm_a-signatures.Tpo -c -o wndchrm_src/libchrm_a-signatures.obj `if test -f 'wndchrm_src/signatures.cpp'; then $(CYGPATH_W) 'wndchrm_src/signatures.cpp'; else $(CYGPATH_W) '$(srcdir)/wndchrm_src/signatures.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) wndchrm_src/$(DEPDIR)/libchrm_a-signatures.Tpo wndchrm_src/$(DEPDIR)/libchrm_a-signatures.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='wndchrm_src/signatures.cpp' object='wndchrm_src/libchrm_a-signatures.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-signatures.obj `if test -f 'wndchrm_src/signatures.cpp'; then $(CYGPATH_W) 'wndchrm_src/signatures.cpp'; else $(CYGPATH_W) '$(srcdir)/wndchrm_src/signatures.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o wndchrm_src/libchrm_a-signatures.obj `if test -f 'wndchrm_src/signatures.cpp'; then $(CYGPATH_W) 'wndchrm_src/signatures.cpp'; else $(CYGPATH_W) '$(srcdir)/wndchrm_src/signatures.cpp'; fi`
 
 libchrm_a-wndchrm_error.o: wndchrm_error.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -MT libchrm_a-wndchrm_error.o -MD -MP -MF $(DEPDIR)/libchrm_a-wndchrm_error.Tpo -c -o libchrm_a-wndchrm_error.o `test -f 'wndchrm_error.cpp' || echo '$(srcdir)/'`wndchrm_error.cpp
@@ -1335,20 +1488,6 @@ libchrm_a-wndchrm_error.obj: wndchrm_error.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='wndchrm_error.cpp' object='libchrm_a-wndchrm_error.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-wndchrm_error.obj `if test -f 'wndchrm_error.cpp'; then $(CYGPATH_W) 'wndchrm_error.cpp'; else $(CYGPATH_W) '$(srcdir)/wndchrm_error.cpp'; fi`
-
-wndchrm.o: wndchrm_src/wndchrm.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT wndchrm.o -MD -MP -MF $(DEPDIR)/wndchrm.Tpo -c -o wndchrm.o `test -f 'wndchrm_src/wndchrm.cpp' || echo '$(srcdir)/'`wndchrm_src/wndchrm.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/wndchrm.Tpo $(DEPDIR)/wndchrm.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='wndchrm_src/wndchrm.cpp' object='wndchrm.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o wndchrm.o `test -f 'wndchrm_src/wndchrm.cpp' || echo '$(srcdir)/'`wndchrm_src/wndchrm.cpp
-
-wndchrm.obj: wndchrm_src/wndchrm.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT wndchrm.obj -MD -MP -MF $(DEPDIR)/wndchrm.Tpo -c -o wndchrm.obj `if test -f 'wndchrm_src/wndchrm.cpp'; then $(CYGPATH_W) 'wndchrm_src/wndchrm.cpp'; else $(CYGPATH_W) '$(srcdir)/wndchrm_src/wndchrm.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/wndchrm.Tpo $(DEPDIR)/wndchrm.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='wndchrm_src/wndchrm.cpp' object='wndchrm.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o wndchrm.obj `if test -f 'wndchrm_src/wndchrm.cpp'; then $(CYGPATH_W) 'wndchrm_src/wndchrm.cpp'; else $(CYGPATH_W) '$(srcdir)/wndchrm_src/wndchrm.cpp'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -1471,6 +1610,24 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
+	-rm -f colors/$(DEPDIR)/$(am__dirstamp)
+	-rm -f colors/$(am__dirstamp)
+	-rm -f gsl/$(DEPDIR)/$(am__dirstamp)
+	-rm -f gsl/$(am__dirstamp)
+	-rm -f statistics/$(DEPDIR)/$(am__dirstamp)
+	-rm -f statistics/$(am__dirstamp)
+	-rm -f textures/$(DEPDIR)/$(am__dirstamp)
+	-rm -f textures/$(am__dirstamp)
+	-rm -f textures/haralick/$(DEPDIR)/$(am__dirstamp)
+	-rm -f textures/haralick/$(am__dirstamp)
+	-rm -f textures/zernike/$(DEPDIR)/$(am__dirstamp)
+	-rm -f textures/zernike/$(am__dirstamp)
+	-rm -f transforms/$(DEPDIR)/$(am__dirstamp)
+	-rm -f transforms/$(am__dirstamp)
+	-rm -f transforms/wavelet/$(DEPDIR)/$(am__dirstamp)
+	-rm -f transforms/wavelet/$(am__dirstamp)
+	-rm -f wndchrm_src/$(DEPDIR)/$(am__dirstamp)
+	-rm -f wndchrm_src/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
@@ -1481,7 +1638,7 @@ clean-am: clean-binPROGRAMS clean-generic clean-libtool \
 	clean-noinstLIBRARIES mostlyclean-am
 
 distclean: distclean-am
-	-rm -rf ./$(DEPDIR)
+	-rm -rf ./$(DEPDIR) colors/$(DEPDIR) gsl/$(DEPDIR) statistics/$(DEPDIR) textures/$(DEPDIR) textures/haralick/$(DEPDIR) textures/zernike/$(DEPDIR) transforms/$(DEPDIR) transforms/wavelet/$(DEPDIR) wndchrm_src/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -1527,7 +1684,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-	-rm -rf ./$(DEPDIR)
+	-rm -rf ./$(DEPDIR) colors/$(DEPDIR) gsl/$(DEPDIR) statistics/$(DEPDIR) textures/$(DEPDIR) textures/haralick/$(DEPDIR) textures/zernike/$(DEPDIR) transforms/$(DEPDIR) transforms/wavelet/$(DEPDIR) wndchrm_src/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
