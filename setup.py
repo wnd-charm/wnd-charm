@@ -6,6 +6,23 @@ setup.py file for SWIG-ified wndchrm
 
 from setuptools import setup, Extension
 
+# Need to subclass setuptools/distutils objects to change build order
+# such that dynamically-generated swig files will be present when MANIFEST is created.
+# See http://stackoverflow.com/a/21236111/1017549
+
+from distutils.command.build import build
+from setuptools.command.install import install
+
+class CustomBuild( build):
+    def run(self):
+        self.run_command('build_ext')
+        build.run(self)
+
+class CustomInstall(install):
+    def run(self):
+        self.run_command('build_ext')
+        self.do_egg_install()
+
 import os
 pkg_dir = os.path.join (os.path.dirname(os.path.realpath(__file__)),'pychrm')
 
@@ -93,11 +110,14 @@ wndchrm_module = Extension('_pychrm',
 	libraries=['tiff','fftw3'],
 )
 
-setup (name = 'pychrm',
+setup (
+	cmdclass={'build': CustomBuild, 'install': CustomInstall},
+	name = 'pychrm',
 	version = __version__,
 	author      = "Chris Coletta, Ilya Goldberg",
-	url = 'http://code.google.com/p/wnd-charm',
+	url = 'https://github.com/wnd-charm/wnd-charm',
 	description = """Python bindings for wnd-charm""",
+	license = 'LGPLv2',
 	ext_modules = [wndchrm_module],
 	packages = ['pychrm'],
 	install_requires=[
