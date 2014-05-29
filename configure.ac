@@ -20,6 +20,18 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 
+#AC_PROG_CXX sets CXX to g++ if it cannot find a working C++ compiler 
+#thus, we test here whether $CXX is actually working  
+AC_LANG_PUSH(C++) 
+AC_MSG_CHECKING([whether C++ compiler $CXX works]); 
+AC_COMPILE_IFELSE( 
+  [AC_LANG_PROGRAM(, [int i=0;])], 
+  [AC_MSG_RESULT(yes)], 
+  [AC_MSG_RESULT(no) 
+  AC_MSG_ERROR(failed to find a C++ compiler or C++ compiler $CXX does not work)] 
+) 
+AC_LANG_POP(C++) 
+
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-lchrm':
 AC_CHECK_LIB([chrm], [main])
