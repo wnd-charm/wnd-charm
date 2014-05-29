@@ -21,12 +21,14 @@ The wndchrm utility is an implementation of the WND-CHARM algorithm described he
 
 Supported Platforms
 -------------------
-  * Wndchrm was tested using Linux (Ubuntu, CentOS) and MacOS X, but should also run with other Unix and Linux distributions.
+  * Wndchrm should compile and run on any POSIX-compliant operating system. It has been tested on Linux (Ubuntu 12.04 w/ GCC 4.6, CentOS 6.3 w/ GCC 4.4) and MacOSX (<=10.7 w/ GCC 4.2, with experimental support for 10.9 Mavericks w/ clang compiler).
 
 Dependencies
 ------------
-  * Installation of Wndchrm requires a C compiler, LibTIFF and FFTW
-    * We use GCC 4.2 on MacOS, and 4.4/4.6 on Linux
+Installation of Wndchrm requires a C++ compiler, LibTIFF and FFTW
+  * C++ Compiler
+    * MacOSX: Install the command-line developer tools.
+    * Ubuntu/Debian: `sudo apt-get install build-essential`
   * [LibTIFF 3.x](http://www.libtiff.org):
     * CentOS/RedHat: `sudo yum install libtiff-devel`
     * Ubuntu/Debian: `sudo apt-get install libtiff4-dev`
