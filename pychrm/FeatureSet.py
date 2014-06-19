@@ -187,6 +187,18 @@ def output_railroad_switch( method_that_prints_output ):
 			retval = method_that_prints_output( *args, **kwargs )
 			sys.stdout.close()
 			sys.stdout = backup
+		elif "output_stream" in kwargs:
+			output_stream = kwargs[ "output_stream" ]
+			del kwargs[ "output_stream" ]
+			print 'Saving output of function "{0}()" to stream'.format(\
+			      method_that_prints_output.__name__)
+			import sys
+			backup = sys.stdout
+			try:
+				sys.stdout = output_stream
+				retval = method_that_prints_output( *args, **kwargs )
+			finally:
+				sys.stdout = backup
 		else:
 			retval = method_that_prints_output( *args, **kwargs )
 		return retval
