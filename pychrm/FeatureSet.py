@@ -338,7 +338,6 @@ class SampleImageTiles (object):
 #############################################################################
 # class definition of FeatureVector
 #############################################################################
-# FeatureVector inherits from class "object" and is thus a Python "new-style" class
 class FeatureVector(object):
 	"""A FeatureVector is simply a list of doubles and a list of corresponding strings (i.e., names).
 	The lengths of the two lists must always be equal. A FeatureVector may be rendered 
@@ -361,13 +360,17 @@ class FeatureVector(object):
 			if "names" in data_dict:
 				self.names = data_dict[ "names" ]
 	#================================================================
-	def is_valid( self ):
+	def isvalid( self ):
 		"""@brief: an instance should know all the criteria for being a valid FeatureVector"""
 		if len( self.values ) != len( self.names ):
 			raise RuntimeError( "Instance of {0} is invalid: ".format( self.__class__ ) + \
 			  "different number of values ({0}) and names ({1}).".format( \
 			  len( self.values ), len( self.names ) ) )
 		return True
+	#================================================================
+	def __len__( self ):
+		assert len( self.values ) == len( self.names )
+		return len( self.values )
 
 #############################################################################
 # class definition of FeatureWeights
@@ -903,7 +906,10 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			line_item += "{0:2.4f}\t".format( self.pearson_p_values[i] )
 			line_item += "{0:2.4f}\t".format( self.spearman_coeffs[i] )
 			line_item += "{0:2.4f}\t".format( self.spearman_p_values[i] )
-			line_item += self.names[i]
+			if len( self.names[i] ) < 50:
+				line_item += self.names[i]
+			else:
+				line_item += self.names[i][:50] + '... (truncated)'
 			print line_item
 
 
@@ -1173,7 +1179,7 @@ class Signatures( FeatureVector ):
 		wherever you want. Otherwise, it's named according to convention and placed 
 		next to the image file in its directory."""
 
-		self.is_valid()
+		self.isvalid()
 
 		outfile_path = ""
 		if not filepath or filepath == "":
@@ -1326,10 +1332,10 @@ class FeatureSet( object ):
 	classifier, one for training the other for testing.
 	"""
 
-	# source_path - could be the name of a .fit, or pickle file from which this
-	# instance was generated, could be a directory
-	#  source_path is essentially a name
-	# might want to make separate name member in the future
+	name = None
+
+	#: source_path - could be the name of a .fit, or pickle file from which this
+	#: instance was generated, could be a directory
 	source_path = None
 	num_features = None
 	num_images = None
@@ -1389,6 +1395,8 @@ class FeatureSet( object ):
 		self.interpolation_coefficients = []
 
 		if data_dict != None:
+			if "name" in data_dict:
+				self.name = data_dict[ 'name' ]
 			if "source_path" in data_dict:
 				self.source_path = data_dict[ 'source_path' ]
 			if "num_classes" in data_dict:
@@ -1582,6 +1590,7 @@ class FeatureSet( object ):
 		are consistent with it.
 		In the base class, just returns the data_matrix
 		"""
+		self.contiguous_imagenames_list = self.imagenames_list
 		return (self.data_matrix)
 
 	#==============================================================
@@ -1602,7 +1611,7 @@ class FeatureSet( object ):
 		elif not self.normalized_against and not training_set:
 			# Normalize me against myself
 			if not quiet:
-				print 'Normaling set "{0}" ({1} images) against itself'.format (
+				print 'Normalizing set "{0}" ({1} images) against itself'.format (
 					self.source_path, self.num_images )
 
 			(self.feature_minima, self.feature_maxima) = normalize_by_columns (self.ContiguousDataMatrix())
@@ -1619,7 +1628,7 @@ class FeatureSet( object ):
 			
 
 			if not quiet:
-				print 'Normaling set "{0}" ({1} images) against set "{2}" ({3} images)'.format(
+				print 'Normalizing set "{0}" ({1} images) against set "{2}" ({3} images)'.format(
 					self.source_path, self.num_images, training_set.source_path, training_set.num_images )
 
 			if not training_set.normalized_against:
@@ -1678,6 +1687,7 @@ class FeatureSet_Discrete( FeatureSet ):
 	def __init__( self, data_dict = None):
 		"""constructor"""
 		self.data_list = []
+		self.contiguous_imagenames_list = []
 		
 		super( FeatureSet_Discrete, self ).__init__( data_dict )
 
@@ -1734,12 +1744,17 @@ class FeatureSet_Discrete( FeatureSet ):
 			copy_class = 0
 			copy_row = 0
 
+		# In addition, keep a list of sample names corresponding to the 
+		# rows in the contiguous feature matrix
+		self.contiguous_imagenames_list = [ None ] * self.num_images
+
 		# We need to start copying at the first non-view class mat to the end.
 		for class_index in range (copy_class, len (self.data_list)):
 			#print "copy class"+str(class_index)
 			nrows = self.data_list[class_index].shape[0]
 			self.data_matrix[copy_row : copy_row + nrows] = np.copy (self.data_list[class_index])
 			self.data_list[class_index] = self.data_matrix[copy_row : copy_row + nrows]
+			self.contiguous_imagenames_list[copy_row : copy_row + nrows] = self.imagenames_list[class_index]
 			copy_row += nrows
 
 		self.data_matrix_is_contiguous = True
@@ -1864,7 +1879,7 @@ class FeatureSet_Discrete( FeatureSet ):
 		"""@brief Creates a new FeatureSet from a single signature"""
 
 		try:
-			signature.is_valid()
+			signature.isvalid()
 		except:
 			raise
 
@@ -1977,6 +1992,8 @@ class FeatureSet_Discrete( FeatureSet ):
 		new_ts = cls()
 		new_ts.num_images = 0
 		new_ts.source_path = fof_path
+		from os.path import basename
+		new_ts.name = basename( fof_path )
 
 		classnames_set = set()
 
@@ -2014,6 +2031,8 @@ class FeatureSet_Discrete( FeatureSet ):
 		if isinstance( new_ts, FeatureSet_Discrete ):
 			new_ts.num_classes = len( new_ts.data_list )
 
+		new_ts.ContiguousDataMatrix()
+
 		new_ts.Print()
 		return new_ts
 
@@ -2045,7 +2064,7 @@ class FeatureSet_Discrete( FeatureSet ):
 				# check validity
 				if not sig:
 					raise ValueError( "Couldn't create a valid signature from file {0} with options {1}".format( sourcefile, options ) )
-				sig.is_valid()
+				sig.isvalid()
 				if write_sig_files_to_disk:
 					sig.WriteFeaturesToASCIISigFile()
 				self.AddSignature( sig, class_id )
@@ -2191,7 +2210,7 @@ class FeatureSet_Discrete( FeatureSet ):
 		new_ts.featurenames_list = self.featurenames_list
 		new_ts.num_features = len( self.featurenames_list )
 		new_ts.source_path = self.source_path + " (scrambled)"
-		if self.interpolation_coefficients:
+		if self.interpolation_coefficients != None and len( self.interpolation_coefficients ) != 0:
 			new_ts.interpolation_coefficients = self.interpolation_coefficients
 
 		if fine_grained_scramble:
@@ -2385,7 +2404,7 @@ Y 	Y 	R 	R 	N 	balanced training and test sets, as above but with 75-25 default 
 			training_set.feature_vector_version = self.feature_vector_version
 		else:
 			training_set.feature_vector_version = '2.0'
-		if self.interpolation_coefficients:
+		if self.interpolation_coefficients != None and len( self.interpolation_coefficients ) != 0:
 			training_set.interpolation_coefficients = self.interpolation_coefficients
 	
 		if not training_set_only:
@@ -2403,7 +2422,7 @@ Y 	Y 	R 	R 	N 	balanced training and test sets, as above but with 75-25 default 
 				test_set.feature_vector_version = self.feature_vector_version
 			else:
 				test_set.feature_vector_version = '2.0'
-			if self.interpolation_coefficients:
+			if self.interpolation_coefficients != None and len( self.interpolation_coefficients ) != 0:
 				test_set.interpolation_coefficients = self.interpolation_coefficients
 
 		# assemble training and test sets
@@ -2496,9 +2515,9 @@ class FeatureSet_Continuous( FeatureSet ):
 	def __init__( self, data_dict = None ):
 
 		# call parent constructor
-		self.ground_truths = []
-
 		super( FeatureSet_Continuous, self ).__init__( data_dict )
+
+		self.ground_truths = []
 
 		if data_dict != None:
 			if "data_matrix" in data_dict:
@@ -2536,6 +2555,8 @@ class FeatureSet_Continuous( FeatureSet ):
 			new_ts = cls()
 
 			new_ts.source_path = pathname
+			from os.path import basename
+			new_ts.name = basename( pathname )
 			tmp_string_data_list = []
 
 			name_line = False
@@ -2617,6 +2638,8 @@ class FeatureSet_Continuous( FeatureSet ):
 		new_ts = cls()
 		new_ts.num_images = 0
 		new_ts.source_path = fof_path
+		from os.path import basename
+		new_ts.name = basename( fof_path )
 
 		classnames_set = set()
 
@@ -2710,7 +2733,7 @@ class FeatureSet_Continuous( FeatureSet ):
 				# check validity
 				if not sig:
 					raise ValueError( "Couldn't create a valid signature from file {0} with options {1}".format( sourcefile, options ) )
-				sig.is_valid()
+				sig.isvalid()
 				if write_sig_files_to_disk:
 					sig.WriteFeaturesToASCIISigFile()
 				self.AddSignature( sig, class_id )
@@ -2742,12 +2765,13 @@ class FeatureSet_Continuous( FeatureSet ):
 		# copy everything but the signature data
 		reduced_ts = FeatureSet_Continuous()
 		new_num_features = len( requested_features )
-		reduced_ts.source_path = self.source_path + "({0} features)".format( new_num_features )
+		reduced_ts.source_path = self.source_path
+		reduced_ts.name = self.name + "(Reduced {0} features)".format( new_num_features )
 		reduced_ts.num_features = new_num_features
 		reduced_ts.num_images = self.num_images
 		reduced_ts.imagenames_list = self.imagenames_list[:] # [:] = deepcopy
 		reduced_ts.featurenames_list = requested_features[:]
-		if self.interpolation_coefficients:
+		if self.interpolation_coefficients != None and len( self.interpolation_coefficients ) != 0:
 			reduced_ts.interpolation_coefficients= self.interpolation_coefficients[:]
 		if self.classnames_list:
 			reduced_ts.classnames_list = self.classnames_list[:]
@@ -2909,12 +2933,13 @@ class FeatureSet_Continuous( FeatureSet ):
 		# self.num_features may not match len( self.featurenames_list )
 		training_set.num_features = self.num_features
 		training_set.imagenames_list = []
-		training_set.source_path = self.source_path + " (subset)"
+		training_set.source_path = self.source_path
+		training_set.name = self.name + " (subset {0} samples)".format( num_images_in_training_set )
 		if self.classnames_list:
 			training_set.classnames_list = self.classnames_list
 		if self.classsizes_list:
 			training_set.classsizes_list = [ 0 ] * self.num_classes
-		if self.interpolation_coefficients:
+		if self.interpolation_coefficients != None and len( self.interpolation_coefficients ) != 0:
 			training_set.interpolation_coefficients = self.interpolation_coefficients
 	
 		if not training_set_only:
@@ -2926,12 +2951,13 @@ class FeatureSet_Continuous( FeatureSet ):
 			#test_set.num_features = len( self.featurenames_list )
 			test_set.num_features = self.num_features
 			test_set.imagenames_list = []
-			test_set.source_path = self.source_path + " (subset)"
+			test_set.source_path = self.source_path
+			test_set.name = self.name + " (subset {0} samples)".format( num_images_in_test_set )
 			if self.classnames_list:
 				test_set.classnames_list = self.classnames_list
 			if self.classsizes_list:
 				test_set.classsizes_list = [ 0 ] * self.num_classes
-			if self.interpolation_coefficients:
+			if self.interpolation_coefficients != None and len( self.interpolation_coefficients ) != 0:
 				test_set.interpolation_coefficients = self.interpolation_coefficients
 
 		image_lottery = range( self.num_images )
@@ -3168,7 +3194,7 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 			raise ValueError( 'Third argument to NewWND5 must be of type "Signatures", you gave a {0}'.format( type( test_sig ).__name__ ) )
 
 		# check to see if sig is valid
-		test_sig.is_valid()
+		test_sig.isvalid()
 
 		train_set_len = len( training_set.featurenames_list )
 		test_set_len = len( test_sig.names )
@@ -3297,7 +3323,6 @@ class BatchClassificationResult( ClassificationResult ):
 
 	num_classifications = None
 
-
 	# This stuff is for correllation analysis
 	pearson_coeff = None
 	pearson_p_value = None
@@ -3381,7 +3406,6 @@ class BatchClassificationResult( ClassificationResult ):
 
 		Requires scipy.stats package to be installed"""
 		raise NotImplementedError
-
 
 
 	#==============================================================
@@ -3506,7 +3530,6 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 					if self.similarity_matrix[ row ][ row ]:
 						self.similarity_matrix[ row ][ col ] /= self.similarity_matrix[ row ][ row ]
 						self.similarity_matrix[ col ][ row ] /= self.similarity_matrix[ row ][ row ]
-
 
 		self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
 
@@ -3711,12 +3734,12 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		batch_result.batch_number = batch_number
 
 		train_set_interp_coeffs = None
-		if training_set.interpolation_coefficients:
+		if training_set.interpolation_coefficients != None and len( training_set.interpolation_coefficients) != 0:
 			train_set_interp_coeffs = np.array( training_set.interpolation_coefficients )
 			batch_result.predicted_values = []
 
 		test_set_interp_coeffs = None
-		if test_set.interpolation_coefficients:
+		if test_set.interpolation_coefficients != None and len( test_set.interpolation_coefficients ) != 0:
 			test_set_interp_coeffs = np.array( test_set.interpolation_coefficients )
 			batch_result.ground_truth_values = []
 
@@ -3790,7 +3813,7 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 
 	#=====================================================================
 	@classmethod
-	def New( cls, test_set, feature_weights, quiet = False, batch_number = None, batch_name = None):
+	def New( cls, test_set, feature_weights, quiet=False, batch_number=None, batch_name=None):
 		"""The equivalent of "wndchrm classify -C" in the command line implenentation of
 		WND-CHARM. """
 
@@ -3841,7 +3864,7 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 
 	#=====================================================================
 	@classmethod
-	def NewLeastSquaresRegression( cls, training_set, test_set, feature_weights, quiet = False, batch_number = None, batch_name = None):
+	def NewLeastSquaresRegression( cls, training_set, test_set, feature_weights, quiet=False, batch_number=None, batch_name=None):
 		"""The equivalent of "wndchrm classify -C" in the command line implenentation of
 		WND-CHARM.
 		
@@ -4642,23 +4665,29 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
 	# FIXME: roll this class into FeatureTimingVersusAccuracyGraph, allowing
 	# both Discrete and continuous data
 
-	def __init__( self, training_set, feature_weights, chart_title=None, min_num_features=1, max_num_features=500, step=5, y_min=None, y_max=None):
-	
+	def __init__( self, training_set, feature_weights, chart_title=None, min_num_features=1, max_num_features=None, step=5, y_min=None, y_max=None, quiet=False):
+
 		ls_experiment = ContinuousClassificationExperimentResult( training_set, training_set, feature_weights, name="Least Squares Regression Method")
 		voting_experiment = ContinuousClassificationExperimentResult( training_set, training_set, feature_weights, name="Voting Method")
+		if max_num_features is None:
+			max_num_features = len( feature_weights )
 
 		x_vals = range( min_num_features, max_num_features + 1, step )
 
 		for number_of_features_to_use in x_vals:
 			reduced_fw = feature_weights.Threshold( number_of_features_to_use )
 			reduced_ts = training_set.FeatureReduce( reduced_fw.names )
+			if not quiet:
+				reduced_fw.Print()
 
-			ls_batch_result = ContinuousBatchClassificationResult.NewLeastSquaresRegression( reduced_ts, None, reduced_fw, batch_number=number_of_features_to_use )
-			ls_batch_result.Print()
+			ls_batch_result = ContinuousBatchClassificationResult.NewLeastSquaresRegression( reduced_ts, None, reduced_fw, batch_number=number_of_features_to_use, quiet=my_quiet )
+			if not quiet:
+				ls_batch_result.Print()
 			ls_experiment.individual_results.append( ls_batch_result )
 
 			voting_batch_result = ContinuousBatchClassificationResult.New( reduced_ts, reduced_fw, batch_number=number_of_features_to_use )
-			voting_batch_result.Print()
+                        if not quiet:
+			    voting_batch_result.Print()
 			voting_experiment.individual_results.append( voting_batch_result )
 
 		import matplotlib
