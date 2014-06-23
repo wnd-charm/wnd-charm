@@ -226,7 +226,7 @@ def normalize_by_columns ( full_stack, mins = None, maxs = None ):
 #     3. feature ranges that are 0 result in nan feature values
 #     4. all nan feature values set to 0
 
-# Turn off numpy warnings, since e're taking care of invalid values explicitly
+# Turn off numpy warnings, since we're taking care of invalid values explicitly
 	oldsettings = np.seterr(all='ignore')
 	if (mins is None or maxs is None):
 		# mask out NANs and +/-INFs to compute min/max
@@ -3206,7 +3206,8 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 		if test_sig.names != training_set.featurenames_list:
 			raise ValueError("Can't classify, features in signature don't match features in training_set." )
 
-		print "Classifying image '{0}' ({1} features) against test set '{2}' ({3} features)".\
+		if not quiet:
+			print "Classifying image '{0}' ({1} features) against test set '{2}' ({3} features)".\
 			 format( test_sig.source_file, train_set_len, training_set.source_path, test_set_len )
 
 		result = cls._WND5( training_set, test_sig.values, feature_weights.values )
@@ -3355,6 +3356,10 @@ class BatchClassificationResult( ClassificationResult ):
 	#==============================================================
 	def __repr__( self ):
 		return str(self)
+
+	#==============================================================
+	def __len__( self ):
+		return len( self.individual_results )
 
 	#==============================================================
 	def GenerateStats( self ):
@@ -3545,6 +3550,8 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 		print "==========================================="
 		print "Batch summary:"
+		if self.name:
+			print "Name: ", self.name
 		print "Total number of classifications: {0}".format( self.num_classifications )
 		print "Total number of CORRECT classifications: {0}".format( self.num_correct_classifications )
 		print "Total classification accuracy: {0:0.4f}".format( self.classification_accuracy )
@@ -3656,8 +3663,6 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 				raise ValueError( 'Similarity matrix is not possible with this data set. ' + \
 				                  'Possible reason for this is that your test set does not have ' + \
 				                  'ground truth defined.' )
-			
-
 			if method == 'max':
 				raise NotImplementedError
 			elif method == 'mean':
@@ -3687,7 +3692,8 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 	#==============================================================
 	@classmethod
 	@output_railroad_switch
-	def New( cls, training_set, test_set, feature_weights, batch_number = None, batch_name = None, quiet = False, norm_factor_threshold = None):
+	def New( cls, training_set, test_set, feature_weights, batch_number = None, 
+					batch_name = None, quiet = False, norm_factor_threshold = None):
 		"""The equivalent of the "wndcharm classify" command in the command line implementation
 		of WND-CHARM. Input a training set, a test set, and feature weights, and returns a
 		new instance of a DiscreteBatchClassificationResult, with self.individual_results
@@ -3712,14 +3718,15 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		if test_set.featurenames_list != training_set.featurenames_list:
 			raise ValueError( "Can't classify, features in test set don't match features in training set. Try translating feature names from old style to new, or performing a FeatureReduce()" )
 
+		np.seterr (under='ignore')
+
 		train_set_len = len( training_set.featurenames_list )
 		test_set_len = len( test_set.featurenames_list )
 		feature_weights_len = len( feature_weights.names )
 
-		print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
-					format( test_set.source_path, test_set_len, training_set.source_path, train_set_len )
-
 		if not quiet:
+			print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
+					format( test_set.source_path, test_set_len, training_set.source_path, train_set_len )
 			column_header = "image\tnorm. fact.\t"
 			column_header +=\
 				"".join( [ "p(" + class_name + ")\t" for class_name in training_set.classnames_list ] )
@@ -3775,6 +3782,8 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 					result.Print( line_item = True )
 				batch_result.individual_results.append( result )
 
+		np.seterr (all='raise')
+
 		return batch_result
 
 #=================================================================================
@@ -3814,8 +3823,7 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 	#=====================================================================
 	@classmethod
 	def New( cls, test_set, feature_weights, quiet=False, batch_number=None, batch_name=None):
-		"""The equivalent of "wndchrm classify -C" in the command line implenentation of
-		WND-CHARM. """
+		"""Uses Pearson-coefficient weighted Regression-Voting classifier."""
 
 		# type checking
 		if not isinstance( test_set, FeatureSet_Continuous ):
@@ -3864,14 +3872,15 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 
 	#=====================================================================
 	@classmethod
-	def NewLeastSquaresRegression( cls, training_set, test_set, feature_weights, quiet=False, batch_number=None, batch_name=None):
-		"""The equivalent of "wndchrm classify -C" in the command line implenentation of
-		WND-CHARM.
+	def NewLeastSquaresRegression( cls, training_set, test_set, feature_weights,
+					leave_one_out=True, quiet=False, batch_number=None, batch_name=None):
+		"""Uses Linear Least Squares Regression classifier in a feature space filtered/weighed
+		by Pearson coefficients.
 		
 		Use cases:
-		1. if training_set is not None and test_set is None = LEAVE ONE OUT CROSS VALIDATION
-		2. if training_set == test_set == not None: CROSS VALIDATION WITHOUT LEAVE ONE OUT
-		3. if training_set != test_set: classification of test_set against training_set
+		1. if training_set != test_set and both not none: straight classification
+		2. if training_set is not None and test_set is None = Leave one out cross validation
+		3. if training_set == test_set == not None: Shuffle/Split cross validation
 		"""
 
 		# Type checking
@@ -3928,6 +3937,8 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		# Now, build the augmented feature matrices, which includes multiplying the feature
 		# space by the weights, and augmenting the matrices with 1's
 
+		oldsettings = np.seterr(all='ignore')
+
 		augmented_train_set.data_matrix *= feature_weights.values
 		augmented_train_set.data_matrix = np.hstack( 
 		      [ augmented_train_set.data_matrix, np.ones( ( augmented_train_set.num_images, 1 ) ) ] )
@@ -3965,6 +3976,9 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 				result.Print( line_item = True )
 			batch_result.individual_results.append( result )
 
+		# return settings to original
+		np.seterr(**oldsettings)
+
 		batch_result.GenerateStats()
 		return batch_result
 
@@ -3989,7 +4003,7 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 		
 		Completed functionality:
 		1. Simple aggregation of ground truth->predicted value pairs across splits.
-		   Use the function PredictedValueAnalysis() to average results for specific
+		   Use the function PerSampleStatistics() to average results for specific
 			 images across splits.
 		2. Calculation of aggregated feature weight statistics
 
@@ -4054,74 +4068,6 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 			self.feature_weight_statistics = sorted( feature_weight_stats, sort_func, reverse = True )
 
 		# Remember, there's no such thing as a confusion matrix for a continuous class
-
-	#=====================================================================
-	@output_railroad_switch
-	def PredictedValueAnalysis( self ):
-		"""For use in only those classification experiments where predicted values are generated
-		as part of the classification.
-		
-		This function is meant to elucidate the amount of variability of classifications 
-		across batches. ImageClassificationResult imformation is aggregated for each individual
-		image/ROI encountered, and statistics are generated for each image/ROI and printed out."""
-
-		if self.individual_results == 0:
-			raise ValueError( 'No batch results to analyze' )
-
-		self.predicted_values = []
-		self.ground_truth_values = []
-
-		self.accumulated_individual_results = {}
-		self.individual_stats = {}
-
-		for batch in self.individual_results:
-			for result in batch.individual_results:
-				if not result.source_file in self.accumulated_individual_results:
-					# initialize list of individual results for this file
-					self.accumulated_individual_results[ result.source_file ] = []
-				self.accumulated_individual_results[ result.source_file ].append( result )
-	
-		for filename in self.accumulated_individual_results:
-			vals = np.array( [result.predicted_value for result in self.accumulated_individual_results[filename] ])
-			self.ground_truth_values.append( self.accumulated_individual_results[filename][0].ground_truth_value )
-			self.predicted_values.append( np.mean(vals) )
-			self.individual_stats[filename] = ( len(vals), np.min(vals), np.mean(vals), \
-			                                    np.max(vals), np.std(vals) ) 
-
-		print "\n\nIndividual results\n========================\n"
-		mp = "  "
-		discrlineoutstr = "\tsplit {split_num:02d} '{batch_name}': predicted: {pred_class}, actual: {actual_class}. Norm dists: ( {norm_dists} ) Interp val: {pred_val:0.3f}"
-		contlineoutstr = "\tsplit {split_num:02d} '{batch_name}': actual: {actual_class}. Predicted val: {pred_val:0.3f}"
-		outstr = "\t---> Tested {0} times, low {1:0.3f}, mean {2:0.3f}, high {3:0.3f}, std dev {4:0.3f}"
-
-		#create view
-		res_dict = self.accumulated_individual_results
-
-		# sort by ground truth, then alphanum
-		sort_func = lambda A, B: cmp( A, B ) if res_dict[A][0].ground_truth_value == res_dict[B][0].ground_truth_value else cmp( res_dict[A][0].ground_truth_value, res_dict[B][0].ground_truth_value  ) 
-		sorted_images = sorted( self.accumulated_individual_results.iterkeys(), sort_func )
-
-		for samplename in sorted_images:
-			print 'File "' + samplename + '"'
-			for result in self.accumulated_individual_results[ samplename ]:
-
-				if isinstance( result, DiscreteImageClassificationResult ):
-					marg_probs = [ "{0:0.3f}".format( num ) for num in result.marginal_probabilities ]
-					print discrlineoutstr.format( split_num = result.batch_number, \
-				                         batch_name = result.name, \
-				                         pred_class = result.predicted_class_name, \
-				                         actual_class = result.ground_truth_value, \
-				                         norm_dists = mp.join( marg_probs ), \
-				                         pred_val = result.predicted_value )
-				elif isinstance( result, ContinuousImageClassificationResult ):
-					print contlineoutstr.format( split_num = result.batch_number, \
-				                         batch_name = result.name, \
-				                         actual_class = result.ground_truth_value, \
-				                         pred_val = result.predicted_value )
-				else:
-					raise ValueError( 'expected an ImageClassification result but got a {0} class'.\
-				  	       format( type( result ).__name__ ) ) 
-			print outstr.format( *self.individual_stats[ samplename ] )
 
 	#=====================================================================
 	@output_railroad_switch
@@ -4193,6 +4139,44 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 	confusion_matrix = None
 	average_similarity_matrix = None
 	average_class_probability_matrix = None
+	#=====================================================================
+	@classmethod
+	def NewShuffleSplit( cls, full_training_set, n_iter=5, feature_usage_fraction=0.15,
+                     name=None, num_features=None, training_set_fraction=0.75, train_size=None, 
+										 test_size=None, quiet=False):
+
+		experiment = cls( training_set=full_training_set, name=name )
+		if feature_usage_fraction:
+			if feature_usage_fraction < 0 or feature_usage_fraction > 1.0:
+				raise ValueError('Feature usage fraction must be on interval [0,1]')
+			num_features = int( feature_usage_fraction * full_training_set.num_features )
+
+		if not num_features:
+				raise ValueError( 'must specify num_features or feature_usage_fraction in kwargs')
+
+		if not quiet:
+				print "using top "+str (num_features)+" features"
+
+		for split_index in range( n_iter ):
+
+			training_set, test_set = full_training_set.Split(
+                                training_set_fraction=training_set_fraction, i=train_size, j=test_size, quiet=quiet)
+			training_set.Normalize( quiet=quiet )
+			test_set.Normalize( training_set, quiet=quiet )
+
+			fisher_weights = FisherFeatureWeights.NewFromFeatureSet( training_set )
+			fisher_weights = fisher_weights.Threshold( num_features )
+
+			reduced_test_set = test_set.FeatureReduce( fisher_weights.names )
+			reduced_training_set = training_set.FeatureReduce( fisher_weights.names )
+
+			batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, \
+		         reduced_test_set, fisher_weights, batch_number=split_index, quiet=quiet )
+
+			experiment.individual_results.append( batch_result )
+
+		return experiment
+
 
 	#=====================================================================
 	def GenerateStats( self ):
@@ -4244,11 +4228,13 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 			                  batch_result.classification_accuracy, batch_result.name )
 
 		outstr = "{0}\t{1:0.3f}\t{2:>3}\t{3:0.3f}\t{4:0.3f}\t{5:0.3f}\t{6}"
-		print "Feature Weight Analysis:"
+		print "Feature Weight Analysis (top 50 features):"
 		print "Rank\tmean\tcount\tStdDev\tMin\tMax\tName"
 		print "----\t----\t-----\t------\t---\t---\t----"
 		for count, fw_stat in enumerate( self.feature_weight_statistics, 1 ):
 			print outstr.format( count, *fw_stat )
+			if count >= 50:
+					break
 
 	#=====================================================================
 	@classmethod
@@ -4373,6 +4359,83 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		return exp
 
 
+	#=====================================================================
+	@output_railroad_switch
+	def PerSampleStatistics( self ):
+		"""This function is meant to elucidate the amount of variability of classifications 
+		across batches. ImageClassificationResult imformation is aggregated for each individual
+		image/ROI encountered, and statistics are generated for each image/ROI and printed out."""
+
+		if self.individual_results == 0:
+			raise ValueError( 'No batch results to analyze' )
+
+		#self.predicted_values = []
+		self.ground_truth_values = []
+
+		self.accumulated_individual_results = {}
+		self.individual_stats = {}
+
+		for batch in self.individual_results:
+			for result in batch.individual_results:
+				if not result.source_file in self.accumulated_individual_results:
+					# initialize list of individual results for this file
+					self.accumulated_individual_results[ result.source_file ] = []
+				self.accumulated_individual_results[ result.source_file ].append( result )
+
+		for filename in self.accumulated_individual_results:
+
+			# Get marginal probability averages
+			mp_totals = None
+			for result in self.accumulated_individual_results[filename]:
+				if not mp_totals:
+					mp_totals = result.marginal_probabilities[:]
+				else:
+					new_total = []
+					for class_total, new_mp in zip( mp_totals, result.marginal_probabilities ):
+						new_total.append( class_total + new_mp )
+					mp_totals = new_total
+
+			mp_avgs = [ float(mp_totals[i]) / len( self.accumulated_individual_results[filename] ) for i in range( len( mp_totals ) ) ]
+			#vals = np.array ([result.predicted_value for result in self.accumulated_individual_results[filename] ])
+			vals = [result.predicted_class_name for result in self.accumulated_individual_results[filename] ]
+			#self.ground_truth_values.append( self.accumulated_individual_results[filename][0].ground_truth_value )
+			gt_class = self.accumulated_individual_results[filename][0].ground_truth_class_name
+			self.ground_truth_values.append( gt_class )
+			#self.predicted_values.append( np.mean(vals) )
+			self.individual_stats[filename] = ( len(vals), float( vals.count( gt_class ) ) / len(vals), mp_avgs, gt_class )
+
+		print "==========================================="
+		print 'Experiment name: "{0}"'.format( self.name ) + ' Individual results\n'
+
+		mp_delim = "  "
+		discrlineoutstr = "\tsplit {split_num:02d}: pred: {pred_class}\tact: {actual_class}\tnorm factor: {norm_factor:0.3g},\tmarg probs: ( {norm_dists} )"
+		outstr = "\t---> Tested {0} times, avg correct: {1:0.3f}, avg marg probs ( {2} )"
+
+		#create view
+		res_dict = self.accumulated_individual_results
+
+		# sort by ground truth, then alphanum
+		sort_func = lambda A, B: cmp( A, B ) if res_dict[A][0].ground_truth_class_name == res_dict[B][0].ground_truth_class_name else cmp( res_dict[A][0].source_file, res_dict[B][0].source_file  ) 
+		sorted_images = sorted( self.accumulated_individual_results.iterkeys(), sort_func )
+
+		for samplename in sorted_images:
+			print 'File "' + samplename + '"'
+			for result in self.accumulated_individual_results[ samplename ]:
+				marg_probs = [ "{0:0.3f}".format( num ) for num in result.marginal_probabilities ]
+				print discrlineoutstr.format( split_num = result.batch_number, \
+				                         pred_class = result.predicted_class_name, \
+				                         actual_class = result.ground_truth_class_name, \
+				                         norm_factor = result.normalization_factor, \
+				                         norm_dists = mp_delim.join( marg_probs ) )
+
+			marg_probs = [ "{0:0.3f}".format( num ) for num in self.individual_stats[ samplename ][2] ]
+			print outstr.format( self.individual_stats[ samplename ][0], self.individual_stats[ samplename ][1], mp_delim.join( marg_probs ) )
+
+
+		# If 2 or 3 class problem, plot individuals in marginal probability space
+
+
+
 # END class definition for DiscreteClassificationExperimentResult
 
 #============================================================================
@@ -4386,6 +4449,58 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 	def __init__( self, training_set=None, test_set=None, feature_weights=None, name=None ):
 		super( ContinuousClassificationExperimentResult, self ).__init__(
 				training_set, test_set, feature_weights, name )
+
+	#=====================================================================
+	@classmethod
+	def NewShuffleSplit( cls, full_training_set, n_iter=5, feature_usage_fraction=0.15,
+                     name=None, num_features=None, training_set_fraction=0.75, train_size=None,
+										 test_size=None, classifier=None, quiet=False):
+		"""Note: classifier is Least Squares Regression"""
+
+		experiment = cls( training_set=full_training_set, name=name )
+		if feature_usage_fraction:
+			if feature_usage_fraction < 0 or feature_usage_fraction > 1.0:
+				raise ValueError('Feature usage fraction must be on interval [0,1]')
+			num_features = int( feature_usage_fraction * full_training_set.num_features )
+
+		if not num_features:
+				raise ValueError( 'must specify num_features or feature_usage_fraction in kwargs')
+
+		if not quiet:
+				print "using top "+str (num_features)+" features"
+
+		if classifier != None and classifier != 'lstsq' and classifier != "voting":
+				raise ValueError( 'Unrecognized classifier: "{0}", choose "lstsq" or "voting".'\
+								.format( classifier ) )
+
+		if not quiet:
+				if classifier == None or classifier == 'lstsq':
+						print "Using Least Squares Regression classifier"
+				elif classifier == "voting":
+						print "Using Voting Regression Classifier"
+
+		for split_index in range( n_iter ):
+
+			training_set, test_set = full_training_set.Split( i=train_size, j=test_size, quiet=quiet )
+			training_set.Normalize( quiet=quiet )
+			test_set.Normalize( training_set, quiet=quiet)
+
+			weights = ContinuousFeatureWeights.NewFromFeatureSet( training_set )
+			weights = weights.Threshold( num_features )
+
+			reduced_test_set = test_set.FeatureReduce( weights.names )
+			reduced_training_set = training_set.FeatureReduce( weights.names )
+
+			if classifier == 'voting':
+				batch_result = ContinuousBatchClassificationResult.New(
+							reduced_training_set, weights, batch_number=split_index, quiet=quiet )
+			else:
+				batch_result = ContinuousBatchClassificationResult.NewLeastSquaresRegression(
+							reduced_training_set, reduced_test_set, weights, batch_number=split_index, quiet=quiet )
+
+			experiment.individual_results.append( batch_result )
+
+		return experiment
 
 	#=====================================================================
 	def GenerateStats( self ):
@@ -4432,6 +4547,68 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 		print "Total standard error: {0}".format( self.figure_of_merit )
 		print "Pearson corellation coefficient: {0}".format( self.pearson_coeff )
 		print "Pearson p-value: {0}".format( self.pearson_p_value )		
+
+		outstr = "{0}\t{1:0.3f}\t{2:>3}\t{3:0.3f}\t{4:0.3f}\t{5:0.3f}\t{6}"
+		print "Feature Weight Analysis (top 50 features):"
+		print "Rank\tmean\tcount\tStdDev\tMin\tMax\tName"
+		print "----\t----\t-----\t------\t---\t---\t----"
+		for count, fw_stat in enumerate( self.feature_weight_statistics, 1 ):
+			print outstr.format( count, *fw_stat )
+			if count >= 50:
+					break
+
+
+	#=====================================================================
+	@output_railroad_switch
+	def PerSampleStatistics( self ):
+		"""This function is meant to elucidate the amount of variability of classifications
+		across batches. ImageClassificationResult imformation is aggregated for each individual
+		image/ROI encountered, and statistics are generated for each image/ROI and printed out."""
+
+		if self.individual_results == 0:
+			raise ValueError( 'No batch results to analyze' )
+
+		self.predicted_values = []
+		self.ground_truth_values = []
+
+		self.accumulated_individual_results = {}
+		self.individual_stats = {}
+
+		for batch in self.individual_results:
+			for result in batch.individual_results:
+				if not result.source_file in self.accumulated_individual_results:
+					# initialize list of individual results for this file
+					self.accumulated_individual_results[ result.source_file ] = []
+				self.accumulated_individual_results[ result.source_file ].append( result )
+
+		for filename in self.accumulated_individual_results:
+			vals = np.array( [result.predicted_value for result in self.accumulated_individual_results[filename] ])
+			self.ground_truth_values.append( self.accumulated_individual_results[filename][0].ground_truth_value )
+			self.predicted_values.append( np.mean(vals) )
+			self.individual_stats[filename] = ( len(vals), np.min(vals), np.mean(vals), \
+																							np.max(vals), np.std(vals) ) 
+
+		print "==========================================="
+		print 'Experiment name: "{0}"'.format( self.name ) + ' Individual results\n'
+		mp = "  "
+		contlineoutstr = "\tsplit {split_num:02d} '{batch_name}': actual: {actual_class}. Predicted val: {pred_val:0.3f}"
+		outstr = "\t---> Tested {0} times, low {1:0.3f}, mean {2:0.3f}, high {3:0.3f}, std dev {4:0.3f}"
+
+		#create view
+		res_dict = self.accumulated_individual_results
+
+		# sort by ground truth, then alphanum
+		sort_func = lambda A, B: cmp( A, B ) if res_dict[A][0].ground_truth_value == res_dict[B][0].ground_truth_value else cmp( res_dict[A][0].ground_truth_value, res_dict[B][0].ground_truth_value  ) 
+		sorted_images = sorted( self.accumulated_individual_results.iterkeys(), sort_func )
+
+		for samplename in sorted_images:
+			print 'File "' + samplename + '"'
+			for result in self.accumulated_individual_results[ samplename ]:
+				print contlineoutstr.format( split_num = result.batch_number, \
+				                         batch_name = result.name, \
+				                         actual_class = result.ground_truth_value, \
+				                         pred_val = result.predicted_value )
+			print outstr.format( *self.individual_stats[ samplename ] )
 
 #============================================================================
 class BaseGraph( object ):
