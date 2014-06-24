@@ -38,7 +38,7 @@ Installation of Wndchrm requires a C++ compiler, LibTIFF and FFTW
   * Pychrm requires the Python development package and SWIG
     * CentOS/RedHat: `sudo yum install python-devel swig`
     * Ubuntu/Debian: `sudo apt-get install python-dev swig`
-  * Pychrm also requires the following Python modules: argparse (included in Python 2.7+), numpy, scipy and matplotlib
+  * Pychrm also requires the following Python modules: argparse (included in Python 2.7+), numpy, scipy and matplotlib, which you can install using your distribution packages, or manually using pip
     * CentOS/RedHat: `sudo yum install argparse numpy scipy python-matplotlib`
     * Ubuntu/Debian: `sudo apt-get install python-numpy python-scipy python-matplotlib`
   * Optional for dendrograms: [PHYLIP](http://evolution.genetics.washington.edu/phylip/install.html)
