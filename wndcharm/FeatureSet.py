@@ -254,11 +254,13 @@ def normalize_by_columns ( full_stack, mins = None, maxs = None ):
 
 
 def CheckIfClassNamesAreInterpolatable( classnames_list ):
+	"""N.B., this method takes only the first number it finds in the class label."""
 
 	import re
+	p = re.compile( r'(-?\d*\.?\d+)' )
 	interp_coeffs = []
 	for class_name in classnames_list:
-		m = re.search( r'(\d*\.?\d+)', class_name )
+		m = p.search( class_name )
 		if m:
 			interp_coeffs.append( float( m.group(1) ) )
 		else:
@@ -372,6 +374,13 @@ class FeatureVector(object):
 	def __len__( self ):
 		assert len( self.values ) == len( self.names )
 		return len( self.values )
+
+	#==============================================================
+	def __repr__( self ):
+		outstr = '<' +str( self.__class__.__name__ ) + ' '
+		outstr += 'n_values=' + str( len( self.values ) ) + '>'
+		return outstr
+
 
 #############################################################################
 # class definition of FeatureWeights
@@ -507,13 +516,6 @@ class FisherFeatureWeights( FeatureWeights ):
 		Ic = number of images in a given class
 		"""
 
-		if training_set == None:
-			import inspect
-			form_str = 'You passed in a None as a training set to the function {0}.{1}'	
-			raise ValueError( form_str.format( cls.__name__, inspect.stack()[1][3] ) )
-		if not training_set.__class__.__name__ == "FeatureSet_Discrete":
-			raise ValueError( "Cannot create Fisher weights from anything other than a FeatureSet_Discrete." )
-
 		# we deal with NANs/INFs separately, so turn off numpy warnings about invalid floats.
 		oldsettings = np.seterr(all='ignore')
 
@@ -601,20 +603,24 @@ class FisherFeatureWeights( FeatureWeights ):
 			                      format( len( self.values ), num_features_to_be_used ) )
 
 		new_weights = self.__class__()
-		raw_featureweights = zip( self.names, self.values )
-		# raw_featureweights is now a list of tuples := [ (name1, value1), (name2, value2), ... ]
+		raw_featureweights = zip( self.values, self.names )
+		# raw_featureweights is now a list of tuples := [ (value1, name1), (value2, name2), ... ] 
 
-		# sort from max to min
-		# sort by the second item in the tuple, i.e., index 1
-		sort_func = lambda feat_a, feat_b: cmp( feat_a[1], feat_b[1] ) 
-
-		sorted_featureweights = sorted( raw_featureweights, sort_func, reverse = True )
+		sorted_featureweights = sorted( raw_featureweights, key=lambda a: a[0], reverse = True )
 		# take top N features
 		use_these_feature_weights = \
 				list( itertools.islice( sorted_featureweights, num_features_to_be_used ) )
-		
+
+		# You have a problem if any of the features have corellation coefficients of 0
+		for i, feat_fig_of_merit in enumerate( [ line[0] for line in use_these_feature_weights ] ):
+			if feat_fig_of_merit == 0:
+				err_msg = "Can't reduce feature weights \"{0}\" to {1} features. ".format( self.name, num_features_to_be_used )
+				err_msg += "Features ranked {0} and below have a Fisher score of 0. ".format( i )
+				err_msg += "Request less features. "
+				raise ValueError( err_msg )
+
 		# we want lists, not tuples!
-		new_weights.names, new_weights.values =\
+		new_weights.values, new_weights.names =\
 		  [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
 
 		new_weights.associated_training_set = self.associated_training_set
@@ -707,7 +713,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		At present the feature weights are proportional the Pearson correlation coefficient
 		for each given feature."""
 		
-		from scipy import stats
+		from scipy.stats import linregress, spearmanr
 
 		# Known issue: running stats.linregress() with np.seterr (all='raise') has caused
 		# arithmetic underflow (FloatingPointError: 'underflow encountered in stdtr' )
@@ -734,7 +740,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			feature_values = matrix[:,feature_index]
 
 			slope, intercept, pearson_coeff, p_value, std_err = \
-			             stats.linregress( ground_truths, feature_values )
+			             linregress( ground_truths, feature_values )
 
 			new_fw.names.append( training_set.featurenames_list[ feature_index ] )
 			new_fw.pearson_coeffs.append( pearson_coeff )
@@ -749,7 +755,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			#r_val_cubed_sum += pearson_coeff * pearson_coeff * pearson_coeff
 
 			try:
-				spearman_coeff, spearman_p_val = stats.spearmanr( ground_truths, feature_values )
+				spearman_coeff, spearman_p_val = spearmanr( ground_truths, feature_values )
 			except:
 				spearman_coeff, spearman_p_val = (0, 1 )
 			new_fw.spearman_coeffs.append( spearman_coeff )
@@ -815,6 +821,13 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		else:
 			from itertools import islice
 			use_these_feature_weights = list( islice( sorted_featureweights, num_features_to_be_used ) )
+			# You have a problem if any of the features have corellation coefficients of 0
+			for i, feat_fig_of_merit in enumerate( [ line[0] for line in use_these_feature_weights ] ):
+				if feat_fig_of_merit == 0:
+					err_msg = "Can't reduce feature weights \"{0}\" to {1} features. ".format( self.name, num_features_to_be_used )
+					err_msg += "Features ranked {0} and below have a correllation coefficient of 0. ".format( i )
+					err_msg += "Request less features. "
+					raise ValueError( err_msg )
 
 		# we want lists, not tuples!
 		abs_corr_coeffs, new_weights.names, new_weights.pearson_coeffs, new_weights.slopes, \
@@ -1334,110 +1347,173 @@ class FeatureSet( object ):
 	classifier, one for training the other for testing.
 	"""
 
-	name = None
-
-	#: source_path - could be the name of a .fit, or pickle file from which this
-	#: instance was generated, could be a directory
-	source_path = None
-	num_features = None
-	num_images = None
-
-	#: A list of strings length M
-	featurenames_list = None
-
-	#: for discrete classes this is a list of lists of image paths
-	#: for continuous it's a simple list
-	imagenames_list = None
-
-	# The following class members are optional:
-	# normalized_against is a string that keeps track of whether or not self has been
-	# normalized. For test sets, value will be the source_path of the training_set.
-	# For training sets, value will be "itself"
-	normalized_against = None
-
-	# Stored feature maxima and minima go in here
-	# only exist, if self has been normalized against itself
-	feature_maxima = None
-	feature_minima = None
-
-	# keep track of all the options (-l -S###, etc)
-	# FIXME: expand to have all options kept track of individually
-	feature_options = None
-
-	#: These members are for discrete training sets, or for continuous training sets
-	#: that have some discrete characteristics
-
-	#: A list of strings, length C
-	#: FIXME: these two belong in FeatureSet_Discrete
-	classnames_list = None
-	classsizes_list = None
-
-	# A list of floats against which an image's marginal probaility values can be multiplied
-	# to obtain an interpolated value.
-	interpolation_coefficients = None
-	
-	#: A single numpy matrix N features (columns) x M images (rows)
-	data_matrix = None
-	data_matrix_is_contiguous = False
-	
-	#: The feature vector version contained in this FeatureSet
-	#: The major version must match for all feature vectors in the FeatureSet
-	#: The minor version must match also if it is one of the standard feature vectors (i.e. non-0)
-	feature_vector_version = None
-
 	#==============================================================
-	def __init__( self, data_dict = None ):
+	def __init__( self ):
 		"""FeatureSet constructor"""
+		
+		# Let F = # features for a given 5D ROI.
+		# Let S = total # samples (rows) in a feature set.
+		# Let C = # of discrete classes, if any, for a classification problem.
+		# Let Si = # of samples in a given class whose index is i.
+		# Let G = # tiles/ROIS in a sample group. Is 1 if no tiling.
 
-		self.featurenames_list = []
-		self.imagenames_list = []
-		#: FIXME: these two belong in FeatureSet_Discrete
-		self.classnames_list = []
-		self.classsizes_list = []
-		self.interpolation_coefficients = []
+		# BASIC DATA MEMBERS
+		# -------------------------------------------
+		#: type: string
+		self.name = None
 
-		if data_dict != None:
-			if "name" in data_dict:
-				self.name = data_dict[ 'name' ]
-			if "source_path" in data_dict:
-				self.source_path = data_dict[ 'source_path' ]
-			if "num_classes" in data_dict:
-				self.num_classes = data_dict[ 'num_classes' ]
-			if "num_features" in data_dict:
-				self.num_features = data_dict[ 'num_features' ]
-			if "num_images" in data_dict:
-				self.num_images = data_dict[ 'num_images' ]
-			if "featurenames_list" in data_dict:
-				self.featurenames_list = data_dict[ 'featurenames_list' ]
-			if "imagenames_list" in data_dict:
-				self.imagenames_list = data_dict[ 'imagenames_list' ]
-			if "feature_maxima" in data_dict:
-				self.feature_maxima = data_dict[ 'feature_maxima' ]
-			if "feature_minima" in data_dict:
-				self.feature_minima = data_dict[ 'feature_minima' ]
-			#: FIXME: these two belong in FeatureSet_Discrete
-			if "classnames_list" in data_dict:
-				self.classnames_list = data_dict[ 'classnames_list' ]
-			if "classsizes_list" in data_dict:
-				self.classsizes_list = data_dict[ 'classsizes_list' ]
-			if "interpolation_coefficients" in data_dict:
-				self.interpolation_coefficients = data_dict[ 'interpolation_coefficients' ]
-			if "data_matrix" in data_dict:
-				self.data_matrix = data_dict[ 'data_matrix' ]
-			if "feature_vector_version" in data_dict:
-				self.feature_vector_version = data_dict[ 'feature_vector_version' ]
+		#: type: string
+		#: Path to FeatureSet source/definition/origination file or directory.
+		self.source_path = None
+
+		#: type: FeatureSet
+		#: By convention, the range of values are normalized on an interval [0,100].
+		#: Reference to self or another FeatureSet, indicating source of feature 
+		#: maxima/minima to transform feature space to normalized interval.
+		self.normalized_against = None
+
+		#: type: numpy.ndarray
+		#: 2D numpy matrix with shape=(F,S) that contains all features.
+		self.data_matrix = None
+		#: If classification, per-class views into the feature matrix
+		self.data_list = None
+
+		#: @type: boolean
+		#: Set to True when features packed into single matrix via internal
+		self.data_matrix_is_contiguous = False
+		
+		#: The feature vector version contained in this FeatureSet
+		#: The major version must match for all feature vectors in the FeatureSet
+		#: The minor version must match also if it is one of the standard feature vectors (i.e. non-0)
+		self.feature_vector_version = None
+
+		#: A string keep track of all the options (-l -S###, -t etc)
+		#: FIXME: expand to have all options kept track of individually
+		self.feature_options = None
+		self.tile_rows = None
+		self.tile_cols = None
+
+		#: Do the samples belong to discrete classes for supervised learning, or not
+		#: (regression, clustering)
+		self.discrete = None
+
+		# SAMPLE METADATA DATA MEMBERS
+		# N.B. Here data members are grouped into sets of two, the first being the "_contiguous"
+		# version which is a simple list of length S, and the second being compound lists of lists,
+		# the outer list being length C, inner lists of length Si, which are per-class convenience
+		# views into their _contiguous data member counterpart.
+		# -------------------------------------------
+
+		#: FIXME: Eliminate in favor of len( self.samplenames_list )
+		self.num_images = None 
+
+		#: Block some samples out for purposes of leave one out, et al.
+		self.sample_mask = None
+
+		#: A list of sample names in same row order as their samples appear in self.data_matrix.
+		#: Corresponding lists of lists of sample names grouped by view.
+
+		self._contiguous_samplenames_list = None
+		self.imagenames_list = None
+
+		#: By default, samples are independent/not grouped for splitting purposes
+		self.num_samples_per_group = 1
+
+		#: Keeps track of which samples are grouped together and must not be separated
+		#: when FeatureSet is split for cross-validation purposes
+		self._contiguous_samplegroupid_list = None
+		self.samplegroupid_list = None
+
+		#: An intra-sample group tile/ROI index, max value = G
+		self._contiguous_samplesequenceid_list = None
+		self.samplesequenceid_list = None
+
+		#: A list of floats with is the "target" vector for regression, interpolation, etc.
+		self._contiguous_ground_truths = None
+		self.ground_truths = None
+
+		# List data members for discrete data whose len() is the number of classes
+		#: List of strings which are the class names
+		self.classnames_list = None
+		#: float-ified versions of class labels, if applicable
+		self.interpolation_coefficients = None
+		#: Number of samples in each class
+		self.classsizes_list = None
+
+
+		# FEATURE METADATA DATA MEMBERS
+		# -------------------------------------------
+		#: FIXME: Eliminate in favor of len( self.featurenames_list )
+		self.num_features = None
+
+		#: block out some features for purposes of feature contribution analysis, et al.
+		self.feature_mask = None
+
+		#: A list of strings length M
+		self.featurenames_list = None
+
+		#: Contains pre-normalized feature maxima so feature space of this or other
+		#: FeatureSets can be transformed.
+		self.feature_maxima = None
+
+		#: Contains pre-normalized feature minima so feature space of this or other
+		#: FeatureSets can be transformed.
+		self.feature_minima = None
 
 	#==============================================================
 	@output_railroad_switch
-	def Print( self ):
+	def Print( self, verbose=False ):
 		"""Prints out basic attributes about this training set, including name, path to
 		source data, number and composition of image classes, number of features, etc."""
 
-		print 'Training Set "{0}"'.format( self.source_path )
-		print 'Type: {0}'.format( self.__class__.__name__ )
+		print '{0} "{1}"'.format( self.__class__.__name__ , self.name )
+		if self.name != self.source_path:
+			print 'source: "{0}"'.format( self.source_path )
 		print 'Total number of images: {0}'.format( self.num_images )
 		print 'Number features: {0}'.format( len( self.featurenames_list ) )
 		print 'Feature Vector Version: {0}'.format( self.feature_vector_version )
+
+		if self.discrete:
+			class_index = 0
+			for class_name in self.classnames_list:
+				print '\tClass {0} "{1}": {2} images'.format(
+				  class_index, class_name, len( self.imagenames_list[ class_index ] ) )
+				class_index += 1
+
+		if verbose:
+			if self.num_samples_per_group == 1:
+				sample_metadata = \
+				  zip( self._contiguous_samplenames_list, self._contiguous_ground_truths )
+				header_str = "SAMP NAME\tGROUND TRUTH\n==============================================================="
+				format_str = "{0}\t{3}"
+			else:
+				sample_metadata = zip( self._contiguous_samplenames_list, 
+							self._contiguous_samplegroupid_list, self._contiguous_samplesequenceid_list,
+							self._contiguous_ground_truths )
+				header_str = "SAMP NAME\tGROUP INDEX\tTILE INDEX\tGROUND TRUTH\n===================================================================="
+				format_str = "{0}\t{1:03d}\t{2:02d}\t{3}"
+
+			print header_str
+			for line_item in sample_metadata:
+				print format_str.format( *line_item )
+
+		print ""
+
+	#==============================================================
+	def __repr__( self ):
+		"""Prints out basic attributes about this training set, including name, path to
+		source data, number and composition of image classes, number of features, etc."""
+
+		outstr = '<' +str( self.__class__.__name__ ) + ' '
+		outstr += '"{0}"'.format( self.name ) + ' '
+		outstr += 'n_features=' + str( self.num_features ) + ' '
+		outstr += 'n_total_samples=' + str( self.num_images )
+		if self.discrete:
+			outstr += ' n_classes=' + str( self.num_classes ) + ' '
+			outstr += 'samples_per_class=(' + ', '.join( [ '{0}={1}'.format( name, quant ) \
+							for name, quant in zip( self.classnames_list, self.classsizes_list ) ] ) + ')'
+		outstr += '>'
+		return outstr
 
 	#==============================================================
 	def CompatibleFeatureVectorVersion( self, version ):
@@ -1480,10 +1556,6 @@ class FeatureSet( object ):
 			the_training_set.feature_vector_version = "1." + str(
 				feature_vector_minor_version_from_num_features_v1.get( 
 					len(the_training_set.featurenames_list), 0 ) )
-
-		# it might already be normalized!
-		# FIXME: check for that
-		# the_training_set.Normalize()
 
 		return the_training_set
 
@@ -1542,16 +1614,225 @@ class FeatureSet( object ):
 
 	#==============================================================
 	@classmethod
-	def NewFromFitFile( cls, pathname ):
-		"""Helper function which reads in a c-chrm fit file, builds a dict with the info
-		Then calls the constructor and passes the dict as an argument."""
-		raise NotImplementedError()
+	def NewFromFitFile( cls, pathname, tile_options=None, discrete=True ):
+		"""Helper function which reads in a c-chrm fit file.
+
+		tile_options - an integer N -> NxN tile scheme, or a tuple (N,M) -> NxM tile scheme
+		discrete_data - if false, try to interpret classes as continuous variable."""
+
+		import re
+
+		path, filename = os.path.split( pathname )
+		if not filename.endswith( ".fit" ):
+			raise ValueError( 'Not a .fit file: {0}'.format( pathname ) )
+
+		print "Creating Training Set from legacy WND-CHARM text file file {0}".format( pathname )
+		new_fs = cls()
+
+		from os.path import basename
+		new_fs.source_path = filename
+		new_fs.name = basename( filename )
+		new_fs.discrete = discrete
+
+		fitfile = open( pathname )
+
+		name_line = False
+		line_num = 0
+		sample_count = 0
+
+		if tile_options:
+			try:
+				len(tile_options)
+				new_fs.tile_rows = int(tile_options[0])
+				new_fs.tile_cols = int(tile_options[1])
+			except TypeError:
+				new_fs.tile_rows = new_fs.tile_cols = int( tile_options )
+			new_fs.num_samples_per_group = new_fs.tile_rows * new_fs.tile_cols
+
+		for line in fitfile:
+			if line_num is 0:
+				# 1st line: number of classes and feature vector version
+				num_classes, feature_vector_version = re.match('^(\S+)\s*(\S+)?$', line.strip()).group(1, 2)
+				if feature_vector_version is None:
+					feature_vector_version = "1.0"
+				new_fs.feature_vector_version = feature_vector_version
+				num_classes = int( num_classes )
+				new_fs.num_classes = num_classes
+				new_fs.classsizes_list = [0] * num_classes
+				new_fs.classnames_list = [0] * num_classes
+
+			elif line_num is 1:
+				# 2nd line: num features
+				num_features = int( line )
+				new_fs.num_features = num_features
+				new_fs.featurenames_list = [None] * num_features
+				if( feature_vector_version == "1.0" ):
+					feature_vector_version = "1." + str(
+						feature_vector_minor_version_from_num_features_v1.get ( num_features,0 ) )
+					new_fs.feature_vector_version = feature_vector_version
+
+			elif line_num is 2:
+				# 3rd line: number of samples
+				num_samples = int( line )
+				new_fs.num_images = num_samples
+				new_fs.data_matrix = np.empty ([ num_samples, num_features ], dtype='double')
+				new_fs._contiguous_samplenames_list = [None] * num_samples
+
+			elif line_num < ( num_features + 3 ):
+				# Lines 4 through num_features contains the feature names
+				# FIXME: segfault when feature name isn't a wndchrm feature name.
+				# If we're worried about legacy wndchrm names, there's a pure python
+				# way to translate them, via pychrm.FeatureNameMap
+				new_fs.featurenames_list[ line_num - 3 ] =\
+								line.strip()
+								#pychrm.FeatureNames.getFeatureInfoByName( line.strip() ).name
+
+			elif line_num == ( num_features + 3 ):
+				# The line after the block of feature names is blank
+				pass
+
+			elif line_num < ( num_features + 4 + num_classes ):
+				# Class labels
+				class_index = line_num - num_features - 4
+				new_fs.classnames_list[ class_index ] = line.strip()
+
+			else:
+				# Everything else after is a feature or a sample name
+				# Comes in alternating lines of data, then path to sample original file (tif or sig)
+				if not name_line:
+					# strip off the class identity value, which is the last in the array
+					features_string, class_index_string  = line.strip().rsplit( " ", 1 )
+					class_index = int( class_index_string ) - 1
+					new_fs.classsizes_list[ class_index ] += 1
+					new_fs.data_matrix[ sample_count ] = np.fromstring( features_string, sep=' ' )
+				else:
+					new_fs._contiguous_samplenames_list[ sample_count ] = line.strip()
+					sample_count += 1
+				name_line = not name_line
+
+			line_num += 1
+
+		fitfile.close()
+
+		_retval = CheckIfClassNamesAreInterpolatable( new_fs.classnames_list )
+		if _retval:
+			# Numeric ground truth/target vector
+			new_fs.interpolation_coefficients = _retval
+			new_fs._contiguous_ground_truths = [ _retval[ class_index ] \
+			    for class_index in xrange( num_classes ) \
+			      for i in xrange( new_fs.classsizes_list[ class_index ] ) ]
+		else:
+			# Just a string label ground truth
+			new_fs._contiguous_ground_truths = [ new_fs.classnames_list[ class_index ] \
+			  for class_index in xrange( num_classes ) \
+			    for i in xrange( new_fs.classsizes_list[ class_index ] ) ]
+
+		if new_fs.num_samples_per_group != 1:
+			# sample sequence id = tile id
+			# goes: [ 1, 2, 3, 4, 1, 2, 3, 4, ... ]
+			new_fs._contiguous_samplesequenceid_list = [ i \
+			  for j in xrange( num_samples/new_fs.num_samples_per_group ) \
+			    for i in xrange( new_fs.num_samples_per_group ) ]
+			# samples with same group id can't be split
+			# goes: [ 1, 1, 1, 1, 2, 2, 2, 2, ... ]
+			new_fs._contiguous_samplegroupid_list = [ j \
+			  for j in xrange( num_samples/new_fs.num_samples_per_group ) \
+			    for i in xrange( new_fs.num_samples_per_group ) ]
+		else:
+			new_fs._contiguous_samplesequenceid_list = [1] * num_samples
+			new_fs._contiguous_samplegroupid_list = range( num_samples )
+
+		print "Features version from .fit file: {0}".format( new_fs.feature_vector_version )
+		new_fs._RebuildViews()
+		return new_fs
 
 	#==============================================================
-	@classmethod
-	def NewFromSignature( cls, signature, ts_name = "TestSet", ):
-		"""@brief Creates a new FeatureSet from a single signature."""
-		raise NotImplementedError()
+	def ToFitFile( self, path ):
+		fit = open( path, 'w' )
+
+		# 1st line: number of classes and feature vector version
+		fit.write( str(self.num_classes) + ' ' + self.feature_vector_version + '\n' )
+
+		# 2nd line: num features
+		fit.write( str(self.num_features) + '\n' )
+
+		# 3rd line: number of samples
+		fit.write( str(self.num_images) + '\n' )
+
+		# Lines 4 through num_features contains the feature names
+		for name in self.featurenames_list:
+			fit.write( name + '\n' )
+
+		# The line after the block of feature names is blank
+		fit.write('\n')
+
+		# Then all the Class labels
+		for label in self.classnames_list:
+			fit.write( label + '\n' )
+
+		# Everything else after is a feature or a sample name
+		# Comes in alternating lines of data, then path to sample original file (tif or sig)
+		if self.interpolation_coefficients:
+			class_indices = \
+			 [ str( self.interpolation_coefficients.index( self._contiguous_ground_truths[i] ) ) \
+			    for i in xrange( self.num_images ) ]
+		else:
+			class_indices = \
+			  [ str( self.classnames_list.index( self._contiguous_ground_truths[i] ) ) \
+			    for i in xrange( self.num_images ) ]
+
+		for i, sample_name in enumerate( self._contiguous_samplenames_list ):
+			self.data_matrix[i].tofile( fit, sep=' ' )
+			# add class index of sample to end of features line
+			fit.write( ' ' + class_indices[i] + '\n' )
+			fit.write( sample_name + '\n' )
+
+		fit.close()
+
+	#==============================================================
+	def _RebuildViews( self, reorder=False ):
+		"""Construct self's data members into either A) lists of per-class lists of 
+		features/meature metadata which are optimized for classification-style machine 
+		learning problems or B) single contiguous lists of data for regression-style problems.
+
+		reorder - a sample was added out of order, reorder by class membership"""
+
+		if self.discrete is None:
+			errmsg = 'FeatureSet {0} "discrete" member hasn\'t been set. '.format( self )
+			errmsg += 'Please set the flag on the object indicating classification vs. regression/clustering.'
+			raise ValueError( errmsg )
+
+		if self.discrete == True:
+			self.data_list = [None] * self.num_classes
+			self.imagenames_list = [None] * self.num_classes
+			self.samplegroupid_list = [None] * self.num_classes
+			self.samplesequenceid_list = [None] * self.num_classes
+			if self._contiguous_ground_truths:
+				self.ground_truths = [None] * self.num_classes
+
+			class_bndry_index = 0
+			for class_index in xrange( self.num_classes ):
+				n_class_samples = self.classsizes_list[ class_index ]
+				self.data_list[ class_index ] = \
+					self.data_matrix[ class_bndry_index : class_bndry_index + n_class_samples ]
+				self.imagenames_list[ class_index ] = \
+					self._contiguous_samplenames_list[ class_bndry_index : class_bndry_index + n_class_samples ]
+				self.samplegroupid_list[ class_index ] = \
+					self._contiguous_samplegroupid_list[ class_bndry_index : class_bndry_index + n_class_samples ]
+				self.samplesequenceid_list[ class_index ] = \
+					self._contiguous_samplesequenceid_list[ class_bndry_index : class_bndry_index + n_class_samples ]
+				if self._contiguous_ground_truths:
+					self.ground_truths[ class_index ] = \
+						self._contiguous_ground_truths[ class_bndry_index : class_bndry_index + n_class_samples ]
+
+				class_bndry_index += n_class_samples
+
+		else:
+			self.data_list = self.data_matrix
+			self.imagenames_list = self._contiguous_samplenames_list
+			self.samplegroupid_list = self._contiguous_samplegroupid_list 
+			self.samplesequenceid = self._contiguous_samplesequenceid_list
+			self.ground_truths = self._contiguous_ground_truths
 
 	#==============================================================
 	@classmethod
@@ -1565,12 +1846,6 @@ class FeatureSet( object ):
 		"""Create feature set from a file of files. Implemented in subclasses."""
 		raise NotImplementedError()
 	
-	#==============================================================
-	@classmethod
-	def NewFromSQLiteFile(cls, path):
-		"""Not implemented."""
-		raise NotImplementedError()
-
 	#==============================================================
 	def _ProcessSigCalculation( self,
 	                            imagenames_list,
@@ -1592,7 +1867,11 @@ class FeatureSet( object ):
 		are consistent with it.
 		In the base class, just returns the data_matrix
 		"""
-		self.contiguous_imagenames_list = self.imagenames_list
+		self._contiguous_samplenames_list = self.imagenames_list
+		self._contiguous_samplegroupid_list = self.samplegroupid_list
+		self._contiguous_samplesequenceid_list = self.samplesequenceid_list
+		self._contiguous_ground_truths = self.ground_truths
+
 		return (self.data_matrix)
 
 	#==============================================================
@@ -1628,7 +1907,6 @@ class FeatureSet( object ):
 				raise ValueError("Can't normalize test_set {0} with version {1} features against training_set {2} with version {3} features: Feature vector versions don't match.".format (
 					self.source_path, self.feature_vector_version, training_set.source_path, training_set.feature_vector_version ) )
 			
-
 			if not quiet:
 				print 'Normalizing set "{0}" ({1} images) against set "{2}" ({3} images)'.format(
 					self.source_path, self.num_images, training_set.source_path, training_set.num_images )
@@ -1643,8 +1921,60 @@ class FeatureSet( object ):
 
 	#==============================================================
 	def FeatureReduce( self, requested_features ):
-		"""Virtual method."""
-		raise NotImplementedError()
+		"""Returns a new FeatureSet that contains a subset of the features
+		arg requested_features is a tuple of features.
+		The returned FeatureSet will have features in the same order as they appear in
+		requested_features"""
+
+		# Check that self's faturelist contains all the features in requested_features
+
+		selfs_features = set( self.featurenames_list )
+		their_features = set( requested_features )
+		if not their_features <= selfs_features:
+			missing_features_from_req = their_features - selfs_features
+			err_str = error_banner + "Feature Reduction error:\n"
+			err_str += "The training set '{0}' is missing ".format( self.source_path )
+			err_str += "{0}/{1} features that were requested in the feature reduction list.".format(\
+					len( missing_features_from_req ), len( requested_features ) )
+			err_str += "\nDid you forget to convert the feature names into their modern counterparts?"
+
+			raise ValueError( err_str )
+
+		# copy everything but the signature data
+		from copy import deepcopy
+		# FIXME: no need to deepcopy the numpy feature matrix
+		# FIXME: maybe implement __deepcopy__ to avoid or have FeatureSet::CopyMetaData method?
+		reduced_ts = deepcopy( self )
+		reduced_ts.source_path = self.source_path + "(feature reduced)"
+		reduced_ts.name = self.name + "(feature reduced)"
+		new_num_features = len( requested_features )
+		reduced_ts.num_features = new_num_features
+		reduced_ts.featurenames_list = requested_features
+		reduced_ts.feature_maxima = np.empty (new_num_features)
+		reduced_ts.feature_minima = np.empty (new_num_features)
+
+		# copy features
+		reduced_ts.data_matrix = np.empty ([ reduced_ts.num_images, reduced_ts.num_features ], dtype='double')
+		new_index = 0
+		for featurename in requested_features:
+			old_index = self.featurenames_list.index( featurename )
+			reduced_ts.data_matrix[:,new_index] = self.data_matrix[:,old_index]
+			if self.feature_maxima is not None and self.feature_minima is not None:
+				reduced_ts.feature_maxima[ new_index ] = self.feature_maxima[ old_index ]
+				reduced_ts.feature_minima[ new_index ] = self.feature_minima[ old_index ]
+			new_index += 1
+
+		# regenerate the class views
+		reduced_ts._RebuildViews()
+
+		# if the feature vectors sizes changed then they are no longer standard feature vectors.
+		if self.feature_vector_version is not None:
+			if (reduced_ts.num_features != self.num_features):
+				reduced_ts.feature_vector_version = "{0}.0".format (self.feature_vector_version.split('.',1)[0])
+			else:
+				reduced_ts.feature_vector_version = self.feature_vector_version
+
+		return reduced_ts
 
 	#==============================================================
 	def AddSignature( self, signature, class_id_index = None ):
@@ -1652,13 +1982,317 @@ class FeatureSet( object ):
 		raise NotImplementedError()
 
 	#==============================================================
-	def ScrambleGroundTruths( self ):
-		"""Virtual method. Produce an instant negative control training set"""
+	def RemoveClass( self, class_index ):
+		"""Virtual method."""
+		raise NotImplementedError()
 
 	#==============================================================
-	def Split( self ):
-		"""Virtual method"""
+	def RemoveSampleGroup( self, samplegroup_index ):
+		"""Virtual method."""
 		raise NotImplementedError()
+
+	#==============================================================
+	def ScrambleGroundTruths( self ):
+		"""Virtual method. Produce an instant negative control training set"""
+		raise NotImplementedError()
+	#==============================================================
+	def NewFromSQLite( self ):
+		"""Virtual method."""
+		raise NotImplementedError()
+	#==============================================================
+	def NewFromHDF5( self ):
+		"""Virtual method."""
+		raise NotImplementedError()
+	#==============================================================
+	def Split( self, train_size=None, test_size=None, random_state=True,
+					balanced_classes=True, quiet=False ):
+		"""Used for dividing the current FeatureSet into two subsets used for classifier
+		cross-validation (i.e., training set and test set).
+
+		Analogous to Scikit-learn's cross_validation.train_test_split().
+
+		Parameters (stolen directly from scikit-learn's documentation):
+
+		test_size : float, int, or None (default is None)
+		            If float, should be between 0.0 and 1.0 and represent the proportion
+		            of the dataset to include in the test split (rounded up). If int, 
+		            represents the absolute number of test samples. If None, the value is
+		            automatically set to the complement of the train size. If train size 
+		            is also None, test size is set to 0.25.
+
+		train_size : float, int, or None (default is None)
+                If float, should be between 0.0 and 1.0 and represent the proportion
+		            of the dataset to include in the train split (rounded down). If int,
+		            represents the absolute number of train samples. If None, the value
+		            is automatically set to the complement of the test size.
+
+		random_state : int or RandomState
+                If true, generate a new random split. If int or Pseudo-random number
+								generator state used for random sampling. If value evaluates to false,
+								then do not randomize, but take the first samples in the order
+								the occur in the FeatureSet/class."""
+
+		# Step 1: Determine composition of split classes, i.e.,
+		# figure out how many images/samples goes into the train and test sets respectively.
+
+		if random_state:
+			from numpy.random import RandomState
+
+			if random_state is True:
+				from numpy.random import shuffle
+			elif type( random_state ) is RandomState:
+				shuffle = random_state.shuffle
+			elif type( random_state ) is int:
+				shuffle = RandomState( random_state ).shuffle
+			else:
+				raise ValueError( 'Arg random_state must be an instance of numpy.random.RandomState, an int, or the value True')
+
+		n_samplegroups_in_training_set = None
+		n_samplegroups_in_test_set = None
+		training_set_only = None
+
+		if test_size == None:
+			test_size = 0.25
+
+		# ------- BEGIN NESTED FUNCTION --------------------------------
+		def CalcTrainTestMembership( num_groups ):
+			"""Pulls train_size_test_size from outer scope"""
+
+			from math import ceil, floor
+			# TEST SET SIZE:
+			if type( test_size ) is int:
+				if test_size < 0 or test_size >= num_groups: # test sets of size 0 are allowed
+					raise ValueError( 'Please input test_size integer such that 0 <= test_size < number of images (or sample groups).' )
+				_n_samplegroups_in_test_set = test_size
+			elif type( test_size ) is float:
+				if test_size < 0 or test_size >= 1: # test sets of size 0 are allowed
+					raise ValueError( 'Please input test_size fraction such that 0 <= test_size < 1.' )
+				_n_samplegroups_in_test_set = int( ceil( num_groups * test_size ) )
+
+			# TRAIN SET SIZE
+			if type( train_size ) is int:
+				if train_size < 0 or train_size >= num_groups: # train sets of size 1 are allowed
+					raise ValueError( 'Please input train_size such that 0 < train_size < number of images (or sample groups).' )
+				_n_samplegroups_in_training_set = train_size
+			elif type( train_size ) is float:
+				if train_size < 0 or train_size >= 1: # train sets of size 1 are allowed
+					raise ValueError( 'Please input train_size such that 0 < train_size < 1.' )
+				_n_samplegroups_in_training_set = int( floor( self.num_images * train_size ) )
+				if _n_samplegroups_in_training_set <= 0:
+					raise ValueError( 'Please input train_size fraction such that there aren\'t 0 images (or sample groups) in training set' )
+			elif train_size == None:
+				_n_samplegroups_in_training_set = num_groups - _n_samplegroups_in_test_set
+
+			if( _n_samplegroups_in_training_set + _n_samplegroups_in_test_set ) > num_groups:
+					raise ValueError( 'User input specified train/test feature set membership contain more samples than are available.' )
+
+			return _n_samplegroups_in_training_set, _n_samplegroups_in_test_set
+		# ------- END NESTED FUNCTION --------------------------------
+
+		# When the user asks for train_size or test_size, it's not really samples, but sample
+		# groups that are implied.
+		# Figure out how many sample groups are in each class, or the feature set as a whole 
+		# if we're classless.
+
+		if not self.discrete: # If classless data:
+
+			if self.num_samples_per_group > 1:
+				num_groups = self.num_images / self.num_samples_per_group
+			else:
+				num_groups = self.num_images
+				 
+			n_samplegroups_in_training_set, n_samplegroups_in_test_set = CalcTrainTestMembership( num_groups )
+
+		else: # Discrete classes
+
+			# how many sample groups are in each class?
+			if self.num_samples_per_group > 1:
+				num_groups_per_class = [ num / self.num_samples_per_group for num in self.classsizes_list ]
+			else:
+				num_groups_per_class = self.classsizes_list
+
+			if balanced_classes:
+				smallest_class_size = min( num_groups_per_class )
+				n_samplegroups_in_training_set, n_samplegroups_in_test_set =\
+				                                 CalcTrainTestMembership( smallest_class_size )
+				n_samplegroups_in_training_set = [n_samplegroups_in_training_set] * self.num_classes
+				n_samplegroups_in_test_set = [n_samplegroups_in_test_set] * self.num_classes
+
+			else: # If not balanced classes, take proper train/test proportion from each class
+				
+				n_samplegroups_in_training_set = []
+				n_samplegroups_in_test_set = []
+				for class_index, num_groups_in_class in enumerate(num_groups_per_class):
+					try:
+						n_test_groups_in_class, n_train_groups_in_class = \
+						                            CalcTrainTestMembership( smallest_class_size )
+					except ValueError:
+						# If the class membership is such that you can't split it in 
+						# the proportion the user requested, just don't use it. 
+						n_samplegroups_in_training_set.append( False )
+						n_samplegroups_in_test_set.append( False )
+						errmsg = "Warning! Class {0} \"{1}\" didn't have enough images/samples groups {1}".\
+						  format( class_index, self.classnames_list[ class_index], num_groups_in_class )
+						errmsg += " to be split with user params train_set={0} and test_set={1}".\
+						  format( train_set, test_set )
+						print errmsg
+					else:
+						n_samplegroups_in_training_set.append( n_train_groups_in_class )
+						n_samplegroups_in_test_set.append( n_test_groups_in_class )
+				# If the user-specified train_set/test_set params resulted in no classes
+				# being big enough to make a FeatureSet
+				if not any( n_samplegroups_in_training_set ):
+					raise ValueError( "Class membership is such that it cannot be split into the proportion requested." )
+
+		# Step 2: Initialize the train_set and test_set based on composition generated
+		# from Step 1.
+
+		# ------- BEGIN NESTED FUNCTION --------------------------------
+		def ReturnPreInitializedFeatureSet( group_membership ):
+			"""per_class_group_membership is either a list of ints and/or bools for discrete
+			or a single int for continuous"""
+
+			new_fs = self.__class__()
+			if self.source_path:
+				new_fs.source_path = self.source_path + " (subset)"
+			if self.name:
+				new_fs.name = self.name + " (subset)"
+			if self.feature_vector_version:
+				new_fs.feature_vector_version = self.feature_vector_version
+			else:
+				new_fs.feature_vector_version = '2.0'
+
+			new_fs.featurenames_list = self.featurenames_list
+			new_fs.num_features = len( self.featurenames_list )
+			new_fs.num_samples_per_group = self.num_samples_per_group
+			new_fs.discrete = self.discrete
+
+			if self.discrete:
+				new_fs.num_classes = len( group_membership )
+				new_fs.classsizes_list = [ self.num_samples_per_group * num_groups \
+				      for num_groups in group_membership if num_groups ] 
+				new_fs.num_images = sum( new_fs.classsizes_list )
+				new_fs.classnames_list = [ self.classnames_list[i] \
+				      for i, num_groups in enumerate( group_membership ) if num_groups ]
+				if self.interpolation_coefficients:
+					new_fs.interpolation_coefficients = [ self.interpolation_coefficients[i] \
+				      for i, num_groups in enumerate( group_membership ) if num_groups ]
+
+			else: # if continuous
+				new_fs.num_images = self.num_samples_per_group * group_membership
+
+			new_fs._contiguous_samplenames_list = [None]* new_fs.num_images
+			new_fs._contiguous_samplegroupid_list = [None]* new_fs.num_images
+			new_fs._contiguous_samplesequenceid_list = [None]* new_fs.num_images
+			new_fs._contiguous_ground_truths = [None]* new_fs.num_images
+			new_fs.data_matrix = np.empty( (new_fs.num_images, new_fs.num_features ), dtype='double'  )
+
+			new_fs._RebuildViews()
+			return new_fs
+		# ------- END NESTED FUNCTION --------------------------------
+
+		training_set = ReturnPreInitializedFeatureSet( n_samplegroups_in_training_set )
+
+		if not training_set_only:
+			test_set = ReturnPreInitializedFeatureSet( n_samplegroups_in_test_set )
+			test_set_sample_index = 0
+
+		# Step 3: assemble training and test sets
+		train_set_sample_index = 0
+
+		# Would use Ordered Set, but not included until Python 2.7
+		def Unique( seq ):
+			seen = set()
+			seen_add = seen.add
+			return [ x for x in seq if not (x in seen or seen_add(x) ) ]
+
+		if self.discrete:
+			train_samp_idx = 0
+			if not training_set_only:
+				test_samp_idx = 0
+
+			for class_index, n_train_groups_inthisclass, n_test_groups_inthisclass in \
+				      zip( range(self.num_classes), n_samplegroups_in_training_set, n_samplegroups_in_test_set ):
+				if not n_train_groups_inthisclass:
+					# Remember, instead of a number of groups that should go in the class
+					# there might not have been enough groups in the class to include in the split
+					# Featureset, in which case group_membership will be False instead of an int
+					continue
+
+				samplegroup_lottery = Unique( self.samplegroupid_list[ class_index ] )
+
+				if random_state:
+					shuffle( samplegroup_lottery )
+
+				train_groups = sorted( samplegroup_lottery[ : n_train_groups_inthisclass ] )
+				training_set._contiguous_samplegroupid_list \
+								[ train_samp_idx : train_samp_idx + self.num_samples_per_group ] = \
+				  [ gid for gid in train_groups for i in xrange( self.num_samples_per_group ) ]
+				train_samp_idx += training_set.classsizes_list[ class_index ]
+
+				if not training_set_only:
+					test_groups = sorted( samplegroup_lottery[ \
+					  n_train_groups_inthisclass : n_train_groups_inthisclass + n_test_groups_inthisclass])
+					test_set._contiguous_samplegroupid_list \
+					  [ test_samp_idx : test_samp_idx + self.num_samples_per_group ] = \
+					    [ gid for gid in test_groups for i in xrange( self.num_samples_per_group ) ]
+					test_samp_idx += test_set.classsizes_list[ class_index ]
+
+		else: # if continuous
+			samplegroup_lottery = Unique( self.samplegroupid_list )
+			if random_state:
+				shuffle( samplegroup_lottery )
+			train_groups = sorted( samplegroup_lottery[ : n_samplegroups_in_training_set ] )
+			training_set._contiguous_samplegroupid_list[:] = [ gid for gid in train_groups \
+				            for i in xrange( self.num_samples_per_group ) ]
+
+			if not training_set_only:
+				# Remember, we don't just slice the group list to the end and take that as the test
+				# set, because there may be more groups than are needed to populate train/test sets.
+				test_groups = sorted( samplegroup_lottery[ \
+				  n_samplegroups_in_training_set  : n_samplegroups_in_training_set  + n_samplegroups_in_test_set ] )
+				test_set._contiguous_samplegroupid_list[:] = [ gid for gid in test_groups \
+			            for i in xrange( self.num_samples_per_group ) ]
+
+
+		# Finally, now that the groups have been chosen, copy features/metadata accordingly:
+		for i in xrange( 0, training_set.num_images, self.num_samples_per_group ):
+			groupid = training_set._contiguous_samplegroupid_list[i]
+			original_index = self._contiguous_samplegroupid_list.index( groupid )
+			np.copyto( training_set.data_matrix[ i : i + self.num_samples_per_group ],
+							self.data_matrix[ original_index : original_index + self.num_samples_per_group ] )
+			training_set._contiguous_samplenames_list[ i : i + self.num_samples_per_group ] =\
+			   self._contiguous_samplenames_list[ original_index : original_index +  self.num_samples_per_group]
+			training_set._contiguous_samplesequenceid_list[ i : i + self.num_samples_per_group ] =\
+			   self._contiguous_samplesequenceid_list[ original_index : original_index +  self.num_samples_per_group]
+			training_set._contiguous_ground_truths[ i : i + self.num_samples_per_group ] =\
+			   self._contiguous_ground_truths[ original_index : original_index +  self.num_samples_per_group ]
+
+		if not quiet:
+			training_set.Print()
+
+		if training_set_only:
+			training_set._RebuildViews()
+			return training_set
+
+		else:
+			for i in xrange( 0, test_set.num_images, self.num_samples_per_group ):
+				groupid = test_set._contiguous_samplegroupid_list[i]
+				original_index = self._contiguous_samplegroupid_list.index( groupid )
+				np.copyto( test_set.data_matrix[ i : i + self.num_samples_per_group ],
+							self.data_matrix[ original_index : original_index + self.num_samples_per_group ] )
+				test_set._contiguous_samplenames_list[ i : i + self.num_samples_per_group ] =\
+			    self._contiguous_samplenames_list[ original_index : original_index +  self.num_samples_per_group]
+				test_set._contiguous_samplesequenceid_list[ i : i + self.num_samples_per_group ] =\
+			    self._contiguous_samplesequenceid_list[ original_index : original_index +  self.num_samples_per_group]
+				test_set._contiguous_ground_truths[ i : i + self.num_samples_per_group ] =\
+			    self._contiguous_ground_truths[ original_index : original_index +  self.num_samples_per_group]
+
+			if not quiet:
+				test_set.Print()
+			test_set._RebuildViews()
+			return training_set, test_set
+
 
 # END FeatureSet class definition
 
@@ -1675,37 +2309,11 @@ class FeatureSet_Discrete( FeatureSet ):
 	which are single Numpy matrix into which all image descriptors are collected,
 	and a list of ground truth values associated with each image, respectively."""
 
-	num_classes = None
-
-	# For C classes, each with Ni images and M features:
-	# If the dataset is contiguous, C = 1
-
-	# A list of numpy matrices, length C (one Ni x M matrix for each class)
-	# The design is such because it's useful to be able to quickly collect feature statistics
-	# across an image class excluding the other classes
-	data_list = None
-
 	#==============================================================
-	def __init__( self, data_dict = None):
+	def __init__( self ):
 		"""constructor"""
-		self.data_list = []
-		self.contiguous_imagenames_list = []
-		
-		super( FeatureSet_Discrete, self ).__init__( data_dict )
 
-		if data_dict != None:
-			if "data_list" in data_dict:
-				self.data_list = data_dict[ 'data_list' ]
-
-	#==============================================================
-	def Print( self ):
-		"""Print basic info about this FeatureSet_Discrete"""
-		super( FeatureSet_Discrete, self ).Print()
-		class_index = 0
-		for class_name in self.classnames_list:
-			print '\tClass {0} "{1}": {2} images'.format(
-				class_index, class_name, len( self.imagenames_list[ class_index ] ) )
-			class_index += 1
+		super( FeatureSet_Discrete, self ).__init__( )
 
 	#==============================================================
 	def ContiguousDataMatrix( self ):
@@ -1748,7 +2356,10 @@ class FeatureSet_Discrete( FeatureSet ):
 
 		# In addition, keep a list of sample names corresponding to the 
 		# rows in the contiguous feature matrix
-		self.contiguous_imagenames_list = [ None ] * self.num_images
+		self._contiguous_samplenames_list = [ None ] * self.num_images
+		self._contiguous_samplegroupid_list = [ None ] * self.num_images
+		self._contiguous_samplesequenceid_list = [ None ] * self.num_images
+		self._contiguous_ground_truths = [ None ] * self.num_images
 
 		# We need to start copying at the first non-view class mat to the end.
 		for class_index in range (copy_class, len (self.data_list)):
@@ -1756,150 +2367,18 @@ class FeatureSet_Discrete( FeatureSet ):
 			nrows = self.data_list[class_index].shape[0]
 			self.data_matrix[copy_row : copy_row + nrows] = np.copy (self.data_list[class_index])
 			self.data_list[class_index] = self.data_matrix[copy_row : copy_row + nrows]
-			self.contiguous_imagenames_list[copy_row : copy_row + nrows] = self.imagenames_list[class_index]
+			self._contiguous_samplenames_list[copy_row : copy_row + nrows] = \
+			                                             self.imagenames_list[class_index]
+			self._contiguous_samplegroupid_list[copy_row : copy_row + nrows] = \
+			                                             self.samplegroupid_list[class_index]
+			self._contiguous_samplesequenceid_list[copy_row : copy_row + nrows] = \
+			                                             self.samplesequenceid_list[class_index]
+			self._contiguous_ground_truths[copy_row : copy_row + nrows] = \
+			                                             self.ground_truths[class_index]
 			copy_row += nrows
 
 		self.data_matrix_is_contiguous = True
 		return self.data_matrix
-
-	#==============================================================
-	@classmethod
-	def NewFromFitFile( cls, pathname ):
-		"""Helper function which reads in a c-chrm fit file, builds a dict with the info
-		Then calls the constructor and passes the dict as an argument"""
-
-		from StringIO import StringIO
-		
-		path, filename = os.path.split( pathname )
-		if filename == "":
-			raise ValueError( 'Invalid pathname: {0}'.format( pathname ) )
-
-		if not filename.endswith( ".fit" ):
-			raise ValueError( 'Not a .fit file: {0}'.format( pathname ) )
-
-		pickled_pathname = pathname + ".wndcharm"
-
-		import re
-
-		print "Creating Training Set from legacy WND-CHARM text file file {0}".format( pathname )
-		with open( pathname ) as fitfile:
-			data_dict = {}
-			data_dict[ 'source_path' ] = pathname
-			data_dict[ 'imagenames_list' ] = []
-			data_dict[ 'featurenames_list' ] = []
-			data_dict[ 'classnames_list' ] = []
-			data_dict[ 'classsizes_list' ] = []
-			data_dict[ 'imagenames_list' ] = []
-			data_dict[ 'data_matrix' ] = None
-			data_dict[ 'data_list' ] = []
-			tmp_string_data_list = []
-
-			name_line = False
-			line_num = 0
-			feature_count = 0
-			image_pathname = ""
-			num_classes = 0
-			feature_vector_version = ""
-			num_features = 0
-			num_images = 0
-
-			for line in fitfile:
-				if line_num is 0:
-					num_classes, feature_vector_version = re.compile('^(\S+)\s*(\S+)?$').match(line.strip()).group (1, 2)
-					if feature_vector_version is None: feature_vector_version = "1.0"
-					data_dict[ 'feature_vector_version' ] = feature_vector_version
-					num_classes = int( num_classes )
-					data_dict[ 'num_classes' ] = num_classes
-
-					# initialize list for string data
-					for i in range( num_classes ):
-						tmp_string_data_list.append( [] )
-						data_dict[ 'imagenames_list' ].append( [] )
-				elif line_num is 1:
-					num_features = int( line )
-					data_dict[ 'num_features' ] = num_features
-					if (feature_vector_version == "1.0"):
-						feature_vector_version = "1." + str(
-							feature_vector_minor_version_from_num_features_v1.get ( num_features,0 )
-						)
-						data_dict[ 'feature_vector_version' ] = feature_vector_version
-
-				elif line_num is 2:
-					data_dict[ 'num_images' ] = int( line )
-				elif line_num <= ( num_features + 2 ):
-					data_dict[ 'featurenames_list' ].append( wndcharm.FeatureNames.getFeatureInfoByName (line.strip()).name )
-					feature_count += 1
-				elif line_num == ( num_features + 3 ):
-					pass # skip a line
-				elif line_num <= ( num_features + 3 + num_classes ):
-					data_dict[ 'classnames_list' ].append( line.strip() )
-				else:
-					# Read in features
-					# Comes in alternating lines of data, then tile name
-					if not name_line:
-						# strip off the class identity value, which is the last in the array
-						split_line = line.strip().rsplit( " ", 1)
-						#print "class {0}".format( split_line[1] )
-						zero_indexed_class_id = int( split_line[1] ) - 1
-						tmp_string_data_list[ zero_indexed_class_id ].append( split_line[0] )
-						num_images += 1
-					else:
-						image_pathname = line.strip()
-						data_dict[ 'imagenames_list' ][ zero_indexed_class_id ].append( image_pathname )
-					name_line = not name_line
-				line_num += 1
-
-		string_data = "\n"
-		
-		data_matrix = np.empty ([ num_images, num_features ], dtype='double')
-		sample_row = 0
-		data_dict[ 'data_list' ] = [0] * num_classes
-		data_dict[ 'classsizes_list' ] = [0] * num_classes
-		for i in range( num_classes ):
-			# alt: nrows = len(tmp_string_data_list[i])
-			nrows = len(data_dict['imagenames_list'][i])
-			print 'generating matrix for class {0} "{1}" ({2} images)'.format(
-				i, data_dict['classnames_list'][i], nrows)
-			#print "{0}".format( tmp_string_data_list[i] )
-			data_matrix[sample_row : sample_row + nrows] = np.genfromtxt( StringIO( string_data.join( tmp_string_data_list[i] ) ) )
-			data_dict[ 'data_list' ][i] =  data_matrix[sample_row : sample_row + nrows]
-			data_dict[ 'classsizes_list' ][i] = nrows
-			sample_row += nrows
-		data_dict[ 'data_matrix' ] = data_matrix
-		data_dict[ 'interpolation_coefficients' ] = \
-		                CheckIfClassNamesAreInterpolatable( data_dict[ 'classnames_list' ] )
-
-		# Instantiate the class
-		the_training_set = cls( data_dict )
-		
-		print "Features version from .fit file: {0}".format (the_training_set.feature_vector_version)
-		return the_training_set
-
-	#==============================================================
-	@classmethod
-	def NewFromSignature( cls, signature, ts_name = "TestSet", ):
-		"""@brief Creates a new FeatureSet from a single signature"""
-
-		try:
-			signature.isvalid()
-		except:
-			raise
-
-		new_ts = cls()
-		new_ts.source_path = ts_name
-		new_ts.num_classes = 1
-		new_ts.num_features = len( signature.feature_values )
-		new_ts.feature_vector_version = signature.version
-		new_ts.num_images = 1
-		new_ts.classnames_list.append( "UNKNOWN" )
-		new_ts.classsizes_list.append( 1 )
-		new_ts.featurenames_list = signature.names
-		new_ts.imagenames_list.append( [ inputimage_filepath ] )
-		new_ts.data_matrix = np.array( signature.values )
-		data_list.append( new_ts.data_matrix[0:1] )
-		data_matrix_is_contiguous = True
-
-		return new_ts
 
 	#==============================================================
 	@classmethod
@@ -1913,6 +2392,8 @@ class FeatureSet_Discrete( FeatureSet ):
 		self.imagenames_list. Then call another function to farm out the calculation of each 
 		image's features to child processes (or at least it will in the future!)"""
 
+		#FIXME: add ability to specify tiling scheme
+		
 		print "Creating Training Set from directories of images {0}".format( top_level_dir_path )
 		if not( os.path.exists( top_level_dir_path ) ):
 			raise ValueError( 'Path "{0}" doesn\'t exist'.format( top_level_dir_path ) )
@@ -1966,6 +2447,8 @@ class FeatureSet_Discrete( FeatureSet ):
 		new_ts.classnames_list = classnames_list
 		#new_ts.imagenames_list = imagenames_list  #taken care of by AddSignatures()
 		new_ts.source_path = top_level_dir_path
+		from os.path import basename
+		new_ts.name = basename( top_level_dir_path )
 
 		# Uncomment this after the change to AddSignature is made:
 		# new_ts._InitializeFeatureMatrix()
@@ -1986,6 +2469,7 @@ class FeatureSet_Discrete( FeatureSet ):
 	def NewFromFileOfFiles( cls, fof_path, options = None ):
 		"""FIXME: add ability to specify which features are wanted if none have been calculated yet"""
 
+		#FIXME: Add ability to specify tiling scheme
 		if not os.path.exists( fof_path ):
 			raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( fof_path ) )
 
@@ -2071,69 +2555,6 @@ class FeatureSet_Discrete( FeatureSet ):
 					sig.WriteFeaturesToASCIISigFile()
 				self.AddSignature( sig, class_id )
 			class_id += 1
-
-	#==============================================================
-	def FeatureReduce( self, requested_features ):
-		"""Returns a new FeatureSet that contains a subset of the features
-		arg requested_features is a tuple of features.
-		The returned FeatureSet will have features in the same order as they appear in
-		requested_features"""
-
-		# FIXME: Roll this function into parent class!!!!!!!!!
-
-		# Check that self's faturelist contains all the features in requested_features
-
-		selfs_features = set( self.featurenames_list )
-		their_features = set( requested_features )
-		if not their_features <= selfs_features:
-			missing_features_from_req = their_features - selfs_features
-			err_str = error_banner + "Feature Reduction error:\n"
-			err_str += "The training set '{0}' is missing ".format( self.source_path )
-			err_str += "{0}/{1} features that were requested in the feature reduction list.".format(\
-					len( missing_features_from_req ), len( requested_features ) )
-			err_str += "\nDid you forget to convert the feature names into their modern counterparts?"
-
-			raise ValueError( err_str )
-
-		# copy everything but the signature data
-		reduced_ts = FeatureSet_Discrete()
-		reduced_ts.source_path = self.source_path + "(feature reduced)"
-		reduced_ts.num_classes = self.num_classes
-		assert reduced_ts.num_classes == len( self.data_list )
-		new_num_features = len( requested_features )
-		reduced_ts.num_features = new_num_features
-		reduced_ts.num_images = self.num_images
-		reduced_ts.imagenames_list = self.imagenames_list[:] # [:] = deepcopy
-		reduced_ts.classnames_list = self.classnames_list[:]
-		reduced_ts.classsizes_list = self.classsizes_list[:]
-		reduced_ts.featurenames_list = requested_features[:]
-		if self.interpolation_coefficients:
-			reduced_ts.interpolation_coefficients = self.interpolation_coefficients[:]
-		reduced_ts.feature_maxima = np.empty (new_num_features)
-		reduced_ts.feature_minima = np.empty (new_num_features)
-
-		# copy features
-		reduced_ts.data_matrix = np.empty ([ reduced_ts.num_images, reduced_ts.num_features ], dtype='double')
-		new_index = 0
-		for featurename in requested_features:
-			old_index = self.featurenames_list.index( featurename )
-			reduced_ts.data_matrix[:,new_index] = self.data_matrix[:,old_index]
-			if self.feature_maxima is not None and self.feature_minima is not None:
-				reduced_ts.feature_maxima[ new_index ] = self.feature_maxima[ old_index ]
-				reduced_ts.feature_minima[ new_index ] = self.feature_minima[ old_index ]
-			new_index += 1
-
-		# regenerate the class views
-		reduced_ts._RegenerateClassViews()
-		
-		# if the feature vectors sizes changed then they are no longer standard feature vectors.
-		if self.feature_vector_version is not None:
-			if (reduced_ts.num_features != self.num_features):
-				reduced_ts.feature_vector_version = "{0}.0".format (self.feature_vector_version.split('.',1)[0])
-			else:
-				reduced_ts.feature_vector_version = self.feature_vector_version
-
-		return reduced_ts
 
 	#==============================================================
 	def AddSignature( self, signature, class_id_index ):
@@ -2257,6 +2678,7 @@ class FeatureSet_Discrete( FeatureSet ):
 
 		return new_ts
 
+<<<<<<< HEAD
 	#==============================================================
 	def Split( self, randomize=True, balanced_classes=True, training_set_fraction=None,\
 	           i=None, j=None, training_set_only=False, quiet=False ):
@@ -2494,6 +2916,8 @@ Y 	Y 	R 	R 	N 	balanced training and test sets, as above but with 75-25 default 
 			self.data_list[class_index] = self.data_matrix[sample_row : sample_row + nrows]
 			sample_row += nrows
 
+=======
+>>>>>>> Major refactor of FeatureSet, ArtificialFeatureSets, unittests
 # END FeatureSet_Discrete class definition
 
 
@@ -2510,122 +2934,12 @@ class FeatureSet_Continuous( FeatureSet ):
 	which are single Numpy matrix into which all image descriptors are collected,
 	and a list of ground truth values associated with each image, respectively."""
 
-	#: Ground truth numerical values accociated with each image
-	ground_truths = None
 
 	#==============================================================
 	def __init__( self, data_dict = None ):
 
 		# call parent constructor
-		super( FeatureSet_Continuous, self ).__init__( data_dict )
-
-		self.ground_truths = []
-
-		if data_dict != None:
-			if "data_matrix" in data_dict:
-				self.data_matrix = data_dict[ 'data_matrix' ]
-			if "ground_truths" in data_dict:
-				self.ground_truths = data_dict[ 'ground_truths' ]
-
-	#==============================================================
-	# FIXME: Implement!
-	#def __deepcopy__(self):	
-	#	pass
-
-	#==============================================================
-	def Print( self ):
-		"""Calls parent class method"""
-		super( FeatureSet_Continuous, self ).Print()
-
-	#==============================================================
-	@classmethod
-	def NewFromFitFile( cls, pathname ):
-		"""Construct a FeatureSet_Continuous from a ".fit" training set file created by 
-		the C++ implentation of WND-CHARM."""
-
-		path, filename = os.path.split( pathname )
-		if filename == "":
-			raise ValueError( 'Invalid pathname: {0}'.format( pathname ) )
-
-		if not filename.endswith( ".fit" ):
-			raise ValueError( 'Not a .fit file: {0}'.format( pathname ) )
-
-		pickled_pathname = pathname + ".wndcharm"
-
-		print "Creating Continuous Training Set from legacy WND-CHARM text file file {0}".format( pathname )
-		with open( pathname ) as fitfile:
-			new_ts = cls()
-
-			new_ts.source_path = pathname
-			from os.path import basename
-			new_ts.name = basename( pathname )
-			tmp_string_data_list = []
-
-			name_line = False
-			line_num = 0
-			feature_count = 0
-			image_pathname = ""
-			num_classes = 0
-			feature_vector_version = ""
-			num_features = 0
-
-			import re
-			p = re.compile('^(\S+)\s*(\S+)?$')
-
-			for line in fitfile:
-				if line_num is 0:
-					num_classes, new_ts.feature_vector_version = p.match(line.strip()).group (1, 2)
-					if new_ts.feature_vector_version is None: new_ts.feature_vector_version = "1.0"
-					num_classes = int( num_classes )
-
-				elif line_num is 1:
-					num_features = int( line )
-					new_ts.num_features = num_features
-					if (new_ts.feature_vector_version == "1.0"):
-						new_ts.feature_vector_version = "1." + str(
-							feature_vector_minor_version_from_num_features_v1.get ( len (signatures.values),0 )
-						)
-				elif line_num is 2:
-					new_ts.num_images = int( line )
-				elif line_num <= ( num_features + 2 ):
-					new_ts.featurenames_list.append( line.strip() )
-					feature_count += 1
-				elif line_num == ( num_features + 3 ):
-					pass # skip a line
-				elif line_num <= ( num_features + 3 + num_classes ):
-					line = line.strip()
-					new_ts.classnames_list.append( line )
-					new_ts.classsizes_list.append( 0 )
-					m = re.search( r'(\d*\.?\d+)', line )
-					if m:
-						new_ts.interpolation_coefficients.append( float( m.group(1) ) )
-					else:
-						raise ValueError( "Can't create continuous training set, one of the class names " \
-								"'{0}' is not able to be interpreted as a number.".format( line ) )
-				else:
-					# Read in features
-					# Comes in alternating lines of data, then tile name
-					if not name_line:
-						# strip off the class identity value, which is the last in the array
-						split_line = line.strip().rsplit( " ", 1)
-						zero_indexed_class_id = int( split_line[1] ) - 1
-						tmp_string_data_list.append( split_line[0] )
-						new_ts.ground_truths.append( new_ts.interpolation_coefficients[ zero_indexed_class_id ] )
-						new_ts.classsizes_list[ zero_indexed_class_id ] += 1
-					else:
-						image_pathname = line.strip()
-						new_ts.imagenames_list.append( image_pathname )
-					name_line = not name_line
-				line_num += 1
-
-		string_data = "\n"
-		print "parsing text into a numpy matrix"
-
-		from StringIO import StringIO
-		new_ts.data_matrix = np.genfromtxt( StringIO( string_data.join( tmp_string_data_list ) ) )
-		print "Features version from .fit file: {0}".format (new_ts.feature_vector_version)
-
-		return new_ts
+		super( FeatureSet_Continuous, self ).__init__()
 
 	#==============================================================
 	@classmethod
@@ -2741,78 +3055,6 @@ class FeatureSet_Continuous( FeatureSet ):
 				self.AddSignature( sig, class_id )
 			class_id += 1
 			
-
-	#==============================================================
-	def FeatureReduce( self, requested_features ):
-		"""Returns a new FeatureSet that contains a subset of the features
-		arg requested_features is a tuple of features
-		the returned FeatureSet will have features in the same order as they appear in
-		     requested_features"""
-
-		# FIXME: Roll this function into parent class
-		# Check that self's faturelist contains all the features in requested_features
-
-		selfs_features = set( self.featurenames_list )
-		their_features = set( requested_features )
-		if not their_features <= selfs_features:
-			missing_features_from_req = their_features - selfs_features
-			err_str = error_banner + "Feature Reduction error:\n"
-			err_str += "The training set '{0}' is missing ".format( self.source_path )
-			err_str += "{0}/{1} features that were requested in the feature reduction list.".format(\
-					len( missing_features_from_req ), len( requested_features ) )
-			err_str += "\nDid you forget to convert the feature names from the C++ implementation style into their modern counterparts using FeatureNames.getGroupByName()?"
-
-			raise ValueError( err_str )
-
-		# copy everything but the signature data
-		reduced_ts = FeatureSet_Continuous()
-		new_num_features = len( requested_features )
-		reduced_ts.source_path = self.source_path
-		reduced_ts.name = self.name + "(Reduced {0} features)".format( new_num_features )
-		reduced_ts.num_features = new_num_features
-		reduced_ts.num_images = self.num_images
-		reduced_ts.imagenames_list = self.imagenames_list[:] # [:] = deepcopy
-		reduced_ts.featurenames_list = requested_features[:]
-		if self.interpolation_coefficients != None and len( self.interpolation_coefficients ) != 0:
-			reduced_ts.interpolation_coefficients= self.interpolation_coefficients[:]
-		if self.classnames_list:
-			reduced_ts.classnames_list = self.classnames_list[:]
-		if self.classsizes_list:
-			reduced_ts.classsizes_list = self.classsizes_list[:]
-		if self.ground_truths:
-			reduced_ts.ground_truths = self.ground_truths[:]
-		reduced_ts.feature_maxima = np.empty (new_num_features)
-		reduced_ts.feature_minima = np.empty (new_num_features)
-
-		# copy feature minima/maxima
-		# Have to explicitly check for "is not None" due to exception:
-		# ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()
-		if (not self.feature_maxima == None) and (not self.feature_minima == None):
-			new_index = 0
-			for featurename in requested_features:
-				old_index = self.featurenames_list.index( featurename )
-				reduced_ts.feature_maxima[ new_index ] = self.feature_maxima[ old_index ]
-				reduced_ts.feature_minima[ new_index ] = self.feature_minima[ old_index ]
-				new_index += 1
-
-		# feature reduce
-		num_imgs_in_class, num_old_features = self.data_matrix.shape
-		# NB: double parentheses required when calling numpy.zeros(), i guess it's a tuple thing
-		reduced_ts.data_matrix = np.zeros( ( num_imgs_in_class, new_num_features ) )
-		new_column_index = 0
-		for featurename in requested_features:
-			fat_column_index = self.featurenames_list.index( featurename )
-			reduced_ts.data_matrix[:,new_column_index] = self.data_matrix[:,fat_column_index]
-			new_column_index += 1
-
-		# if the feature vectors sizes changed then they are no longer standard feature vectors.
-		if (reduced_ts.num_features != self.num_features):
-			reduced_ts.feature_vector_version = "{0}.0".format (self.feature_vector_version.split('.',1)[0])
-		else:
-			reduced_ts.feature_vector_version = self.feature_vector_version
-
-		return reduced_ts
-
 	#==============================================================
 	def AddSignature( self, signature, ground_truth = None ):
 		"""@argument signature is a valid signature
@@ -2847,173 +3089,6 @@ class FeatureSet_Continuous( FeatureSet ):
 		import random
 		random.shuffle( self.ground_truths )
 		self.source_path += " (scrambled)"
-
-	#==============================================================
-	def Split( self, randomize=True, training_set_fraction=0.75,\
-	           i=None, j=None, training_set_only=False, leave_out=None, quiet=False ):
-		"""Used for dividing the current FeatureSet into two subsets used for classifier
-		cross-validation (i.e., training set and test set).
-		
-		Number of images in training and test sets are allocated by i and j, respectively
-		Otherwise they are given by training_set fraction.
-
-		"leave_out" is a tuple containing the indices of the samples to go into test_set.
-		"""
-
-		# FIXME: use np.random.shuffle(arr) - shuffles first dimension (rows) of multi-D numpy, so images in our case.
-		# see also http://stackoverflow.com/questions/4601373/better-way-to-shuffle-two-numpy-arrays-in-unison
-		# for shuffling multiple arrays in unison
-		# 		def shuffle_in_unison(a, b):
-		# 			rng_state = numpy.random.get_state()
-		# 			numpy.random.shuffle(a)
-		# 			numpy.random.set_state(rng_state)
-		# 			numpy.random.shuffle(b)
-		# or, using a permuted vector as an index
-		#	p = numpy.random.permuation(len(a))
-		#	return a[p], b[p]
-		# Figure out how many images will be in which class
-
-		if leave_out:
-			# FIXME: check to see if specified indices are valid
-			try:
-				num_images_in_test_set = len( leave_out )
-			except TypeError:
-				raise ValueError( 'The argument leave_out must be an iterable containing the sample index/indices.')
-			num_images_in_training_set = self.num_images - num_images_in_test_set
-			randomize = False
-		else:
-			if i and j:
-				if (i + j) > self.num_images:
-					raise ValueError( 'Values for i and j cannot add up to more than total number of images in parent set ({0})'.format( self.num_images ) )
-
-			if i:
-				if i <= 0 or i > self.num_images:
-					raise ValueError( 'i must be greater than zero and less than total number of images'\
-							+ ' in parent set ({0})'.format( self.num_images ) )
-				num_images_in_training_set = i
-			else:
-				if training_set_fraction <= 0 or training_set_fraction >= 1:
-					raise ValueError( "Training set fraction must be a number between 0 and 1" )
-				num_images_in_training_set = int( round( training_set_fraction * self.num_images ) )
-
-			if j:
-				if j <= 0:
-					training_set_only = True
-				elif j > ( self.num_images - num_images_in_training_set ):
-					raise ValueError( 'j must be less than total number of images in parent set ({0}) minus # images in training set ({1})'.format( self.num_images, num_images_in_training_set ) )
-				training_set_only = False
-				num_images_in_test_set = j
-			else:
-				num_images_in_test_set = self.num_images - num_images_in_training_set
-
-
-		# Say what we're gonna do:
-		if not quiet:
-			if randomize:
-				out_str = 'Randomly splitting '
-			else:
-				out_str = 'Splitting '
-			out_str += '{0} "{1}" ({2} images) into '.format( type( self ).__name__, \
-				 self.source_path, self.num_images )
-			out_str += "training set ({0} images)".format( num_images_in_training_set )
-			if not training_set_only:
-				out_str += " and test set ({0} images)".format( num_images_in_test_set )
-			if leave_out:
-				out_str += ', with test set containing sample(s) ' + str( leave_out )
-			print out_str
-
-		# initialize everything
-		training_set = None
-		test_set = None
-		training_set = self.__class__()
-		training_set.feature_vector_version = self.feature_vector_version
-		training_set.num_images = num_images_in_training_set
-		training_set.featurenames_list = self.featurenames_list
-		# Who are you going to believe, me, or your own eyes?!?!
-		#training_set.num_features = len( self.featurenames_list )
-		# sometimes we augment the data matrix for linear algebra purposes and therefore 
-		# self.num_features may not match len( self.featurenames_list )
-		training_set.num_features = self.num_features
-		training_set.imagenames_list = []
-		training_set.source_path = self.source_path
-		training_set.name = self.name + " (subset {0} samples)".format( num_images_in_training_set )
-		if self.classnames_list:
-			training_set.classnames_list = self.classnames_list
-		if self.classsizes_list:
-			training_set.classsizes_list = [ 0 ] * self.num_classes
-		if self.interpolation_coefficients != None and len( self.interpolation_coefficients ) != 0:
-			training_set.interpolation_coefficients = self.interpolation_coefficients
-	
-		if not training_set_only:
-			test_set = self.__class__()
-			test_set.feature_vector_version = self.feature_vector_version
-			test_set.num_images = num_images_in_test_set
-			test_set.featurenames_list = self.featurenames_list
-			# see note above re: training_set.num_features
-			#test_set.num_features = len( self.featurenames_list )
-			test_set.num_features = self.num_features
-			test_set.imagenames_list = []
-			test_set.source_path = self.source_path
-			test_set.name = self.name + " (subset {0} samples)".format( num_images_in_test_set )
-			if self.classnames_list:
-				test_set.classnames_list = self.classnames_list
-			if self.classsizes_list:
-				test_set.classsizes_list = [ 0 ] * self.num_classes
-			if self.interpolation_coefficients != None and len( self.interpolation_coefficients ) != 0:
-				test_set.interpolation_coefficients = self.interpolation_coefficients
-
-		image_lottery = range( self.num_images )
-
-		if leave_out:
-			test_image_lottery = list( leave_out )
-			for sample_index in leave_out:
-				del image_lottery[ sample_index ]
-			train_image_lottery = image_lottery
-		else:
-			if randomize:
-				import random
-				random.shuffle( image_lottery )
-			train_image_lottery = image_lottery[:num_images_in_training_set]
-			test_image_lottery = image_lottery[num_images_in_training_set: \
-		                                   num_images_in_training_set + num_images_in_test_set ]
-
-		# build the training and test sets such that their ground truths are sorted in 
-		# ascending order.
-		sort_func = lambda A, B: cmp( self.ground_truths[A], self.ground_truths[B] ) if self.ground_truths[A] != self.ground_truths[B] else cmp( self.imagenames_list[A], self.imagenames_list[B] )
-		# I guess we really don't have to sort the training set, do we?
-		# train_image_lottery = sorted( train_image_lottery, sort_func )
-		test_image_lottery = sorted( test_image_lottery, sort_func )
-
-		# Training Set first
-		train_image_count = 0
-		training_matrix = np.empty( ( num_images_in_training_set, self.num_features ) ) 
-		while train_image_count < num_images_in_training_set:
-			image_index = train_image_lottery[ train_image_count ]
-			image_name = self.imagenames_list[ image_index ]
-			training_set.imagenames_list.append( image_name )
-			training_matrix[ train_image_count ] = self.data_matrix[ image_index ]
-			training_set.ground_truths.append( self.ground_truths[ image_index ] )
-			train_image_count += 1
-		training_set.data_matrix = training_matrix
-
-		# Now Test Set, if applicable
-		test_matrix = None
-		if not training_set_only:
-			test_matrix = np.empty( ( num_images_in_test_set, self.num_features ) )
-			test_image_count = 0
-			while test_image_count < num_images_in_test_set:
-				image_index = test_image_lottery[ test_image_count ]
-				image_name = self.imagenames_list[ image_index ]
-				test_set.imagenames_list.append( image_name )
-				test_matrix[ test_image_count ] = self.data_matrix[ image_index ]
-				test_set.ground_truths.append( self.ground_truths[ image_index ] )
-				test_image_count += 1
-			test_set.data_matrix = test_matrix
-		
-			return training_set, test_set
-
-		# Would have returned already if not training_set_only
-		return training_set
 
 # END FeatureSet_Continuous class definition
 
@@ -3913,6 +3988,9 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		if training_set and test_set:
 			if training_set.featurenames_list != training_set.featurenames_list:
 				raise ValueError("Can't classify, features don't match. Try a FeatureReduce()" )
+		# Check feature_weights
+		if training_set.featurenames_list != feature_weights.names:
+			raise ValueError("Can't classify, features don't match. Try a FeatureReduce()" )
 
 		# Least squares regression requires a featres matrix augmented with ones
 		# signifying the constant, i.e., the y-intercept
@@ -3977,7 +4055,7 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		intermediate_train_set = augmented_train_set
 		for test_image_index in range( augmented_test_set.num_images ):
 			if leave_one_out:
-				intermediate_train_set = augmented_train_set.Split( training_set_only=True,
+				intermediate_train_set = augmented_train_set.Split( test_size=0,
 				                            leave_out=(test_image_index,), quiet=True )
 			one_image_features = augmented_test_set.data_matrix[ test_image_index,: ]
 			result = ContinuousImageClassificationResult._LeastSquaresRegression(
@@ -4141,6 +4219,61 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 			line_item += "{0:.4f}\t".format( result.spearman_p_value ) # ASP
 			print line_item
 
+	#=====================================================================
+	@classmethod
+	def NewShuffleSplit( cls, feature_set, n_iter=5, name=None, features_size=0.15,
+		                   train_size=None, test_size=None, random_state=None, classifier=None,
+		                   quiet=False):
+		"""args train_size, test_size, and random_state are all passed through to Split()
+		feature_size if a float is feature usage fraction, if in is top n features.
+		classifier does nothing right now, since least squares with leave one out is broken."""
+
+		experiment = cls( training_set=feature_set, name=name )
+		if isinstance( features_size, float ):
+			if features_size < 0 or features_size > 1.0:
+				raise ValueError('Arg "features_size" must be on interval [0,1] if a float.')
+			num_features = int( features_size * feature_set.num_features )
+		elif isinstance( features_size, int ):
+			if features_size < 0 or features_size > feature_set.num_features:
+				raise ValueError( 'must specify num_features or feature_usage_fraction in kwargs')
+			num_features = features_size
+		else:
+			raise ValueError( 'Arg "features_size" must be valid float or int.' )
+
+		if not quiet:
+				print "using top "+str (num_features)+" features"
+
+		for split_index in range( n_iter ):
+
+			train_set, test_set = feature_set.Split( train_size, test_size, random_state, quiet=quiet )
+			train_set.Normalize( quiet=quiet )
+			
+			if feature_set.discrete:
+				weights = \
+				  FisherFeatureWeights.NewFromFeatureSet( train_set ).Threshold( num_features )
+			else:	
+				weights = \
+				  ContinuousFeatureWeights.NewFromFeatureSet( train_set ).Threshold( num_features )
+
+			reduced_train_set = train_set.FeatureReduce( weights.names )
+			reduced_test_set = test_set.FeatureReduce( weights.names )
+			reduced_test_set.Normalize( reduced_train_set, quiet=quiet )
+
+			if feature_set.discrete:
+				batch_result = DiscreteBatchClassificationResult.New( reduced_train_set, \
+		         reduced_test_set, weights, batch_number=split_index, quiet=quiet )
+			else:
+				batch_result = ContinuousBatchClassificationResult.New(
+							reduced_train_set, weights, batch_number=split_index, quiet=quiet )
+
+			# FIXME: least-squares classifier with leave one out is broken, 
+			# Put back in when the feature set mask functionality is implemented.
+			#	batch_result = ContinuousBatchClassificationResult.NewLeastSquaresRegression(
+			#				reduced_training_set, reduced_test_set, weights, batch_number=split_index, quiet=quiet )
+
+			experiment.individual_results.append( batch_result )
+
+		return experiment
 
 #============================================================================
 class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
@@ -4155,44 +4288,6 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 	confusion_matrix = None
 	average_similarity_matrix = None
 	average_class_probability_matrix = None
-	#=====================================================================
-	@classmethod
-	def NewShuffleSplit( cls, full_training_set, n_iter=5, feature_usage_fraction=0.15,
-                     name=None, num_features=None, training_set_fraction=0.75, train_size=None, 
-										 test_size=None, quiet=False):
-
-		experiment = cls( training_set=full_training_set, name=name )
-		if feature_usage_fraction:
-			if feature_usage_fraction < 0 or feature_usage_fraction > 1.0:
-				raise ValueError('Feature usage fraction must be on interval [0,1]')
-			num_features = int( feature_usage_fraction * full_training_set.num_features )
-
-		if not num_features:
-				raise ValueError( 'must specify num_features or feature_usage_fraction in kwargs')
-
-		if not quiet:
-				print "using top "+str (num_features)+" features"
-
-		for split_index in range( n_iter ):
-
-			training_set, test_set = full_training_set.Split(
-                                training_set_fraction=training_set_fraction, i=train_size, j=test_size, quiet=quiet)
-			training_set.Normalize( quiet=quiet )
-			test_set.Normalize( training_set, quiet=quiet )
-
-			fisher_weights = FisherFeatureWeights.NewFromFeatureSet( training_set )
-			fisher_weights = fisher_weights.Threshold( num_features )
-
-			reduced_test_set = test_set.FeatureReduce( fisher_weights.names )
-			reduced_training_set = training_set.FeatureReduce( fisher_weights.names )
-
-			batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, \
-		         reduced_test_set, fisher_weights, batch_number=split_index, quiet=quiet )
-
-			experiment.individual_results.append( batch_result )
-
-		return experiment
-
 
 	#=====================================================================
 	def GenerateStats( self ):
@@ -4474,58 +4569,6 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 	def __init__( self, training_set=None, test_set=None, feature_weights=None, name=None ):
 		super( ContinuousClassificationExperimentResult, self ).__init__(
 				training_set, test_set, feature_weights, name )
-
-	#=====================================================================
-	@classmethod
-	def NewShuffleSplit( cls, full_training_set, n_iter=5, feature_usage_fraction=0.15,
-                     name=None, num_features=None, training_set_fraction=0.75, train_size=None,
-										 test_size=None, classifier=None, quiet=False):
-		"""Note: classifier is Least Squares Regression"""
-
-		experiment = cls( training_set=full_training_set, name=name )
-		if feature_usage_fraction:
-			if feature_usage_fraction < 0 or feature_usage_fraction > 1.0:
-				raise ValueError('Feature usage fraction must be on interval [0,1]')
-			num_features = int( feature_usage_fraction * full_training_set.num_features )
-
-		if not num_features:
-				raise ValueError( 'must specify num_features or feature_usage_fraction in kwargs')
-
-		if not quiet:
-				print "using top "+str (num_features)+" features"
-
-		if classifier != None and classifier != 'lstsq' and classifier != "voting":
-				raise ValueError( 'Unrecognized classifier: "{0}", choose "lstsq" or "voting".'\
-								.format( classifier ) )
-
-		if not quiet:
-				if classifier == None or classifier == 'lstsq':
-						print "Using Least Squares Regression classifier"
-				elif classifier == "voting":
-						print "Using Voting Regression Classifier"
-
-		for split_index in range( n_iter ):
-
-			training_set, test_set = full_training_set.Split( i=train_size, j=test_size, quiet=quiet )
-			training_set.Normalize( quiet=quiet )
-			test_set.Normalize( training_set, quiet=quiet)
-
-			weights = ContinuousFeatureWeights.NewFromFeatureSet( training_set )
-			weights = weights.Threshold( num_features )
-
-			reduced_test_set = test_set.FeatureReduce( weights.names )
-			reduced_training_set = training_set.FeatureReduce( weights.names )
-
-			if classifier == 'voting':
-				batch_result = ContinuousBatchClassificationResult.New(
-							reduced_training_set, weights, batch_number=split_index, quiet=quiet )
-			else:
-				batch_result = ContinuousBatchClassificationResult.NewLeastSquaresRegression(
-							reduced_training_set, reduced_test_set, weights, batch_number=split_index, quiet=quiet )
-
-			experiment.individual_results.append( batch_result )
-
-		return experiment
 
 	#=====================================================================
 	def GenerateStats( self ):
@@ -4941,11 +4984,11 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
 			tl.set_color('b')
 
 		self.main_axes.annotate( 'min R={0:.3f} @ {1}'.format(min_ls_yval, optimal_num_feats_ls),
-		                  color='b',
-		                  xy=( optimal_num_feats_ls, min_ls_yval ),
-		                  xytext=( optimal_num_feats_ls, 0.8 * _max ),
-		                  arrowprops=dict(facecolor='black', shrink=0.05),
-		                  horizontalalignment='right' )
+		color='b',
+		xy=( optimal_num_feats_ls, min_ls_yval ),
+		xytext=( optimal_num_feats_ls, 0.8 * _max ),
+		arrowprops=dict(facecolor='black', shrink=0.05),
+		horizontalalignment='right' )
 
 
 		# Plot Voting method data
@@ -4957,11 +5000,11 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
 			tl.set_color('r')
 
 		self.timing_axes.annotate( 'min R={0:.3f} @ {1}'.format(min_voting_yval, optimal_num_feats_voting),
-		                  color='r',
-		                  xy=( optimal_num_feats_voting, min_voting_yval ),
-		                  xytext=( optimal_num_feats_voting, 0.6 * _max ),
-		                  arrowprops=dict(facecolor='black', shrink=0.05),
-		                  horizontalalignment='right' )
+		color='r',
+		xy=( optimal_num_feats_voting, min_voting_yval ),
+		xytext=( optimal_num_feats_voting, 0.6 * _max ),
+		arrowprops=dict(facecolor='black', shrink=0.05),
+		horizontalalignment='right' )
 
 #============================================================================
 class Dendrogram( object ):

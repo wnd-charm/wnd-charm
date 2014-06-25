@@ -40,6 +40,7 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 	"""Test various functions from the DiscreteClassificationExperimentResult class."""
 
 	# ---------------------------------------------------------------------
+	@unittest.expectedFailure
 	def test_NewShuffleSplitLeastSquares(self):
 		"""CONTINUOUS SHUFFLE SPLIT LEAST SQUARES"""
 
@@ -75,8 +76,11 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 	def test_NewShuffleSplitVoting(self):
 		"""CONTINUOUS SHUFFLE SPLIT VOTING METHOD"""
 
+		from numpy.random import RandomState
+		prng = RandomState(42)
+
 		kwargs = { 'n_iter' : 5, 'name' : "Continuous Shuffle Split Voting-Regression POSITIVE CONTROL",
-               'classifier' : 'voting', 'quiet' : True }
+		    'classifier' : 'voting', 'random_state' : prng, 'quiet' : True }
 
 		fs = CreateArtificialFeatureSet_Continuous()
 		exp = ContinuousClassificationExperimentResult.NewShuffleSplit( fs, **kwargs )
@@ -90,7 +94,7 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 		# Negative control - take the bottom quintile of the artificial features
 		# which ARE functions of ground truth but should score low on linear correlation,
 		# e.g., sin, x^2, etc.
-		max_allowable_pearson_coeff = 0.3
+		max_allowable_pearson_coeff = 0.2
 		fs = CreateArtificialFeatureSet_Continuous( num_features_per_signal_type = 5 )
 		fs.Normalize()
 		all_features = ContinuousFeatureWeights.NewFromFeatureSet(fs)
@@ -98,7 +102,7 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 		crappy_features = all_features.Slice( quintile*4, len( all_features ) )
 		crap_featureset = fs.FeatureReduce( crappy_features.names )
 		kwargs = { 'n_iter' : 5, 'name' : "Continuous Shuffle Split Voting-Regression NEGATIVE CONTROL",
-						'classifier' : 'voting', 'quiet' : True  }
+						'classifier' : 'voting', 'random_state' : prng, 'quiet' : False  }
 		exp = ContinuousClassificationExperimentResult.NewShuffleSplit( crap_featureset, **kwargs )
 		exp.GenerateStats()
 		self.assertAlmostEqual( exp.pearson_coeff, 0.0, delta=max_allowable_pearson_coeff )

@@ -30,7 +30,7 @@ signals[ 'logarithmic' ] = logarithmic
 
 def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samples=100,
     num_features_per_signal_type=10, noise_gradient=5, initial_noise_sigma=10,
-    random_state=None ):
+    n_samples_per_group=1, random_state=None ):
     """
     Analogous to sklearn.datasets.make_regression, but simplified.
 
@@ -44,6 +44,8 @@ def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samp
     the more each successive feature generated using that signal will have a greater degree of
     gaussian noise added to it (controlled via args "noise_gradient" and "initial_noise_sigma").
     """
+    if n_samples_per_group < 1 or type(n_samples_per_group) is not int:
+      raise ValueError( "n_samples_per_group has to be an integer, and at least 1." )
 
     if random_state:
       from numpy.random import RandomState
@@ -64,33 +66,64 @@ def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samp
     new_fs.name = name
     new_fs.source_path = new_fs.name
     new_fs.feature_vector_version = '2.0'
- 
-    new_fs.data_matrix = numpy.empty( ( n_samples, num_features_per_signal_type * len( signals ) ) )
+    new_fs.discrete = False
+
+    if n_samples_per_group > 1:
+      # make n_samples evenly divisible
+      n_samples = int( n_samples // n_samples_per_group ) * n_samples_per_group
+      new_fs.num_samples_per_group = n_samples_per_group
+    new_fs.num_images = n_samples
+    new_fs.num_features = num_features_per_signal_type * len( signals )
+    new_fs.data_matrix = numpy.empty( ( n_samples, new_fs.num_features ) )
     # The function call numpy.mgrid() requires for the value indicating the number of steps
     # to be imaginary, for some inexplicable reason.
     step = complex(0, n_samples)
-    new_fs.ground_truths = list( numpy.mgrid[ lbound : ubound : step ] )
-    new_fs.imagenames_list = [ "ArtificialSample{0:03d}".format( i ) for i in xrange( n_samples ) ]
-    new_fs.num_images = n_samples
-    new_fs.num_features = num_features_per_signal_type * len( signals ) 
-    new_fs.contiguous_imagenames_list = new_fs.imagenames_list
+    new_fs._contiguous_ground_truths = list( numpy.mgrid[ lbound : ubound : step ] )
 
-    for func_index, func_name in enumerate( signals.keys() ):
-        f = signals[ func_name ]
-        raw_feature_values = map( f, new_fs.ground_truths )
+    # Generate artificial feature names
+    # N.B. The feature generation signals are sorted in alphanum order!
+    new_fs.featurenames_list = [ "{0}{1:04d}".format(fname, i)\
+                                    for fname in sorted( signals.keys() ) \
+                                    for i in xrange( num_features_per_signal_type ) ]
+    # Creating sample metadata
+    if n_samples_per_group == 1:
+      new_fs._contiguous_samplenames_list = [ "FakeContinuousSample{0:03d}".format( i )\
+                                             for i in xrange( n_samples ) ]
+      new_fs._contiguous_samplegroupid_list = range( n_samples ) # not xrange
+      new_fs._contiguous_samplesequenceid_list =  [1] * n_samples
+    else:
+      # Format: FakeContinuousSample_i<sample index>_g<group>_t<tile#>
+      temp1 = [ "FakeContinuousSample_i{0:03d}".format( i ) for i in xrange( n_samples ) ]
+      n_samplegroups = n_samples / n_samples_per_group
+      temp2 = [ "_g{0:03d}_t{1:02d}".format( samplegroup_index, tile_index ) \
+        for samplegroup_index in xrange( n_samplegroups ) \
+          for tile_index in xrange( n_samples_per_group ) ]
+      new_fs._contiguous_samplenames_list = [ a + b for a, b in zip( temp1, temp2 ) ]
+      new_fs._contiguous_samplegroupid_list = \
+          [ samplegroup_index for samplegroup_index in xrange( n_samplegroups ) \
+          for tile_index in xrange( n_samples_per_group ) ]
+      new_fs._contiguous_samplesequenceid_list = \
+          [ tile_index for samplegroup_index in xrange( n_samplegroups ) \
+          for tile_index in xrange( n_samples_per_group ) ]
 
-        for feat_index in xrange( num_features_per_signal_type ):
-            new_fs.featurenames_list.append( "{0}{1:04d}".format(func_name, feat_index) )
-            # Add noise proportional to the feature index
-            noise_vector = normal( 0, initial_noise_sigma + feat_index * noise_gradient, n_samples )
-            feat_col_index = feat_index + func_index * num_features_per_signal_type 
-            new_fs.data_matrix[:,feat_col_index] = numpy.add( noise_vector, raw_feature_values )
+    # Create features across all classes at the same time
+    feat_count = 0
+    # N.B. The features are in sort order!
+    for func_name in sorted( signals.keys() ):
+      f = signals[ func_name ]
+      raw_feature_values = map( f, new_fs._contiguous_ground_truths )
+      for feat_index in xrange( num_features_per_signal_type ):
+        # Add noise proportional to the feature index
+        noise_vector = normal( 0, initial_noise_sigma + feat_index * noise_gradient, n_samples )
+        new_fs.data_matrix[:,feat_count] = numpy.add( noise_vector, raw_feature_values )
+        feat_count += 1
 
+    new_fs._RebuildViews()
     return new_fs
 
 def CreateArtificialFeatureSet_Discrete( name="DiscreteArtificialFS", n_samples=100,
     n_classes=2, num_features_per_signal_type=10, noise_gradient=5,
-    initial_noise_sigma=10, interpolatable=True, random_state=None ):
+    initial_noise_sigma=10, n_samples_per_group=1, interpolatable=True, random_state=None ):
     """
     Analogous to sklearn.datasets.make_classification, but simplified.
 
@@ -103,6 +136,15 @@ def CreateArtificialFeatureSet_Discrete( name="DiscreteArtificialFS", n_samples=
     The more features the user asks for via the argument "num_features_per_signal_type",
     the more each successive feature generated using that signal will have a greater degree of
     gaussian noise added to it (controlled via args "noise_gradient" and "initial_noise_sigma").
+    The features inside each individual feature set will come from a single signal function,
+    and will get progressively noisier and noisier via the noise gradient, which is the
+    multiplier for the sigma term in the gaussian noise generator.
+
+    n_samples_per_group is related to tiling, i.e., how many ROIS/tiles within an image
+    will have features calculated.
+
+    interpolatiable sets the self.interpolation_coefficients, off of which interpolated
+    value functionalitiy is keyed.
     """
 
     if random_state:
@@ -121,22 +163,41 @@ def CreateArtificialFeatureSet_Discrete( name="DiscreteArtificialFS", n_samples=
 
     from .FeatureSet import FeatureSet_Discrete
 
+    if n_samples_per_group < 1 or type(n_samples_per_group) is not int:
+      raise ValueError( "n_samples_per_group has to be an integer, and at least 1." )
+
+    # Initialize the basic data members
     new_fs = FeatureSet_Discrete()
     new_fs.name = name
     new_fs.source_path = new_fs.name
     new_fs.feature_vector_version = '2.0'
+    new_fs.discrete = True
+    new_fs.num_samples_per_group = n_samples_per_group
 
-    # num_samples must be evenly divisible by the number of classes
+    # num_samples must be evenly divisible by the number of samples per sample group
+    # and the number of classes - therefore the final number of total samples may be
+    # less than the user asked for.
     n_samples_per_class = int( n_samples // n_classes )
-    new_fs.num_images = n_samples = n_samples_per_class * n_classes
+    n_samplegroups_per_class = int( n_samples_per_class // n_samples_per_group )
+    n_samples_per_class = int( n_samplegroups_per_class * n_samples_per_group ) # change number inputted
+    n_samples = int( n_samples_per_class * n_classes ) # changes number inputted!
+    if n_samples <= 0:
+      raise ValueError( "Specify n_samples to be a multiple of n_classes ({0}) * n_samples_per_group ({1}) >= {2}".format( n_classes, n_samples_per_group, n_classes* n_samples_per_group ) )
+    new_fs.num_images = n_samples
     new_fs.num_features = num_features_per_signal_type * len( signals ) 
+    new_fs.data_matrix = numpy.empty( ( n_samples, new_fs.num_features ) )
     new_fs.num_classes = n_classes
-    new_fs.classsizes_list = [ n_samples_per_class for i in range( n_classes ) ]
+    new_fs.classsizes_list = [ n_samples_per_class for i in xrange( n_classes ) ]
  
     # The function call numpy.mgrid() requires for the value indicating the number of steps
     # to be imaginary, for some inexplicable reason.
     step = complex(0, n_classes)
+
+    # The artificial class names are chosen to be numbers evenly spaced between 
+    # lbound=-100 and ubound=100, which is the interval within which the functions
+    # chosen to create the artificial features behave "interestingly."
     new_fs.interpolation_coefficients = list( numpy.mgrid[ lbound : ubound : step ] )
+
     new_fs.classnames_list = []
     for val in new_fs.interpolation_coefficients:
       # Try to use integers for each individual class name
@@ -145,22 +206,65 @@ def CreateArtificialFeatureSet_Discrete( name="DiscreteArtificialFS", n_samples=
       else:
         new_fs.classnames_list.append( "FakeClass{0:.02f}".format( val )  )
 
+    # Generate artificial feature names
+    # N.B. The feature generation signals are sorted in alphanum order!
     new_fs.featurenames_list = [ "{0}{1:04d}".format(fname, i)\
                                     for fname in sorted( signals.keys() ) \
                                     for i in xrange( num_features_per_signal_type ) ]
 
-    for class_index in xrange( n_classes ):
-        new_fs.imagenames_list.append( \
-            [ "{0}_{1:03d}:".format( new_fs.classnames_list[ class_index ], i ) for i in range( n_samples_per_class ) ] )
-        new_fs.data_list.append( numpy.empty( ( n_samples_per_class, new_fs.num_features ) ) )
-        for func_name in sorted( signals.keys() ):
-            f = signals[ func_name ]
-            raw_feature_values = [ f( new_fs.interpolation_coefficients[ class_index ] ) ] * n_samples_per_class 
-            for feat_index in xrange( num_features_per_signal_type ):
-                # Add noise proportional to the feature index
-                noise_vector = normal( 0, initial_noise_sigma + feat_index * noise_gradient, n_samples_per_class )
-                new_fs.data_list[ class_index ][:,feat_index] = \
-                        numpy.add( noise_vector, raw_feature_values )
+    if n_samples_per_group >= 1:
+      group_index = 0
 
-    new_fs.ContiguousDataMatrix()
+    # Creating sample metadata
+    if n_samples_per_group == 1:
+      # Format: <class name>_<sample index within class>
+      new_fs._contiguous_samplenames_list = \
+        [ "{0}_{1:03d}".format( class_name, i ) \
+             for class_name in new_fs.classnames_list for i in xrange( n_samples_per_class ) ]
+      new_fs._contiguous_samplegroupid_list = range( n_samples ) # not xrange
+      new_fs._contiguous_samplesequenceid_list =  [1] * n_samples
+    else:
+      # Format: <class name>_i<sample index within class>_g<group>_t<tile#>
+      temp1 = [ "{0}_i{1:03d}".format( class_name, i ) \
+        for class_name in new_fs.classnames_list for i in xrange( n_samples_per_class ) ]
+      n_samplegroups = n_samples / n_samples_per_group
+      temp2 = [ "_g{0:03d}_t{1:02d}".format( samplegroup_index, tile_index ) \
+        for samplegroup_index in xrange( n_samplegroups ) \
+          for tile_index in xrange( n_samples_per_group ) ]
+      new_fs._contiguous_samplenames_list = [ a + b for a, b in zip( temp1, temp2 ) ]
+      new_fs._contiguous_samplegroupid_list = \
+          [ samplegroup_index for samplegroup_index in xrange( n_samplegroups ) \
+          for tile_index in xrange( n_samples_per_group ) ]
+      new_fs._contiguous_samplesequenceid_list = \
+          [ tile_index for samplegroup_index in xrange( n_samplegroups ) \
+          for tile_index in xrange( n_samples_per_group ) ]
+
+    # Create features across all classes at the same time
+    feat_count = 0
+    # N.B. The features are in sort order!
+    for func_name in sorted( signals.keys() ):
+      f = signals[ func_name ]
+      raw_class_feature_values = map( f, new_fs.interpolation_coefficients )
+      raw_feature_values = numpy.empty( n_samples, )
+      for i, val in enumerate( raw_class_feature_values ):
+        raw_feature_values[ i * n_samples_per_class: (i+1) * n_samples_per_class].fill( val )
+
+      for feat_index in xrange( num_features_per_signal_type ):
+        # Add noise proportional to the feature index
+        noise_vector = normal( 0, initial_noise_sigma + feat_index * noise_gradient, n_samples )
+        new_fs.data_matrix[:,feat_count] = numpy.add( noise_vector, raw_feature_values )
+        feat_count += 1
+
+    if not interpolatable:
+      # delete the coefficients if user asks for a pure classification problem feat. set.
+      new_fs.interpolation_coefficients = None
+      # Use class labels instead of class values
+      new_fs._contiguous_ground_truths = [ new_fs.classnames_list[i] \
+          for i in xrange( n_classes ) \
+            for j in xrange( n_samples_per_class ) ]
+    else:
+      new_fs._contiguous_ground_truths = [ new_fs.interpolation_coefficients[i] \
+        for i in xrange( n_classes ) for j in range( n_samples_per_class ) ]
+
+    new_fs._RebuildViews()
     return new_fs
