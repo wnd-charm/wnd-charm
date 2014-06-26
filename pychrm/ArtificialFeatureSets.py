@@ -33,9 +33,15 @@ def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samp
     """
     Analogous to sklearn.datasets.make_regression, but simplified.
 
-    The features inside each individual feature set will come from a single signal function,
-    and will get progressively noisier and noisier via the noise gradient, which is the
-    multiplier for the sigma term in the gaussian noise generator.
+    Returns an instance of a FeatureSet_Continuous.
+
+    The number of features contained in the feature set will be a multiple of the number of
+    signals contained in the dict "signals" (len(signals) == 12 at the time of writing, so
+    len( new_fs.featurenames_list ) == 12, 24, 36, etc ).
+
+    The more features the user asks for via the argument "num_features_per_signal_type",
+    the more each successive feature generated using that signal will have a greater degree of
+    gaussian noise added to it (controlled via args "noise_gradient" and "initial_noise_sigma").
     """
 
     from .FeatureSet import FeatureSet_Continuous
@@ -75,9 +81,13 @@ def CreateArtificialFeatureSet_Discrete( name="DiscreteArtificialFS", n_samples=
 
     Number of samples is reduced to be evenly divisible by number of classes.
 
-    The features inside each individual feature set will come from a single signal function,
-    and will get progressively noisier and noisier via the noise gradient, which is the
-    multiplier for the sigma term in the gaussian noise generator.
+    The number of features contained in the feature set will be a multiple of the number of
+    signals contained in the dict "signals" (len(signals) == 12 at the time of writing, so
+    len( new_fs.featurenames_list ) == 12, 24, 36, etc ).
+
+    The more features the user asks for via the argument "num_features_per_signal_type",
+    the more each successive feature generated using that signal will have a greater degree of
+    gaussian noise added to it (controlled via args "noise_gradient" and "initial_noise_sigma").
     """
 
     from .FeatureSet import FeatureSet_Discrete
