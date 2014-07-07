@@ -226,7 +226,7 @@ def normalize_by_columns ( full_stack, mins = None, maxs = None ):
 #     3. feature ranges that are 0 result in nan feature values
 #     4. all nan feature values set to 0
 
-# Turn off numpy warnings, since e're taking care of invalid values explicitly
+# Turn off numpy warnings, since we're taking care of invalid values explicitly
 	oldsettings = np.seterr(all='ignore')
 	if (mins is None or maxs is None):
 		# mask out NANs and +/-INFs to compute min/max
@@ -338,7 +338,6 @@ class SampleImageTiles (object):
 #############################################################################
 # class definition of FeatureVector
 #############################################################################
-# FeatureVector inherits from class "object" and is thus a Python "new-style" class
 class FeatureVector(object):
 	"""A FeatureVector is simply a list of doubles and a list of corresponding strings (i.e., names).
 	The lengths of the two lists must always be equal. A FeatureVector may be rendered 
@@ -361,13 +360,17 @@ class FeatureVector(object):
 			if "names" in data_dict:
 				self.names = data_dict[ "names" ]
 	#================================================================
-	def is_valid( self ):
+	def isvalid( self ):
 		"""@brief: an instance should know all the criteria for being a valid FeatureVector"""
 		if len( self.values ) != len( self.names ):
 			raise RuntimeError( "Instance of {0} is invalid: ".format( self.__class__ ) + \
 			  "different number of values ({0}) and names ({1}).".format( \
 			  len( self.values ), len( self.names ) ) )
 		return True
+	#================================================================
+	def __len__( self ):
+		assert len( self.values ) == len( self.names )
+		return len( self.values )
 
 #############################################################################
 # class definition of FeatureWeights
@@ -903,7 +906,10 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			line_item += "{0:2.4f}\t".format( self.pearson_p_values[i] )
 			line_item += "{0:2.4f}\t".format( self.spearman_coeffs[i] )
 			line_item += "{0:2.4f}\t".format( self.spearman_p_values[i] )
-			line_item += self.names[i]
+			if len( self.names[i] ) < 50:
+				line_item += self.names[i]
+			else:
+				line_item += self.names[i][:50] + '... (truncated)'
 			print line_item
 
 
@@ -1173,7 +1179,7 @@ class Signatures( FeatureVector ):
 		wherever you want. Otherwise, it's named according to convention and placed 
 		next to the image file in its directory."""
 
-		self.is_valid()
+		self.isvalid()
 
 		outfile_path = ""
 		if not filepath or filepath == "":
@@ -1326,10 +1332,10 @@ class FeatureSet( object ):
 	classifier, one for training the other for testing.
 	"""
 
-	# source_path - could be the name of a .fit, or pickle file from which this
-	# instance was generated, could be a directory
-	#  source_path is essentially a name
-	# might want to make separate name member in the future
+	name = None
+
+	#: source_path - could be the name of a .fit, or pickle file from which this
+	#: instance was generated, could be a directory
 	source_path = None
 	num_features = None
 	num_images = None
@@ -1389,6 +1395,8 @@ class FeatureSet( object ):
 		self.interpolation_coefficients = []
 
 		if data_dict != None:
+			if "name" in data_dict:
+				self.name = data_dict[ 'name' ]
 			if "source_path" in data_dict:
 				self.source_path = data_dict[ 'source_path' ]
 			if "num_classes" in data_dict:
@@ -1582,6 +1590,7 @@ class FeatureSet( object ):
 		are consistent with it.
 		In the base class, just returns the data_matrix
 		"""
+		self.contiguous_imagenames_list = self.imagenames_list
 		return (self.data_matrix)
 
 	#==============================================================
@@ -1602,7 +1611,7 @@ class FeatureSet( object ):
 		elif not self.normalized_against and not training_set:
 			# Normalize me against myself
 			if not quiet:
-				print 'Normaling set "{0}" ({1} images) against itself'.format (
+				print 'Normalizing set "{0}" ({1} images) against itself'.format (
 					self.source_path, self.num_images )
 
 			(self.feature_minima, self.feature_maxima) = normalize_by_columns (self.ContiguousDataMatrix())
@@ -1619,7 +1628,7 @@ class FeatureSet( object ):
 			
 
 			if not quiet:
-				print 'Normaling set "{0}" ({1} images) against set "{2}" ({3} images)'.format(
+				print 'Normalizing set "{0}" ({1} images) against set "{2}" ({3} images)'.format(
 					self.source_path, self.num_images, training_set.source_path, training_set.num_images )
 
 			if not training_set.normalized_against:
@@ -1678,6 +1687,7 @@ class FeatureSet_Discrete( FeatureSet ):
 	def __init__( self, data_dict = None):
 		"""constructor"""
 		self.data_list = []
+		self.contiguous_imagenames_list = []
 		
 		super( FeatureSet_Discrete, self ).__init__( data_dict )
 
@@ -1734,12 +1744,17 @@ class FeatureSet_Discrete( FeatureSet ):
 			copy_class = 0
 			copy_row = 0
 
+		# In addition, keep a list of sample names corresponding to the 
+		# rows in the contiguous feature matrix
+		self.contiguous_imagenames_list = [ None ] * self.num_images
+
 		# We need to start copying at the first non-view class mat to the end.
 		for class_index in range (copy_class, len (self.data_list)):
 			#print "copy class"+str(class_index)
 			nrows = self.data_list[class_index].shape[0]
 			self.data_matrix[copy_row : copy_row + nrows] = np.copy (self.data_list[class_index])
 			self.data_list[class_index] = self.data_matrix[copy_row : copy_row + nrows]
+			self.contiguous_imagenames_list[copy_row : copy_row + nrows] = self.imagenames_list[class_index]
 			copy_row += nrows
 
 		self.data_matrix_is_contiguous = True
@@ -1864,7 +1879,7 @@ class FeatureSet_Discrete( FeatureSet ):
 		"""@brief Creates a new FeatureSet from a single signature"""
 
 		try:
-			signature.is_valid()
+			signature.isvalid()
 		except:
 			raise
 
@@ -1977,6 +1992,8 @@ class FeatureSet_Discrete( FeatureSet ):
 		new_ts = cls()
 		new_ts.num_images = 0
 		new_ts.source_path = fof_path
+		from os.path import basename
+		new_ts.name = basename( fof_path )
 
 		classnames_set = set()
 
@@ -2014,6 +2031,8 @@ class FeatureSet_Discrete( FeatureSet ):
 		if isinstance( new_ts, FeatureSet_Discrete ):
 			new_ts.num_classes = len( new_ts.data_list )
 
+		new_ts.ContiguousDataMatrix()
+
 		new_ts.Print()
 		return new_ts
 
@@ -2045,7 +2064,7 @@ class FeatureSet_Discrete( FeatureSet ):
 				# check validity
 				if not sig:
 					raise ValueError( "Couldn't create a valid signature from file {0} with options {1}".format( sourcefile, options ) )
-				sig.is_valid()
+				sig.isvalid()
 				if write_sig_files_to_disk:
 					sig.WriteFeaturesToASCIISigFile()
 				self.AddSignature( sig, class_id )
@@ -2191,7 +2210,7 @@ class FeatureSet_Discrete( FeatureSet ):
 		new_ts.featurenames_list = self.featurenames_list
 		new_ts.num_features = len( self.featurenames_list )
 		new_ts.source_path = self.source_path + " (scrambled)"
-		if self.interpolation_coefficients:
+		if self.interpolation_coefficients != None and len( self.interpolation_coefficients ) != 0:
 			new_ts.interpolation_coefficients = self.interpolation_coefficients
 
 		if fine_grained_scramble:
@@ -2385,7 +2404,7 @@ Y 	Y 	R 	R 	N 	balanced training and test sets, as above but with 75-25 default 
 			training_set.feature_vector_version = self.feature_vector_version
 		else:
 			training_set.feature_vector_version = '2.0'
-		if self.interpolation_coefficients:
+		if self.interpolation_coefficients != None and len( self.interpolation_coefficients ) != 0:
 			training_set.interpolation_coefficients = self.interpolation_coefficients
 	
 		if not training_set_only:
@@ -2403,7 +2422,7 @@ Y 	Y 	R 	R 	N 	balanced training and test sets, as above but with 75-25 default 
 				test_set.feature_vector_version = self.feature_vector_version
 			else:
 				test_set.feature_vector_version = '2.0'
-			if self.interpolation_coefficients:
+			if self.interpolation_coefficients != None and len( self.interpolation_coefficients ) != 0:
 				test_set.interpolation_coefficients = self.interpolation_coefficients
 
 		# assemble training and test sets
@@ -2496,9 +2515,9 @@ class FeatureSet_Continuous( FeatureSet ):
 	def __init__( self, data_dict = None ):
 
 		# call parent constructor
-		self.ground_truths = []
-
 		super( FeatureSet_Continuous, self ).__init__( data_dict )
+
+		self.ground_truths = []
 
 		if data_dict != None:
 			if "data_matrix" in data_dict:
@@ -2536,6 +2555,8 @@ class FeatureSet_Continuous( FeatureSet ):
 			new_ts = cls()
 
 			new_ts.source_path = pathname
+			from os.path import basename
+			new_ts.name = basename( pathname )
 			tmp_string_data_list = []
 
 			name_line = False
@@ -2617,6 +2638,8 @@ class FeatureSet_Continuous( FeatureSet ):
 		new_ts = cls()
 		new_ts.num_images = 0
 		new_ts.source_path = fof_path
+		from os.path import basename
+		new_ts.name = basename( fof_path )
 
 		classnames_set = set()
 
@@ -2710,7 +2733,7 @@ class FeatureSet_Continuous( FeatureSet ):
 				# check validity
 				if not sig:
 					raise ValueError( "Couldn't create a valid signature from file {0} with options {1}".format( sourcefile, options ) )
-				sig.is_valid()
+				sig.isvalid()
 				if write_sig_files_to_disk:
 					sig.WriteFeaturesToASCIISigFile()
 				self.AddSignature( sig, class_id )
@@ -2742,12 +2765,13 @@ class FeatureSet_Continuous( FeatureSet ):
 		# copy everything but the signature data
 		reduced_ts = FeatureSet_Continuous()
 		new_num_features = len( requested_features )
-		reduced_ts.source_path = self.source_path + "({0} features)".format( new_num_features )
+		reduced_ts.source_path = self.source_path
+		reduced_ts.name = self.name + "(Reduced {0} features)".format( new_num_features )
 		reduced_ts.num_features = new_num_features
 		reduced_ts.num_images = self.num_images
 		reduced_ts.imagenames_list = self.imagenames_list[:] # [:] = deepcopy
 		reduced_ts.featurenames_list = requested_features[:]
-		if self.interpolation_coefficients:
+		if self.interpolation_coefficients != None and len( self.interpolation_coefficients ) != 0:
 			reduced_ts.interpolation_coefficients= self.interpolation_coefficients[:]
 		if self.classnames_list:
 			reduced_ts.classnames_list = self.classnames_list[:]
@@ -2909,12 +2933,13 @@ class FeatureSet_Continuous( FeatureSet ):
 		# self.num_features may not match len( self.featurenames_list )
 		training_set.num_features = self.num_features
 		training_set.imagenames_list = []
-		training_set.source_path = self.source_path + " (subset)"
+		training_set.source_path = self.source_path
+		training_set.name = self.name + " (subset {0} samples)".format( num_images_in_training_set )
 		if self.classnames_list:
 			training_set.classnames_list = self.classnames_list
 		if self.classsizes_list:
 			training_set.classsizes_list = [ 0 ] * self.num_classes
-		if self.interpolation_coefficients:
+		if self.interpolation_coefficients != None and len( self.interpolation_coefficients ) != 0:
 			training_set.interpolation_coefficients = self.interpolation_coefficients
 	
 		if not training_set_only:
@@ -2926,12 +2951,13 @@ class FeatureSet_Continuous( FeatureSet ):
 			#test_set.num_features = len( self.featurenames_list )
 			test_set.num_features = self.num_features
 			test_set.imagenames_list = []
-			test_set.source_path = self.source_path + " (subset)"
+			test_set.source_path = self.source_path
+			test_set.name = self.name + " (subset {0} samples)".format( num_images_in_test_set )
 			if self.classnames_list:
 				test_set.classnames_list = self.classnames_list
 			if self.classsizes_list:
 				test_set.classsizes_list = [ 0 ] * self.num_classes
-			if self.interpolation_coefficients:
+			if self.interpolation_coefficients != None and len( self.interpolation_coefficients ) != 0:
 				test_set.interpolation_coefficients = self.interpolation_coefficients
 
 		image_lottery = range( self.num_images )
@@ -3168,7 +3194,7 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 			raise ValueError( 'Third argument to NewWND5 must be of type "Signatures", you gave a {0}'.format( type( test_sig ).__name__ ) )
 
 		# check to see if sig is valid
-		test_sig.is_valid()
+		test_sig.isvalid()
 
 		train_set_len = len( training_set.featurenames_list )
 		test_set_len = len( test_sig.names )
@@ -3180,7 +3206,8 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 		if test_sig.names != training_set.featurenames_list:
 			raise ValueError("Can't classify, features in signature don't match features in training_set." )
 
-		print "Classifying image '{0}' ({1} features) against test set '{2}' ({3} features)".\
+		if not quiet:
+			print "Classifying image '{0}' ({1} features) against test set '{2}' ({3} features)".\
 			 format( test_sig.source_file, train_set_len, training_set.source_path, test_set_len )
 
 		result = cls._WND5( training_set, test_sig.values, feature_weights.values )
@@ -3297,7 +3324,6 @@ class BatchClassificationResult( ClassificationResult ):
 
 	num_classifications = None
 
-
 	# This stuff is for correllation analysis
 	pearson_coeff = None
 	pearson_p_value = None
@@ -3330,6 +3356,10 @@ class BatchClassificationResult( ClassificationResult ):
 	#==============================================================
 	def __repr__( self ):
 		return str(self)
+
+	#==============================================================
+	def __len__( self ):
+		return len( self.individual_results )
 
 	#==============================================================
 	def GenerateStats( self ):
@@ -3381,7 +3411,6 @@ class BatchClassificationResult( ClassificationResult ):
 
 		Requires scipy.stats package to be installed"""
 		raise NotImplementedError
-
 
 
 	#==============================================================
@@ -3507,7 +3536,6 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 						self.similarity_matrix[ row ][ col ] /= self.similarity_matrix[ row ][ row ]
 						self.similarity_matrix[ col ][ row ] /= self.similarity_matrix[ row ][ row ]
 
-
 		self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
 
 	#==============================================================
@@ -3522,6 +3550,8 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 		print "==========================================="
 		print "Batch summary:"
+		if self.name:
+			print "Name: ", self.name
 		print "Total number of classifications: {0}".format( self.num_classifications )
 		print "Total number of CORRECT classifications: {0}".format( self.num_correct_classifications )
 		print "Total classification accuracy: {0:0.4f}".format( self.classification_accuracy )
@@ -3633,8 +3663,6 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 				raise ValueError( 'Similarity matrix is not possible with this data set. ' + \
 				                  'Possible reason for this is that your test set does not have ' + \
 				                  'ground truth defined.' )
-			
-
 			if method == 'max':
 				raise NotImplementedError
 			elif method == 'mean':
@@ -3664,7 +3692,8 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 	#==============================================================
 	@classmethod
 	@output_railroad_switch
-	def New( cls, training_set, test_set, feature_weights, batch_number = None, batch_name = None, quiet = False, norm_factor_threshold = None):
+	def New( cls, training_set, test_set, feature_weights, batch_number = None, 
+					batch_name = None, quiet = False, norm_factor_threshold = None):
 		"""The equivalent of the "wndcharm classify" command in the command line implementation
 		of WND-CHARM. Input a training set, a test set, and feature weights, and returns a
 		new instance of a DiscreteBatchClassificationResult, with self.individual_results
@@ -3689,14 +3718,15 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		if test_set.featurenames_list != training_set.featurenames_list:
 			raise ValueError( "Can't classify, features in test set don't match features in training set. Try translating feature names from old style to new, or performing a FeatureReduce()" )
 
+		np.seterr (under='ignore')
+
 		train_set_len = len( training_set.featurenames_list )
 		test_set_len = len( test_set.featurenames_list )
 		feature_weights_len = len( feature_weights.names )
 
-		print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
-					format( test_set.source_path, test_set_len, training_set.source_path, train_set_len )
-
 		if not quiet:
+			print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
+					format( test_set.source_path, test_set_len, training_set.source_path, train_set_len )
 			column_header = "image\tnorm. fact.\t"
 			column_header +=\
 				"".join( [ "p(" + class_name + ")\t" for class_name in training_set.classnames_list ] )
@@ -3711,12 +3741,12 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		batch_result.batch_number = batch_number
 
 		train_set_interp_coeffs = None
-		if training_set.interpolation_coefficients:
+		if training_set.interpolation_coefficients != None and len( training_set.interpolation_coefficients) != 0:
 			train_set_interp_coeffs = np.array( training_set.interpolation_coefficients )
 			batch_result.predicted_values = []
 
 		test_set_interp_coeffs = None
-		if test_set.interpolation_coefficients:
+		if test_set.interpolation_coefficients != None and len( test_set.interpolation_coefficients ) != 0:
 			test_set_interp_coeffs = np.array( test_set.interpolation_coefficients )
 			batch_result.ground_truth_values = []
 
@@ -3751,6 +3781,8 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 				if not quiet:
 					result.Print( line_item = True )
 				batch_result.individual_results.append( result )
+
+		np.seterr (all='raise')
 
 		return batch_result
 
@@ -3790,9 +3822,8 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 
 	#=====================================================================
 	@classmethod
-	def New( cls, test_set, feature_weights, quiet = False, batch_number = None, batch_name = None):
-		"""The equivalent of "wndchrm classify -C" in the command line implenentation of
-		WND-CHARM. """
+	def New( cls, test_set, feature_weights, quiet=False, batch_number=None, batch_name=None):
+		"""Uses Pearson-coefficient weighted Regression-Voting classifier."""
 
 		# type checking
 		if not isinstance( test_set, FeatureSet_Continuous ):
@@ -3841,14 +3872,15 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 
 	#=====================================================================
 	@classmethod
-	def NewLeastSquaresRegression( cls, training_set, test_set, feature_weights, quiet = False, batch_number = None, batch_name = None):
-		"""The equivalent of "wndchrm classify -C" in the command line implenentation of
-		WND-CHARM.
+	def NewLeastSquaresRegression( cls, training_set, test_set, feature_weights,
+					leave_one_out=True, quiet=False, batch_number=None, batch_name=None):
+		"""Uses Linear Least Squares Regression classifier in a feature space filtered/weighed
+		by Pearson coefficients.
 		
 		Use cases:
-		1. if training_set is not None and test_set is None = LEAVE ONE OUT CROSS VALIDATION
-		2. if training_set == test_set == not None: CROSS VALIDATION WITHOUT LEAVE ONE OUT
-		3. if training_set != test_set: classification of test_set against training_set
+		1. if training_set != test_set and both not none: straight classification
+		2. if training_set is not None and test_set is None = Leave one out cross validation
+		3. if training_set == test_set == not None: Shuffle/Split cross validation
 		"""
 
 		# Type checking
@@ -3905,6 +3937,8 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		# Now, build the augmented feature matrices, which includes multiplying the feature
 		# space by the weights, and augmenting the matrices with 1's
 
+		oldsettings = np.seterr(all='ignore')
+
 		augmented_train_set.data_matrix *= feature_weights.values
 		augmented_train_set.data_matrix = np.hstack( 
 		      [ augmented_train_set.data_matrix, np.ones( ( augmented_train_set.num_images, 1 ) ) ] )
@@ -3942,6 +3976,9 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 				result.Print( line_item = True )
 			batch_result.individual_results.append( result )
 
+		# return settings to original
+		np.seterr(**oldsettings)
+
 		batch_result.GenerateStats()
 		return batch_result
 
@@ -3966,7 +4003,7 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 		
 		Completed functionality:
 		1. Simple aggregation of ground truth->predicted value pairs across splits.
-		   Use the function PredictedValueAnalysis() to average results for specific
+		   Use the function PerSampleStatistics() to average results for specific
 			 images across splits.
 		2. Calculation of aggregated feature weight statistics
 
@@ -4031,74 +4068,6 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 			self.feature_weight_statistics = sorted( feature_weight_stats, sort_func, reverse = True )
 
 		# Remember, there's no such thing as a confusion matrix for a continuous class
-
-	#=====================================================================
-	@output_railroad_switch
-	def PredictedValueAnalysis( self ):
-		"""For use in only those classification experiments where predicted values are generated
-		as part of the classification.
-		
-		This function is meant to elucidate the amount of variability of classifications 
-		across batches. ImageClassificationResult imformation is aggregated for each individual
-		image/ROI encountered, and statistics are generated for each image/ROI and printed out."""
-
-		if self.individual_results == 0:
-			raise ValueError( 'No batch results to analyze' )
-
-		self.predicted_values = []
-		self.ground_truth_values = []
-
-		self.accumulated_individual_results = {}
-		self.individual_stats = {}
-
-		for batch in self.individual_results:
-			for result in batch.individual_results:
-				if not result.source_file in self.accumulated_individual_results:
-					# initialize list of individual results for this file
-					self.accumulated_individual_results[ result.source_file ] = []
-				self.accumulated_individual_results[ result.source_file ].append( result )
-	
-		for filename in self.accumulated_individual_results:
-			vals = np.array( [result.predicted_value for result in self.accumulated_individual_results[filename] ])
-			self.ground_truth_values.append( self.accumulated_individual_results[filename][0].ground_truth_value )
-			self.predicted_values.append( np.mean(vals) )
-			self.individual_stats[filename] = ( len(vals), np.min(vals), np.mean(vals), \
-			                                    np.max(vals), np.std(vals) ) 
-
-		print "\n\nIndividual results\n========================\n"
-		mp = "  "
-		discrlineoutstr = "\tsplit {split_num:02d} '{batch_name}': predicted: {pred_class}, actual: {actual_class}. Norm dists: ( {norm_dists} ) Interp val: {pred_val:0.3f}"
-		contlineoutstr = "\tsplit {split_num:02d} '{batch_name}': actual: {actual_class}. Predicted val: {pred_val:0.3f}"
-		outstr = "\t---> Tested {0} times, low {1:0.3f}, mean {2:0.3f}, high {3:0.3f}, std dev {4:0.3f}"
-
-		#create view
-		res_dict = self.accumulated_individual_results
-
-		# sort by ground truth, then alphanum
-		sort_func = lambda A, B: cmp( A, B ) if res_dict[A][0].ground_truth_value == res_dict[B][0].ground_truth_value else cmp( res_dict[A][0].ground_truth_value, res_dict[B][0].ground_truth_value  ) 
-		sorted_images = sorted( self.accumulated_individual_results.iterkeys(), sort_func )
-
-		for samplename in sorted_images:
-			print 'File "' + samplename + '"'
-			for result in self.accumulated_individual_results[ samplename ]:
-
-				if isinstance( result, DiscreteImageClassificationResult ):
-					marg_probs = [ "{0:0.3f}".format( num ) for num in result.marginal_probabilities ]
-					print discrlineoutstr.format( split_num = result.batch_number, \
-				                         batch_name = result.name, \
-				                         pred_class = result.predicted_class_name, \
-				                         actual_class = result.ground_truth_value, \
-				                         norm_dists = mp.join( marg_probs ), \
-				                         pred_val = result.predicted_value )
-				elif isinstance( result, ContinuousImageClassificationResult ):
-					print contlineoutstr.format( split_num = result.batch_number, \
-				                         batch_name = result.name, \
-				                         actual_class = result.ground_truth_value, \
-				                         pred_val = result.predicted_value )
-				else:
-					raise ValueError( 'expected an ImageClassification result but got a {0} class'.\
-				  	       format( type( result ).__name__ ) ) 
-			print outstr.format( *self.individual_stats[ samplename ] )
 
 	#=====================================================================
 	@output_railroad_switch
@@ -4170,6 +4139,44 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 	confusion_matrix = None
 	average_similarity_matrix = None
 	average_class_probability_matrix = None
+	#=====================================================================
+	@classmethod
+	def NewShuffleSplit( cls, full_training_set, n_iter=5, feature_usage_fraction=0.15,
+                     name=None, num_features=None, training_set_fraction=0.75, train_size=None, 
+										 test_size=None, quiet=False):
+
+		experiment = cls( training_set=full_training_set, name=name )
+		if feature_usage_fraction:
+			if feature_usage_fraction < 0 or feature_usage_fraction > 1.0:
+				raise ValueError('Feature usage fraction must be on interval [0,1]')
+			num_features = int( feature_usage_fraction * full_training_set.num_features )
+
+		if not num_features:
+				raise ValueError( 'must specify num_features or feature_usage_fraction in kwargs')
+
+		if not quiet:
+				print "using top "+str (num_features)+" features"
+
+		for split_index in range( n_iter ):
+
+			training_set, test_set = full_training_set.Split(
+                                training_set_fraction=training_set_fraction, i=train_size, j=test_size, quiet=quiet)
+			training_set.Normalize( quiet=quiet )
+			test_set.Normalize( training_set, quiet=quiet )
+
+			fisher_weights = FisherFeatureWeights.NewFromFeatureSet( training_set )
+			fisher_weights = fisher_weights.Threshold( num_features )
+
+			reduced_test_set = test_set.FeatureReduce( fisher_weights.names )
+			reduced_training_set = training_set.FeatureReduce( fisher_weights.names )
+
+			batch_result = DiscreteBatchClassificationResult.New( reduced_training_set, \
+		         reduced_test_set, fisher_weights, batch_number=split_index, quiet=quiet )
+
+			experiment.individual_results.append( batch_result )
+
+		return experiment
+
 
 	#=====================================================================
 	def GenerateStats( self ):
@@ -4221,11 +4228,13 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 			                  batch_result.classification_accuracy, batch_result.name )
 
 		outstr = "{0}\t{1:0.3f}\t{2:>3}\t{3:0.3f}\t{4:0.3f}\t{5:0.3f}\t{6}"
-		print "Feature Weight Analysis:"
+		print "Feature Weight Analysis (top 50 features):"
 		print "Rank\tmean\tcount\tStdDev\tMin\tMax\tName"
 		print "----\t----\t-----\t------\t---\t---\t----"
 		for count, fw_stat in enumerate( self.feature_weight_statistics, 1 ):
 			print outstr.format( count, *fw_stat )
+			if count >= 50:
+					break
 
 	#=====================================================================
 	@classmethod
@@ -4350,6 +4359,83 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		return exp
 
 
+	#=====================================================================
+	@output_railroad_switch
+	def PerSampleStatistics( self ):
+		"""This function is meant to elucidate the amount of variability of classifications 
+		across batches. ImageClassificationResult imformation is aggregated for each individual
+		image/ROI encountered, and statistics are generated for each image/ROI and printed out."""
+
+		if self.individual_results == 0:
+			raise ValueError( 'No batch results to analyze' )
+
+		#self.predicted_values = []
+		self.ground_truth_values = []
+
+		self.accumulated_individual_results = {}
+		self.individual_stats = {}
+
+		for batch in self.individual_results:
+			for result in batch.individual_results:
+				if not result.source_file in self.accumulated_individual_results:
+					# initialize list of individual results for this file
+					self.accumulated_individual_results[ result.source_file ] = []
+				self.accumulated_individual_results[ result.source_file ].append( result )
+
+		for filename in self.accumulated_individual_results:
+
+			# Get marginal probability averages
+			mp_totals = None
+			for result in self.accumulated_individual_results[filename]:
+				if not mp_totals:
+					mp_totals = result.marginal_probabilities[:]
+				else:
+					new_total = []
+					for class_total, new_mp in zip( mp_totals, result.marginal_probabilities ):
+						new_total.append( class_total + new_mp )
+					mp_totals = new_total
+
+			mp_avgs = [ float(mp_totals[i]) / len( self.accumulated_individual_results[filename] ) for i in range( len( mp_totals ) ) ]
+			#vals = np.array ([result.predicted_value for result in self.accumulated_individual_results[filename] ])
+			vals = [result.predicted_class_name for result in self.accumulated_individual_results[filename] ]
+			#self.ground_truth_values.append( self.accumulated_individual_results[filename][0].ground_truth_value )
+			gt_class = self.accumulated_individual_results[filename][0].ground_truth_class_name
+			self.ground_truth_values.append( gt_class )
+			#self.predicted_values.append( np.mean(vals) )
+			self.individual_stats[filename] = ( len(vals), float( vals.count( gt_class ) ) / len(vals), mp_avgs, gt_class )
+
+		print "==========================================="
+		print 'Experiment name: "{0}"'.format( self.name ) + ' Individual results\n'
+
+		mp_delim = "  "
+		discrlineoutstr = "\tsplit {split_num:02d}: pred: {pred_class}\tact: {actual_class}\tnorm factor: {norm_factor:0.3g},\tmarg probs: ( {norm_dists} )"
+		outstr = "\t---> Tested {0} times, avg correct: {1:0.3f}, avg marg probs ( {2} )"
+
+		#create view
+		res_dict = self.accumulated_individual_results
+
+		# sort by ground truth, then alphanum
+		sort_func = lambda A, B: cmp( A, B ) if res_dict[A][0].ground_truth_class_name == res_dict[B][0].ground_truth_class_name else cmp( res_dict[A][0].source_file, res_dict[B][0].source_file  ) 
+		sorted_images = sorted( self.accumulated_individual_results.iterkeys(), sort_func )
+
+		for samplename in sorted_images:
+			print 'File "' + samplename + '"'
+			for result in self.accumulated_individual_results[ samplename ]:
+				marg_probs = [ "{0:0.3f}".format( num ) for num in result.marginal_probabilities ]
+				print discrlineoutstr.format( split_num = result.batch_number, \
+				                         pred_class = result.predicted_class_name, \
+				                         actual_class = result.ground_truth_class_name, \
+				                         norm_factor = result.normalization_factor, \
+				                         norm_dists = mp_delim.join( marg_probs ) )
+
+			marg_probs = [ "{0:0.3f}".format( num ) for num in self.individual_stats[ samplename ][2] ]
+			print outstr.format( self.individual_stats[ samplename ][0], self.individual_stats[ samplename ][1], mp_delim.join( marg_probs ) )
+
+
+		# If 2 or 3 class problem, plot individuals in marginal probability space
+
+
+
 # END class definition for DiscreteClassificationExperimentResult
 
 #============================================================================
@@ -4363,6 +4449,58 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 	def __init__( self, training_set=None, test_set=None, feature_weights=None, name=None ):
 		super( ContinuousClassificationExperimentResult, self ).__init__(
 				training_set, test_set, feature_weights, name )
+
+	#=====================================================================
+	@classmethod
+	def NewShuffleSplit( cls, full_training_set, n_iter=5, feature_usage_fraction=0.15,
+                     name=None, num_features=None, training_set_fraction=0.75, train_size=None,
+										 test_size=None, classifier=None, quiet=False):
+		"""Note: classifier is Least Squares Regression"""
+
+		experiment = cls( training_set=full_training_set, name=name )
+		if feature_usage_fraction:
+			if feature_usage_fraction < 0 or feature_usage_fraction > 1.0:
+				raise ValueError('Feature usage fraction must be on interval [0,1]')
+			num_features = int( feature_usage_fraction * full_training_set.num_features )
+
+		if not num_features:
+				raise ValueError( 'must specify num_features or feature_usage_fraction in kwargs')
+
+		if not quiet:
+				print "using top "+str (num_features)+" features"
+
+		if classifier != None and classifier != 'lstsq' and classifier != "voting":
+				raise ValueError( 'Unrecognized classifier: "{0}", choose "lstsq" or "voting".'\
+								.format( classifier ) )
+
+		if not quiet:
+				if classifier == None or classifier == 'lstsq':
+						print "Using Least Squares Regression classifier"
+				elif classifier == "voting":
+						print "Using Voting Regression Classifier"
+
+		for split_index in range( n_iter ):
+
+			training_set, test_set = full_training_set.Split( i=train_size, j=test_size, quiet=quiet )
+			training_set.Normalize( quiet=quiet )
+			test_set.Normalize( training_set, quiet=quiet)
+
+			weights = ContinuousFeatureWeights.NewFromFeatureSet( training_set )
+			weights = weights.Threshold( num_features )
+
+			reduced_test_set = test_set.FeatureReduce( weights.names )
+			reduced_training_set = training_set.FeatureReduce( weights.names )
+
+			if classifier == 'voting':
+				batch_result = ContinuousBatchClassificationResult.New(
+							reduced_training_set, weights, batch_number=split_index, quiet=quiet )
+			else:
+				batch_result = ContinuousBatchClassificationResult.NewLeastSquaresRegression(
+							reduced_training_set, reduced_test_set, weights, batch_number=split_index, quiet=quiet )
+
+			experiment.individual_results.append( batch_result )
+
+		return experiment
 
 	#=====================================================================
 	def GenerateStats( self ):
@@ -4409,6 +4547,68 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 		print "Total standard error: {0}".format( self.figure_of_merit )
 		print "Pearson corellation coefficient: {0}".format( self.pearson_coeff )
 		print "Pearson p-value: {0}".format( self.pearson_p_value )		
+
+		outstr = "{0}\t{1:0.3f}\t{2:>3}\t{3:0.3f}\t{4:0.3f}\t{5:0.3f}\t{6}"
+		print "Feature Weight Analysis (top 50 features):"
+		print "Rank\tmean\tcount\tStdDev\tMin\tMax\tName"
+		print "----\t----\t-----\t------\t---\t---\t----"
+		for count, fw_stat in enumerate( self.feature_weight_statistics, 1 ):
+			print outstr.format( count, *fw_stat )
+			if count >= 50:
+					break
+
+
+	#=====================================================================
+	@output_railroad_switch
+	def PerSampleStatistics( self ):
+		"""This function is meant to elucidate the amount of variability of classifications
+		across batches. ImageClassificationResult imformation is aggregated for each individual
+		image/ROI encountered, and statistics are generated for each image/ROI and printed out."""
+
+		if self.individual_results == 0:
+			raise ValueError( 'No batch results to analyze' )
+
+		self.predicted_values = []
+		self.ground_truth_values = []
+
+		self.accumulated_individual_results = {}
+		self.individual_stats = {}
+
+		for batch in self.individual_results:
+			for result in batch.individual_results:
+				if not result.source_file in self.accumulated_individual_results:
+					# initialize list of individual results for this file
+					self.accumulated_individual_results[ result.source_file ] = []
+				self.accumulated_individual_results[ result.source_file ].append( result )
+
+		for filename in self.accumulated_individual_results:
+			vals = np.array( [result.predicted_value for result in self.accumulated_individual_results[filename] ])
+			self.ground_truth_values.append( self.accumulated_individual_results[filename][0].ground_truth_value )
+			self.predicted_values.append( np.mean(vals) )
+			self.individual_stats[filename] = ( len(vals), np.min(vals), np.mean(vals), \
+																							np.max(vals), np.std(vals) ) 
+
+		print "==========================================="
+		print 'Experiment name: "{0}"'.format( self.name ) + ' Individual results\n'
+		mp = "  "
+		contlineoutstr = "\tsplit {split_num:02d} '{batch_name}': actual: {actual_class}. Predicted val: {pred_val:0.3f}"
+		outstr = "\t---> Tested {0} times, low {1:0.3f}, mean {2:0.3f}, high {3:0.3f}, std dev {4:0.3f}"
+
+		#create view
+		res_dict = self.accumulated_individual_results
+
+		# sort by ground truth, then alphanum
+		sort_func = lambda A, B: cmp( A, B ) if res_dict[A][0].ground_truth_value == res_dict[B][0].ground_truth_value else cmp( res_dict[A][0].ground_truth_value, res_dict[B][0].ground_truth_value  ) 
+		sorted_images = sorted( self.accumulated_individual_results.iterkeys(), sort_func )
+
+		for samplename in sorted_images:
+			print 'File "' + samplename + '"'
+			for result in self.accumulated_individual_results[ samplename ]:
+				print contlineoutstr.format( split_num = result.batch_number, \
+				                         batch_name = result.name, \
+				                         actual_class = result.ground_truth_value, \
+				                         pred_val = result.predicted_value )
+			print outstr.format( *self.individual_stats[ samplename ] )
 
 #============================================================================
 class BaseGraph( object ):
@@ -4642,23 +4842,29 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
 	# FIXME: roll this class into FeatureTimingVersusAccuracyGraph, allowing
 	# both Discrete and continuous data
 
-	def __init__( self, training_set, feature_weights, chart_title=None, min_num_features=1, max_num_features=500, step=5, y_min=None, y_max=None):
-	
+	def __init__( self, training_set, feature_weights, chart_title=None, min_num_features=1, max_num_features=None, step=5, y_min=None, y_max=None, quiet=False):
+
 		ls_experiment = ContinuousClassificationExperimentResult( training_set, training_set, feature_weights, name="Least Squares Regression Method")
 		voting_experiment = ContinuousClassificationExperimentResult( training_set, training_set, feature_weights, name="Voting Method")
+		if max_num_features is None:
+			max_num_features = len( feature_weights )
 
 		x_vals = range( min_num_features, max_num_features + 1, step )
 
 		for number_of_features_to_use in x_vals:
 			reduced_fw = feature_weights.Threshold( number_of_features_to_use )
 			reduced_ts = training_set.FeatureReduce( reduced_fw.names )
+			if not quiet:
+				reduced_fw.Print()
 
-			ls_batch_result = ContinuousBatchClassificationResult.NewLeastSquaresRegression( reduced_ts, None, reduced_fw, batch_number=number_of_features_to_use )
-			ls_batch_result.Print()
+			ls_batch_result = ContinuousBatchClassificationResult.NewLeastSquaresRegression( reduced_ts, None, reduced_fw, batch_number=number_of_features_to_use, quiet=my_quiet )
+			if not quiet:
+				ls_batch_result.Print()
 			ls_experiment.individual_results.append( ls_batch_result )
 
 			voting_batch_result = ContinuousBatchClassificationResult.New( reduced_ts, reduced_fw, batch_number=number_of_features_to_use )
-			voting_batch_result.Print()
+                        if not quiet:
+			    voting_batch_result.Print()
 			voting_experiment.individual_results.append( voting_batch_result )
 
 		import matplotlib
