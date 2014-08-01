@@ -24,21 +24,21 @@ class CustomInstall(install):
         self.do_egg_install()
 
 import os
-pkg_dir = os.path.join (os.path.dirname(os.path.realpath(__file__)),'pychrm')
+pkg_dir = os.path.join (os.path.dirname(os.path.realpath(__file__)),'wndcharm')
 
 # this sets the __version__ variable
-# the pychrm/_version.py file contains a single line assigning the __version__ variable
+# the wndcharm/_version.py file contains a single line assigning the __version__ variable
 # This file gets imported by __init__.py to set __version__ during package import
 # Here we do NOT want to import the package we are building to set this variable!
-# We DO want to set the version in setup() and have it all synchronized from a single place (pychrm/_version.py)
+# We DO want to set the version in setup() and have it all synchronized from a single place (wndcharm/_version.py)
 execfile(os.path.join (pkg_dir,'_version.py'))
 
 # If we're building from svn, get the svn revision using the svnversion command
 # The svn revision (if it exists) gets appended to the version string (e.g. 0.3-r123 or 0.2-r141-local)
 # This mechanism allows for detection of locally modified (uncommitted) svn versions, and does not
 # require any action other than normal svn updates/commits to register new version numbers
-# The svn version is written to pychrm/_svn_version.py (which is not under svn control) for inclusion by __init__.py
-# If we're not building from svn, then _svn_version.py is not written, and __version__ will be as in pychrm/_version.py
+# The svn version is written to wndcharm/_svn_version.py (which is not under svn control) for inclusion by __init__.py
+# If we're not building from svn, then _svn_version.py is not written, and __version__ will be as in wndcharm/_version.py
 try:
 	import subprocess
 	import re
@@ -58,7 +58,7 @@ try:
 except:
 	pass
 
-# Since there's a large C++ underpinning for Pychrm, run autotools to test build environment
+# Since there's a large C++ underpinning for the wndcharm Python API, run autotools to test build environment
 import os
 if not os.path.exists( 'config.h' ):
 	cmd = os.getcwd() + os.sep + 'configure'
@@ -70,9 +70,9 @@ if not os.path.exists( 'config.h' ):
 		import sys
 		sys.exit(p)
 
-wndchrm_module = Extension('_pychrm',
+wndchrm_module = Extension('_wndcharm',
 	sources=[
-		'pychrm/swig/pychrm.i',
+		'wndcharm/swig/wndcharm.i',
 		'src/colors/FuzzyCalc.cpp',
 		'src/statistics/CombFirst4Moments.cpp',
 		'src/statistics/FeatureStatistics.cpp',
@@ -106,20 +106,20 @@ wndchrm_module = Extension('_pychrm',
 		'src/gsl/specfunc.cpp',
 	],
 	include_dirs=['./','src/', '/usr/local/include'],
-	swig_opts=['-threads', '-c++', '-I./', '-I./src', '-outdir', 'pychrm'],
+	swig_opts=['-threads', '-c++', '-I./', '-I./src', '-outdir', 'wndcharm'],
 	libraries=['tiff','fftw3'],
 )
 
 setup (
 	cmdclass={'build': CustomBuild, 'install': CustomInstall},
-	name = 'pychrm',
+	name = 'wndcharm',
 	version = __version__,
 	author      = "Chris Coletta, Ilya Goldberg",
 	url = 'https://github.com/wnd-charm/wnd-charm',
 	description = """Python bindings for wnd-charm""",
 	license = 'LGPLv2',
 	ext_modules = [wndchrm_module],
-	packages = ['pychrm'],
+	packages = ['wndcharm'],
 	install_requires=[
 		'argparse',
 		'numpy',
