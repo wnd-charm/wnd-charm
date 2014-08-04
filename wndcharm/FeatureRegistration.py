@@ -1,36 +1,36 @@
 try:
-	from . import pychrm
+	from . import wndcharm
 except:
-	import pychrm
+	import wndcharm
 #================================================================
 def LoadFeatureAlgorithms():
 	out = {}
-	out[ 'Chebyshev Coefficients' ] = pychrm.ChebyshevCoefficients()
-	out[ 'Chebyshev-Fourier Coefficients' ] = pychrm.ChebyshevFourierCoefficients()
-	out[ 'Zernike Coefficients' ] = pychrm.ZernikeCoefficients()
-	out[ 'Haralick Textures' ] = pychrm.HaralickTextures()
-	out[ 'Multiscale Histograms' ] = pychrm.MultiscaleHistograms()
-	out[ 'Tamura Textures' ] = pychrm.TamuraTextures()
-	out[ 'Comb Moments' ] = pychrm.CombFirstFourMoments()
-	out[ 'Radon Coefficients' ] = pychrm.RadonCoefficients()
-	out[ 'Fractal Features' ] = pychrm.FractalFeatures()
-	out[ 'Pixel Intensity Statistics' ] = pychrm.PixelIntensityStatistics()
-	out[ 'Edge Features' ] = pychrm.EdgeFeatures()
-	out[ 'Object Features' ] = pychrm.ObjectFeatures()
-	out[ 'Gabor Textures' ] = pychrm.GaborTextures()
-	out[ 'Gini Coefficient' ] = pychrm.GiniCoefficient()
+	out[ 'Chebyshev Coefficients' ] = wndcharm.ChebyshevCoefficients()
+	out[ 'Chebyshev-Fourier Coefficients' ] = wndcharm.ChebyshevFourierCoefficients()
+	out[ 'Zernike Coefficients' ] = wndcharm.ZernikeCoefficients()
+	out[ 'Haralick Textures' ] = wndcharm.HaralickTextures()
+	out[ 'Multiscale Histograms' ] = wndcharm.MultiscaleHistograms()
+	out[ 'Tamura Textures' ] = wndcharm.TamuraTextures()
+	out[ 'Comb Moments' ] = wndcharm.CombFirstFourMoments()
+	out[ 'Radon Coefficients' ] = wndcharm.RadonCoefficients()
+	out[ 'Fractal Features' ] = wndcharm.FractalFeatures()
+	out[ 'Pixel Intensity Statistics' ] = wndcharm.PixelIntensityStatistics()
+	out[ 'Edge Features' ] = wndcharm.EdgeFeatures()
+	out[ 'Object Features' ] = wndcharm.ObjectFeatures()
+	out[ 'Gabor Textures' ] = wndcharm.GaborTextures()
+	out[ 'Gini Coefficient' ] = wndcharm.GiniCoefficient()
 	return out
 
 
 #================================================================
 def LoadFeatureTransforms():
 	out = {}
-	out[ 'Fourier' ] = pychrm.FourierTransform()
-	out[ 'Chebyshev' ] = pychrm.ChebyshevTransform()
-	out[ 'Wavelet' ] = pychrm.WaveletTransform()
-	out[ 'Edge' ] = pychrm.EdgeTransform()
-	out[ 'Color' ] = pychrm.ColorTransform()
-	out[ 'Hue' ] = pychrm.HueTransform()
+	out[ 'Fourier' ] = wndcharm.FourierTransform()
+	out[ 'Chebyshev' ] = wndcharm.ChebyshevTransform()
+	out[ 'Wavelet' ] = wndcharm.WaveletTransform()
+	out[ 'Edge' ] = wndcharm.EdgeTransform()
+	out[ 'Color' ] = wndcharm.ColorTransform()
+	out[ 'Hue' ] = wndcharm.HueTransform()
 	return out
 
 

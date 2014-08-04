@@ -55,9 +55,9 @@ Pychrm TODO (in no particular order):
 # ===========================================================
 # The following are some Pychrm-specific module imports:
 
-# pychrm.py has the definitions of all the SWIG-wrapped primitive
+# wndcharm.py has the definitions of all the SWIG-wrapped primitive
 # C++ WND_CHARM objects.
-import pychrm
+import wndcharm
 
 # ============================================================
 # Imports from Python core or other installed packages
@@ -126,11 +126,11 @@ def initialize_module():
 	global Algorithms
 	global Transforms
 	# The verbosity is set by the environment variable WNDCHRM_VERBOSITY, in wndchrm_error.cpp
-	# pychrm.cvar.verbosity = 7
+	# wndcharm.cvar.verbosity = 7
 
 
 	# These are the auto-registered ComputationTasks, which come in different flavors
-	all_tasks = pychrm.ComputationTaskInstances.getInstances()
+	all_tasks = wndcharm.ComputationTaskInstances.getInstances()
 	for task in all_tasks:
 		if task.type == task.ImageTransformTask:
 			Transforms.append (task)
@@ -147,7 +147,7 @@ def initialize_module():
 	# 	getFeatureSetLongColor();
 
 	# e. g.:
-# 	small_feature_plan = pychrm.StdFeatureComputationPlans.getFeatureSet()
+# 	small_feature_plan = wndcharm.StdFeatureComputationPlans.getFeatureSet()
 # 	print "small feature set groups:"
 # 	last_feature_group = None;
 # 	for i in range( 0, small_feature_plan.n_features):
@@ -278,9 +278,9 @@ class SampleImageTiles (object):
 	"""SampleImageTiles is an image iterator wrapper (the iterator is the sample method).
 	The iterator is wrapped to provide additional information such as the number of samples that will
 	be extracted from the image, as well as information about each sample after calling the sample method.
-	Each call to sample returns the next pychrm.ImageMatrix in the sample set.
+	Each call to sample returns the next wndcharm.ImageMatrix in the sample set.
 	The constructor has three required parameters.
-	The image parameter can be a path to an image file or a pychrm.ImageMatrix
+	The image parameter can be a path to an image file or a wndcharm.ImageMatrix
 	The x and y parameters can specify the number of non-overlapping samples in each dimension (is_fixed parameter is False),
 	or the dimentions of each sample (is_fixed parameter is True).
 	Example usage:
@@ -295,13 +295,13 @@ class SampleImageTiles (object):
 		if isinstance (image_in, str):
 			if not os.path.exists( image_in ):
 				raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( image_in ) )
-			self.image = pychrm.ImageMatrix()
+			self.image = wndcharm.ImageMatrix()
 			if 1 != self.image.OpenImage( image_in, 0, None, 0, 0 ):
 				raise ValueError( 'Could not build an ImageMatrix from {0}, check the file.'.format( image_in ) )
-		elif isinstance (image_in, pychrm.ImageMatrix):
+		elif isinstance (image_in, wndcharm.ImageMatrix):
 			self.image = image_in
 		else:
-			raise ValueError("image parameter 'image_in' is not a string or a pychrm.ImageMatrix")
+			raise ValueError("image parameter 'image_in' is not a string or a wndcharm.ImageMatrix")
 
 		if (is_fixed):
 			self.tile_width = x
@@ -328,7 +328,7 @@ class SampleImageTiles (object):
 			current_x = 0
 			self.current_x = current_x
 			while current_x + width <= max_x:
-				yield pychrm.ImageMatrix (original, current_x, current_y, current_x+width-1, current_y+height-1,0,0)
+				yield wndcharm.ImageMatrix (original, current_x, current_y, current_x+width-1, current_y+height-1,0,0)
 				current_x = current_x + width
 				self.current_x = current_x
 			current_y = current_y + height
@@ -489,7 +489,7 @@ class FisherFeatureWeights( FeatureWeights ):
 				# split line "number <space> name"
 				feature_line = line.strip().split(None, 1 )
 				weights.values.append( float( feature_line[0] ) )
-				weights.names.append( pychrm.FeatureNames.getFeatureInfoByName (feature_line[1]).name )
+				weights.names.append( wndcharm.FeatureNames.getFeatureInfoByName (feature_line[1]).name )
 
 		return weights
 
@@ -972,7 +972,7 @@ class Signatures( FeatureVector ):
 
 		print "====================================================================="
 		print "Calculating small feature set for file:"
-		feature_plan = pychrm.StdFeatureComputationPlans.getFeatureSet ();
+		feature_plan = wndcharm.StdFeatureComputationPlans.getFeatureSet ();
 		the_sigs = cls.NewFromFeatureComputationPlan( imagepath, feature_plan, options )
 		the_sigs.version = str (feature_vector_major_version)+"."+str(feature_plan.feature_vec_type)
 
@@ -1015,7 +1015,7 @@ class Signatures( FeatureVector ):
 		# incomplete, or calculated with different options, e.g., -S1441
 		# FIXME: Here's where you'd calculate a small subset of features
 		# and see if they match what was loaded from file
-		feature_plan = pychrm.StdFeatureComputationPlans.getFeatureSetLong ()
+		feature_plan = wndcharm.StdFeatureComputationPlans.getFeatureSetLong ()
 		if len( the_sigs.names ) <= 0:
 			# All hope is lost. Calculate sigs
 			print "Calculating large feature set for file: {0}".format( imagepath )
@@ -1044,22 +1044,22 @@ class Signatures( FeatureVector ):
 	@classmethod
 	def NewFromFeatureComputationPlan ( cls, image_path_or_mat, computation_plan, options = None ):
 		"""@brief calculates signatures
-		@argument image_path_or_mat - path to a tiff file as a string or a pychrm.ImageMatrix object
+		@argument image_path_or_mat - path to a tiff file as a string or a wndcharm.ImageMatrix object
 		"""
 
 		if isinstance (image_path_or_mat, str):
 			path_to_image = image_path_or_mat
 			if not os.path.exists( path_to_image ):
 				raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( path_to_image ) )
-			original = pychrm.ImageMatrix()
+			original = wndcharm.ImageMatrix()
 			if 1 != original.OpenImage( path_to_image, 0, None, 0, 0 ):
 				raise ValueError( 'Could not build an ImageMatrix from {0}, check the file.'.\
 					format( path_to_image ) )
-		elif isinstance (image_path_or_mat, pychrm.ImageMatrix):
+		elif isinstance (image_path_or_mat, wndcharm.ImageMatrix):
 			original = image_path_or_mat
 			path_to_image = "sample" # should really get this from ImageMatrix
 		else:
-			raise ValueError("image parameter 'image_path_or_mat' is not a string or a pychrm.ImageMatrix")
+			raise ValueError("image parameter 'image_path_or_mat' is not a string or a wndcharm.ImageMatrix")
 
 		print path_to_image
 
@@ -1070,14 +1070,14 @@ class Signatures( FeatureVector ):
 		signatures.options = options
 
 		# pre-allocate space where the features will be stored (C++ std::vector<double>)
-		tmp_vec = pychrm.DoubleVector (computation_plan.n_features)
+		tmp_vec = wndcharm.DoubleVector (computation_plan.n_features)
 
 		# get the feature names from the plan
 		for i in range( 0, computation_plan.n_features):
 			signatures.names.append (computation_plan.getFeatureNameByIndex(i))
 
 		# Get an executor for this plan and run it
-		plan_exec = pychrm.FeatureComputationPlanExecutor(computation_plan)
+		plan_exec = wndcharm.FeatureComputationPlanExecutor(computation_plan)
 		plan_exec.run (original, tmp_vec, 0)
 
 		# convert std::vector<double> to native python list of floats
@@ -1156,7 +1156,7 @@ class Signatures( FeatureVector ):
 				else:
 					value, name = line.strip().split(None, 1 )
 					signatures.values.append( float( value ) )
-					signatures.names.append( pychrm.FeatureNames.getFeatureInfoByName (name).name )
+					signatures.names.append( wndcharm.FeatureNames.getFeatureInfoByName (name).name )
 				linenum += 1
 			#print "Loaded {0} features.".format( len( signatures.values ) )
 
@@ -1301,7 +1301,7 @@ def GenerateComputationPlanFromListOfFeatureStrings( feature_list ):
 
 	@return work_order - a FeatureComputationPlan
 	"""
-	feature_plan = pychrm.FeatureComputationPlan ('custom')
+	feature_plan = wndcharm.FeatureComputationPlan ('custom')
 
 	feature_groups = set()
 	for feature in feature_list:
@@ -1775,7 +1775,7 @@ class FeatureSet_Discrete( FeatureSet ):
 		if not filename.endswith( ".fit" ):
 			raise ValueError( 'Not a .fit file: {0}'.format( pathname ) )
 
-		pickled_pathname = pathname + ".pychrm"
+		pickled_pathname = pathname + ".wndcharm"
 
 		import re
 
@@ -1825,7 +1825,7 @@ class FeatureSet_Discrete( FeatureSet ):
 				elif line_num is 2:
 					data_dict[ 'num_images' ] = int( line )
 				elif line_num <= ( num_features + 2 ):
-					data_dict[ 'featurenames_list' ].append( pychrm.FeatureNames.getFeatureInfoByName (line.strip()).name )
+					data_dict[ 'featurenames_list' ].append( wndcharm.FeatureNames.getFeatureInfoByName (line.strip()).name )
 					feature_count += 1
 				elif line_num == ( num_features + 3 ):
 					pass # skip a line
@@ -2548,7 +2548,7 @@ class FeatureSet_Continuous( FeatureSet ):
 		if not filename.endswith( ".fit" ):
 			raise ValueError( 'Not a .fit file: {0}'.format( pathname ) )
 
-		pickled_pathname = pathname + ".pychrm"
+		pickled_pathname = pathname + ".wndcharm"
 
 		print "Creating Continuous Training Set from legacy WND-CHARM text file file {0}".format( pathname )
 		with open( pathname ) as fitfile:

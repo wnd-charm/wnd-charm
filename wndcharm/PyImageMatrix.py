@@ -1,5 +1,5 @@
-import pychrm
-from pychrm import ImageMatrix
+import wndcharm
+from wndcharm import ImageMatrix
 import numpy as np
 import ctypes
 
