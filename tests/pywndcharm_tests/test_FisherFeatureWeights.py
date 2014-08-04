@@ -1,97 +1,71 @@
 #!/usr/bin/env python
-# -------- preamble to get the test data --------------------
-from pychrm.FeatureSet import *
-import os
+#
+# Copyright (C) 2014 National Institutes of Health
+# All rights reserved.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+
 import sys
-# This script is in googlecode/pychrm/trunk/tests/
-# test data in googlecode/wndchrm/tests
-# get the directory three levels up from this script, then wndchrm/tests
-my_dir = os.path.dirname(os.path.realpath(__file__))
-if (len (sys.argv) > 1):
-	test_dir = sys.argv[1]
-	if not os.path.isdir (test_dir):
-		print "The supplied path to the tests directory '{0}' is not a directory".format (test_dir)
-		test_dir = None
+if sys.version_info < (2, 7):
+    import unittest2 as unittest
 else:
-	test_dir = os.path.join (os.path.dirname(os.path.dirname(os.path.dirname(my_dir))),'wndchrm','tests')
-	if not os.path.isdir (test_dir):
-		print "The path to the tests directory relative to this script '{0}' is not a directory".format (test_dir)
-		test_dir = None
-if not (test_dir):
-	print "The tests directory can be checked out from svn and the test re-run using the following commands:"
-	print "svn checkout http://wnd-charm.googlecode.com/svn/wndchrm/tests tests"
-	print "{0} tests".format (sys.argv[0])
-	sys.exit(0)
-from pychrm import __version__ as pychrm_version
-# -------- END preamble to get the test data --------------------
+    import unittest
 
-test_fit = os.path.join (test_dir,'test-l.fit')
-test_fit_wght = os.path.join (test_dir,'test_fit-l.weights')
+from os.path import dirname, realpath, join
 
-ts = FeatureSet_Discrete.NewFromFitFile( test_fit )
-ts.Normalize()
+pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pywndchrm_tests
+wndchrm_test_dir = join( dirname( pychrm_test_dir ), 'wndchrm_tests' )
+test_dir = wndchrm_test_dir
+
+from wndcharm.FeatureSet import FeatureSet_Discrete, FisherFeatureWeights
+
+class TestFisherFeatureWeights( unittest.TestCase ):
+	"""Fisher score calculation"""
+
+	epsilon = 0.00001
+
+	test_fit_path = join( test_dir,'test-l.fit' )
+	test_normalized_fit_path = join( test_dir, 'test_fit-l-normalized.fit' )
+	test_feat_weight_path = join( test_dir,'test_fit-l.weights' )
 	
+	# --------------------------------------------------------------------------
+	def test_NewFromFeatureSet( self ):
+		"""Fisher score calculation"""
 
-calc_wghts = FisherFeatureWeights.NewFromFeatureSet (ts)
-# test weights generated from test-l.fit:
-# wndchrm classify -l -f1.0 -vtest_fit-l.weights test-l.fit test-l.fit 
+		feature_set = FeatureSet_Discrete.NewFromFitFile( self.test_fit_path )
+		feature_set.Normalize()
+		result_weights = FisherFeatureWeights.NewFromFeatureSet( feature_set )
 
-test_wghts = FisherFeatureWeights.NewFromFile (test_fit_wght)
+		# test weights generated from test-l.fit:
+		# wndchrm classify -l -f1.0 -vtest_fit-l.weights test-l.fit test-l.fit 
+		target_weights = FisherFeatureWeights.NewFromFile( self.test_feat_weight_path )
 
-test_name = "Normalization"
-max_diff_pass = 0.0001
-max_mean_pass = 0.00005
-epsilon = 0.00005
-max_diff = 0.
-sum_diff = 0.
-num_diffs = 0.
+	 	for target_val, res_val in zip( target_weights.values, result_weights.values ):
+			self.assertAlmostEqual( target_val, res_val, delta=self.epsilon )
 
-ts_norm = FeatureSet_Discrete.NewFromFitFile( os.path.join (test_dir,'test_fit-l-normalized.fit') )
-for img_idx in range (ts.num_images):
-	for f_idx in range (ts.num_features):
-		test_val = ts_norm.data_matrix[img_idx][f_idx]
-		calc_val = ts.data_matrix[img_idx][f_idx]
-		diff = abs(calc_val - test_val)
-		sum_diff += diff
-		num_diffs += 1.0
-		if diff > max_diff:
-			max_diff = diff
-		if ( diff > epsilon):
-			print "computed normalization for '{0}' ({1}) differs from normalization in file ({2}) by {3}".format (
-				ts.featurenames_list[f_idx], calc_val, test_val, diff )
+	# --------------------------------------------------------------------------
+	def test_Normalize( self ):
+		"""FIXME: THIS TEST BELONGS IN TEST_FEATURESET.PY"""
 
-print "{0} comparissons, maximum diff = {1}, mean = {2}".format ( int (num_diffs), max_diff, sum_diff / num_diffs )
-if (max_diff > max_diff_pass or (sum_diff / num_diffs) > max_mean_pass):
-	print "pychrm {0} {1} test: {2}".format (pychrm_version, test_name, 'FAIL')
-else:
-	print "pychrm {0} {1} test: {2}".format (pychrm_version, test_name, 'PASS')
+		from numpy.testing import assert_allclose
+		result_fs = FeatureSet_Discrete.NewFromFitFile( self.test_fit_path )
+		result_fs.Normalize()
+		target_fs = FeatureSet_Discrete.NewFromFitFile( self.test_normalized_fit_path )
 
+		assert_allclose( result_fs.data_matrix, target_fs.data_matrix, rtol=self.epsilon )
 
-test_name = "Fisher weights"
-max_diff_pass = 0.0001
-max_mean_pass = 0.00005
-epsilon = 0.00004
-max_diff = 0.
-sum_diff = 0.
-num_diffs = 0.
-
-for idx in range (len(calc_wghts.names)):
-	try:
-		test_val = test_wghts.values [test_wghts.names.index (calc_wghts.names[idx])]
-	except:
-		print "feature '{0}' does not appear in weight file".format ( calc_wghts.names [idx] )
-	calc_val = calc_wghts.values[idx]
-	diff = abs(calc_val - test_val)
-	sum_diff += diff
-	num_diffs += 1.0
-	if diff > max_diff:
-		max_diff = diff
-	if ( diff > epsilon):
-		print "computed weight for '{0}' ({1}) differs from weight in file ({2}) by {3}".format (
-			calc_wghts.names [idx], calc_val, test_val, diff )
-
-print "{0} comparissons, maximum diff = {1}, mean = {2}".format ( int (num_diffs), max_diff, sum_diff / num_diffs )
-if (max_diff > max_diff_pass or (sum_diff / num_diffs) > max_mean_pass):
-	print "pychrm {0} {1} test: {2}".format (pychrm_version, test_name, 'FAIL')
-else:
-	print "pychrm {0} {1} test: {2}".format (pychrm_version, test_name, 'PASS')
+if __name__ == '__main__':
+	unittest.main()
