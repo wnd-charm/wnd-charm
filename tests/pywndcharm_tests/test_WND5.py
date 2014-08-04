@@ -1,37 +1,58 @@
 #!/usr/bin/env python
-# -------- preamble to get the test data --------------------
-from pychrm.FeatureSet import *
-import os
-import sys
-# This script is in googlecode/pychrm/trunk/tests/
-# test data in googlecode/wndchrm/tests
-# get the directory three levels up from this script, then wndchrm/tests
-my_dir = os.path.dirname(os.path.realpath(__file__))
-if (len (sys.argv) > 1):
-	test_dir = sys.argv[1]
-	if not os.path.isdir (test_dir):
-		print "The supplied path to the tests directory '{0}' is not a directory".format (test_dir)
-		test_dir = None
-else:
-	test_dir = os.path.join (os.path.dirname(os.path.dirname(os.path.dirname(my_dir))),'wndchrm','tests')
-	if not os.path.isdir (test_dir):
-		print "The path to the tests directory relative to this script '{0}' is not a directory".format (test_dir)
-		test_dir = None
-if not (test_dir):
-	print "The tests directory can be checked out from svn and the test re-run using the following commands:"
-	print "svn checkout http://wnd-charm.googlecode.com/svn/wndchrm/tests tests"
-	print "{0} tests".format (sys.argv[0])
-	sys.exit(0)
-from pychrm import __version__ as pychrm_version
-# -------- END preamble to get the test data --------------------
+# -*- coding: utf-8 -*-
 
-test_name = "WND5 Classification"
-max_diff_pass = 0.000001
-max_mean_pass = 0.000001
-test_sig = os.path.join (test_dir,'t1_s01_c05_ij-l_precalculated.sig')
-test_fit = os.path.join (test_dir,'test-l.fit')
-test_fit_wght = os.path.join (test_dir,'test_fit-l.weights')
-test_tif = os.path.join (test_dir,'t1_s01_c05_ij.tif')
+#
+# Copyright (C) 2013 University of Dundee & Open Microscopy Environment.
+# All rights reserved.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+#
+#
+
+import sys
+if sys.version_info < (2, 7):
+    import unittest2 as unittest
+else:
+    import unittest
+
+import re
+import numpy as np
+
+from os.path import sep, dirname, realpath
+from tempfile import mkdtemp
+from shutil import rmtree
+
+pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pychrm_tests
+wndchrm_test_dir = dirname( pychrm_test_dir ) + sep + 'wndchrm_tests'
+
+test_dir = wndchrm_test_dir
+
+from wndcharm.FeatureSet import FeatureSet_Discrete, FisherFeatureWeights,\
+        DiscreteBatchClassificationResult
+
+epsilon = 0.00001
+
+# Define paths to original files
+
+test_sig_path = os.path.join( test_dir,'t1_s01_c05_ij-l_precalculated.sig' )
+test_fit_path = os.path.join( test_dir,'test-l.fit' )
+test_feat_wght_path = os.path.join( test_dir,'test_fit-l.weights' )
+test_tif_path = os.path.join( test_dir,'t1_s01_c05_ij.tif' )
+
+# Here are the correct values that Python API needs to return
 
 # wndchrm classify -l -f1.0 test-l.fit test/2cell/t45_s06_c06_ij.tif
 # test/2cell/t45_s06_c06_ij.tif	6.87e-28	0.614	0.386	*	2cell	2.771
@@ -40,71 +61,69 @@ test_tif = os.path.join (test_dir,'t1_s01_c05_ij.tif')
 # wndchrm classify -l -f0.0685 test-l.fit test/2cell/t45_s06_c06_ij.tif
 # test/2cell/t45_s06_c06_ij.tif	3.4e-27	0.649	0.351	*	2cell	2.701
 
-test_result_2919 = [0.047,0.953]
-test_result_431 = [0.039,0.961]
-test_result_200 = [0.032,0.968]
+correct_marg_probs_2919_feats = [0.047, 0.953]
+correct_marg_probs_431_feats = [0.039, 0.961]
+correct_marg_probs_200_feats = [0.032, 0.968]
 
-test_sigs = Signatures.NewFromSigFile( test_sig, test_tif )
 
-ts = FeatureSet_Discrete.NewFromFitFile( test_fit )
-ts.Normalize()
-test_wghts = FisherFeatureWeights.NewFromFile (test_fit_wght)
-ts = ts.FeatureReduce( test_wghts.names )
-test_sigs.Normalize( ts )
+class TestWND5Classification( unittest.TestCase ):
+	"""
+	WND5 Classification
+	"""
 
-calc_result_2919 = DiscreteImageClassificationResult.NewWND5( ts, test_wghts, test_sigs )
+	def setUp(self):
+		test_sample = Signatures.NewFromSigFile( test_sig_path, test_tif_path )
+		feature_set = FeatureSet_Discrete.NewFromFitFile( test_fit_path )
+		feature_set.Normalize()
 
-test_wghts_431 = test_wghts.Threshold( 431 )
-ts_431 = ts.FeatureReduce( test_wghts_431.names )
-test_sigs_431 = test_sigs.FeatureReduce ( test_wghts_431.names )
-calc_result_431 = DiscreteImageClassificationResult.NewWND5( ts_431, test_wghts_431, test_sigs_431 )
+		self.all_weights = FisherFeatureWeights.NewFromFile( test_feat_wght_path )
+		self.feature_set = feature_set.FeatureReduce( all_weights.names )
+		self.test_sample.Normalize( feature_set )
 
-test_wghts_200 = test_wghts.Threshold( 200 )
-ts_200 = ts.FeatureReduce( test_wghts_200.names )
-test_sigs_200 = test_sigs.FeatureReduce ( test_wghts_200.names )
-calc_result_200 = DiscreteImageClassificationResult.NewWND5( ts_200, test_wghts_200, test_sigs_200 )
+	def test_WND5_all_features( self ):
+		"""
+		Checks WND5 Classification with large (2919) feature set
+		"""
+		result = DiscreteImageClassificationResult.NewWND5(
+				self.feature_set, self.all_weights, self.test_sample )
 
-epsilon = 0.00001
-max_diff = 0.
-sum_diff = 0.
-num_diffs = 0.
+		result_marg_probs = [ round( val, 3 ) \
+				for val in result.marginal_probabilities ]
 
-for idx in range( ts.num_classes ):
-	test_val = test_result_2919[idx]
-	calc_val = round (calc_result_2919.marginal_probabilities[idx],3)
-	diff = abs(calc_val - test_val)
-	sum_diff += diff
-	num_diffs += 1.0
-	if diff > max_diff:
-		max_diff = diff
-	if ( diff > epsilon):
-		print "2919 features: class '{0}' calculated probability ({1}) differs from expected ({2}) by {3}".format (
-			ts.classnames_list [idx], calc_val, test_val, diff )
+		for target_val, res_val in zip( correct_marg_probs_2919_feats, result_marg_probs ):  
+			self.AssertAlmostEqual( target_val, res_val, delta=epsilon )
 
-	test_val = test_result_431[idx]
-	calc_val = round (calc_result_431.marginal_probabilities[idx],3)
-	diff = abs(calc_val - test_val)
-	sum_diff += diff
-	num_diffs += 1.0
-	if diff > max_diff:
-		max_diff = diff
-	if ( diff > epsilon):
-		print "431 features: class '{0}' calculated probability ({1}) differs from expected ({2}) by {3}".format (
-			ts.classnames_list [idx], calc_val, test_val, diff )
+	def test_WND5_15percent_threshold( self ):
+		"""
+		Checks WND5 Classification with standard 15% threshold (431) feats
+		of large feature set.
+		"""
 
-	test_val = test_result_200[idx]
-	calc_val = round (calc_result_200.marginal_probabilities[idx],3)
-	diff = abs(calc_val - test_val)
-	sum_diff += diff
-	num_diffs += 1.0
-	if diff > max_diff:
-		max_diff = diff
-	if ( diff > epsilon):
-		print "200 features: class '{0}' calculated probability ({1}) differs from expected ({2}) by {3}".format (
-			ts.classnames_list [idx], calc_val, test_val, diff )
+		weights = self.all_weights.Threshold( 431 )
+		feat_set = self.feature_set.FeatureReduce( weights.names )
+		sample = self.test_sample.FeatureReduce( weights.names )
 
-print "{0} comparissons, maximum diff = {1}, mean = {2}".format ( int (num_diffs), max_diff, sum_diff / num_diffs )
-if (max_diff > max_diff_pass or (sum_diff / num_diffs) > max_mean_pass):
-	print "pychrm {0} {1} test: {2}".format (pychrm_version, test_name, 'FAIL')
-else:
-	print "pychrm {0} {1} test: {2}".format (pychrm_version, test_name, 'PASS')
+		result = DiscreteImageClassificationResult.NewWND5( feat_set, weights, sample )
+
+		result_marg_probs = [ round( val, 3 ) \
+				for val in result.marginal_probabilities ]
+
+		for target_val, res_val in zip( correct_marg_probs_431_feats, result_marg_probs ):  
+			self.AssertAlmostEqual( target_val, res_val, delta=epsilon )
+
+	def test_WND5_200_feats_threshold( self ):
+		"""
+		Checks WND5 Classification with 200 feature threshold.
+		"""
+		weights = self.all_weights.Threshold( 200 )
+		feat_set = self.feature_set.FeatureReduce( weights.names )
+		sample = self.test_sample.FeatureReduce( weights.names )
+
+		result = DiscreteImageClassificationResult.NewWND5( feat_set, weights, sample )
+
+		result_marg_probs = [ round( val, 3 ) \
+				for val in result.marginal_probabilities ]
+
+		for target_val, res_val in zip( correct_marg_probs_200_feats, result_marg_probs ):  
+			self.AssertAlmostEqual( target_val, res_val, delta=epsilon )
+
