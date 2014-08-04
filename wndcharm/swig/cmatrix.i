@@ -1,4 +1,4 @@
-%module pychrm
+%module wndcharm
 
 %{
 #include "cmatrix.h"

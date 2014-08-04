@@ -29,7 +29,7 @@
 #include "ImageTransforms.h"
 %}
 
-%module pychrm
+%module wndcharm
 
 
 %include "cmatrix.i"
