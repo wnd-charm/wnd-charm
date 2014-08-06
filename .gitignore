@@ -3,9 +3,9 @@
 build/
 .deps/
 dist/
-pychrm.egg-info/
-pychrm/pychrm.py
-pychrm/swig/pychrm_wrap.cpp
+wndcharm.egg-info/
+wndcharm/wndcharm.py
+wndcharm/swig/wndcharm_wrap.cpp
 src/Makefile
 Makefile
 config.h
