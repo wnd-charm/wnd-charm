@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-# import pychrm
-from pychrm.FeatureSet import *
-from pychrm import __version__ as pychrm_version
-print "pychrm "+pychrm_version
+# import wndcharm
+from wndcharm.FeatureSet import *
+from wndcharm import __version__ as wndcharm_version
+print "wndcharm "+wndcharm_version
 
 import sys
 import os
@@ -82,7 +82,7 @@ if re.search(r"\.tiff?$", sys.argv[next_arg], re.IGNORECASE):
 	image_path = sys.argv[next_arg]
 	if not os.path.exists( image_path ):
 		raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( image_path ) )
-	input_image = pychrm.ImageMatrix()
+	input_image = wndcharm.ImageMatrix()
 	if 1 != input_image.OpenImage( image_path, 0, None, 0, 0 ):
 		raise ValueError( 'Could not build an ImageMatrix from {0}, check the file.'.format( image_path ) )
 	next_arg = next_arg + 1
