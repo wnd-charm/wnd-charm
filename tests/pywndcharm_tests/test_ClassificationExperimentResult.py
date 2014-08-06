@@ -32,8 +32,8 @@ else:
 # =====================================================================
 # Continuous
 # =====================================================================
-from pychrm.ArtificialFeatureSets import CreateArtificialFeatureSet_Continuous
-from pychrm.FeatureSet import ContinuousClassificationExperimentResult,\
+from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Continuous
+from wndcharm.FeatureSet import ContinuousClassificationExperimentResult,\
 				ContinuousFeatureWeights
 
 class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
@@ -136,8 +136,8 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 # =====================================================================
 # Discrete
 # =====================================================================
-from pychrm.ArtificialFeatureSets import CreateArtificialFeatureSet_Discrete
-from pychrm.FeatureSet import FeatureSet_Discrete, DiscreteClassificationExperimentResult
+from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Discrete
+from wndcharm.FeatureSet import FeatureSet_Discrete, DiscreteClassificationExperimentResult
 
 class TESTINGDiscreteClassificationExperimentResult( unittest.TestCase ):
 	"""Test various functions from the DiscreteClassificationExperimentResult class."""

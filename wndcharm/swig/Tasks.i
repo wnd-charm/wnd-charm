@@ -1,4 +1,4 @@
-%module pychrm
+%module wndcharm
 
 %{
 /* Include in the generated wrapper file */

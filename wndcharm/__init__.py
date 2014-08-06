@@ -1,8 +1,8 @@
 __version__ = "unknown"
 
-#__all__ = [ 'pychrm', 'FeatureSet' ]
+#__all__ = [ 'wndcharm', 'FeatureSet' ]
 
-from pychrm import *
+from wndcharm import *
 
 try:
 	from _version import __version__

@@ -27,10 +27,10 @@
 Meant to exercize train/test/split functionality"""
 
 
-# import pychrm
-from pychrm.FeatureSet import *
-from pychrm import __version__ as pychrm_version
-print "pychrm "+pychrm_version
+# import wndcharm
+from wndcharm.FeatureSet import *
+from wndcharm import __version__ as wndcharm_version
+print "wndcharm "+wndcharm_version
 
 import argparse
 
