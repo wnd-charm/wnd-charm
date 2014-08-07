@@ -31,9 +31,9 @@ else:
 import re
 import numpy as np
 
-from pychrm.FeatureSet import FeatureSet_Continuous, ContinuousFeatureWeights,\
+from wndcharm.FeatureSet import FeatureSet_Continuous, ContinuousFeatureWeights,\
         ContinuousBatchClassificationResult
-from pychrm.ArtificialFeatureSets import CreateArtificialFeatureSet_Continuous
+from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Continuous
 
 
 class TestCreateArtificialFeatureSet_Continuous( unittest.TestCase ):

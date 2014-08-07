@@ -38,20 +38,20 @@ from shutil import rmtree
 pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pychrm_tests
 wndchrm_test_dir = dirname( pychrm_test_dir ) + sep + 'wndchrm_tests'
 
-from pychrm.FeatureSet import FeatureSet, FeatureSet_Discrete, FisherFeatureWeights,\
+from wndcharm.FeatureSet import FeatureSet, FeatureSet_Discrete, FisherFeatureWeights,\
         DiscreteBatchClassificationResult, FeatureSet_Continuous, ContinuousFeatureWeights,\
         ContinuousBatchClassificationResult
 
 class TestFeatureSet( unittest.TestCase ):
     """
-    Test the pychrm module to check it still works with OmeroPychrm
+    Test the wndcharm module to check it still works with OmeroPychrm
     """
 
     def setUp(self):
         pass
 
     def test_ContinuousFitOnFit( self ):
-        from pychrm.ArtificialFeatureSets import CreateArtificialFeatureSet_Discrete
+        from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Discrete
 
         fs_discrete = CreateArtificialFeatureSet_Discrete( n_samples=1000, n_classes=10,
                 num_features_per_signal_type=30, noise_gradient=5, initial_noise_sigma=10,
@@ -130,7 +130,7 @@ class TestFeatureSet( unittest.TestCase ):
         """Uses a synthetic preprocessed as follows: 500 total samples, 25 tiles per group
         240 total features"""
 
-        from pychrm.ArtificialFeatureSets import CreateArtificialFeatureSet_Continuous
+        from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Continuous
 
         fs = CreateArtificialFeatureSet_Continuous( n_samples=500,
                 num_features_per_signal_type=20, n_samples_per_group=25 )
