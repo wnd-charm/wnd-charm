@@ -132,13 +132,13 @@ class TestGraphs( unittest.TestCase ):
          # Inflate the zipped html file into a temp file
         import zipfile
 
-        #zipped_file_path = pychrm_test_dir + sep + 'c_elegans_terminal_bulb_interpolated_vals.html'
+        #zipped_file_path = pychrm_test_dir + sep + 'c_elegans_terminal_bulb.html'
         #import zlib
         #zf = zipfile.ZipFile( zipped_file_path + '.zip', mode='w' )
         #zf.write( zipped_file_path, compress_type=zipfile.ZIP_DEFLATED )
         #zf.close()
  
-        zipped_file_path = pychrm_test_dir + sep + 'c_elegans_terminal_bulb_interpolated_vals.html.zip'
+        zipped_file_path = pychrm_test_dir + sep + 'c_elegans_terminal_bulb.html.zip'
         zf = zipfile.ZipFile( zipped_file_path, mode='r' )
         zf.extractall( self.tempdir )
         tempfile = self.tempdir + sep + testfilename

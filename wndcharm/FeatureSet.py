@@ -4354,7 +4354,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 						if 'Interpolated Value' not in line:
 							interp_val_col = None
 							name_col = ts.num_classes + 6 # one less than set above -- that column won't exist
-							continue
+						continue
 					noends = line.strip( '<trd/>\n' ) # take the tr and td tags off front end
 					values = noends.split( '</td><td>' )
 					result = DiscreteImageClassificationResult()
