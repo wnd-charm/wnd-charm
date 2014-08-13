@@ -37,7 +37,7 @@ pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pychrm_te
 wndchrm_test_dir = dirname( pychrm_test_dir ) + sep + 'wndchrm_tests'
 
 from wndcharm.FeatureSet import FisherFeatureWeights, DiscreteBatchClassificationResult,\
-        PredictedValuesGraph, DiscreteClassificationExperimentResult
+        PredictedValuesGraph, DiscreteClassificationExperimentResult, FeatureSet_Discrete
 
 from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Discrete
 
@@ -63,15 +63,23 @@ class TestGraphs( unittest.TestCase ):
     batch_result = DiscreteBatchClassificationResult.New(
             reduced_train_set, reduced_test_set, fw, quiet=True )
 
+    def setUp( self ):
+        self.tempdir = mkdtemp()
+
+    def tearDown( self ):
+        rmtree( self.tempdir )
+
     def CompareGraphs( self, graph, testfilename ):
         """Helper function to check output graphs"""
-        tempdir = mkdtemp()
-        tempfile = tempdir + sep + testfilename
+
+        tempfile = self.tempdir + sep + testfilename
+        graph.SaveToFile( tempfile )
+
         try:
-            graph.SaveToFile( tempfile )
             self.assertTrue( filecmp.cmp( testfilename, tempfile ) ) 
-        finally:
-            rmtree( tempdir )
+        except AssertionError:
+            print "Files not equal: {0} and {1}".format( testfilename, tempfile )
+            raise
 
     @unittest.skipIf( HasMatplotlib, "Skipped if matplotlib IS installed" )
     def test_ErrMsgIfMatplotibNotInstalled( self ):
@@ -99,6 +107,7 @@ class TestGraphs( unittest.TestCase ):
         testfilename = 'test_graph_kernel_smoothed.png'
         graph = PredictedValuesGraph( self.batch_result )
         graph.KernelSmoothedDensityGraph()
+
         self.CompareGraphs( graph, testfilename )
 
     @unittest.skip( "Skip until ShuffleSplit has a RandomState param to pass in" )
@@ -112,7 +121,7 @@ class TestGraphs( unittest.TestCase ):
         experiment = DiscreteClassificationExperimentResult.NewShuffleSplit( small_fs, quiet=True )
         graph = PredictedValuesGraph( self.batch_result )
         graph.RankOrderedPredictedValuesGraph()
-        # graph.SaveToFile( testfilename ) # remove after RandomState for ShuffleSplit is implemented
+        # graph.SaveToFile( tempfile ) # remove after RandomState for ShuffleSplit is implemented
         self.CompareGraphs( graph, testfilename )
 
     @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOT installed" )
@@ -122,42 +131,54 @@ class TestGraphs( unittest.TestCase ):
         testfilename = 'test_graph_fromHTML.png' 
          # Inflate the zipped html file into a temp file
         import zipfile
-        zipped_file_path = pychrm_test_dir + sep + 'c_elegans_terminal_bulb.html.zip'
+
+        #zipped_file_path = pychrm_test_dir + sep + 'c_elegans_terminal_bulb_interpolated_vals.html'
+        #import zlib
+        #zf = zipfile.ZipFile( zipped_file_path + '.zip', mode='w' )
+        #zf.write( zipped_file_path, compress_type=zipfile.ZIP_DEFLATED )
+        #zf.close()
+ 
+        zipped_file_path = pychrm_test_dir + sep + 'c_elegans_terminal_bulb_interpolated_vals.html.zip'
         zf = zipfile.ZipFile( zipped_file_path, mode='r' )
-        tempdir = mkdtemp()
-        zf.extractall( tempdir )
-        tempfile = tempdir + sep + testfilename
+        zf.extractall( self.tempdir )
+        tempfile = self.tempdir + sep + testfilename
+        htmlfilepath = self.tempdir + sep + zf.namelist()[0]
+        exp_result = DiscreteClassificationExperimentResult.NewFromHTMLReport( htmlfilepath )
+        graph = PredictedValuesGraph( exp_result )
+        graph.RankOrderedPredictedValuesGraph()
+        graph.SaveToFile( tempfile )
         try:
-            htmlfilepath = tempdir + sep + zf.namelist()[0]
-            _exp_result = DiscreteClassificationExperimentResult.NewFromHTMLReport( htmlfilepath )
-            graph = PredictedValuesGraph( _exp_result )
-            graph.RankOrderedPredictedValuesGraph()
-            graph.SaveToFile( testfilename )
-            graph.SaveToFile( tempfile )
             self.assertTrue( filecmp.cmp( testfilename, tempfile ) ) 
-        finally:
-            rmtree( tempdir )
+        except AssertionError:
+            print "Files not equal: {0} and {1}".format( testfilename, tempfile )
+            raise
 
 
-    @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOTinstalled" )
+    @unittest.skip( "Skip until test training set w/ uninterpolatable class lables is made avail." )
+    #@unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOTinstalled" )
     def test_IfNotInterpolatable( self ):
         """You can't graph predicted values if the classes aren't interpolatable."""
 
-        testfilename = "noop" 
-        non_interp_fs = CreateArtificialFeatureSet_Discrete( n_samples=100, n_classes=5, 
-                initial_noise_sigma=100, noise_gradient=10, random_state=42, interpolatable=False )
-        _train_set, _test_set = non_interp_fs.Split( randomize=False, quiet=True )
-        _train_set.Normalize( quiet=True )
-        _fw = FisherFeatureWeights.NewFromFeatureSet( _train_set ).Threshold()
+        testfilename = 'ShouldntBeGraphable.png'
+        fitfilepath = wndchrm_test_dir + sep + 'test-l.fit'
+        fs = FeatureSet_Discrete.NewFromFitFile( fitfilepath )
+        train_set, test_set = fs.Split( randomize=False, quiet=True )
+        train_set.Normalize()
 
-        _reduced_train_set = _train_set.FeatureReduce( _fw.names )
-        _reduced_test_set = _test_set.FeatureReduce( _fw.names )
-        _reduced_test_set.Normalize( _reduced_train_set, quiet=True )
+        fw = FisherFeatureWeights.NewFromFeatureSet( train_set ).Threshold()
+        reduced_train_set = train_set.FeatureReduce( fw.names )
+        reduced_test_set = test_set.FeatureReduce( fw.names )
+        test_set.Normalize( train_set, quiet=True )
 
-        _batch_result = DiscreteBatchClassificationResult.New( _reduced_train_set, _reduced_test_set, _fw, quiet=True )
-        graph = PredictedValuesGraph( _batch_result )
+        batch_result = DiscreteBatchClassificationResult.New( reduced_train_set, reduced_test_set, fw, quiet=True )
+        graph = PredictedValuesGraph( batch_result )
+
+        tempfile = self.tempdir + sep + testfilename
+
         with self.assertRaises( ValueError ):
             graph.RankOrderedPredictedValuesGraph()
+            graph.SaveToFile( tempfile )
+
 
 
 if __name__ == '__main__':

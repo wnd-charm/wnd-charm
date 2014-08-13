@@ -4653,7 +4653,7 @@ class BaseGraph( object ):
 		if self.figure == None:
 			raise ValueError( 'No figure to save!' )
 		self.figure.savefig( filepath )
-		print 'Wrote chart "{0}" to file "{1}.png"'.format( self.chart_title, filepath )
+		print 'Wrote chart "{0}" to file "{1}"'.format( self.chart_title, filepath )
 			
 #============================================================================
 class PredictedValuesGraph( BaseGraph ):
