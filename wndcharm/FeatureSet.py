@@ -3419,6 +3419,17 @@ class BatchClassificationResult( ClassificationResult ):
 		"""Rank-order sorts ground truth/predicted value data points for purposes of 
 		being graphed."""
 
+		if not self.ground_truth_values or not self.predicted_values:
+			self.GenerateStats()
+
+		# Check again:
+		if not self.ground_truth_values:
+			raise ValueError( "Can't rank-order sort: no ground truth sample values" )
+		if not self.predicted_values:
+			# FIXME: this might be wrong, since the member predicted_values may contain a
+			# non-graphable label string
+			raise ValueError( "Can't rank-order sort: no sample predicted values" )
+
 		value_pairs = zip( self.ground_truth_values, self.predicted_values )
 
 		# sort by ground_truth value first, predicted value second
@@ -4251,6 +4262,10 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		import re
 		row_re = re.compile( r'<tr>(.+?)</tr>' )
 
+		# FIXME: This should fail if there isn't some part of the class names that are interpretable
+		# as a number, specifically when it tries to calculate an "interpolated" (predicted) value
+		# for the sample based on marginal probabilities.
+
 		def ParseClassSummaryHTML( the_html ):
 			rows = row_re.findall( the_html )
 			ts = FeatureSet_Discrete()
@@ -4275,7 +4290,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		mp_col = None
 		ground_truth_col = None
 		predicted_col = None
-		interp_val_col = None
+		interp_val_col = None # We don't even use this
 		name_col = None
 
 		_training_set = None
@@ -4335,7 +4350,11 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 					split_linecount += 1
 					if split_linecount == 1:
 						# First line in individual results is column headers
-						continue
+						# Pure clasification without interpolation
+						if 'Interpolated Value' not in line:
+							interp_val_col = None
+							name_col = ts.num_classes + 6 # one less than set above -- that column won't exist
+							continue
 					noends = line.strip( '<trd/>\n' ) # take the tr and td tags off front end
 					values = noends.split( '</td><td>' )
 					result = DiscreteImageClassificationResult()
@@ -4360,6 +4379,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		exp.training_set = _training_set
 		exp.test_set = _test_set
 
+		exp.GenerateStats()
 		return exp
 
 

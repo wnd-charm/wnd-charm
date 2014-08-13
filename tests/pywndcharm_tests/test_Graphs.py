@@ -41,11 +41,14 @@ from wndcharm.FeatureSet import FisherFeatureWeights, DiscreteBatchClassificatio
 
 from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Discrete
 
+try:
+    import matplotlib
+    HasMatplotlib = True
+except ImportError:
+    HasMatplotlib = False
 
 class TestGraphs( unittest.TestCase ):
-    """
-    Test WND-CHARM's graph-making functionality.
-    """
+    """Test WND-CHARM's graph-making functionality."""
     
     fs = CreateArtificialFeatureSet_Discrete( n_samples=1000, n_classes=10, 
             initial_noise_sigma=100, noise_gradient=10, random_state=43 )
@@ -60,7 +63,17 @@ class TestGraphs( unittest.TestCase ):
     batch_result = DiscreteBatchClassificationResult.New(
             reduced_train_set, reduced_test_set, fw, quiet=True )
 
-    @unittest.skip( "Run this inside a virtualenv that doesn't have matplotlib" )
+    def CompareGraphs( self, graph, testfilename ):
+        """Helper function to check output graphs"""
+        tempdir = mkdtemp()
+        tempfile = tempdir + sep + testfilename
+        try:
+            graph.SaveToFile( tempfile )
+            self.assertTrue( filecmp.cmp( testfilename, tempfile ) ) 
+        finally:
+            rmtree( tempdir )
+
+    @unittest.skipIf( HasMatplotlib, "Skipped if matplotlib IS installed" )
     def test_ErrMsgIfMatplotibNotInstalled( self ):
         """Fail gracefully with informative message if matplotlib"""
 
@@ -70,77 +83,67 @@ class TestGraphs( unittest.TestCase ):
         with self.assertRaises( ImportError ):
             graph.KernelSmoothedDensityGraph()
 
+    @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOT installed" )
     def test_RankOrderedFromBatchClassificationResult( self ):
         """Rank Ordered Predicted values graph from a single split"""
 
+        testfilename = 'test_graph_rank_ordered.png'
         graph = PredictedValuesGraph( self.batch_result )
         graph.RankOrderedPredictedValuesGraph()
-        tempdir = mkdtemp()
-        tempfile = tempdir + sep + 'test_rank_ordered.png'
-        try:
-            graph.SaveToFile( tempfile )
-            self.assertTrue( filecmp.cmp( 'test_rank_ordered.png', tempfile ) ) 
-        finally:
-            rmtree( tempdir )
+        self.CompareGraphs( graph, testfilename )
 
-
+    @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOT installed" )
     def test_KernelSmoothedFromBatchClassificationResult( self ):
         """Kernel Smoothed Probability density graph from a single split"""
 
+        testfilename = 'test_graph_kernel_smoothed.png'
         graph = PredictedValuesGraph( self.batch_result )
         graph.KernelSmoothedDensityGraph()
-        tempdir = mkdtemp()
-        tempfile = tempdir + sep + 'test_kernel_smoothed.png'
-        try:
-            graph.SaveToFile( tempfile )
-            self.assertTrue( filecmp.cmp( 'test_kernel_smoothed.png', tempfile ) ) 
-        finally:
-            rmtree( tempdir )
-
+        self.CompareGraphs( graph, testfilename )
 
     @unittest.skip( "Skip until ShuffleSplit has a RandomState param to pass in" )
     def test_FromDiscreteClassificationExperimentResults( self ):
         """Rank Ordered Predicted values graph from an experiment result (multiple splits)"""
+
+        testfilename = 'test_graph_rank_ordered_experiment.png'
 
         small_fs = CreateArtificialFeatureSet_Discrete( n_samples=100, n_classes=5, 
                 initial_noise_sigma=100, noise_gradient=10, random_state=42 )
         experiment = DiscreteClassificationExperimentResult.NewShuffleSplit( small_fs, quiet=True )
         graph = PredictedValuesGraph( self.batch_result )
         graph.RankOrderedPredictedValuesGraph()
-        graph.SaveToFile( 'test_rank_ordered_experiment' )
+        # graph.SaveToFile( testfilename ) # remove after RandomState for ShuffleSplit is implemented
+        self.CompareGraphs( graph, testfilename )
 
-
+    @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOT installed" )
     def test_FromHTML( self ):
         """Rank Ordered Predicted values graph from an experiment result (multiple splits)"""
 
+        testfilename = 'test_graph_fromHTML.png' 
          # Inflate the zipped html file into a temp file
         import zipfile
         zipped_file_path = pychrm_test_dir + sep + 'c_elegans_terminal_bulb.html.zip'
         zf = zipfile.ZipFile( zipped_file_path, mode='r' )
         tempdir = mkdtemp()
         zf.extractall( tempdir )
-        tempfile = tempdir + sep + 'test_fromHTML.png'
-
+        tempfile = tempdir + sep + testfilename
         try:
             htmlfilepath = tempdir + sep + zf.namelist()[0]
             _exp_result = DiscreteClassificationExperimentResult.NewFromHTMLReport( htmlfilepath )
             graph = PredictedValuesGraph( _exp_result )
             graph.RankOrderedPredictedValuesGraph()
-            graph.SaveToFile( 'test_fromHTML.png' )
+            graph.SaveToFile( testfilename )
             graph.SaveToFile( tempfile )
-            self.assertTrue( filecmp.cmp( 'test_fromHTML.png', tempfile ) ) 
+            self.assertTrue( filecmp.cmp( testfilename, tempfile ) ) 
         finally:
             rmtree( tempdir )
 
-        experiment = DiscreteClassificationExperimentResult.NewShuffleSplit( small_fs, quiet=True )
-        graph = PredictedValuesGraph( self.batch_result )
-        graph.RankOrderedPredictedValuesGraph()
-        graph.SaveToFile( 'test_rank_ordered_experiment' )
 
-
+    @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOTinstalled" )
     def test_IfNotInterpolatable( self ):
         """You can't graph predicted values if the classes aren't interpolatable."""
 
+        testfilename = "noop" 
         non_interp_fs = CreateArtificialFeatureSet_Discrete( n_samples=100, n_classes=5, 
                 initial_noise_sigma=100, noise_gradient=10, random_state=42, interpolatable=False )
         _train_set, _test_set = non_interp_fs.Split( randomize=False, quiet=True )
@@ -153,7 +156,9 @@ class TestGraphs( unittest.TestCase ):
 
         _batch_result = DiscreteBatchClassificationResult.New( _reduced_train_set, _reduced_test_set, _fw, quiet=True )
         graph = PredictedValuesGraph( _batch_result )
-        graph.RankOrderedPredictedValuesGraph()
+        with self.assertRaises( ValueError ):
+            graph.RankOrderedPredictedValuesGraph()
+
 
 if __name__ == '__main__':
     unittest.main()
