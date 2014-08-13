@@ -42,16 +42,16 @@ Installation of WND-CHARM minimally requires a C++ compiler, LibTIFF and FFTW.
         * Ubuntu/Debian: `sudo apt-get install libX11-dev libxt-dev libxaw7-dev`
 
 #### WND-CHARM Python API additional dependencies
-The WND-CHARM Python API additionally requires the Python development package, SWIG, and the common Python 3rd-party packages `numpy`, `scipy`, `matplotlib` and `argparse` (included in Python 2.7+).
+The WND-CHARM Python API additionally requires the Python development package, SWIG, and the common Python 3rd-party packages `numpy` and `scipy`. Optionally, result visualization tools are enabled by installing the package `matplotlib`. To run the provided example scripts, the package `argparse` is required (included with Python 2.7+).
 
 * Python utilities:
     * CentOS/RedHat: `sudo yum install python-devel swig`
     * Ubuntu/Debian: `sudo apt-get install python-dev swig`
     * Mac OS X: `brew install python swig`
 * Python packages:
-    * CentOS/RedHat: `sudo yum install argparse numpy scipy python-matplotlib`
+    * CentOS/RedHat: `sudo yum install numpy scipy python-matplotlib argparse`
     * Ubuntu/Debian: `sudo apt-get install python-numpy python-scipy python-matplotlib`
-    * Pip: `pip install argparse numpy scipy matplotlib`
+    * Pip: `pip install numpy scipy matplotlib argparse`
 
 ## Recommended Hardware
 
