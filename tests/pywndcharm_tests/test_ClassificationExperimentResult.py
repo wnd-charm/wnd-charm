@@ -60,6 +60,7 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 		# e.g., sin, x^2, etc.
 		max_allowable_pearson_coeff = 0.15
 		fs = CreateArtificialFeatureSet_Continuous( num_features_per_signal_type = 5 )
+		fs.Normalize()
 		all_features = ContinuousFeatureWeights.NewFromFeatureSet(fs)
 		quintile = int( len(all_features) / 5 )
 		crappy_features = all_features.Slice( quintile*4, len( all_features ) )
@@ -91,6 +92,7 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 		# e.g., sin, x^2, etc.
 		max_allowable_pearson_coeff = 0.3
 		fs = CreateArtificialFeatureSet_Continuous( num_features_per_signal_type = 5 )
+		fs.Normalize()
 		all_features = ContinuousFeatureWeights.NewFromFeatureSet(fs)
 		quintile = int( len(all_features) / 5 )
 		crappy_features = all_features.Slice( quintile*4, len( all_features ) )
