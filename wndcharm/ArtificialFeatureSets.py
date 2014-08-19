@@ -1,5 +1,5 @@
 from math import sin, tan, e, atan, log
-import numpy as np
+import numpy
 
 lbound = -100
 ubound = 100
@@ -23,13 +23,14 @@ def logarithmic( x ):
   try:
     return 10 * log( x )
   except ValueError: # math domain error b/c (undef for x < 0)
-    return np.nan
+    return numpy.nan
 
 signals[ 'logarithmic' ] = logarithmic
 
 
-def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samples=100, num_features_per_signal_type=10, noise_gradient=5,
-        initial_noise_sigma = 10):
+def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samples=100,
+    num_features_per_signal_type=10, noise_gradient=5, initial_noise_sigma=10,
+    random_state=None ):
     """
     Analogous to sklearn.datasets.make_regression, but simplified.
 
@@ -44,6 +45,19 @@ def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samp
     gaussian noise added to it (controlled via args "noise_gradient" and "initial_noise_sigma").
     """
 
+    if random_state:
+      from numpy.random import RandomState
+      if random_state is True:
+        from numpy.random import normal
+      elif type( random_state ) is RandomState:
+        normal = random_state.normal
+      elif type( random_state ) is int:
+        normal = RandomState( random_state ).normal
+      else:
+        raise ValueError( 'Arg random_state must be an instance of numpy.random.RandomState, an int, or the value True')
+    else: # no noise added to feature values
+      normal = lambda mu, sigma, n: numpy.zeros( n )
+
     from .FeatureSet import FeatureSet_Continuous
 
     new_fs = FeatureSet_Continuous()
@@ -51,11 +65,11 @@ def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samp
     new_fs.source_path = new_fs.name
     new_fs.feature_vector_version = '2.0'
  
-    new_fs.data_matrix = np.empty( ( n_samples, num_features_per_signal_type * len( signals ) ) )
-    # The function call np.mgrid() requires for the value indicating the number of steps
+    new_fs.data_matrix = numpy.empty( ( n_samples, num_features_per_signal_type * len( signals ) ) )
+    # The function call numpy.mgrid() requires for the value indicating the number of steps
     # to be imaginary, for some inexplicable reason.
     step = complex(0, n_samples)
-    new_fs.ground_truths = list( np.mgrid[ lbound : ubound : step ] )
+    new_fs.ground_truths = list( numpy.mgrid[ lbound : ubound : step ] )
     new_fs.imagenames_list = [ "ArtificialSample{0:03d}".format( i ) for i in xrange( n_samples ) ]
     new_fs.num_images = n_samples
     new_fs.num_features = num_features_per_signal_type * len( signals ) 
@@ -68,14 +82,15 @@ def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samp
         for feat_index in xrange( num_features_per_signal_type ):
             new_fs.featurenames_list.append( "{0}{1:04d}".format(func_name, feat_index) )
             # Add noise proportional to the feature index
-            noise_vector = np.random.normal( 0, initial_noise_sigma + feat_index * noise_gradient, n_samples )
+            noise_vector = normal( 0, initial_noise_sigma + feat_index * noise_gradient, n_samples )
             feat_col_index = feat_index + func_index * num_features_per_signal_type 
-            new_fs.data_matrix[:,feat_col_index] = np.add( noise_vector, raw_feature_values )
+            new_fs.data_matrix[:,feat_col_index] = numpy.add( noise_vector, raw_feature_values )
 
     return new_fs
 
-def CreateArtificialFeatureSet_Discrete( name="DiscreteArtificialFS", n_samples=100, n_classes=2, num_features_per_signal_type=10, noise_gradient=5,
-    initial_noise_sigma = 10):
+def CreateArtificialFeatureSet_Discrete( name="DiscreteArtificialFS", n_samples=100,
+    n_classes=2, num_features_per_signal_type=10, noise_gradient=5,
+    initial_noise_sigma=10, interpolatable=True, random_state=None ):
     """
     Analogous to sklearn.datasets.make_classification, but simplified.
 
@@ -89,6 +104,20 @@ def CreateArtificialFeatureSet_Discrete( name="DiscreteArtificialFS", n_samples=
     the more each successive feature generated using that signal will have a greater degree of
     gaussian noise added to it (controlled via args "noise_gradient" and "initial_noise_sigma").
     """
+
+    if random_state:
+      from numpy.random import RandomState
+
+      if random_state is True:
+        from numpy.random import normal
+      elif type( random_state ) is RandomState:
+        normal = random_state.normal
+      elif type( random_state ) is int:
+        normal = RandomState( random_state ).normal
+      else:
+        raise ValueError( 'Arg random_state must be an instance of numpy.random.RandomState, an int, or the value True')
+    else: # no noise added to feature values
+      normal = lambda mu, sigma, n: numpy.zeros( n )
 
     from .FeatureSet import FeatureSet_Discrete
 
@@ -104,17 +133,17 @@ def CreateArtificialFeatureSet_Discrete( name="DiscreteArtificialFS", n_samples=
     new_fs.num_classes = n_classes
     new_fs.classsizes_list = [ n_samples_per_class for i in range( n_classes ) ]
  
-    # The function call np.mgrid() requires for the value indicating the number of steps
+    # The function call numpy.mgrid() requires for the value indicating the number of steps
     # to be imaginary, for some inexplicable reason.
     step = complex(0, n_classes)
-    new_fs.interpolation_coefficients = list( np.mgrid[ lbound : ubound : step ] )
+    new_fs.interpolation_coefficients = list( numpy.mgrid[ lbound : ubound : step ] )
     new_fs.classnames_list = []
     for val in new_fs.interpolation_coefficients:
-        # Try to use integers
-        if float(int(val)) == val:
-            new_fs.classnames_list.append( "ArtificialClass_{0:02d}".format( int(val) ) )
-        else:
-            new_fs.classnames_list.append( "ArtificialClass_{0:.02f}".format( val )  )
+      # Try to use integers for each individual class name
+      if float(int(val)) == val:
+        new_fs.classnames_list.append( "FakeClass{0:02d}".format( int(val) ) )
+      else:
+        new_fs.classnames_list.append( "FakeClass{0:.02f}".format( val )  )
 
     new_fs.featurenames_list = [ "{0}{1:04d}".format(fname, i)\
                                     for fname in sorted( signals.keys() ) \
@@ -123,15 +152,15 @@ def CreateArtificialFeatureSet_Discrete( name="DiscreteArtificialFS", n_samples=
     for class_index in xrange( n_classes ):
         new_fs.imagenames_list.append( \
             [ "{0}_{1:03d}:".format( new_fs.classnames_list[ class_index ], i ) for i in range( n_samples_per_class ) ] )
-        new_fs.data_list.append( np.empty( ( n_samples_per_class, new_fs.num_features ) ) )
+        new_fs.data_list.append( numpy.empty( ( n_samples_per_class, new_fs.num_features ) ) )
         for func_name in sorted( signals.keys() ):
             f = signals[ func_name ]
             raw_feature_values = [ f( new_fs.interpolation_coefficients[ class_index ] ) ] * n_samples_per_class 
             for feat_index in xrange( num_features_per_signal_type ):
                 # Add noise proportional to the feature index
-                noise_vector = np.random.normal( 0, initial_noise_sigma + feat_index * noise_gradient, n_samples_per_class )
+                noise_vector = normal( 0, initial_noise_sigma + feat_index * noise_gradient, n_samples_per_class )
                 new_fs.data_list[ class_index ][:,feat_index] = \
-                        np.add( noise_vector, raw_feature_values )
+                        numpy.add( noise_vector, raw_feature_values )
 
     new_fs.ContiguousDataMatrix()
     return new_fs

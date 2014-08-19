@@ -120,10 +120,5 @@ setup (
 	license = 'LGPLv2',
 	ext_modules = [wndchrm_module],
 	packages = ['wndcharm'],
-	install_requires=[
-		'argparse',
-		'numpy',
-		'scipy',
-		'matplotlib'
-	],
+	install_requires=['numpy', 'scipy'],
 )

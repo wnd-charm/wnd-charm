@@ -1260,7 +1260,7 @@ class Signatures( FeatureVector ):
 		return reduced_sigs
 
 	#================================================================
-	def Normalize( self, training_set ):
+	def Normalize( self, training_set, quiet=False ):
 		"""FIXME: should there be some flag that gets set if this sig has 
 		already been normalized??
 		
@@ -1270,7 +1270,8 @@ class Signatures( FeatureVector ):
 			raise ValueError("Can't normalize signature for {0} against training_set {1}: Features don't match."\
 		  .format( self.source_file, training_set.source_path ) )
 		
-		print "Normalizing features"
+		if not quiet:
+			print "Normalizing features"
 		my_features = np.array( self.values )
 		normalize_by_columns (my_features, training_set.feature_minima, training_set.feature_maxima)
 		self.values = my_features.tolist()
@@ -1632,7 +1633,7 @@ class FeatureSet( object ):
 					self.source_path, self.num_images, training_set.source_path, training_set.num_images )
 
 			if not training_set.normalized_against:
-				training_set.Normalize( )
+				training_set.Normalize( quiet=quiet )
 
 			assert self.num_features > 0
 			(self.feature_minima, self.feature_maxima) = normalize_by_columns (self.ContiguousDataMatrix(), training_set.feature_minima, training_set.feature_maxima)
@@ -3418,6 +3419,17 @@ class BatchClassificationResult( ClassificationResult ):
 		"""Rank-order sorts ground truth/predicted value data points for purposes of 
 		being graphed."""
 
+		if not self.ground_truth_values or not self.predicted_values:
+			self.GenerateStats()
+
+		# Check again:
+		if not self.ground_truth_values:
+			raise ValueError( "Can't rank-order sort: no ground truth sample values" )
+		if not self.predicted_values:
+			# FIXME: this might be wrong, since the member predicted_values may contain a
+			# non-graphable label string
+			raise ValueError( "Can't rank-order sort: no sample predicted values" )
+
 		value_pairs = zip( self.ground_truth_values, self.predicted_values )
 
 		# sort by ground_truth value first, predicted value second
@@ -3767,6 +3779,9 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 					# collides with every test image
 					marg_probs = np.array( result.marginal_probabilities )
 					result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
+				else:
+					marg_probs = np.array( [np.nan] * training_set.num_classes )
+					result.predicted_class_name = "*Collided with every training image*"
 
 				# interpolated value, if applicable
 				if train_set_interp_coeffs is not None:
@@ -4247,6 +4262,10 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		import re
 		row_re = re.compile( r'<tr>(.+?)</tr>' )
 
+		# FIXME: This should fail if there isn't some part of the class names that are interpretable
+		# as a number, specifically when it tries to calculate an "interpolated" (predicted) value
+		# for the sample based on marginal probabilities.
+
 		def ParseClassSummaryHTML( the_html ):
 			rows = row_re.findall( the_html )
 			ts = FeatureSet_Discrete()
@@ -4271,7 +4290,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		mp_col = None
 		ground_truth_col = None
 		predicted_col = None
-		interp_val_col = None
+		interp_val_col = None # We don't even use this
 		name_col = None
 
 		_training_set = None
@@ -4331,6 +4350,10 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 					split_linecount += 1
 					if split_linecount == 1:
 						# First line in individual results is column headers
+						# Pure clasification without interpolation
+						if 'Interpolated Value' not in line:
+							interp_val_col = None
+							name_col = ts.num_classes + 6 # one less than set above -- that column won't exist
 						continue
 					noends = line.strip( '<trd/>\n' ) # take the tr and td tags off front end
 					values = noends.split( '</td><td>' )
@@ -4356,6 +4379,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		exp.training_set = _training_set
 		exp.test_set = _test_set
 
+		exp.GenerateStats()
 		return exp
 
 
@@ -4629,7 +4653,7 @@ class BaseGraph( object ):
 		if self.figure == None:
 			raise ValueError( 'No figure to save!' )
 		self.figure.savefig( filepath )
-		print 'Wrote chart "{0}" to file "{1}.png"'.format( self.chart_title, filepath )
+		print 'Wrote chart "{0}" to file "{1}"'.format( self.chart_title, filepath )
 			
 #============================================================================
 class PredictedValuesGraph( BaseGraph ):
