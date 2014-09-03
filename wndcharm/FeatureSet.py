@@ -1348,7 +1348,8 @@ class FeatureSet( object ):
 	"""
 
 	#==============================================================
-	def __init__( self ):
+	def __init__( self, name=None, source_path=None, num_images=None, num_samples_per_group=1,
+					num_features=None, discrete=None ):
 		"""FeatureSet constructor"""
 		
 		# Let F = # features for a given 5D ROI.
@@ -1360,11 +1361,11 @@ class FeatureSet( object ):
 		# BASIC DATA MEMBERS
 		# -------------------------------------------
 		#: type: string
-		self.name = None
+		self.name = name
 
 		#: type: string
 		#: Path to FeatureSet source/definition/origination file or directory.
-		self.source_path = None
+		self.source_path = source_path
 
 		#: type: FeatureSet
 		#: By convention, the range of values are normalized on an interval [0,100].
@@ -1395,7 +1396,7 @@ class FeatureSet( object ):
 
 		#: Do the samples belong to discrete classes for supervised learning, or not
 		#: (regression, clustering)
-		self.discrete = None
+		self.discrete = discrete
 
 		# SAMPLE METADATA DATA MEMBERS
 		# N.B. Here data members are grouped into sets of two, the first being the "_contiguous"
@@ -1405,10 +1406,7 @@ class FeatureSet( object ):
 		# -------------------------------------------
 
 		#: FIXME: Eliminate in favor of len( self.samplenames_list )
-		self.num_images = None 
-
-		#: Block some samples out for purposes of leave one out, et al.
-		self.sample_mask = None
+		self.num_images = num_images
 
 		#: A list of sample names in same row order as their samples appear in self.data_matrix.
 		#: Corresponding lists of lists of sample names grouped by view.
@@ -1417,7 +1415,7 @@ class FeatureSet( object ):
 		self.imagenames_list = None
 
 		#: By default, samples are independent/not grouped for splitting purposes
-		self.num_samples_per_group = 1
+		self.num_samples_per_group = num_samples_per_group
 
 		#: Keeps track of which samples are grouped together and must not be separated
 		#: when FeatureSet is split for cross-validation purposes
@@ -1444,7 +1442,7 @@ class FeatureSet( object ):
 		# FEATURE METADATA DATA MEMBERS
 		# -------------------------------------------
 		#: FIXME: Eliminate in favor of len( self.featurenames_list )
-		self.num_features = None
+		self.num_features = num_features
 
 		#: block out some features for purposes of feature contribution analysis, et al.
 		self.feature_mask = None
@@ -1459,6 +1457,52 @@ class FeatureSet( object ):
 		#: Contains pre-normalized feature minima so feature space of this or other
 		#: FeatureSets can be transformed.
 		self.feature_minima = None
+
+		### Now set stuff if possible:
+
+		if self.num_images and self.num_features:
+			self.data_matrix = np.empty ([ self.num_images, self.num_features ], dtype='double')
+
+		if self.num_images:
+			self._contiguous_samplenames_list = [None] * self.num_images
+			self._contiguous_samplegroupid_list = [None]* self.num_images
+			self._contiguous_samplesequenceid_list = [None]* self.num_images
+			self._contiguous_ground_truths = [None]* self.num_images
+
+#		if self.num_features:
+#			new_fs.num_samples_per_group = self.num_samples_per_group
+#			new_fs.discrete = self.discrete
+#
+#			if self.discrete:
+#				new_fs.num_classes = len( group_membership )
+#				new_fs.classsizes_list = [ self.num_samples_per_group * num_groups \
+#				      for num_groups in group_membership if num_groups ] 
+#				new_fs.num_images = sum( new_fs.classsizes_list )
+#				new_fs.classnames_list = [ self.classnames_list[i] \
+#				      for i, num_groups in enumerate( group_membership ) if num_groups ]
+#				if self.interpolation_coefficients:
+#					new_fs.interpolation_coefficients = [ self.interpolation_coefficients[i] \
+#				      for i, num_groups in enumerate( group_membership ) if num_groups ]
+#
+#			else: # if continuous
+#				new_fs.num_images = self.num_samples_per_group * group_membership
+
+
+
+	#==============================================================
+	def Derive( self, **kwargs ):
+		"""Make a copy of this FeatureSet, except members passed as kwargs"""
+
+		new_fs = self.__class__()
+		self_namespace = vars( self )
+		newfs_namespace = vars( new_fs )
+		for key in self_namespace:
+			if key in kwargs:
+				newfs_namespace[key] = kwargs[key]
+			else:
+				newfs_namespace[key] = self_namespace[key]
+		new_fs._RebuildViews()
+		return new_fs
 
 	#==============================================================
 	@output_railroad_switch
@@ -1797,6 +1841,9 @@ class FeatureSet( object ):
 
 		reorder - a sample was added out of order, reorder by class membership"""
 
+		if reorder:
+			raise NotImplementedError( "Sorry, this method doesn't handle sorting by classes yet" )
+
 		if self.discrete is None:
 			errmsg = 'FeatureSet {0} "discrete" member hasn\'t been set. '.format( self )
 			errmsg += 'Please set the flag on the object indicating classification vs. regression/clustering.'
@@ -1927,7 +1974,6 @@ class FeatureSet( object ):
 		requested_features"""
 
 		# Check that self's faturelist contains all the features in requested_features
-
 		selfs_features = set( self.featurenames_list )
 		their_features = set( requested_features )
 		if not their_features <= selfs_features:
@@ -1937,44 +1983,136 @@ class FeatureSet( object ):
 			err_str += "{0}/{1} features that were requested in the feature reduction list.".format(\
 					len( missing_features_from_req ), len( requested_features ) )
 			err_str += "\nDid you forget to convert the feature names into their modern counterparts?"
-
 			raise ValueError( err_str )
 
-		# copy everything but the signature data
-		from copy import deepcopy
-		# FIXME: no need to deepcopy the numpy feature matrix
-		# FIXME: maybe implement __deepcopy__ to avoid or have FeatureSet::CopyMetaData method?
-		reduced_ts = deepcopy( self )
-		reduced_ts.source_path = self.source_path + "(feature reduced)"
-		reduced_ts.name = self.name + "(feature reduced)"
-		new_num_features = len( requested_features )
-		reduced_ts.num_features = new_num_features
-		reduced_ts.featurenames_list = requested_features
-		reduced_ts.feature_maxima = np.empty (new_num_features)
-		reduced_ts.feature_minima = np.empty (new_num_features)
+		newdata = {}
+		newdata[ 'source_path' ] = self.source_path + "(feature reduced)"
+		newdata[ 'name' ] = self.name + "(feature reduced)"
+		newdata[ 'featurenames_list' ] = requested_features
+		newdata[ 'num_features' ] = num_features = len( requested_features )
+		data_matrix = np.empty( ( self.num_images, num_features ), dtype='double')
+		if self.feature_maxima is not None:
+			feature_maxima = np.empty( num_features, )
+		if self.feature_minima is not None:
+			feature_minima = np.empty( num_features, )
 
-		# copy features
-		reduced_ts.data_matrix = np.empty ([ reduced_ts.num_images, reduced_ts.num_features ], dtype='double')
-		new_index = 0
-		for featurename in requested_features:
+		# Columnwise operations in Numpy are a pig:
+		# %timeit thing = shuffle_my_cols[:,desired_cols]
+		# 1 loops, best of 3: 3.5 s per loop
+		#
+		# Yikes. Slightly faster to do the copying yourself:
+		# %%timeit
+		# thing = np.empty( (numrows, numcols/2))
+		# for new_index, old_index in enumerate( desired_cols ):
+		#    thing[ :, new_index ] = shuffle_my_cols[ :, old_index ]
+		# 1 loops, best of 3: 2.25 s per loop
+
+		for new_index, featurename in enumerate( requested_features ):
 			old_index = self.featurenames_list.index( featurename )
-			reduced_ts.data_matrix[:,new_index] = self.data_matrix[:,old_index]
-			if self.feature_maxima is not None and self.feature_minima is not None:
-				reduced_ts.feature_maxima[ new_index ] = self.feature_maxima[ old_index ]
-				reduced_ts.feature_minima[ new_index ] = self.feature_minima[ old_index ]
-			new_index += 1
+			data_matrix[ :, new_index ] = self.data_matrix[ :, old_index ]
+			if self.feature_maxima is not None:
+				feature_maxima[ new_index ] = self.feature_maxima[ old_index ]
+			if self.feature_minima is not None:
+				feature_minima[ new_index ] = self.feature_minima[ old_index ]
 
-		# regenerate the class views
-		reduced_ts._RebuildViews()
+		newdata[ 'data_matrix' ] = data_matrix
+		if self.feature_maxima is not None:
+			newdata[ 'feature_maxima' ] = feature_maxima
+		if self.feature_minima is not None:
+			newdata[ 'feature_minima' ] = feature_minima
 
-		# if the feature vectors sizes changed then they are no longer standard feature vectors.
-		if self.feature_vector_version is not None:
-			if (reduced_ts.num_features != self.num_features):
-				reduced_ts.feature_vector_version = "{0}.0".format (self.feature_vector_version.split('.',1)[0])
+		# If the feature vectors sizes changed then they are no longer standard feature vectors.
+		if self.feature_vector_version is not None and num_features != self.num_features:
+			newdata[ 'feature_vector_version' ] = \
+					"{0}.0".format( self.feature_vector_version.split('.',1)[0] )
+
+		return self.Derive( **newdata )
+
+	#==============================================================
+	def SampleReduce( self, leave_in_samplegroupid_list=None, leave_out_samplegroupid_list=None ):
+		"""
+		{ leave_in, leave_out }_sample_group_list :=
+				For discrete/classification FeatureSets -
+				  a list of bools and/or lists of sample group indices indicating { desired, undesired } sample groups;
+		    For continuous/regression FeatureSets - 
+		      a list of { desired, undesired } sample group indices.
+		Returns a near-deep copy of self including only the sample groups specified in the list.
+		If no tiles, sample group reduces to just sample index."""
+
+		if leave_in_samplegroupid_list is None and leave_out_samplegroupid_list is None:
+			raise ValueError( 'Invalid input, both leave_in_samplegroupid_list and leave_out_samplegroupid_list were None')
+
+		# How many total training groups are requested?
+		if leave_in_samplegroupid_list:
+			if self.discrete:
+				total_num_sample_groups = \
+			    sum( len( class_list ) for class_list in leave_in_samplegroupid_list if class_list )
 			else:
-				reduced_ts.feature_vector_version = self.feature_vector_version
+				total_num_sample_groups = len( leave_in_samplegroupid_list )
+		else:
+			total_num_sample_groups = \
+						self.num_images / self.num_samples_per_group - len( leave_out_samplegroupid_list )
 
-		return reduced_ts
+
+		total_num_samples = total_num_sample_groups * self.num_samples_per_group
+
+		newdata = {}
+		newdata[ 'source_path' ] = self.source_path + " (subset)"
+		newdata[ 'name' ] = self.name + " (subset)"
+		newdata[ 'num_images' ] = total_num_samples
+		data_matrix = np.empty( ( total_num_samples, self.num_features ), dtype='double' )
+		_contiguous_samplegroupid_list = [None] * total_num_samples
+		_contiguous_samplenames_list = [None] * total_num_samples
+		_contiguous_samplesequenceid_list = [None] * total_num_samples
+		_contiguous_ground_truths = [None] * total_num_samples
+
+		j = 0
+		if self.discrete:
+			# If there's a False in the list of lists instead of a list, skip the class whose
+			# index is in the same position as the False's index.
+			newdata['classsizes_list' ] = classsizes_list = \
+			    [ self.num_samples_per_group * len(class_group_list) \
+			        for class_group_list in leave_in_samplegroupid_list if class_group_list ]
+			newdata[ 'num_classes' ] = num_classes = len( classsizes_list )
+			newdata[ 'classnames_list' ] = [ self.classnames_list[i] \
+			      for i, num_groups in enumerate( leave_in_samplegroupid_list ) if num_groups ]
+			if self.interpolation_coefficients:
+				newdata[ 'interpolation_coefficients' ] = [ self.interpolation_coefficients[i] \
+			      for i, num_groups in enumerate( leave_in_samplegroupid_list ) if num_groups ]
+			for class_group_list in leave_in_samplegroupid_list:
+				if not class_group_list:
+					continue
+				for samp_group_id in class_group_list:
+					_contiguous_samplegroupid_list[ j : j + self.num_samples_per_group ] = \
+					    [samp_group_id] * self.num_samples_per_group
+					j += self.num_samples_per_group
+			  
+		else:
+			for samp_group_id in leave_in_samplegroupid_list:
+				_contiguous_samplegroupid_list[ j : j + self.num_samples_per_group ] = \
+				    [samp_group_id] * self.num_samples_per_group
+				j += self.num_samples_per_group
+
+		assert( len( _contiguous_samplegroupid_list ) == total_num_samples )
+
+		for i in xrange( 0, total_num_samples, self.num_samples_per_group ):
+			groupid = _contiguous_samplegroupid_list[i]
+			original_index = self._contiguous_samplegroupid_list.index( groupid )
+			np.copyto( data_matrix[ i : i + self.num_samples_per_group ],
+							self.data_matrix[ original_index : original_index + self.num_samples_per_group ] )
+			_contiguous_samplenames_list[ i : i + self.num_samples_per_group ] = \
+			   self._contiguous_samplenames_list[ original_index : original_index +  self.num_samples_per_group]
+			_contiguous_samplesequenceid_list[ i : i + self.num_samples_per_group ] = \
+			   self._contiguous_samplesequenceid_list[ original_index : original_index +  self.num_samples_per_group]
+			_contiguous_ground_truths[ i : i + self.num_samples_per_group ] = \
+			   self._contiguous_ground_truths[ original_index : original_index +  self.num_samples_per_group ]
+
+		newdata[ 'data_matrix' ] = data_matrix
+		newdata[ '_contiguous_samplenames_list' ] = _contiguous_samplenames_list
+		newdata[ '_contiguous_samplesequenceid_list' ] = _contiguous_samplesequenceid_list
+		newdata[ '_contiguous_ground_truths' ] = _contiguous_ground_truths
+		newdata[ '_contiguous_samplegroupid_list' ] = _contiguous_samplegroupid_list
+		return self.Derive( **newdata )
 
 	#==============================================================
 	def AddSignature( self, signature, class_id_index = None ):
@@ -1983,11 +2121,6 @@ class FeatureSet( object ):
 
 	#==============================================================
 	def RemoveClass( self, class_index ):
-		"""Virtual method."""
-		raise NotImplementedError()
-
-	#==============================================================
-	def RemoveSampleGroup( self, samplegroup_index ):
 		"""Virtual method."""
 		raise NotImplementedError()
 
@@ -2047,251 +2180,121 @@ class FeatureSet( object ):
 			else:
 				raise ValueError( 'Arg random_state must be an instance of numpy.random.RandomState, an int, or the value True')
 
-		n_samplegroups_in_training_set = None
-		n_samplegroups_in_test_set = None
 		training_set_only = None
 
 		if test_size == None:
 			test_size = 0.25
 
-		# ------- BEGIN NESTED FUNCTION --------------------------------
-		def CalcTrainTestMembership( num_groups ):
-			"""Pulls train_size_test_size from outer scope"""
+		# ----- BEGIN NESTED FUNCTION -----------------------------------------------
+		def CalcTrainTestSampleGroupMembership( samplegroupid_list, _max=None ):
+			"""Takes a list of sample group ids, and returns a two subset lists of ids whose lengths
+			are determined by train_size and test_size.
+
+			Raises ValueError if train_set/test_set params are not on interval 0<val<1 for float.
+
+			train_size/test_size indicate number of sample groups desired, unless self.num_samples_per_group == 1,
+			in which case they refer to samples.
+
+			group_list = list containing sample group ids to be divided among training/test sets
+			according to proportions prescribed in train_size & test_size (pulled from from outer scope)
+
+			_max = Pare the list of sample group ids down to this length. Used to enforce balanced classes.
+			
+			Returns list of sample group ids to pass to SampleReduce()"""
 
 			from math import ceil, floor
+
+			# Uniquify the sample group list
+			seen = set()
+			seen_add = seen.add
+			unique_samplegroup_ids = [ x for x in samplegroupid_list if not (x in seen or seen_add(x) ) ]
+			if _max:
+				# Chop off the end
+				unique_samplegroup_ids = unique_samplegroup_ids[ : _max ]
+
+			num_samplegroups = len( unique_samplegroup_ids )
+
 			# TEST SET SIZE:
 			if type( test_size ) is int:
-				if test_size < 0 or test_size >= num_groups: # test sets of size 0 are allowed
+				if test_size < 0 or test_size >= num_samplegroups: # test sets of size 0 are allowed
 					raise ValueError( 'Please input test_size integer such that 0 <= test_size < number of images (or sample groups).' )
-				_n_samplegroups_in_test_set = test_size
+				n_samplegroups_in_test_set = test_size
 			elif type( test_size ) is float:
 				if test_size < 0 or test_size >= 1: # test sets of size 0 are allowed
 					raise ValueError( 'Please input test_size fraction such that 0 <= test_size < 1.' )
-				_n_samplegroups_in_test_set = int( ceil( num_groups * test_size ) )
+				n_samplegroups_in_test_set = int( ceil( num_samplegroups * test_size ) )
 
-			# TRAIN SET SIZE
+			# TRAIN SET SIZE:
 			if type( train_size ) is int:
-				if train_size < 0 or train_size >= num_groups: # train sets of size 1 are allowed
+				if train_size < 0 or train_size >= num_samplegroups: # train sets of size 1 are allowed
 					raise ValueError( 'Please input train_size such that 0 < train_size < number of images (or sample groups).' )
-				_n_samplegroups_in_training_set = train_size
+				n_samplegroups_in_training_set = train_size
 			elif type( train_size ) is float:
 				if train_size < 0 or train_size >= 1: # train sets of size 1 are allowed
 					raise ValueError( 'Please input train_size such that 0 < train_size < 1.' )
-				_n_samplegroups_in_training_set = int( floor( self.num_images * train_size ) )
-				if _n_samplegroups_in_training_set <= 0:
+				n_samplegroups_in_training_set = int( floor( num_samplegroups * train_size ) )
+				if n_samplegroups_in_training_set <= 0:
 					raise ValueError( 'Please input train_size fraction such that there aren\'t 0 images (or sample groups) in training set' )
 			elif train_size == None:
-				_n_samplegroups_in_training_set = num_groups - _n_samplegroups_in_test_set
+				n_samplegroups_in_training_set = num_samplegroups - n_samplegroups_in_test_set
 
-			if( _n_samplegroups_in_training_set + _n_samplegroups_in_test_set ) > num_groups:
+			if( n_samplegroups_in_training_set + n_samplegroups_in_test_set ) > num_samplegroups:
 					raise ValueError( 'User input specified train/test feature set membership contain more samples than are available.' )
 
-			return _n_samplegroups_in_training_set, _n_samplegroups_in_test_set
-		# ------- END NESTED FUNCTION --------------------------------
+			if random_state:
+				shuffle( unique_samplegroup_ids )
 
-		# When the user asks for train_size or test_size, it's not really samples, but sample
-		# groups that are implied.
-		# Figure out how many sample groups are in each class, or the feature set as a whole 
-		# if we're classless.
+			train_groups = sorted( unique_samplegroup_ids[ : n_samplegroups_in_training_set ] )
+
+			if n_samplegroups_in_test_set:
+				test_groups = sorted( unique_samplegroup_ids[ n_samplegroups_in_training_set : \
+					        n_samplegroups_in_training_set + n_samplegroups_in_test_set ] )
+			else:
+				test_groups = False
+
+			return train_groups, test_groups
+		# ----- END NESTED FUNCTION -----------------------------------------------
 
 		if not self.discrete: # If classless data:
-
-			if self.num_samples_per_group > 1:
-				num_groups = self.num_images / self.num_samples_per_group
-			else:
-				num_groups = self.num_images
-				 
-			n_samplegroups_in_training_set, n_samplegroups_in_test_set = CalcTrainTestMembership( num_groups )
+			train_groups, test_groups = CalcTrainTestSampleGroupMembership( self.samplegroupid_list )
 
 		else: # Discrete classes
-
-			# how many sample groups are in each class?
-			if self.num_samples_per_group > 1:
-				num_groups_per_class = [ num / self.num_samples_per_group for num in self.classsizes_list ]
-			else:
-				num_groups_per_class = self.classsizes_list
+			train_groups = []
+			test_groups = []
 
 			if balanced_classes:
+				if self.num_samples_per_group > 1:
+					num_groups_per_class = [ num / self.num_samples_per_group for num in self.classsizes_list ]
+				else:
+					num_groups_per_class = self.classsizes_list
 				smallest_class_size = min( num_groups_per_class )
-				n_samplegroups_in_training_set, n_samplegroups_in_test_set =\
-				                                 CalcTrainTestMembership( smallest_class_size )
-				n_samplegroups_in_training_set = [n_samplegroups_in_training_set] * self.num_classes
-				n_samplegroups_in_test_set = [n_samplegroups_in_test_set] * self.num_classes
-
-			else: # If not balanced classes, take proper train/test proportion from each class
-				
-				n_samplegroups_in_training_set = []
-				n_samplegroups_in_test_set = []
-				for class_index, num_groups_in_class in enumerate(num_groups_per_class):
-					try:
-						n_test_groups_in_class, n_train_groups_in_class = \
-						                            CalcTrainTestMembership( smallest_class_size )
-					except ValueError:
-						# If the class membership is such that you can't split it in 
-						# the proportion the user requested, just don't use it. 
-						n_samplegroups_in_training_set.append( False )
-						n_samplegroups_in_test_set.append( False )
-						errmsg = "Warning! Class {0} \"{1}\" didn't have enough images/samples groups {1}".\
-						  format( class_index, self.classnames_list[ class_index], num_groups_in_class )
-						errmsg += " to be split with user params train_set={0} and test_set={1}".\
-						  format( train_set, test_set )
-						print errmsg
-					else:
-						n_samplegroups_in_training_set.append( n_train_groups_in_class )
-						n_samplegroups_in_test_set.append( n_test_groups_in_class )
-				# If the user-specified train_set/test_set params resulted in no classes
-				# being big enough to make a FeatureSet
-				if not any( n_samplegroups_in_training_set ):
-					raise ValueError( "Class membership is such that it cannot be split into the proportion requested." )
-
-		# Step 2: Initialize the train_set and test_set based on composition generated
-		# from Step 1.
-
-		# ------- BEGIN NESTED FUNCTION --------------------------------
-		def ReturnPreInitializedFeatureSet( group_membership ):
-			"""per_class_group_membership is either a list of ints and/or bools for discrete
-			or a single int for continuous"""
-
-			new_fs = self.__class__()
-			if self.source_path:
-				new_fs.source_path = self.source_path + " (subset)"
-			if self.name:
-				new_fs.name = self.name + " (subset)"
-			if self.feature_vector_version:
-				new_fs.feature_vector_version = self.feature_vector_version
 			else:
-				new_fs.feature_vector_version = '2.0'
+				smallest_class_size=None
 
-			new_fs.featurenames_list = self.featurenames_list
-			new_fs.num_features = len( self.featurenames_list )
-			new_fs.num_samples_per_group = self.num_samples_per_group
-			new_fs.discrete = self.discrete
+			for class_index in xrange( self.num_classes ):
+				try:
+					class_train_groups, class_test_groups = \
+					  CalcTrainTestSampleGroupMembership( self.samplegroupid_list[class_index], _max=smallest_class_size  )
+				except ValueError:
+					print "Error with class index ", str(class_index)
+					raise
+				else:
+					train_groups.append( class_train_groups )
+					test_groups.append( class_test_groups )					
 
-			if self.discrete:
-				new_fs.num_classes = len( group_membership )
-				new_fs.classsizes_list = [ self.num_samples_per_group * num_groups \
-				      for num_groups in group_membership if num_groups ] 
-				new_fs.num_images = sum( new_fs.classsizes_list )
-				new_fs.classnames_list = [ self.classnames_list[i] \
-				      for i, num_groups in enumerate( group_membership ) if num_groups ]
-				if self.interpolation_coefficients:
-					new_fs.interpolation_coefficients = [ self.interpolation_coefficients[i] \
-				      for i, num_groups in enumerate( group_membership ) if num_groups ]
+			if not any( test_groups ):
+				training_set_only = True
 
-			else: # if continuous
-				new_fs.num_images = self.num_samples_per_group * group_membership
-
-			new_fs._contiguous_samplenames_list = [None]* new_fs.num_images
-			new_fs._contiguous_samplegroupid_list = [None]* new_fs.num_images
-			new_fs._contiguous_samplesequenceid_list = [None]* new_fs.num_images
-			new_fs._contiguous_ground_truths = [None]* new_fs.num_images
-			new_fs.data_matrix = np.empty( (new_fs.num_images, new_fs.num_features ), dtype='double'  )
-
-			new_fs._RebuildViews()
-			return new_fs
-		# ------- END NESTED FUNCTION --------------------------------
-
-		training_set = ReturnPreInitializedFeatureSet( n_samplegroups_in_training_set )
-
-		if not training_set_only:
-			test_set = ReturnPreInitializedFeatureSet( n_samplegroups_in_test_set )
-			test_set_sample_index = 0
-
-		# Step 3: assemble training and test sets
-		train_set_sample_index = 0
-
-		# Would use Ordered Set, but not included until Python 2.7
-		def Unique( seq ):
-			seen = set()
-			seen_add = seen.add
-			return [ x for x in seq if not (x in seen or seen_add(x) ) ]
-
-		if self.discrete:
-			train_samp_idx = 0
-			if not training_set_only:
-				test_samp_idx = 0
-
-			for class_index, n_train_groups_inthisclass, n_test_groups_inthisclass in \
-				      zip( range(self.num_classes), n_samplegroups_in_training_set, n_samplegroups_in_test_set ):
-				if not n_train_groups_inthisclass:
-					# Remember, instead of a number of groups that should go in the class
-					# there might not have been enough groups in the class to include in the split
-					# Featureset, in which case group_membership will be False instead of an int
-					continue
-
-				samplegroup_lottery = Unique( self.samplegroupid_list[ class_index ] )
-
-				if random_state:
-					shuffle( samplegroup_lottery )
-
-				train_groups = sorted( samplegroup_lottery[ : n_train_groups_inthisclass ] )
-				training_set._contiguous_samplegroupid_list \
-								[ train_samp_idx : train_samp_idx + self.num_samples_per_group ] = \
-				  [ gid for gid in train_groups for i in xrange( self.num_samples_per_group ) ]
-				train_samp_idx += training_set.classsizes_list[ class_index ]
-
-				if not training_set_only:
-					test_groups = sorted( samplegroup_lottery[ \
-					  n_train_groups_inthisclass : n_train_groups_inthisclass + n_test_groups_inthisclass])
-					test_set._contiguous_samplegroupid_list \
-					  [ test_samp_idx : test_samp_idx + self.num_samples_per_group ] = \
-					    [ gid for gid in test_groups for i in xrange( self.num_samples_per_group ) ]
-					test_samp_idx += test_set.classsizes_list[ class_index ]
-
-		else: # if continuous
-			samplegroup_lottery = Unique( self.samplegroupid_list )
-			if random_state:
-				shuffle( samplegroup_lottery )
-			train_groups = sorted( samplegroup_lottery[ : n_samplegroups_in_training_set ] )
-			training_set._contiguous_samplegroupid_list[:] = [ gid for gid in train_groups \
-				            for i in xrange( self.num_samples_per_group ) ]
-
-			if not training_set_only:
-				# Remember, we don't just slice the group list to the end and take that as the test
-				# set, because there may be more groups than are needed to populate train/test sets.
-				test_groups = sorted( samplegroup_lottery[ \
-				  n_samplegroups_in_training_set  : n_samplegroups_in_training_set  + n_samplegroups_in_test_set ] )
-				test_set._contiguous_samplegroupid_list[:] = [ gid for gid in test_groups \
-			            for i in xrange( self.num_samples_per_group ) ]
-
-
-		# Finally, now that the groups have been chosen, copy features/metadata accordingly:
-		for i in xrange( 0, training_set.num_images, self.num_samples_per_group ):
-			groupid = training_set._contiguous_samplegroupid_list[i]
-			original_index = self._contiguous_samplegroupid_list.index( groupid )
-			np.copyto( training_set.data_matrix[ i : i + self.num_samples_per_group ],
-							self.data_matrix[ original_index : original_index + self.num_samples_per_group ] )
-			training_set._contiguous_samplenames_list[ i : i + self.num_samples_per_group ] =\
-			   self._contiguous_samplenames_list[ original_index : original_index +  self.num_samples_per_group]
-			training_set._contiguous_samplesequenceid_list[ i : i + self.num_samples_per_group ] =\
-			   self._contiguous_samplesequenceid_list[ original_index : original_index +  self.num_samples_per_group]
-			training_set._contiguous_ground_truths[ i : i + self.num_samples_per_group ] =\
-			   self._contiguous_ground_truths[ original_index : original_index +  self.num_samples_per_group ]
-
+		training_set = self.SampleReduce( train_groups )
 		if not quiet:
 			training_set.Print()
-
 		if training_set_only:
-			training_set._RebuildViews()
 			return training_set
 
-		else:
-			for i in xrange( 0, test_set.num_images, self.num_samples_per_group ):
-				groupid = test_set._contiguous_samplegroupid_list[i]
-				original_index = self._contiguous_samplegroupid_list.index( groupid )
-				np.copyto( test_set.data_matrix[ i : i + self.num_samples_per_group ],
-							self.data_matrix[ original_index : original_index + self.num_samples_per_group ] )
-				test_set._contiguous_samplenames_list[ i : i + self.num_samples_per_group ] =\
-			    self._contiguous_samplenames_list[ original_index : original_index +  self.num_samples_per_group]
-				test_set._contiguous_samplesequenceid_list[ i : i + self.num_samples_per_group ] =\
-			    self._contiguous_samplesequenceid_list[ original_index : original_index +  self.num_samples_per_group]
-				test_set._contiguous_ground_truths[ i : i + self.num_samples_per_group ] =\
-			    self._contiguous_ground_truths[ original_index : original_index +  self.num_samples_per_group]
-
-			if not quiet:
-				test_set.Print()
-			test_set._RebuildViews()
-			return training_set, test_set
+		test_set = self.SampleReduce( test_groups )
+		if not quiet:
+			test_set.Print()
+		return training_set, test_set
 
 
 # END FeatureSet class definition
@@ -4055,10 +4058,10 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		intermediate_train_set = augmented_train_set
 		for test_image_index in range( augmented_test_set.num_images ):
 			if leave_one_out:
-				intermediate_train_set = augmented_train_set.Split( test_size=0,
-				                            leave_out=(test_image_index,), quiet=True )
+				intermediate_train_set = augmented_train_set.SampleReduce(\
+						leave_out_samplegroupid_list=test_image_index,)
 			one_image_features = augmented_test_set.data_matrix[ test_image_index,: ]
-			result = ContinuousImageClassificationResult._LeastSquaresRegression(
+			result = ContinuousImageClassificationResult._LeastSquaresRegression( \
 			               one_image_features, intermediate_train_set )
 			result.batch_number = batch_number
 			result.name = batch_name
