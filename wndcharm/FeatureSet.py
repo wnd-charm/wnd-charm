@@ -1398,6 +1398,10 @@ class FeatureSet( object ):
 		#: (regression, clustering)
 		self.discrete = discrete
 
+		#: shape - supposed to work like numpy.ndarray.shape
+		self.shape = None
+
+
 		# SAMPLE METADATA DATA MEMBERS
 		# N.B. Here data members are grouped into sets of two, the first being the "_contiguous"
 		# version which is a simple list of length S, and the second being compound lists of lists,
@@ -1524,18 +1528,19 @@ class FeatureSet( object ):
 				  class_index, class_name, len( self.imagenames_list[ class_index ] ) )
 				class_index += 1
 
-		if verbose:
+		if verbose: # verbose implies print info for each sample
 			if self.num_samples_per_group == 1:
 				sample_metadata = \
 				  zip( self._contiguous_samplenames_list, self._contiguous_ground_truths )
 				header_str = "SAMP NAME\tGROUND TRUTH\n==============================================================="
-				format_str = "{0}\t{3}"
+				format_str = "{0}\t{1}"
 			else:
 				sample_metadata = zip( self._contiguous_samplenames_list, 
 							self._contiguous_samplegroupid_list, self._contiguous_samplesequenceid_list,
 							self._contiguous_ground_truths )
 				header_str = "SAMP NAME\tGROUP INDEX\tTILE INDEX\tGROUND TRUTH\n===================================================================="
 				format_str = "{0}\t{1:03d}\t{2:02d}\t{3}"
+
 
 			print header_str
 			for line_item in sample_metadata:
@@ -1554,7 +1559,7 @@ class FeatureSet( object ):
 		outstr += 'n_total_samples=' + str( self.num_images )
 		if self.discrete:
 			outstr += ' n_classes=' + str( self.num_classes ) + ' '
-			outstr += 'samples_per_class=(' + ', '.join( [ '{0}={1}'.format( name, quant ) \
+			outstr += 'samples_per_class=(' + ', '.join( [ '"{0}": {1}'.format( name, quant ) \
 							for name, quant in zip( self.classnames_list, self.classsizes_list ) ] ) + ')'
 		outstr += '>'
 		return outstr
@@ -1719,7 +1724,8 @@ class FeatureSet( object ):
 				# 3rd line: number of samples
 				num_samples = int( line )
 				new_fs.num_images = num_samples
-				new_fs.data_matrix = np.empty ([ num_samples, num_features ], dtype='double')
+				new_fs.shape = ( num_samples, num_features )
+				new_fs.data_matrix = np.empty( new_fs.shape, dtype='double' )
 				new_fs._contiguous_samplenames_list = [None] * num_samples
 
 			elif line_num < ( num_features + 3 ):
@@ -1968,10 +1974,13 @@ class FeatureSet( object ):
 
 	#==============================================================
 	def FeatureReduce( self, requested_features ):
-		"""Returns a new FeatureSet that contains a subset of the features
-		arg requested_features is a tuple of features.
-		The returned FeatureSet will have features in the same order as they appear in
-		requested_features"""
+		"""Returns a new FeatureSet that contains a subset of the data by dropping
+		features (columns), and/or rearranging columns.
+
+		requested_features := an iterable containing strings that are feature names.
+
+		Implementation detail: compares input "requested_features" to self.featurenames_list,
+		and "requested_features" becomes the self.featurenames_list of the returned FeatureSet."""
 
 		# Check that self's faturelist contains all the features in requested_features
 		selfs_features = set( self.featurenames_list )
@@ -1985,12 +1994,15 @@ class FeatureSet( object ):
 			err_str += "\nDid you forget to convert the feature names into their modern counterparts?"
 			raise ValueError( err_str )
 
+		shape = ( self.num_images, num_features )
+
 		newdata = {}
+		newdata[ 'shape' ] = shape
 		newdata[ 'source_path' ] = self.source_path + "(feature reduced)"
 		newdata[ 'name' ] = self.name + "(feature reduced)"
 		newdata[ 'featurenames_list' ] = requested_features
 		newdata[ 'num_features' ] = num_features = len( requested_features )
-		data_matrix = np.empty( ( self.num_images, num_features ), dtype='double')
+		data_matrix = np.empty( shape , dtype='double')
 		if self.feature_maxima is not None:
 			feature_maxima = np.empty( num_features, )
 		if self.feature_minima is not None:
@@ -2030,37 +2042,96 @@ class FeatureSet( object ):
 
 	#==============================================================
 	def SampleReduce( self, leave_in_samplegroupid_list=None, leave_out_samplegroupid_list=None ):
-		"""
-		{ leave_in, leave_out }_sample_group_list :=
+		"""Returns a new FeatureSet that contains a subset of the data by dropping
+		samples (rows), and/or rearranging rows.
+
+		leave_in_sample_group_list := indicate the composition of the FeatureSet to be returned.
 				For discrete/classification FeatureSets -
-				  a list of bools and/or lists of sample group indices indicating { desired, undesired } sample groups;
+				  an iterable of iterables of sample group indices indicating desired sample groups;
 		    For continuous/regression FeatureSets - 
-		      a list of { desired, undesired } sample group indices.
+		      a iterable of desired sample group indices.
+
+		leave_out_samplegroupid_list := a list containing sample group ids
+		    that should be left out
 		Returns a near-deep copy of self including only the sample groups specified in the list.
 		If no tiles, sample group reduces to just sample index."""
 
 		if leave_in_samplegroupid_list is None and leave_out_samplegroupid_list is None:
 			raise ValueError( 'Invalid input, both leave_in_samplegroupid_list and leave_out_samplegroupid_list were None')
 
-		# How many total training groups are requested?
-		if leave_in_samplegroupid_list:
-			if self.discrete:
-				total_num_sample_groups = \
-			    sum( len( class_list ) for class_list in leave_in_samplegroupid_list if class_list )
-			else:
-				total_num_sample_groups = len( leave_in_samplegroupid_list )
-		else:
-			total_num_sample_groups = \
-						self.num_images / self.num_samples_per_group - len( leave_out_samplegroupid_list )
+		# Helper nested functions:
+		#==================================
+		def CheckForValidListOfInts( the_list ):
+			"""Items in list must be ints that are valid sample group ids for this FeatureSet"""
+			for item in the_list:
+				if type( item ) is not int:
+					raise TypeError( "Input must be an int or a flat iterable containing only ints.")
 
+			if not set( the_list ) < set( self._contiguous_samplegroupid_list ):
+				msg = "Input contains sample group ids that aren't " + \
+							'contained in FeatureSet "' + self.name + '", specifically: ' + \
+				      str( sorted( list( set( the_list ) - set( self._contiguous_samplegroupid_list ) ) ) )
+				raise ValueError( msg )
+
+		def CheckForValidLISTOFLISTSOfInts( the_list ):
+			try:
+				for item in the_list:
+					if type( item ) is bool:
+						continue
+					elif type( item ) is list:
+						CheckForValidListOfInts( item )
+			except TypeError:
+				raise TypeError( "Input must be an iterable containing either booleans or iterables containing only ints.")
+
+		def UniquifySansLeaveOutList( sg_list, leave_out ):
+			seen = set()
+			seen_add = seen.add
+			uniq_sgids = [ x for x in sg_list  if not( x in seen or seen_add(x) ) and ( x not in leave_out) ]
+			return uniq_sgids
+		#==================================
+
+		if leave_out_samplegroupid_list:
+			if type( leave_out_samplegroupid_list ) is int:
+				leave_out_samplegroupid_list = [ leave_out_samplegroupid_list ]
+			CheckForValidListOfInts( leave_out_samplegroupid_list )
+
+			# build up a leave IN list, excluding the SGids that the user indicated
+			if self.discrete:
+				leave_in_samplegroupid_list = []
+				for class_sgid_list in self.samplegroupid_list:
+					class_leave_in_sg_list = UniquifySansLeaveOutList( class_sgid_list, leave_out_samplegroupid_list )
+					leave_in_samplegroupid_list.append( class_leave_in_sg_list  )
+			else:
+				leave_in_samplegroupid_list = \
+				  UniquifySansLeaveOutList( self.samplegroupid_list, leave_out_samplegroupid_list )
+		else: # user provided leave in list
+			if self.discrete:
+				CheckForValidLISTOFLISTSOfInts( leave_in_samplegroupid_list )
+			else: # if continuous
+				if type( leave_in_samplegroupid_list ) is int:
+					leave_in_samplegroupid_list = [ leave_in_samplegroupid_list ]
+				CheckForValidListOfInts( leave_in_samplegroupid_list )
+
+		# Dummyproofing over.
+		# Now we can count on the fact that leave_in_samplegroupid_list is defined,
+		# either by the user or by the above code.
+
+		# How many total training groups are requested?
+		if self.discrete:
+			total_num_sample_groups = \
+					sum( len( class_list ) for class_list in leave_in_samplegroupid_list if class_list )
+		else:
+			total_num_sample_groups = len( leave_in_samplegroupid_list )
 
 		total_num_samples = total_num_sample_groups * self.num_samples_per_group
+		shape =  (total_num_samples, self.num_features)
 
 		newdata = {}
+		newdata[ 'shape' ] = shape
 		newdata[ 'source_path' ] = self.source_path + " (subset)"
 		newdata[ 'name' ] = self.name + " (subset)"
 		newdata[ 'num_images' ] = total_num_samples
-		data_matrix = np.empty( ( total_num_samples, self.num_features ), dtype='double' )
+		data_matrix = np.empty( shape, dtype='double' )
 		_contiguous_samplegroupid_list = [None] * total_num_samples
 		_contiguous_samplenames_list = [None] * total_num_samples
 		_contiguous_samplesequenceid_list = [None] * total_num_samples
@@ -2074,11 +2145,20 @@ class FeatureSet( object ):
 			    [ self.num_samples_per_group * len(class_group_list) \
 			        for class_group_list in leave_in_samplegroupid_list if class_group_list ]
 			newdata[ 'num_classes' ] = num_classes = len( classsizes_list )
-			newdata[ 'classnames_list' ] = [ self.classnames_list[i] \
+
+			# If user requests more classes than exists in self, that's ok, but you have to makeup
+			# classnames. Throw a letter on the end of Class, and if they want more than
+			# 26 classes, well they can inherit from this class and reimplement this function
+			if num_classes < self.num_classes:
+				newdata[ 'classnames_list' ] = [ self.classnames_list[i] \
 			      for i, num_groups in enumerate( leave_in_samplegroupid_list ) if num_groups ]
-			if self.interpolation_coefficients:
-				newdata[ 'interpolation_coefficients' ] = [ self.interpolation_coefficients[i] \
+				if self.interpolation_coefficients:
+					newdata[ 'interpolation_coefficients' ] = [ self.interpolation_coefficients[i] \
 			      for i, num_groups in enumerate( leave_in_samplegroupid_list ) if num_groups ]
+			else:
+				newdata[ 'classnames_list' ] = [ "Class" + letter for i, letter in \
+						zip( leave_in_samplegroupid_list, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' ) if i ]
+				newdata[ 'interpolation_coefficients' ] = None
 			for class_group_list in leave_in_samplegroupid_list:
 				if not class_group_list:
 					continue
@@ -2208,7 +2288,7 @@ class FeatureSet( object ):
 			seen = set()
 			seen_add = seen.add
 			unique_samplegroup_ids = [ x for x in samplegroupid_list if not (x in seen or seen_add(x) ) ]
-			if _max:
+			if _max and _max > len( unique_samplegroup_ids ):
 				# Chop off the end
 				unique_samplegroup_ids = unique_samplegroup_ids[ : _max ]
 
@@ -2223,6 +2303,8 @@ class FeatureSet( object ):
 				if test_size < 0 or test_size >= 1: # test sets of size 0 are allowed
 					raise ValueError( 'Please input test_size fraction such that 0 <= test_size < 1.' )
 				n_samplegroups_in_test_set = int( ceil( num_samplegroups * test_size ) )
+			else:
+				raise ValueError( 'Invalid input: test_size={0}'.format( test_size ) )
 
 			# TRAIN SET SIZE:
 			if type( train_size ) is int:
@@ -2237,6 +2319,8 @@ class FeatureSet( object ):
 					raise ValueError( 'Please input train_size fraction such that there aren\'t 0 images (or sample groups) in training set' )
 			elif train_size == None:
 				n_samplegroups_in_training_set = num_samplegroups - n_samplegroups_in_test_set
+			else:
+				raise ValueError( 'Invalid input: train_size={0}'.format( test_size ) )
 
 			if( n_samplegroups_in_training_set + n_samplegroups_in_test_set ) > num_samplegroups:
 					raise ValueError( 'User input specified train/test feature set membership contain more samples than are available.' )
