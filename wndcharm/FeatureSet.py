@@ -1887,6 +1887,8 @@ class FeatureSet( object ):
 			self.samplesequenceid = self._contiguous_samplesequenceid_list
 			self.ground_truths = self._contiguous_ground_truths
 
+		self.data_matrix_is_contiguous = True
+
 	#==============================================================
 	@classmethod
 	def NewFromDirectory( cls, top_level_dir_path, feature_set = "large", write_sig_files_to_disk = True ):
@@ -1994,6 +1996,7 @@ class FeatureSet( object ):
 			err_str += "\nDid you forget to convert the feature names into their modern counterparts?"
 			raise ValueError( err_str )
 
+		num_features = len( requested_features )
 		shape = ( self.num_images, num_features )
 
 		newdata = {}
@@ -2001,7 +2004,7 @@ class FeatureSet( object ):
 		newdata[ 'source_path' ] = self.source_path + "(feature reduced)"
 		newdata[ 'name' ] = self.name + "(feature reduced)"
 		newdata[ 'featurenames_list' ] = requested_features
-		newdata[ 'num_features' ] = num_features = len( requested_features )
+		newdata[ 'num_features' ] = num_features
 		data_matrix = np.empty( shape , dtype='double')
 		if self.feature_maxima is not None:
 			feature_maxima = np.empty( num_features, )
@@ -2149,7 +2152,7 @@ class FeatureSet( object ):
 			# If user requests more classes than exists in self, that's ok, but you have to makeup
 			# classnames. Throw a letter on the end of Class, and if they want more than
 			# 26 classes, well they can inherit from this class and reimplement this function
-			if num_classes < self.num_classes:
+			if num_classes <= self.num_classes:
 				newdata[ 'classnames_list' ] = [ self.classnames_list[i] \
 			      for i, num_groups in enumerate( leave_in_samplegroupid_list ) if num_groups ]
 				if self.interpolation_coefficients:
@@ -2431,6 +2434,9 @@ class FeatureSet_Discrete( FeatureSet ):
 				break
 			copy_row += class_mat.shape[0]
 			copy_class += 1
+
+		if copy_class == len( self.data_list ):
+			raise RuntimeError( "Internal error: ContiguousDataMatrix: none of the class views had their own data. Is the data_matrix contiguous already?" )
 
 		# resize the matrix
 		if self.data_matrix is not None:
