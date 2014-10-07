@@ -11,8 +11,8 @@ signals = {
 'negative_linear' : lambda x: -1*x,                      # y:-x
 'step'            : lambda x: -100 if x < 0 else 100,    # y:-100, x<0; y:100 x>0
 'sinusoidal'      : lambda x: 100 * sin( 0.1 * x ),      # y:100*sin(0.1x)
-'tangent'         : lambda x: 100 * tan( 0.1 * x ),      # y:100*tan(0.1x)
-'exponential'     : lambda x: e ** x,                    # y:e^(0.1x)
+'tangent'         : lambda x: tan( 0.0156 * x ),         # y:tan(0.0156x) # corners are distinct
+'exponential'     : lambda x: e ** (0.05 * x ),          # y:e^(0.7x) => e^7 = 1096
 'quadratic'       : lambda x: 0.01 * x ** 2,             # y:0.01x^2
 'cubic'           : lambda x: 0.0002 * x ** 3,           # y:0.0002x^3
 'asymptotal'      : lambda x: 50 * atan( 0.1 * x + 10 ), # y:50*atan(0.1x+10)
@@ -25,11 +25,11 @@ def logarithmic( x ):
   except ValueError: # math domain error b/c (undef for x < 0)
     return numpy.nan
 
-signals[ 'logarithmic' ] = logarithmic
+#signals[ 'logarithmic' ] = logarithmic
 
 
 def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samples=100,
-    num_features_per_signal_type=10, noise_gradient=5, initial_noise_sigma=10,
+    num_features_per_signal_type=30, noise_gradient=5, initial_noise_sigma=10,
     n_samples_per_group=1, random_state=None ):
     """
     Analogous to sklearn.datasets.make_regression, but simplified.

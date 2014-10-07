@@ -33,6 +33,8 @@ import filecmp
 from tempfile import mkdtemp
 from shutil import rmtree
 
+import numpy as np
+
 pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pychrm_tests
 wndchrm_test_dir = dirname( pychrm_test_dir ) + sep + 'wndchrm_tests'
 
@@ -52,8 +54,8 @@ class TestGraphs( unittest.TestCase ):
     """Test WND-CHARM's graph-making functionality."""
     
     fs = CreateArtificialFeatureSet_Discrete( n_samples=1000, n_classes=10, 
-            initial_noise_sigma=100, noise_gradient=10, random_state=43 )
-    train_set, test_set = fs.Split( randomize=False, quiet=True )
+            initial_noise_sigma=100, noise_gradient=10, random_state=43)
+    train_set, test_set = fs.Split( random_state=False, quiet=True )
     train_set.Normalize( quiet=True )
     fw = FisherFeatureWeights.NewFromFeatureSet( train_set ).Threshold()
 
@@ -96,7 +98,7 @@ class TestGraphs( unittest.TestCase ):
     def test_RankOrderedFromBatchClassificationResult( self ):
         """Rank Ordered Predicted values graph from a single split"""
 
-        testfilename = 'test_graph_rank_ordered.png'
+        testfilename = 'test_graph_rank_ordered_interpolated_discrete.png'
         graph = PredictedValuesGraph( self.batch_result )
         graph.RankOrderedPredictedValuesGraph()
         self.CompareGraphs( graph, testfilename )
@@ -108,10 +110,9 @@ class TestGraphs( unittest.TestCase ):
         testfilename = 'test_graph_kernel_smoothed.png'
         graph = PredictedValuesGraph( self.batch_result )
         graph.KernelSmoothedDensityGraph()
-
         self.CompareGraphs( graph, testfilename )
 
-    @unittest.skip( "Skip until ShuffleSplit has a RandomState param to pass in" )
+    @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOT installed" )
     def test_FromDiscreteClassificationExperimentResults( self ):
         """Rank Ordered Predicted values graph from an experiment result (multiple splits)"""
 
@@ -122,7 +123,6 @@ class TestGraphs( unittest.TestCase ):
         experiment = DiscreteClassificationExperimentResult.NewShuffleSplit( small_fs, quiet=True )
         graph = PredictedValuesGraph( self.batch_result )
         graph.RankOrderedPredictedValuesGraph()
-        # graph.SaveToFile( tempfile ) # remove after RandomState for ShuffleSplit is implemented
         self.CompareGraphs( graph, testfilename )
 
     @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOT installed" )
@@ -142,28 +142,27 @@ class TestGraphs( unittest.TestCase ):
         zipped_file_path = pychrm_test_dir + sep + 'c_elegans_terminal_bulb.html.zip'
         zf = zipfile.ZipFile( zipped_file_path, mode='r' )
         zf.extractall( self.tempdir )
-        tempfile = self.tempdir + sep + testfilename
         htmlfilepath = self.tempdir + sep + zf.namelist()[0]
         exp_result = DiscreteClassificationExperimentResult.NewFromHTMLReport( htmlfilepath )
         graph = PredictedValuesGraph( exp_result )
         graph.RankOrderedPredictedValuesGraph()
-        graph.SaveToFile( tempfile )
-        try:
-            self.assertTrue( filecmp.cmp( testfilename, tempfile ) ) 
-        except AssertionError:
-            print "Files not equal: {0} and {1}".format( testfilename, tempfile )
-            raise
+               
+        # Rather than generate a png and do a binary diff, compare the values inside
+        # matplotlib figure object
+        all_coords = np.dstack( tuple( [group._offsets for group in graph.figure.gca().collections] ) )
+        
+        reference_array = np.load( 'c_elegans_terminal_bulb.npy' )
+        self.assertTrue( np.array_equal( all_coords, reference_array ) )
 
 
-    @unittest.skip( "Skip until test training set w/ uninterpolatable class lables is made avail." )
-    #@unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOTinstalled" )
+    @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOTinstalled" )
     def test_IfNotInterpolatable( self ):
         """You can't graph predicted values if the classes aren't interpolatable."""
 
         testfilename = 'ShouldntBeGraphable.png'
-        fitfilepath = wndchrm_test_dir + sep + 'test-l.fit'
-        fs = FeatureSet_Discrete.NewFromFitFile( fitfilepath )
-        train_set, test_set = fs.Split( randomize=False, quiet=True )
+        small_fs = CreateArtificialFeatureSet_Discrete( 
+                        n_samples=20, n_classes=2, random_state=42, interpolatable=False )
+        train_set, test_set = small_fs.Split( random_state=False, quiet=True )
         train_set.Normalize()
 
         fw = FisherFeatureWeights.NewFromFeatureSet( train_set ).Threshold()
@@ -171,15 +170,10 @@ class TestGraphs( unittest.TestCase ):
         reduced_test_set = test_set.FeatureReduce( fw.names )
         test_set.Normalize( train_set, quiet=True )
 
-        batch_result = DiscreteBatchClassificationResult.New( reduced_train_set, reduced_test_set, fw, quiet=True )
-        graph = PredictedValuesGraph( batch_result )
-
-        tempfile = self.tempdir + sep + testfilename
-
+        batch_result = DiscreteBatchClassificationResult.New(
+                                    reduced_train_set, reduced_test_set, fw, quiet=True )
         with self.assertRaises( ValueError ):
-            graph.RankOrderedPredictedValuesGraph()
-            graph.SaveToFile( tempfile )
-
+            graph = PredictedValuesGraph( batch_result )
 
 
 if __name__ == '__main__':
