@@ -78,7 +78,8 @@ class TestWND5Classification( unittest.TestCase ):
 		result = DiscreteImageClassificationResult.NewWND5( feat_set, weights, sample )
 		result_marg_probs = [ round( val, 3 ) \
 				for val in result.marginal_probabilities ]
-		self.assertSequenceEqual( self.correct_marg_probs[ num_feats ], result_marg_probs )
+		for target_val, res_val in zip( self.correct_marg_probs[ num_feats ], result_marg_probs ):
+			self.assertAlmostEqual( target_val, res_val, delta=self.epsilon )
 
 	# --------------------------------------------------------------------------
 	def test_WND5_all_features( self ):
