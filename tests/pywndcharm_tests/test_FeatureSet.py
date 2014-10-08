@@ -185,8 +185,8 @@ class TestFeatureSet( unittest.TestCase ):
         prng = RandomState(42)
         # default
         train_set, test_set = fs_discrete.Split( random_state=prng, quiet=True )
-        self.assertEqual( train_set.shape, (750, 360) )
-        self.assertEqual( test_set.shape, (250, 360) )
+        self.assertEqual( train_set.shape, (750, 330) )
+        self.assertEqual( test_set.shape, (250, 330) )
 
         # dummyproofing
 
