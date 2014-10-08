@@ -47,9 +47,6 @@ class TestFeatureSet( unittest.TestCase ):
     Test the wndcharm module to check it still works with OmeroPychrm
     """
 
-    def setUp(self):
-        pass
-
     def test_ContinuousFitOnFit( self ):
         from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Discrete
 
@@ -65,11 +62,11 @@ class TestFeatureSet( unittest.TestCase ):
           fs_continuous = FeatureSet_Continuous.NewFromFitFile(
                   path_to_fit, discrete=False )
 
-          fs_continuous.Normalize()
+          fs_continuous.Normalize( quiet=True )
           fw_reduced = ContinuousFeatureWeights.NewFromFeatureSet( fs_continuous ).Threshold()
           fs_reduced = fs_continuous.FeatureReduce( fw_reduced.names )
-          batch_result = ContinuousBatchClassificationResult.New( fs_reduced, fw_reduced )
-          #batch_result.Print()
+          batch_result = ContinuousBatchClassificationResult.New( 
+                  fs_reduced, fw_reduced, quiet=True )
 
         finally:
           rmtree( tempdir )
@@ -82,16 +79,16 @@ class TestFeatureSet( unittest.TestCase ):
 
         from numpy.random import RandomState
         prng = RandomState(42)
-        full_train, full_test = fs.Split( random_state=prng )
-        full_train.Normalize()
+        full_train, full_test = fs.Split( random_state=prng, quiet=True )
+        full_train.Normalize( quiet=True )
         reduced_fw = FisherFeatureWeights.NewFromFeatureSet( full_train ).Threshold()
         reduced_train = full_train.FeatureReduce( reduced_fw.names )
 
         reduced_test = full_test.FeatureReduce( reduced_fw.names )
-        reduced_test.Normalize( reduced_train )
+        reduced_test.Normalize( reduced_train, quiet=True )
 
         batch_result = DiscreteBatchClassificationResult.New( reduced_train,
-            reduced_test, reduced_fw )
+            reduced_test, reduced_fw, quiet=True )
 
 
     def test_DiscreteTrainTestSplitWithTiling( self ):
@@ -115,14 +112,14 @@ class TestFeatureSet( unittest.TestCase ):
             prng = RandomState(42)
             #fs.Print( verbose=True )
             #print "\n\n\n********************\n\n\n"
-            full_train, full_test = fs.Split( random_state=prng )
+            full_train, full_test = fs.Split( random_state=prng, quiet=True )
             #full_train.Print( verbose=True )
             #full_test.Print( verbose=True )
-            full_train.Normalize()
+            full_train.Normalize( quiet=True )
             fw = FisherFeatureWeights.NewFromFeatureSet( full_train ).Threshold()
             reduced_train = full_train.FeatureReduce( fw.names )
             reduced_test = full_test.FeatureReduce( fw.names )
-            reduced_test.Normalize( reduced_train )
+            reduced_test.Normalize( reduced_train, quiet=True )
 
         finally:
             rmtree( tempdir )
@@ -140,27 +137,26 @@ class TestFeatureSet( unittest.TestCase ):
         prng = RandomState(42)
         #fs.Print( verbose=True )
         #print "\n\n\n********************\n\n\n"
-        full_train, full_test = fs.Split( random_state=prng )
+        full_train, full_test = fs.Split( random_state=prng, quiet=True )
         #full_train.Print( verbose=True )
         #full_test.Print( verbose=True )
 
-        full_train.Normalize()
+        full_train.Normalize( quiet=True )
         fw = ContinuousFeatureWeights.NewFromFeatureSet( full_train ).Threshold()
         reduced_train = full_train.FeatureReduce( fw.names )
         reduced_test = full_test.FeatureReduce( fw.names )
-        reduced_test.Normalize( reduced_train )
+        reduced_test.Normalize( reduced_train, quiet=True )
 
     def test_FitOnFitClassification( self ):
 
         fitfile_path = wndchrm_test_dir + sep + 'test-l.fit'
         #fs = FeatureSet.NewFromFitFile( fitfile_path )
         fs = FeatureSet_Discrete.NewFromFitFile( fitfile_path )
-        fs.Normalize()
+        fs.Normalize( quiet=True )
         reduced_fw = FisherFeatureWeights.NewFromFeatureSet( fs ).Threshold()
         reduced_fs = fs.FeatureReduce( reduced_fw.names )
-        batch_result = DiscreteBatchClassificationResult.New( 
-                                       reduced_fs, reduced_fs, reduced_fw )
-        batch_result.Print()
+        batch_result = DiscreteBatchClassificationResult.New(
+                                       reduced_fs, reduced_fs, reduced_fw, quiet=True )
 
     @unittest.skip( "test tile options after it's implemented" )
     def test_TileOptions( self ):
