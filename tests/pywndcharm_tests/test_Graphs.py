@@ -86,10 +86,15 @@ class TestGraphs( unittest.TestCase ):
 
         if len( axessubplot.lines ) > 0:
             # line plot
-            all_coords = np.dstack( tuple( [group._path._vertices for group in graph.figure.gca().lines] ) )
+            try:
+                all_coords = np.dstack( tuple( [group._path._vertices for group in axessubplot.lines] ) )
+            except AttributeError:
+                # older version of matplotlib didn't include leading underscore in attribute
+                # "_vertices"
+                all_coords = np.dstack( tuple( [group._path.vertices for group in axessubplot.lines] ) )
         elif len( axessubplot.collections ) > 0:
             # scatter plot
-            all_coords = np.dstack( tuple( [group._offsets for group in graph.figure.gca().collections] ) )
+            all_coords = np.dstack( tuple( [group._offsets for group in axessubplot.collections] ) )
         else:
             self.fail("Graph doesn't have any lines nor points")
 
