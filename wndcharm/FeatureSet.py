@@ -1884,7 +1884,7 @@ class FeatureSet( object ):
 			self.data_list = self.data_matrix
 			self.imagenames_list = self._contiguous_samplenames_list
 			self.samplegroupid_list = self._contiguous_samplegroupid_list 
-			self.samplesequenceid = self._contiguous_samplesequenceid_list
+			self.samplesequenceid_list = self._contiguous_samplesequenceid_list
 			self.ground_truths = self._contiguous_ground_truths
 
 		self.data_matrix_is_contiguous = True
@@ -2093,7 +2093,7 @@ class FeatureSet( object ):
 			return uniq_sgids
 		#==================================
 
-		if leave_out_samplegroupid_list:
+		if leave_out_samplegroupid_list is not None:
 			if type( leave_out_samplegroupid_list ) is int:
 				leave_out_samplegroupid_list = [ leave_out_samplegroupid_list ]
 			CheckForValidListOfInts( leave_out_samplegroupid_list )
@@ -4819,13 +4819,11 @@ class PredictedValuesGraph( BaseGraph ):
 		result.RankOrderSort()
 		whole_list = zip( result.ground_truth_values, result.predicted_values )
 
-		class_index = 0
-		for class_name in self.classnames_list:
+		for class_index, class_name in enumerate( self.classnames_list ):
 			self.grouped_coords[ class_name ] = []
 			for coords in whole_list:
 				if coords[0] == self.class_values[ class_index ]:
 					self.grouped_coords[ class_name ].append( coords )
-			class_index += 1
 
 	#=====================================================================
 	@classmethod

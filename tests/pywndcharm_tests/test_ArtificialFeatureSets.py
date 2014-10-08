@@ -47,13 +47,11 @@ class TestCreateArtificialFeatureSet_Continuous( unittest.TestCase ):
                 num_features_per_signal_type=5, noise_gradient=5, initial_noise_sigma=10,
                 n_samples_per_group=1 )
  
-        fake_continuous.Normalize()
+        fake_continuous.Normalize( quiet=True )
         reduced_fw = ContinuousFeatureWeights.NewFromFeatureSet( fake_continuous ).Threshold()
-        reduced_fw.Print()
         reduced_fs = fake_continuous.FeatureReduce( reduced_fw.names )
-        batch_result = ContinuousBatchClassificationResult.New( test_set=reduced_fs,
-                                                           feature_weights=reduced_fw )
-        batch_result.Print()
+        batch_result = ContinuousBatchClassificationResult.New(
+                test_set=reduced_fs, feature_weights=reduced_fw, quiet=True )
 
     def test_LeastSquaresFitOnFitLeaveOneOutNoTiling( self ):
 
@@ -61,15 +59,12 @@ class TestCreateArtificialFeatureSet_Continuous( unittest.TestCase ):
                 num_features_per_signal_type=5, noise_gradient=5, initial_noise_sigma=10,
                 n_samples_per_group=1 )
  
-        fake_continuous.Normalize()
+        fake_continuous.Normalize( quiet=True )
         reduced_fw = ContinuousFeatureWeights.NewFromFeatureSet( fake_continuous ).Threshold()
-        reduced_fw.Print()
         reduced_fs = fake_continuous.FeatureReduce( reduced_fw.names )
 
         batch_result = ContinuousBatchClassificationResult.NewLeastSquaresRegression(
-            training_set=reduced_fs, test_set=None, feature_weights=reduced_fw )
-        batch_result.Print()
-      
+            training_set=reduced_fs, test_set=None, feature_weights=reduced_fw, quiet=True )
 
 if __name__ == '__main__':
     unittest.main()
