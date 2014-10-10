@@ -756,8 +756,10 @@ class ContinuousFeatureWeights( FeatureWeights ):
 
 			try:
 				spearman_coeff, spearman_p_val = spearmanr( ground_truths, feature_values )
-			except:
-				spearman_coeff, spearman_p_val = (0, 1 )
+			except FloatingPointError:
+				# to avoid: "FloatingPointError: invalid value encountered in true_divide"
+				spearman_coeff, spearman_p_val = ( 0, 1 )
+
 			new_fw.spearman_coeffs.append( spearman_coeff )
 			new_fw.spearman_p_values.append( spearman_p_val )
 
@@ -1497,16 +1499,30 @@ class FeatureSet( object ):
 	def Derive( self, **kwargs ):
 		"""Make a copy of this FeatureSet, except members passed as kwargs"""
 
+		from copy import deepcopy
 		new_fs = self.__class__()
 		self_namespace = vars( self )
 		newfs_namespace = vars( new_fs )
+
+		# Don't bother copying these "view" members which are rebuilt by self._RebuildViews()
+		convenience_view_members = [ 'data_list', 'imagenames_list', 'samplegroupid_list',\
+		    'samplesequenceid_list', 'ground_truths' ]
+
 		for key in self_namespace:
+			if key in convenience_view_members:
+				continue
 			if key in kwargs:
 				newfs_namespace[key] = kwargs[key]
 			else:
-				newfs_namespace[key] = self_namespace[key]
+				newfs_namespace[key] = deepcopy( self_namespace[key] )
 		new_fs._RebuildViews()
 		return new_fs
+
+	#==============================================================
+	def __deepcopy__( self, memo ):
+		"""Make a deepcopy of this FeatureSet"""
+
+		return self.Derive()
 
 	#==============================================================
 	@output_railroad_switch
@@ -1930,49 +1946,59 @@ class FeatureSet( object ):
 		return (self.data_matrix)
 
 	#==============================================================
-	def Normalize( self, training_set = None, quiet = False ):
+	def Normalize( self, training_set=None, inplace=True, quiet=False ):
 		"""By convention, the range of values are normalized on an interval [0,100].
 		Normalizing is useful in making the variation of features human readable
 		and that all samples are comprable if they've been normalized against
 		the same ranges of feature values.
 		Raw features computed during training are normalized in the training set.
 		These training ranges are then used to normalize raw features computed for test images.
+
+		FIXME: change default inplace to False.
 		"""
 
-		if self.normalized_against and training_set:
+		if self.normalized_against:
 			# I've already been normalized, and you want to normalize me again?
 			raise ValueError( "Set {0} has already been normalized against {1}.".format (
 				self.source_path, self.normalized_against ) )
 
-		elif not self.normalized_against and not training_set:
-			# Normalize me against myself
-			if not quiet:
-				print 'Normalizing set "{0}" ({1} images) against itself'.format (
-					self.source_path, self.num_images )
+		if inplace:
+			target = self
+		else:
+			from copy import deepcopy
+			target = deepcopy( self )
 
-			(self.feature_minima, self.feature_maxima) = normalize_by_columns (self.ContiguousDataMatrix())
-			self.normalized_against = "itself"
+		if not training_set:
+			# Normalize me against mytarget
+			if not quiet:
+				print 'Normalizing set "{0}" ({1} images) against ittarget'.format (
+					target.source_path, target.num_images )
+
+			(target.feature_minima, target.feature_maxima) = normalize_by_columns (target.ContiguousDataMatrix())
+			target.normalized_against = "ittarget"
 
 		else:
 			# Normalize me against the given training set
-			if training_set.featurenames_list != self.featurenames_list:
+			if training_set.featurenames_list != target.featurenames_list:
 				raise ValueError("Can't normalize test_set {0} against training_set {1}: Features don't match.".format (
-					self.source_path, training_set.source_path ) )
-			if ( not self.CompatibleFeatureVectorVersion (training_set.feature_vector_version) ):
+					target.source_path, training_set.source_path ) )
+			if ( not target.CompatibleFeatureVectorVersion (training_set.feature_vector_version) ):
 				raise ValueError("Can't normalize test_set {0} with version {1} features against training_set {2} with version {3} features: Feature vector versions don't match.".format (
-					self.source_path, self.feature_vector_version, training_set.source_path, training_set.feature_vector_version ) )
+					target.source_path, target.feature_vector_version, training_set.source_path, training_set.feature_vector_version ) )
 			
 			if not quiet:
 				print 'Normalizing set "{0}" ({1} images) against set "{2}" ({3} images)'.format(
-					self.source_path, self.num_images, training_set.source_path, training_set.num_images )
+					target.source_path, target.num_images, training_set.source_path, training_set.num_images )
 
 			if not training_set.normalized_against:
 				training_set.Normalize( quiet=quiet )
 
-			assert self.num_features > 0
-			(self.feature_minima, self.feature_maxima) = normalize_by_columns (self.ContiguousDataMatrix(), training_set.feature_minima, training_set.feature_maxima)
-			self.normalized_against = training_set.source_path
-			
+			assert target.num_features > 0
+			(target.feature_minima, target.feature_maxima) = normalize_by_columns (target.ContiguousDataMatrix(), training_set.feature_minima, training_set.feature_maxima)
+			target.normalized_against = training_set.source_path
+
+		if not inplace:
+			return target
 
 	#==============================================================
 	def FeatureReduce( self, requested_features ):
@@ -2061,6 +2087,11 @@ class FeatureSet( object ):
 
 		if leave_in_samplegroupid_list is None and leave_out_samplegroupid_list is None:
 			raise ValueError( 'Invalid input, both leave_in_samplegroupid_list and leave_out_samplegroupid_list were None')
+
+		if self.normalized_against:
+			errmsg = 'Cannot perform SampleReduce on FeatureSet "{0}" '.format( self.name ) + \
+			    "because it's features have already been normalized and is therefore immutable."
+			raise ValueError( errmsg )
 
 		# Helper nested functions:
 		#==================================
@@ -3557,18 +3588,25 @@ class BatchClassificationResult( ClassificationResult ):
 			diffs = np.square( diffs )
 			err_sum = np.sum( diffs )
 
-			import math; from scipy import stats
-			self.figure_of_merit = math.sqrt( err_sum / self.num_classifications )
+			from math import sqrt
+			from scipy.stats import linregress, spearmanr
+
+			self.figure_of_merit = sqrt( err_sum / self.num_classifications )
 
 			# no point in doing regression stuff if there's only 1 individual result:
 			if len( self.individual_results ) == 1:
 				# For now, ignore "FloatingPointError: 'underflow encountered in stdtr'"
 				np.seterr (under='ignore')
 				slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
-			             stats.linregress( self.ground_truth_values, self.predicted_values )
+			             linregress( self.ground_truth_values, self.predicted_values )
 
-				self.spearman_coeff, self.spearman_p_value =\
-			       stats.spearmanr( self.ground_truth_values, self.predicted_values )
+				try:
+					self.spearman_coeff, self.spearman_p_value =\
+			       spearmanr( self.ground_truth_values, self.predicted_values )
+				except FloatingPointError:
+					# to avoid: "FloatingPointError: invalid value encountered in true_divide"
+					self.spearman_coeff, self.spearman_p_value = ( 0, 1 )
+
 				np.seterr (all='raise')
 
 	#==============================================================
@@ -4057,7 +4095,7 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 	#=====================================================================
 	@classmethod
 	def NewLeastSquaresRegression( cls, training_set, test_set, feature_weights,
-					leave_one_out=True, quiet=False, batch_number=None, batch_name=None):
+					leave_one_out=False, quiet=False, batch_number=None, batch_name=None):
 		"""Uses Linear Least Squares Regression classifier in a feature space filtered/weighed
 		by Pearson coefficients.
 		
@@ -4148,8 +4186,9 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		intermediate_train_set = augmented_train_set
 		for test_image_index in range( augmented_test_set.num_images ):
 			if leave_one_out:
+				sample_group_id = augmented_train_set.samplegroupid_list[ test_image_index ]
 				intermediate_train_set = augmented_train_set.SampleReduce(\
-						leave_out_samplegroupid_list=test_image_index,)
+						leave_out_samplegroupid_list = sample_group_id,)
 			one_image_features = augmented_test_set.data_matrix[ test_image_index,: ]
 			result = ContinuousImageClassificationResult._LeastSquaresRegression( \
 			               one_image_features, intermediate_train_set )
@@ -4318,14 +4357,13 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 		                   train_size=None, test_size=None, random_state=None, classifier=None,
 		                   quiet=False):
 		"""args train_size, test_size, and random_state are all passed through to Split()
-		feature_size if a float is feature usage fraction, if in is top n features.
-		classifier does nothing right now, since least squares with leave one out is broken."""
+		feature_size if a float is feature usage fraction, if in is top n features."""
 
 		experiment = cls( training_set=feature_set, name=name )
 		if isinstance( features_size, float ):
 			if features_size < 0 or features_size > 1.0:
 				raise ValueError('Arg "features_size" must be on interval [0,1] if a float.')
-			num_features = int( features_size * feature_set.num_features )
+			num_features = int( round( features_size * feature_set.num_features ) )
 		elif isinstance( features_size, int ):
 			if features_size < 0 or features_size > feature_set.num_features:
 				raise ValueError( 'must specify num_features or feature_usage_fraction in kwargs')
@@ -4334,11 +4372,26 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 			raise ValueError( 'Arg "features_size" must be valid float or int.' )
 
 		if not quiet:
-				print "using top "+str (num_features)+" features"
+			print "using top "+str (num_features)+" features"
+
+		# If you passed the same random_state into Split, you'd get the same exact split for
+		# all n_iter. Therefore use the seed passed in here to predictably generate seeds
+		# for the Split() iterations.
+		if random_state:
+			from numpy.random import RandomState
+			maxint = 2 ** 32 - 1
+			from functools import partial
+			if type(random_state) is int:
+				random_state = RandomState( random_state )
+			elif type( random_state ) is not RandomState:
+				raise ValueError( "arg random_state must be an int or instance of numpy.random.RandomState")
+			randint = partial( random_state.randint, low=0, high=maxint )
+		else:
+			randint = lambda: None
 
 		for split_index in range( n_iter ):
-
-			train_set, test_set = feature_set.Split( train_size, test_size, random_state, quiet=quiet )
+			train_set, test_set = feature_set.Split(
+			    train_size, test_size, random_state=randint(), quiet=quiet )
 			train_set.Normalize( quiet=quiet )
 			
 			if feature_set.discrete:
@@ -4356,13 +4409,12 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 				batch_result = DiscreteBatchClassificationResult.New( reduced_train_set, \
 		         reduced_test_set, weights, batch_number=split_index, quiet=quiet )
 			else:
-				batch_result = ContinuousBatchClassificationResult.New(
+				if classifier == 'voting':
+					batch_result = ContinuousBatchClassificationResult.New(
 							reduced_train_set, weights, batch_number=split_index, quiet=quiet )
-
-			# FIXME: least-squares classifier with leave one out is broken, 
-			# Put back in when the feature set mask functionality is implemented.
-			#	batch_result = ContinuousBatchClassificationResult.NewLeastSquaresRegression(
-			#				reduced_training_set, reduced_test_set, weights, batch_number=split_index, quiet=quiet )
+				else: # default classifier == 'lstsq':
+					batch_result = ContinuousBatchClassificationResult.NewLeastSquaresRegression(
+						reduced_train_set, reduced_test_set, weights, batch_number=split_index, quiet=quiet )
 
 			experiment.individual_results.append( batch_result )
 
@@ -4680,16 +4732,22 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 		diffs = np.square( diffs )
 		err_sum = np.sum( diffs )
 
-		import math; from scipy import stats
-		self.figure_of_merit = math.sqrt( err_sum / self.num_classifications )
+		from math import sqrt
+		from scipy.stats import linregress, spearmanr
+
+		self.figure_of_merit = sqrt( err_sum / self.num_classifications )
 
 		# For now, ignore "FloatingPointError: 'underflow encountered in stdtr'"
 		np.seterr (under='ignore')
 		slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
-								 stats.linregress( self.ground_truth_values, self.predicted_values )
+								 linregress( self.ground_truth_values, self.predicted_values )
 
-		self.spearman_coeff, self.spearman_p_value =\
-					 stats.spearmanr( self.ground_truth_values, self.predicted_values )
+		try:
+			self.spearman_coeff, self.spearman_p_value =\
+					 spearmanr( self.ground_truth_values, self.predicted_values )
+		except FloatingPointError:
+			self.spearman_coeff, self.spearman_p_value = ( 0, 1 )
+
 		np.seterr (all='raise')
 
 

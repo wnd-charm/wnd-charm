@@ -40,12 +40,14 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 	"""Test various functions from the DiscreteClassificationExperimentResult class."""
 
 	# ---------------------------------------------------------------------
-	@unittest.expectedFailure
 	def test_NewShuffleSplitLeastSquares(self):
 		"""CONTINUOUS SHUFFLE SPLIT LEAST SQUARES"""
 
-		kwargs = { 'n_iter' : 5, 'name' : "Continuous Shuffle Split Least Squares POSITIVE CONTROL",
-               'quiet' : True }
+		kwargs = {}
+		kwargs['n_iter'] = 5
+		kwargs['name'] = "Continuous Shuffle Split Least Squares POSITIVE CONTROL"
+		kwargs['quiet'] = True
+		kwargs['random_state'] = 42
 
 		fs = CreateArtificialFeatureSet_Continuous()
 		exp = ContinuousClassificationExperimentResult.NewShuffleSplit( fs, **kwargs )
@@ -61,13 +63,15 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 		# e.g., sin, x^2, etc.
 		max_allowable_pearson_coeff = 0.15
 		fs = CreateArtificialFeatureSet_Continuous( num_features_per_signal_type = 5 )
-		fs.Normalize()
-		all_features = ContinuousFeatureWeights.NewFromFeatureSet(fs)
+
+		temp_normalized_fs = fs.Normalize( inplace=False )
+		all_features = ContinuousFeatureWeights.NewFromFeatureSet( temp_normalized_fs )
+
 		quintile = int( len(all_features) / 5 )
 		crappy_features = all_features.Slice( quintile*4, len( all_features ) )
 		crap_featureset = fs.FeatureReduce( crappy_features.names )
-		kwargs = { 'n_iter' : 5, 'name' : "Continuous Shuffle Split Least Squares NEGATIVE CONTROL",
-						'quiet' : True  }
+
+		kwargs['name'] = "Continuous Shuffle Split Least Squares NEGATIVE CONTROL"
 		exp = ContinuousClassificationExperimentResult.NewShuffleSplit( crap_featureset, **kwargs )
 		exp.GenerateStats()
 		self.assertAlmostEqual( exp.pearson_coeff, 0.0, delta=max_allowable_pearson_coeff )
@@ -76,11 +80,8 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 	def test_NewShuffleSplitVoting(self):
 		"""CONTINUOUS SHUFFLE SPLIT VOTING METHOD"""
 
-		from numpy.random import RandomState
-		prng = RandomState(42)
-
 		kwargs = { 'n_iter' : 5, 'name' : "Continuous Shuffle Split Voting-Regression POSITIVE CONTROL",
-		    'classifier' : 'voting', 'random_state' : prng, 'quiet' : True }
+		    'classifier' : 'voting', 'random_state' : 42, 'quiet' : True }
 
 		fs = CreateArtificialFeatureSet_Continuous()
 		exp = ContinuousClassificationExperimentResult.NewShuffleSplit( fs, **kwargs )
@@ -96,8 +97,10 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 		# e.g., sin, x^2, etc.
 		max_allowable_pearson_coeff = 0.2
 		fs = CreateArtificialFeatureSet_Continuous( num_features_per_signal_type = 5 )
-		fs.Normalize()
-		all_features = ContinuousFeatureWeights.NewFromFeatureSet(fs)
+
+		temp_normalized_fs = fs.Normalize( inplace=False )
+		all_features = ContinuousFeatureWeights.NewFromFeatureSet( temp_normalized_fs )
+
 		quintile = int( len(all_features) / 5 )
 		crappy_features = all_features.Slice( quintile*4, len( all_features ) )
 		crap_featureset = fs.FeatureReduce( crappy_features.names )
@@ -117,7 +120,8 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 		n_iter = 50 # Lots of iterations to make sure every sample is tested
 
 		kwargs = { 'name' : "Continuous PerSample Statistics", 'quiet' : True,
-						'n_iter' : n_iter, 'train_size' : train_size, 'test_size' : test_size }
+						'n_iter' : n_iter, 'train_size' : train_size, 'test_size' : test_size
+		        'random_state' : 42 }
 
 		fs = CreateArtificialFeatureSet_Continuous( n_samples=n_samples,
 						num_features_per_signal_type=2)
@@ -153,7 +157,8 @@ class TESTINGDiscreteClassificationExperimentResult( unittest.TestCase ):
 		"""DISCRETE ShuffleSplit/PerSampleStatistics w/ mini binucleate test set (no predicted value)"""
 
 		fs = FeatureSet_Discrete.NewFromFitFile( '../wndchrm_tests/test-l.fit' )
-		exp = DiscreteClassificationExperimentResult.NewShuffleSplit( fs, quiet=True )
+		exp = DiscreteClassificationExperimentResult.NewShuffleSplit(
+		                                                 fs, quiet=True, random_state=42 )
 		exp.PerSampleStatistics()
 		self.assertTrue(True)
 
@@ -161,8 +166,11 @@ class TESTINGDiscreteClassificationExperimentResult( unittest.TestCase ):
 	def test_PerSampleStatisticsWITHPredictedValue(self):
 		"""DISCRETE PerSampleStatistics with numeric predicted value"""
 
-		fs = CreateArtificialFeatureSet_Discrete()
-		exp = DiscreteClassificationExperimentResult.NewShuffleSplit( fs, quiet=True )
+		fs = CreateArtificialFeatureSet_Discrete( n_samples=10,
+         n_classes=2, num_features_per_signal_type=50, noise_gradient=10,
+         initial_noise_sigma=20, random_state=42 )
+		exp = DiscreteClassificationExperimentResult.NewShuffleSplit(
+		                                                fs, quiet=True, random_state=42 )
 		exp.PerSampleStatistics()
 		self.assertTrue(True)
 
