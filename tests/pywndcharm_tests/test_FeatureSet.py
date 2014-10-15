@@ -174,13 +174,10 @@ class TestFeatureSet( unittest.TestCase ):
 
         fs_discrete = CreateArtificialFeatureSet_Discrete( n_samples=1000, n_classes=10,
                 num_features_per_signal_type=30, noise_gradient=5, initial_noise_sigma=10,
-                n_samples_per_group=1, interpolatable=True)
+                n_samples_per_group=1, interpolatable=True, random_state=42)
 
-
-        from numpy.random import RandomState
-        prng = RandomState(42)
         # default
-        train_set, test_set = fs_discrete.Split( random_state=prng, quiet=True )
+        train_set, test_set = fs_discrete.Split( random_state=42, quiet=True )
         self.assertEqual( train_set.shape, (750, 330) )
         self.assertEqual( test_set.shape, (250, 330) )
 
@@ -194,6 +191,16 @@ class TestFeatureSet( unittest.TestCase ):
         # What if the feature set number of groups within a class are less than called for
         # when specifying by integer?
         self.assertRaises( ValueError, test_set.Split, test_size=25 )
+
+
+        # What happens when input fs has unbalanced classes, some of which have enough
+        # to satisfy train_size/test_size params, and some don't
+        remove_these = range(250,300) + range(700,750)
+        fs_class_2_and_7_smaller = \
+              fs_discrete.SampleReduce( leave_out_samplegroupid_list=remove_these )
+
+        self.assertRaises( ValueError, fs_class_2_and_7_smaller.Split, train_size=80,
+                           test_size=20 )
 
 
     def test_SampleReduce( self ):

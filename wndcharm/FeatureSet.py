@@ -591,12 +591,17 @@ class FisherFeatureWeights( FeatureWeights ):
 		return new_weights
 
 	#================================================================
-	def Threshold( self, num_features_to_be_used = None ):
+	def Threshold( self, num_features_to_be_used=None, _all=False ):
 		"""Returns an instance of a FisherFeatureWeights class with the top n relevant features 
-		in order."""
+		in order.
 
+		if _all == True: simple reorder by feature rank returning even 0-weighted features
+		If _all == 'nonzero': returns non-zero weighted features ranked by weight."""
+
+		if _all:
+			num_features_to_be_used = len( self.values )
 		# Default is top 15% of features
-		if num_features_to_be_used is None:
+		elif num_features_to_be_used is None:
 			num_features_to_be_used = int( len( self.values ) * 0.15 )
 		elif num_features_to_be_used > len( self.values ):
 			raise ValueError('Cannot reduce a set of {0} feature weights to requested {1} features.'.\
@@ -611,13 +616,20 @@ class FisherFeatureWeights( FeatureWeights ):
 		use_these_feature_weights = \
 				list( itertools.islice( sorted_featureweights, num_features_to_be_used ) )
 
-		# You have a problem if any of the features have corellation coefficients of 0
-		for i, feat_fig_of_merit in enumerate( [ line[0] for line in use_these_feature_weights ] ):
-			if feat_fig_of_merit == 0:
-				err_msg = "Can't reduce feature weights \"{0}\" to {1} features. ".format( self.name, num_features_to_be_used )
-				err_msg += "Features ranked {0} and below have a Fisher score of 0. ".format( i )
-				err_msg += "Request less features. "
-				raise ValueError( err_msg )
+		if _all is not True:
+			# You have a problem if any of the features have corellation coefficients of 0
+			for i, feat_fig_of_merit in enumerate( [ line[0] for line in use_these_feature_weights ] ):
+				if feat_fig_of_merit == 0:
+					if _all == 'non-zero':
+						print "Features rank index {0} and below have a correllation coefficient of 0. ".format( i )
+						print 'Using {0} features'.format( i )
+						use_these_feature_weights = use_these_feature_weights[ : i ]
+						break
+					else:
+						err_msg = "Can't reduce feature weights \"{0}\" to {1} features. ".format( self.name, num_features_to_be_used )
+						err_msg += "Features ranked {0} and below have a Fisher score of 0. ".format( i )
+						err_msg += "Request less features. "
+						raise ValueError( err_msg )
 
 		# we want lists, not tuples!
 		new_weights.values, new_weights.names =\
@@ -778,10 +790,13 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		"""Returns a new instance of a ContinuousFeatureWeights class derived from this
 		instance where the number of features has been reduced to only the top n features,
 		where n is specified by the num_features_to_be_used argument.
-		
-		If min_corr_coeff is specified, the argument num_features_to_be_used is ignored."""
 
-		if _all == True:
+		If min_corr_coeff is specified, the argument num_features_to_be_used is ignored.
+
+		if _all == True implies simple reorder by feature rank, including 0-weighted features
+		If _all == 'nonzero', returns non-zero weighted features ranked by weight."""
+
+		if _all:
 			num_features_to_be_used = len( self.values )
 		elif num_features_to_be_used is None:
 			# Default is top 15% of features
@@ -823,13 +838,20 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		else:
 			from itertools import islice
 			use_these_feature_weights = list( islice( sorted_featureweights, num_features_to_be_used ) )
-			# You have a problem if any of the features have corellation coefficients of 0
-			for i, feat_fig_of_merit in enumerate( [ line[0] for line in use_these_feature_weights ] ):
-				if feat_fig_of_merit == 0:
-					err_msg = "Can't reduce feature weights \"{0}\" to {1} features. ".format( self.name, num_features_to_be_used )
-					err_msg += "Features ranked {0} and below have a correllation coefficient of 0. ".format( i )
-					err_msg += "Request less features. "
-					raise ValueError( err_msg )
+			if _all is not True:
+				# You have a problem if any of the features have corellation coefficients of 0
+				for i, feat_fig_of_merit in enumerate( [ line[0] for line in use_these_feature_weights ] ):
+					if feat_fig_of_merit == 0:
+						if _all == 'nonzero':
+							print "Features rank index {0} and below have a correllation coefficient of 0. ".format( i )
+							print 'Using {0} features'.format( i )
+							use_these_feature_weights = use_these_feature_weights[ : i ]
+							break
+						else:
+							err_msg = "Can't reduce feature weights \"{0}\" to {1} features. ".format( self.name, num_features_to_be_used )
+							err_msg += "Features ranked {0} and below have a correllation coefficient of 0. ".format( i )
+							err_msg += "Request less features. "
+							raise ValueError( err_msg )
 
 		# we want lists, not tuples!
 		abs_corr_coeffs, new_weights.names, new_weights.pearson_coeffs, new_weights.slopes, \
@@ -1836,17 +1858,27 @@ class FeatureSet( object ):
 		for label in self.classnames_list:
 			fit.write( label + '\n' )
 
-		# Everything else after is a feature or a sample name
-		# Comes in alternating lines of data, then path to sample original file (tif or sig)
-		if self.interpolation_coefficients:
-			class_indices = \
-			 [ str( self.interpolation_coefficients.index( self._contiguous_ground_truths[i] ) ) \
-			    for i in xrange( self.num_images ) ]
+		# In the fit file format, a sample's class membership is denoted by the final int
+		# at the end of the line of features. A class index of 0 implies it belongs
+		# to the UNKNOWN CLASS so in practical terms, fit file indexing starts at 1.
+		if self.interpolation_coefficients is None and self.classnames_list is None:
+			# For classless data, assign all samples to the UNKNOWN CLASS.
+			class_indices = [0] * self.num_images
 		else:
-			class_indices = \
-			  [ str( self.classnames_list.index( self._contiguous_ground_truths[i] ) ) \
-			    for i in xrange( self.num_images ) ]
+			if self.interpolation_coefficients:
+				ground_truth_class_vals = self.interpolation_coefficients
+			else:
+				ground_truth_class_vals = self.classnames_list
 
+			class_indices = [None] * self.num_images
+			for i in xrange( self.num_images ):
+				try:
+					val = str( 1 + ground_truth_class_vals.index( self._contiguous_ground_truths[i] ) )
+				except ValueError:
+					val = str( 0 )
+				class_indices[i] = val
+
+		# Finally, alternating lines of features, then path to sample original file (tif or sig)
 		for i, sample_name in enumerate( self._contiguous_samplenames_list ):
 			self.data_matrix[i].tofile( fit, sep=' ' )
 			# add class index of sample to end of features line
@@ -2152,8 +2184,14 @@ class FeatureSet( object ):
 
 		# How many total training groups are requested?
 		if self.discrete:
-			total_num_sample_groups = \
+			try:
+				total_num_sample_groups = \
 					sum( len( class_list ) for class_list in leave_in_samplegroupid_list if class_list )
+			except TypeError:
+				errmsg = 'Leave in list for discrete FeatureSets has to be a list (of length ' + \
+				         'num_classes) of lists of ' + \
+				         'desired sample group ids. Did you mean to pass it in as the leave OUT list?'
+				raise ValueError( errmsg )
 		else:
 			total_num_sample_groups = len( leave_in_samplegroupid_list )
 
@@ -2318,7 +2356,7 @@ class FeatureSet( object ):
 
 			from math import ceil, floor
 
-			# Uniquify the sample group list
+			# Uniquify the sample group list, maintaining order of input sample group list.
 			seen = set()
 			seen_add = seen.add
 			unique_samplegroup_ids = [ x for x in samplegroupid_list if not (x in seen or seen_add(x) ) ]
@@ -2331,11 +2369,13 @@ class FeatureSet( object ):
 			# TEST SET SIZE:
 			if type( test_size ) is int:
 				if test_size < 0 or test_size >= num_samplegroups: # test sets of size 0 are allowed
-					raise ValueError( 'Please input test_size integer such that 0 <= test_size < number of images (or sample groups).' )
+					errmsg = 'Arg test_size ({0}) must be 0 <= test_size < {1} (# images/sample groups).'
+					raise ValueError( errmsg.format( test_size, num_samplegroups ) )
 				n_samplegroups_in_test_set = test_size
 			elif type( test_size ) is float:
 				if test_size < 0 or test_size >= 1: # test sets of size 0 are allowed
-					raise ValueError( 'Please input test_size fraction such that 0 <= test_size < 1.' )
+					errmsg = 'Arg test_size fraction {0} must be 0 <= 1.0'
+					raise ValueError( errmsg.format( test_size ) )
 				n_samplegroups_in_test_set = int( ceil( num_samplegroups * test_size ) )
 			else:
 				raise ValueError( 'Invalid input: test_size={0}'.format( test_size ) )
@@ -2343,11 +2383,13 @@ class FeatureSet( object ):
 			# TRAIN SET SIZE:
 			if type( train_size ) is int:
 				if train_size < 0 or train_size >= num_samplegroups: # train sets of size 1 are allowed
-					raise ValueError( 'Please input train_size such that 0 < train_size < number of images (or sample groups).' )
+					errmsg = 'Arg train_size ({0}) must be 0 <= train_size < {1} (# images/sample groups).'
+					raise ValueError( errmsg.format( train_size, num_samplegroups ) )
 				n_samplegroups_in_training_set = train_size
 			elif type( train_size ) is float:
 				if train_size < 0 or train_size >= 1: # train sets of size 1 are allowed
-					raise ValueError( 'Please input train_size such that 0 < train_size < 1.' )
+					errmsg = 'Arg train_size fraction {0} must be 0 <= 1.0'
+					raise ValueError( errmsg.format( train_size ) )
 				n_samplegroups_in_training_set = int( floor( num_samplegroups * train_size ) )
 				if n_samplegroups_in_training_set <= 0:
 					raise ValueError( 'Please input train_size fraction such that there aren\'t 0 images (or sample groups) in training set' )
@@ -2393,9 +2435,11 @@ class FeatureSet( object ):
 				try:
 					class_train_groups, class_test_groups = \
 					  CalcTrainTestSampleGroupMembership( self.samplegroupid_list[class_index], _max=smallest_class_size  )
-				except ValueError:
-					print "Error with class index ", str(class_index)
-					raise
+				except ValueError as e:
+					addl_msg = "Error with class index " + str(class_index) + \
+					           '. For discrete FeatureSets (with classes), train_size and test_size' + \
+					           ' are evaluated per-class. '
+					raise ValueError( addl_msg + e.message )
 				else:
 					train_groups.append( class_train_groups )
 					test_groups.append( class_test_groups )					

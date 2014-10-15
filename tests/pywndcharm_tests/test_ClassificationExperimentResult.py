@@ -43,89 +43,129 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 	def test_NewShuffleSplitLeastSquares(self):
 		"""CONTINUOUS SHUFFLE SPLIT LEAST SQUARES"""
 
-		kwargs = {}
-		kwargs['n_iter'] = 5
-		kwargs['name'] = "Continuous Shuffle Split Least Squares POSITIVE CONTROL"
-		kwargs['quiet'] = True
-		kwargs['random_state'] = 42
+		fs_kwargs = {}
+		fs_kwargs['name'] = "CONTINUOUS PerSampleStatistics_TESTFS"
+		fs_kwargs['n_samples'] = 100
+		fs_kwargs['num_features_per_signal_type'] = 5
+		fs_kwargs['noise_gradient'] = 5
+		fs_kwargs['initial_noise_sigma'] = 5
+		fs_kwargs['n_samples_per_group'] = 1
+		fs_kwargs['random_state'] = 43
 
-		fs = CreateArtificialFeatureSet_Continuous()
-		exp = ContinuousClassificationExperimentResult.NewShuffleSplit( fs, **kwargs )
+		fs = CreateArtificialFeatureSet_Continuous( **fs_kwargs )
+
+		ss_kwargs = {}
+		ss_kwargs['n_iter'] = 25
+		ss_kwargs['name'] = "Continuous Shuffle Split Least Squares POSITIVE CONTROL"
+		ss_kwargs['quiet'] = True
+		ss_kwargs['random_state'] = 43
+		exp = ContinuousClassificationExperimentResult.NewShuffleSplit( fs, **ss_kwargs )
+
 		exp.GenerateStats()
 
-		self.assertIs( len(exp), kwargs['n_iter'] )
+		# len( exp ) is supposed to be the number of batch results (split results)
+		self.assertIs( len(exp), ss_kwargs['n_iter'] )
 
 		# Positive control - Artificial data with defaults should corellate almost perfectly
-		self.assertAlmostEqual( exp.pearson_coeff, 1.0, delta=0.01 )
+		self.assertAlmostEqual( exp.pearson_coeff, 1.0, delta=0.02 )
 
 		# Negative control - take the bottom quintile of the artificial features
 		# which ARE functions of ground truth but should score low on linear correlation,
 		# e.g., sin, x^2, etc.
-		max_allowable_pearson_coeff = 0.15
-		fs = CreateArtificialFeatureSet_Continuous( num_features_per_signal_type = 5 )
+		max_allowable_pearson_coeff = 0.35
 
 		temp_normalized_fs = fs.Normalize( inplace=False )
-		all_features = ContinuousFeatureWeights.NewFromFeatureSet( temp_normalized_fs )
+		ranked_nonzero_features = \
+		  ContinuousFeatureWeights.NewFromFeatureSet( temp_normalized_fs ).Threshold(_all='nonzero')
 
-		quintile = int( len(all_features) / 5 )
-		crappy_features = all_features.Slice( quintile*4, len( all_features ) )
+		quintile = int( len( ranked_nonzero_features ) / 5 )
+		crappy_features = ranked_nonzero_features.Slice( quintile*4, len( ranked_nonzero_features ) )
+		#crappy_features.Print()
 		crap_featureset = fs.FeatureReduce( crappy_features.names )
 
-		kwargs['name'] = "Continuous Shuffle Split Least Squares NEGATIVE CONTROL"
-		exp = ContinuousClassificationExperimentResult.NewShuffleSplit( crap_featureset, **kwargs )
+		ss_kwargs['name'] = "Continuous Shuffle Split Least Squares NEGATIVE CONTROL"
+		exp = ContinuousClassificationExperimentResult.NewShuffleSplit( crap_featureset, **ss_kwargs )
 		exp.GenerateStats()
+		exp.PerSampleStatistics()
 		self.assertAlmostEqual( exp.pearson_coeff, 0.0, delta=max_allowable_pearson_coeff )
 
 	# --------------------------------------------------------------------
 	def test_NewShuffleSplitVoting(self):
 		"""CONTINUOUS SHUFFLE SPLIT VOTING METHOD"""
 
-		kwargs = { 'n_iter' : 5, 'name' : "Continuous Shuffle Split Voting-Regression POSITIVE CONTROL",
-		    'classifier' : 'voting', 'random_state' : 42, 'quiet' : True }
+		fs_kwargs = {}
+		fs_kwargs['name'] = "CONTINUOUS PerSampleStatistics_TESTFS"
+		fs_kwargs['n_samples'] = 100
+		fs_kwargs['num_features_per_signal_type'] = 5
+		fs_kwargs['noise_gradient'] = 5
+		fs_kwargs['initial_noise_sigma'] = 5
+		fs_kwargs['n_samples_per_group'] = 1
+		fs_kwargs['random_state'] = 43
 
-		fs = CreateArtificialFeatureSet_Continuous()
-		exp = ContinuousClassificationExperimentResult.NewShuffleSplit( fs, **kwargs )
+		fs = CreateArtificialFeatureSet_Continuous( **fs_kwargs )
+
+		ss_kwargs = {}
+		ss_kwargs['n_iter'] = 25
+		ss_kwargs['name'] = "Continuous Shuffle Split Voting-Regression POSITIVE CONTROL"
+		ss_kwargs['quiet'] = True
+		ss_kwargs['random_state'] = 43
+		ss_kwargs['classifier'] = 'voting'
+		exp = ContinuousClassificationExperimentResult.NewShuffleSplit( fs, **ss_kwargs )
+
 		exp.GenerateStats()
 
-		self.assertIs( len(exp), kwargs['n_iter'] )
+		self.assertIs( len(exp), ss_kwargs['n_iter'] )
 
 		# Positive control - Artificial data with defaults should corellate almost perfectly
-		self.assertAlmostEqual( exp.pearson_coeff, 1.0, delta=0.01 )
+		self.assertAlmostEqual( exp.pearson_coeff, 1.0, delta=0.02 )
 
 		# Negative control - take the bottom quintile of the artificial features
 		# which ARE functions of ground truth but should score low on linear correlation,
 		# e.g., sin, x^2, etc.
-		max_allowable_pearson_coeff = 0.2
-		fs = CreateArtificialFeatureSet_Continuous( num_features_per_signal_type = 5 )
+		max_allowable_pearson_coeff = 0.30
 
 		temp_normalized_fs = fs.Normalize( inplace=False )
-		all_features = ContinuousFeatureWeights.NewFromFeatureSet( temp_normalized_fs )
+		ranked_nonzero_features = \
+		  ContinuousFeatureWeights.NewFromFeatureSet( temp_normalized_fs ).Threshold(_all='nonzero')
 
-		quintile = int( len(all_features) / 5 )
-		crappy_features = all_features.Slice( quintile*4, len( all_features ) )
+		quintile = int( len( ranked_nonzero_features ) / 5 )
+		crappy_features = ranked_nonzero_features.Slice( quintile*4, len( ranked_nonzero_features ) )
+		#crappy_features.Print()
 		crap_featureset = fs.FeatureReduce( crappy_features.names )
-		kwargs = { 'n_iter' : 5, 'name' : "Continuous Shuffle Split Voting-Regression NEGATIVE CONTROL",
-						'classifier' : 'voting', 'random_state' : prng, 'quiet' : False  }
-		exp = ContinuousClassificationExperimentResult.NewShuffleSplit( crap_featureset, **kwargs )
+
+		ss_kwargs['name'] = "Continuous Shuffle Split Voting-Regression NEGATIVE CONTROL",
+		exp = ContinuousClassificationExperimentResult.NewShuffleSplit( crap_featureset, **ss_kwargs )
 		exp.GenerateStats()
 		self.assertAlmostEqual( exp.pearson_coeff, 0.0, delta=max_allowable_pearson_coeff )
 
 	# -------------------------------------------------------------------
 	def test_PerSampleStatistics(self):
-		"""CONTINUOUS PER-SAMPLE STATISTICS"""
+		"""Testing ContinuousClassificationExperimentResult.PerSampleStatistics()
 
-		train_size = 16
-		test_size = 4
-		n_samples = train_size + test_size
-		n_iter = 50 # Lots of iterations to make sure every sample is tested
+		Goal is to check the aggregating functionality of PerSampleStatistics"""
 
-		kwargs = { 'name' : "Continuous PerSample Statistics", 'quiet' : True,
-						'n_iter' : n_iter, 'train_size' : train_size, 'test_size' : test_size
-		        'random_state' : 42 }
+		# create a small FeatureSet with not a lot of samples and not a lot of features
+		# to enable quick classification
 
-		fs = CreateArtificialFeatureSet_Continuous( n_samples=n_samples,
-						num_features_per_signal_type=2)
-		exp = ContinuousClassificationExperimentResult.NewShuffleSplit( fs, **kwargs )
+		fs_kwargs = {}
+		fs_kwargs['name'] = "CONTINUOUS PerSampleStatistics_TESTFS"
+		fs_kwargs['n_samples'] = n_samples = 20
+		fs_kwargs['num_features_per_signal_type'] = 2 # small on purpose, to make test fast
+		fs_kwargs['noise_gradient'] = 25
+		fs_kwargs['initial_noise_sigma'] = 75
+		fs_kwargs['n_samples_per_group'] = 1
+		fs_kwargs['random_state'] = 42
+		fs = CreateArtificialFeatureSet_Continuous( **fs_kwargs )
+
+		ss_kwargs = {}
+		ss_kwargs['name'] = "Continuous PerSampleStatistics ShuffleSplit"
+		ss_kwargs['quiet'] = True
+		ss_kwargs['n_iter'] = n_iter = 50 # do a lot of iterations so that all samples will be hit
+		ss_kwargs['train_size'] = train_size = 16
+		ss_kwargs['test_size' ] = test_size = 4
+		ss_kwargs['random_state'] = 42
+		exp = ContinuousClassificationExperimentResult.NewShuffleSplit( fs, **ss_kwargs )
+
 		exp.GenerateStats()
 
 		# Capture output from PerSampleStatistics
@@ -154,11 +194,33 @@ class TESTINGDiscreteClassificationExperimentResult( unittest.TestCase ):
 	
 	# -------------------------------------------------------------------
 	def test_PerSampleStatisticsWITHOUTPredictedValue(self):
-		"""DISCRETE ShuffleSplit/PerSampleStatistics w/ mini binucleate test set (no predicted value)"""
+		"""DISCRETE ShuffleSplit/PerSampleStatistics w/ no predicted value"""
 
-		fs = FeatureSet_Discrete.NewFromFitFile( '../wndchrm_tests/test-l.fit' )
-		exp = DiscreteClassificationExperimentResult.NewShuffleSplit(
-		                                                 fs, quiet=True, random_state=42 )
+		# CAN'T USE THIS, SINCE THE CLASS NAMES ARE INTERPOLATABLE
+		# 2-class, 10 samples per class
+		#fs = FeatureSet_Discrete.NewFromFitFile( '../wndchrm_tests/test-l.fit' )
+
+		fs_kwargs = {}
+		fs_kwargs['name'] = "DISCRETE PerSampleStatistics_TESTFS"
+		fs_kwargs['n_samples'] = n_samples = 20
+		fs_kwargs['n_classes'] = 2
+		fs_kwargs['num_features_per_signal_type'] = 2 # small on purpose, to make test fast
+		fs_kwargs['noise_gradient'] = 25
+		fs_kwargs['initial_noise_sigma'] = 75
+		fs_kwargs['n_samples_per_group'] = 1
+		fs_kwargs['random_state'] = 42
+		fs_kwargs['interpolatable'] = False
+		fs = CreateArtificialFeatureSet_Discrete( **fs_kwargs )
+
+
+		ss_kwargs = {}
+		ss_kwargs['name'] = "Discrete PerSampleStatistics ShuffleSplit"
+		ss_kwargs['quiet'] = True
+		ss_kwargs['n_iter'] = n_iter = 5
+		ss_kwargs['train_size'] = train_size = 8 # per-class
+		ss_kwargs['test_size' ] = test_size = 2 # per-class
+		ss_kwargs['random_state'] = 42
+		exp = DiscreteClassificationExperimentResult.NewShuffleSplit( fs, **ss_kwargs )
 		exp.PerSampleStatistics()
 		self.assertTrue(True)
 
@@ -167,8 +229,8 @@ class TESTINGDiscreteClassificationExperimentResult( unittest.TestCase ):
 		"""DISCRETE PerSampleStatistics with numeric predicted value"""
 
 		fs = CreateArtificialFeatureSet_Discrete( n_samples=10,
-         n_classes=2, num_features_per_signal_type=50, noise_gradient=10,
-         initial_noise_sigma=20, random_state=42 )
+         n_classes=2, num_features_per_signal_type=50, noise_gradient=25,
+         initial_noise_sigma=75, random_state=42 )
 		exp = DiscreteClassificationExperimentResult.NewShuffleSplit(
 		                                                fs, quiet=True, random_state=42 )
 		exp.PerSampleStatistics()
