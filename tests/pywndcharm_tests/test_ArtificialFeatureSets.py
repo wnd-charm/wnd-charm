@@ -59,8 +59,8 @@ class TestCreateArtificialFeatureSet_Continuous( unittest.TestCase ):
                 num_features_per_signal_type=5, noise_gradient=5, initial_noise_sigma=10,
                 n_samples_per_group=1 )
  
-        fake_continuous.Normalize( quiet=True )
-        reduced_fw = ContinuousFeatureWeights.NewFromFeatureSet( fake_continuous ).Threshold()
+        normalized_fs = fake_continuous.Normalize( inplace=False, quiet=True )
+        reduced_fw = ContinuousFeatureWeights.NewFromFeatureSet( normalized_fs ).Threshold()
         reduced_fs = fake_continuous.FeatureReduce( reduced_fw.names )
 
         batch_result = ContinuousBatchClassificationResult.NewLeastSquaresRegression(

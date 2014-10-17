@@ -2191,7 +2191,7 @@ class FeatureSet( object ):
 				errmsg = 'Leave in list for discrete FeatureSets has to be a list (of length ' + \
 				         'num_classes) of lists of ' + \
 				         'desired sample group ids. Did you mean to pass it in as the leave OUT list?'
-				raise ValueError( errmsg )
+				raise TypeError( errmsg )
 		else:
 			total_num_sample_groups = len( leave_in_samplegroupid_list )
 
@@ -3557,36 +3557,33 @@ class BatchClassificationResult( ClassificationResult ):
 	of WND-CHARM is the split, i.e., command line arg of -n10 would generate 10 
 	train/test splits."""
 
-	name = None
-	batch_number = None
-	training_set = None
-	test_set = None
-	feature_weights = None
-	figure_of_merit = None
-	individual_results = None
-	predicted_values = None
-	ground_truth_values = None
-
-	num_classifications = None
-
-	# This stuff is for correllation analysis
-	pearson_coeff = None
-	pearson_p_value = None
-	pearson_std_err = None
-	spearman_coeff = None
-	spearman_p_value = None
-
 	#==============================================================
-	def __init__( self, training_set=None, test_set=None, feature_weights=None, name=None ):
+	def __init__( self, training_set=None, test_set=None, feature_weights=None, name=None,
+		batch_number=None ):
 		"""BatchClassificationResult constructor"""
 
 		self.training_set = training_set
 		self.test_set = test_set
 		self.feature_weights = feature_weights
 		self.name = name
+		if self.name is None and training_set and training_set.name:
+			self.name = training_set.name
 		self.individual_results = []
+		self.batch_number = batch_number
 
 		self.num_classifications = 0
+
+		self.figure_of_merit = None
+		self.predicted_values = None
+		self.ground_truth_values = None
+
+		# This stuff is for correllation analysis
+		self.pearson_coeff = None
+		self.pearson_p_value = None
+		self.pearson_std_err = None
+		self.spearman_coeff = None
+		self.spearman_p_value = None
+
 	#==============================================================	
 	def __str__( self ):
 		outstr = self.__class__.__name__
@@ -3707,23 +3704,25 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 	Use this class to run classification experiments and to generate statistics on their results.
 	For discrete (Fisher) classifiers, the figure_of_merit is classification accuracy."""
 
-	num_correct_classifications = None
-	classification_accuracy = None
-	
-	num_classifications_per_class = None
-	num_correct_classifications_per_class = None
-
-	confusion_matrix = None
-	similarity_matrix = None
-	average_class_probability_matrix = None
-
+	#: batch_count class attribute
 	batch_count = 0
 
 	#==============================================================
-	def __init__( self, training_set=None, test_set=None, feature_weights=None, name=None ):
-		"""Simply calls parent constructor."""
-		super( DiscreteBatchClassificationResult, self ).__init__(
-				training_set, test_set, feature_weights, name )
+	def __init__( self, *args, **kwargs ):
+		"""Possible kwargs, with defaults:
+		training_set=None, test_set=None, feature_weights=None, name=None, batch_number=None"""
+
+		super( DiscreteBatchClassificationResult, self ).__init__( *args, **kwargs )
+
+		self.num_correct_classifications = None
+		self.classification_accuracy = None
+
+		self.num_classifications_per_class = None
+		self.num_correct_classifications_per_class = None
+
+		self.confusion_matrix = None
+		self.similarity_matrix = None
+		self.average_class_probability_matrix = None
 
 	#==============================================================
 	def GenerateStats( self ):
@@ -3874,7 +3873,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 	
 	#==============================================================
 	@output_railroad_switch
-	def PrintDistanceMatrix( self, method = 'mps' ):
+	def PrintDistanceMatrix( self, method='mps' ):
 		"""Generate a distance matrix indicating similarity of image classes to one another.
 		The output can be fed into the PHYLIP or other program to create a dendrogram.
 
@@ -3955,8 +3954,8 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 	#==============================================================
 	@classmethod
 	@output_railroad_switch
-	def New( cls, training_set, test_set, feature_weights, batch_number = None, 
-					batch_name = None, quiet = False, norm_factor_threshold = None):
+	def New( cls, training_set, test_set, feature_weights, batch_number=None,
+					batch_name=None, quiet=False, norm_factor_threshold=None):
 		"""The equivalent of the "wndcharm classify" command in the command line implementation
 		of WND-CHARM. Input a training set, a test set, and feature weights, and returns a
 		new instance of a DiscreteBatchClassificationResult, with self.individual_results
@@ -3996,8 +3995,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 			column_header += "act. class\tpred. class\tpred. val."
 			print column_header
 
-		batch_result = cls( training_set, test_set, feature_weights )
-		batch_result.name = batch_name
+		batch_result = cls( training_set, test_set, feature_weights, batch_name )
 		if not batch_number:
 			batch_number = DiscreteBatchClassificationResult.batch_count
 			DiscreteBatchClassificationResult.batch_count += 1
@@ -4059,9 +4057,14 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 	For continuous (Pearson) classifiers, the figure_of_merit is the standard error between
 	predicted and ground truth."""
 
-	def __init__( self, training_set, test_set, feature_weights ):
-		"""constructor"""
-		super( ContinuousBatchClassificationResult, self ).__init__( training_set, test_set, feature_weights )
+	#: batch_count class attribute
+	batch_count = 0
+
+	def __init__( self, *args, **kwargs ):
+		"""Possible kwargs, with defaults:
+		training_set=None, test_set=None, feature_weights=None, name=None, batch_number=None"""
+
+		super( ContinuousBatchClassificationResult, self ).__init__( *args, **kwargs )
 		self.predicted_values = []
 
 	#=====================================================================
@@ -4084,7 +4087,6 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 			print "Standard error of predicted vs. ground truth values: {0}".format( self.figure_of_merit )
 		#print "p-value for this split: {0}".format( self.p_value )
 		#print "Standard error for this split: {0}".format( self.std_err )
-
 
 	#=====================================================================
 	@classmethod
@@ -4260,13 +4262,20 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 	N.B. This is a container for batches, not for individual results, i.e.,
 	the list self.individual_results contains instances of type BatchClassificationResult."""
 
-	#: A dictionary where the name is the key, and the value is a list of individual results
-	accumulated_individual_results = None
+	def __init__( self, *args, **kwargs ):
+		"""Possible kwargs, with defaults:
+		training_set=None, test_set=None, feature_weights=None, name=None, batch_number=None"""
 
-	feature_weight_statistics = None
+		super( ClassificationExperimentResult, self ).__init__( *args, **kwargs )
 
-	#: keep track of stats related to predicted values for reporting purposes
-	individual_stats = None
+		#: A dictionary where the name is the key, and the value is a list of individual results
+		self.accumulated_individual_results = None
+
+		self.feature_weight_statistics = None
+
+		#: keep track of stats related to predicted values for reporting purposes
+		self.individual_stats = None
+
 	#=====================================================================
 	def GenerateStats( self ):
 		"""Only partially implemented.
@@ -4398,12 +4407,12 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 	#=====================================================================
 	@classmethod
 	def NewShuffleSplit( cls, feature_set, n_iter=5, name=None, features_size=0.15,
-		                   train_size=None, test_size=None, random_state=None, classifier=None,
+		                   train_size=None, test_size=None, random_state=True, classifier=None,
 		                   quiet=False):
 		"""args train_size, test_size, and random_state are all passed through to Split()
 		feature_size if a float is feature usage fraction, if in is top n features."""
 
-		experiment = cls( training_set=feature_set, name=name )
+		experiment = cls( training_set=feature_set, test_set=feature_set, name=name )
 		if isinstance( features_size, float ):
 			if features_size < 0 or features_size > 1.0:
 				raise ValueError('Arg "features_size" must be on interval [0,1] if a float.')
@@ -4423,15 +4432,19 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 		# for the Split() iterations.
 		if random_state:
 			from numpy.random import RandomState
-			maxint = 2 ** 32 - 1
 			from functools import partial
-			if type(random_state) is int:
-				random_state = RandomState( random_state )
-			elif type( random_state ) is not RandomState:
-				raise ValueError( "arg random_state must be an int or instance of numpy.random.RandomState")
-			randint = partial( random_state.randint, low=0, high=maxint )
+			maxint = 2 ** 32 - 1
+			if random_state is True:
+				from numpy.random import randint as np_randint
+				randint = partial( np_randint, low=0, high=maxint )
+			elif type( random_state ) is int:
+				randint = partial( RandomState( random_state ).randint, low=0, high=maxint )
+			elif type( random_state ) is RandomState:
+				randint = partial( random_state.randint, low=0, high=maxint )
+			else:
+				raise ValueError( "arg random_state must be an int, instance of numpy.random.RandomState, or True")
 		else:
-			randint = lambda: None
+			randint = lambda: None # samples split the same way all iterations - not recommended!
 
 		for split_index in range( n_iter ):
 			train_set, test_set = feature_set.Split(
@@ -4472,11 +4485,17 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 
 	In this subclass, the figure of merit is self.classification_accuracy"""
 
-	num_correct_classifications = None
+	def __init__( self, *args, **kwargs ):
+		"""Possible kwargs, with defaults:
+		training_set=None, test_set=None, feature_weights=None, name=None, batch_number=None"""
 
-	confusion_matrix = None
-	average_similarity_matrix = None
-	average_class_probability_matrix = None
+		super( DiscreteClassificationExperimentResult, self ).__init__( *args, **kwargs )
+
+		self.num_correct_classifications = None
+
+		self.confusion_matrix = None
+		self.average_similarity_matrix = None
+		self.average_class_probability_matrix = None
 
 	#=====================================================================
 	def GenerateStats( self ):
@@ -4755,9 +4774,8 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 
 	In this subclass, the figure of merit is the average standard error arcoss batches."""
 
-	def __init__( self, training_set=None, test_set=None, feature_weights=None, name=None ):
-		super( ContinuousClassificationExperimentResult, self ).__init__(
-				training_set, test_set, feature_weights, name )
+	def __init__( self, *args, **kwargs):
+		super( ContinuousClassificationExperimentResult, self ).__init__( *args, **kwargs )
 
 	#=====================================================================
 	def GenerateStats( self ):
@@ -4878,14 +4896,16 @@ class BaseGraph( object ):
 	"""An abstract base class that is supposed to hold onto objects on which to call
 	matplotlib.pyplot API methods."""
 
-	# general stuff:
-	chart_title = None
-	file_name = None
-	batch_result = None
+	def __init__( self ):
 
-	# pyplot-specific stuff
-	figure = None
-	main_axes = None
+		# general stuff:
+		self.chart_title = None
+		self.file_name = None
+		self.batch_result = None
+
+		# pyplot-specific stuff
+		self.figure = None
+		self.main_axes = None
 
 	def SaveToFile( self, filepath ):
 	
@@ -4898,23 +4918,26 @@ class BaseGraph( object ):
 class PredictedValuesGraph( BaseGraph ):
 	"""This is a concrete class that can produce two types of graphs that are produced
 	from ImageClassificationResult data stored in a BatchClassificationResult."""
-	
-	# members concerned with class-dependent figures 
-	grouped_coords = None
-	num_classes = None
-	classnames_list = None
-	class_values = None
 
 	#=================================================================
-	def __init__( self, result ):
+	def __init__( self, result, name=None ):
 		"""Constructor sorts ground truth values contained in BatchClassificationResult
 		and loads them into self.grouped_coords"""
 
 		self.batch_result = result
 		self.grouped_coords = {}
 
+		# Right now these are only dealing
 		self.classnames_list = result.test_set.classnames_list
 		self.class_values = result.test_set.interpolation_coefficients
+		self.num_classes = result.test_set.num_classes
+
+		if name:
+			self.chart_title = name
+		elif result and result.name:
+			self.chart_title = result.name
+		else:
+			self.chart_title = None
 
 		#FIXME: implement user-definable bin edges
 
@@ -4936,7 +4959,7 @@ class PredictedValuesGraph( BaseGraph ):
 
 		exp = DiscreteClassificationExperimentResult.NewFromHTMLReport( filepath )
 		exp.GenerateStats()
-		exp.PredictedValueAnalysis( )
+		exp.PredictedValueAnalysis()
 		newgraphobj = cls( exp )
 		return newgraphobj
 
@@ -4946,7 +4969,7 @@ class PredictedValuesGraph( BaseGraph ):
 		super( PredictedValuesGraph, self ).SaveToFile( filepath )
 
 	#=====================================================================
-	def RankOrderedPredictedValuesGraph( self, chart_title = None ):
+	def RankOrderedPredictedValuesGraph( self, chart_title=None ):
 		"""This graph visualizes the distribution of predicted values generated by classification.
 		For each individual ImageClassificationResult with ground truth value (i.e., class id) and
 		predicted value, all results are grouped within their class, sorted by predicted value
@@ -4965,10 +4988,10 @@ class PredictedValuesGraph( BaseGraph ):
 
 		self.figure = plt.figure()
 		self.main_axes = self.figure.add_subplot(111)
+
 		if chart_title:
 			self.chart_title = chart_title
-			self.main_axes.set_title( chart_title )
-		self.main_axes.set_title( chart_title )
+		self.main_axes.set_title( self.chart_title )
 		self.main_axes.set_xlabel( 'count' )
 		self.main_axes.set_ylabel( 'Predicted Value Scores' )
 
@@ -4984,7 +5007,7 @@ class PredictedValuesGraph( BaseGraph ):
 		self.main_axes.legend( loc = 'lower right')
 		
 	#=====================================================================
-	def KernelSmoothedDensityGraph( self, chart_title = None ):
+	def KernelSmoothedDensityGraph( self, chart_title=None ):
 		"""This graph visualizes the distribution of predicted values generated by classification.
 		A kernel-smoothed probability density function is plotted for each image class on
 		the same chart allowing comparison of distribution of predicted values amoung image class.
@@ -5003,7 +5026,8 @@ class PredictedValuesGraph( BaseGraph ):
 		self.main_axes = self.figure.add_subplot(111)
 		if chart_title:
 			self.chart_title = chart_title
-			self.main_axes.set_title( chart_title )
+
+		self.main_axes.set_title( self.chart_title )
 		self.main_axes.set_xlabel( 'Age score' )
 		self.main_axes.set_ylabel( 'Probability density' )
 
@@ -5030,9 +5054,9 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 	#FIXME: Add ability to do the first 50 or 100 features, make the graph, then
 	#       ability to resume from where it left off to do the next 50.
 
-	timing_axes = None
-
 	def __init__( self, training_set, feature_weights, test_image_path, chart_title = None, max_num_features = 300):
+
+		self.timing_axes = None
 		import time
 		timings = []
 	

@@ -47,15 +47,17 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 		fs_kwargs['name'] = "CONTINUOUS PerSampleStatistics_TESTFS"
 		fs_kwargs['n_samples'] = 100
 		fs_kwargs['num_features_per_signal_type'] = 5
-		fs_kwargs['noise_gradient'] = 5
 		fs_kwargs['initial_noise_sigma'] = 5
+		fs_kwargs['noise_gradient'] = 5
 		fs_kwargs['n_samples_per_group'] = 1
 		fs_kwargs['random_state'] = 43
+		fs_kwargs['singularity'] = True
+		fs_kwargs['clip'] = True
 
 		fs = CreateArtificialFeatureSet_Continuous( **fs_kwargs )
 
 		ss_kwargs = {}
-		ss_kwargs['n_iter'] = 25
+		ss_kwargs['n_iter'] = 5
 		ss_kwargs['name'] = "Continuous Shuffle Split Least Squares POSITIVE CONTROL"
 		ss_kwargs['quiet'] = True
 		ss_kwargs['random_state'] = 43
@@ -72,7 +74,9 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 		# Negative control - take the bottom quintile of the artificial features
 		# which ARE functions of ground truth but should score low on linear correlation,
 		# e.g., sin, x^2, etc.
-		max_allowable_pearson_coeff = 0.35
+
+		# With LSTSQ regression of noise features, pearson coeffs tend to be around -0.34 +/- .045
+		max_allowable_pearson_coeff = 0.4
 
 		temp_normalized_fs = fs.Normalize( inplace=False )
 		ranked_nonzero_features = \
@@ -97,15 +101,17 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 		fs_kwargs['name'] = "CONTINUOUS PerSampleStatistics_TESTFS"
 		fs_kwargs['n_samples'] = 100
 		fs_kwargs['num_features_per_signal_type'] = 5
-		fs_kwargs['noise_gradient'] = 5
 		fs_kwargs['initial_noise_sigma'] = 5
+		fs_kwargs['noise_gradient'] = 5
 		fs_kwargs['n_samples_per_group'] = 1
 		fs_kwargs['random_state'] = 43
+		fs_kwargs['singularity'] = True
+		fs_kwargs['clip'] = False
 
 		fs = CreateArtificialFeatureSet_Continuous( **fs_kwargs )
 
 		ss_kwargs = {}
-		ss_kwargs['n_iter'] = 25
+		ss_kwargs['n_iter'] = 5
 		ss_kwargs['name'] = "Continuous Shuffle Split Voting-Regression POSITIVE CONTROL"
 		ss_kwargs['quiet'] = True
 		ss_kwargs['random_state'] = 43
@@ -117,12 +123,14 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 		self.assertIs( len(exp), ss_kwargs['n_iter'] )
 
 		# Positive control - Artificial data with defaults should corellate almost perfectly
-		self.assertAlmostEqual( exp.pearson_coeff, 1.0, delta=0.02 )
+		self.assertAlmostEqual( exp.pearson_coeff, 1.0, delta=0.03 )
 
 		# Negative control - take the bottom quintile of the artificial features
 		# which ARE functions of ground truth but should score low on linear correlation,
 		# e.g., sin, x^2, etc.
-		max_allowable_pearson_coeff = 0.30
+
+		# Voting method with crap features tends to be around 0.14 +/- 0.04
+		max_allowable_pearson_coeff = 0.2
 
 		temp_normalized_fs = fs.Normalize( inplace=False )
 		ranked_nonzero_features = \
@@ -151,10 +159,13 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 		fs_kwargs['name'] = "CONTINUOUS PerSampleStatistics_TESTFS"
 		fs_kwargs['n_samples'] = n_samples = 20
 		fs_kwargs['num_features_per_signal_type'] = 2 # small on purpose, to make test fast
-		fs_kwargs['noise_gradient'] = 25
 		fs_kwargs['initial_noise_sigma'] = 75
+		fs_kwargs['noise_gradient'] = 25
 		fs_kwargs['n_samples_per_group'] = 1
 		fs_kwargs['random_state'] = 42
+		fs_kwargs['singularity'] = False
+		fs_kwargs['clip'] = False
+
 		fs = CreateArtificialFeatureSet_Continuous( **fs_kwargs )
 
 		ss_kwargs = {}
@@ -201,20 +212,21 @@ class TESTINGDiscreteClassificationExperimentResult( unittest.TestCase ):
 		#fs = FeatureSet_Discrete.NewFromFitFile( '../wndchrm_tests/test-l.fit' )
 
 		fs_kwargs = {}
-		fs_kwargs['name'] = "DISCRETE PerSampleStatistics_TESTFS"
+		fs_kwargs['name'] = "DISCRETE PerSampleStatistics No Pred Values"
 		fs_kwargs['n_samples'] = n_samples = 20
 		fs_kwargs['n_classes'] = 2
 		fs_kwargs['num_features_per_signal_type'] = 2 # small on purpose, to make test fast
-		fs_kwargs['noise_gradient'] = 25
-		fs_kwargs['initial_noise_sigma'] = 75
+		fs_kwargs['noise_gradient'] = 5
+		fs_kwargs['initial_noise_sigma'] = 5
 		fs_kwargs['n_samples_per_group'] = 1
 		fs_kwargs['random_state'] = 42
 		fs_kwargs['interpolatable'] = False
+		fs_kwargs['singularity'] = False
+		fs_kwargs['clip'] = False
 		fs = CreateArtificialFeatureSet_Discrete( **fs_kwargs )
 
-
 		ss_kwargs = {}
-		ss_kwargs['name'] = "Discrete PerSampleStatistics ShuffleSplit"
+		ss_kwargs['name'] = "Discrete PerSampleStatistics ShuffleSplit No Pred Values"
 		ss_kwargs['quiet'] = True
 		ss_kwargs['n_iter'] = n_iter = 5
 		ss_kwargs['train_size'] = train_size = 8 # per-class
@@ -228,11 +240,29 @@ class TESTINGDiscreteClassificationExperimentResult( unittest.TestCase ):
 	def test_PerSampleStatisticsWITHPredictedValue(self):
 		"""DISCRETE PerSampleStatistics with numeric predicted value"""
 
-		fs = CreateArtificialFeatureSet_Discrete( n_samples=10,
-         n_classes=2, num_features_per_signal_type=50, noise_gradient=25,
-         initial_noise_sigma=75, random_state=42 )
-		exp = DiscreteClassificationExperimentResult.NewShuffleSplit(
-		                                                fs, quiet=True, random_state=42 )
+		fs_kwargs = {}
+		fs_kwargs['name'] = "DISCRETE PerSampleStatistics WITH Pred Values"
+		fs_kwargs['n_samples'] = n_samples = 20
+		fs_kwargs['n_classes'] = 2
+		fs_kwargs['num_features_per_signal_type'] = 2 # small on purpose, to make test fast
+		fs_kwargs['noise_gradient'] = 5
+		fs_kwargs['initial_noise_sigma'] = 5
+		fs_kwargs['n_samples_per_group'] = 1
+		fs_kwargs['random_state'] = 42
+		fs_kwargs['interpolatable'] = True
+		fs_kwargs['singularity'] = False
+		fs_kwargs['clip'] = False
+		fs = CreateArtificialFeatureSet_Discrete( **fs_kwargs )
+
+		ss_kwargs = {}
+		ss_kwargs['name'] = "Discrete PerSampleStatistics ShuffleSplit WITH Pred Values"
+		ss_kwargs['quiet'] = True
+		ss_kwargs['n_iter'] = n_iter = 5
+		ss_kwargs['train_size'] = train_size = 8 # per-class
+		ss_kwargs['test_size' ] = test_size = 2 # per-class
+		ss_kwargs['random_state'] = 42
+		exp = DiscreteClassificationExperimentResult.NewShuffleSplit( fs, **ss_kwargs )
+
 		exp.PerSampleStatistics()
 		self.assertTrue(True)
 

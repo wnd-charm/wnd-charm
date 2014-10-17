@@ -5,38 +5,48 @@ ubound = 100
 
 # signal types (picked to have good range of output for inputs [-100,100])
 # inputs are np arrays 1XD, where D is num_classes or num_samples
-signals = {
-'positiveconstant' : lambda x: 100 * np.ones( x.shape ),
-'negativeconstant' : lambda x: -100 * np.ones( x.shape ),
-'positive_linear' : lambda x: np.copy( x ),
-'negative_linear' : lambda x: -x,
-'stepup'          : lambda x: 100 * np.sign( x ),
-'stepdown'        : lambda x: -100 * np.sign( x ),
-'trough_first_sin': lambda x: 100 * np.sin( x * np.pi / 40 ),
-'peak_first_sin'  : lambda x: -100 * np.sin( x * np.pi / 40 ),
-'exponentialup'   : lambda x: np.exp( 0.05 * x ),
-'exponentialdown' : lambda x: np.exp(-0.05 * x ),
-'quadraticup'     : lambda x: 0.01 * np.square( x ) - 50,
-'quadraticdown'   : lambda x: -0.01 * np.square( x ) + 50,
-'cubicup'         : lambda x: np.power( x, 3 ) / 4500 - x + 50,
-'cubicdown'       : lambda x: -np.power( x, 3 ) / 4500 + x - 50,
-'triangleup'      : lambda x: np.fabs( x ) - 50,
-'triangledown'    : lambda x: -np.fabs( x ) + 50,
-'tangent1'        : lambda x: 5 * np.tan( np.pi * x / 50 ),
-'tangent2'        : lambda x: -5 * np.tan( np.pi * (x / 50 - 0.5 ) ),
-'log_left_down'   : lambda x: 100 * np.log10( -0.05 * x ),
-'log_left_up'     : lambda x: -100 * np.log10( -0.05 * x ),
-'log_right_down'  : lambda x: -100 * np.log10( 0.05 * x ),
-'log_right_up'    : lambda x: 100 * np.log10( 0.05 * x ),
-'arctan_left'     : lambda x: 50 * np.arctan( 0.1 * x + 10 ),
-'arctan_middle'   : lambda x: 50 * np.arctan( 0.1 * x ),
-'arctan_right'    : lambda x: 50 * np.arctan( 0.1 * x - 10 ),
+
+# No singularities, functions defined and differentiable for input of all Real numbers
+well_behaved_signals = {
+'positiveconstant'     : lambda x: 100 * np.ones( x.shape ),
+'negativeconstant'     : lambda x: -100 * np.ones( x.shape ),
+'positive_linear'      : lambda x: np.copy( x ),
+'negative_linear'      : lambda x: -x,
+'trough_first_sin'     : lambda x: 100 * np.sin( x * np.pi / 40 ),
+'peak_first_sin'       : lambda x: -100 * np.sin( x * np.pi / 40 ),
+'exponential_quadI'    : lambda x: np.exp( 0.05 * x ),
+'exponential_quadII'   : lambda x: np.exp( -0.05 * x ),
+'exponential_quadIII'  : lambda x: -np.exp( -0.05 * x ),
+'exponential_quadIV'   : lambda x: -np.exp( 0.05 * x ),
+'quadraticup'          : lambda x: 0.01 * np.square( x ) - 50,
+'quadraticdown'        : lambda x: -0.01 * np.square( x ) + 50,
+'cubicup'              : lambda x: np.power( x, 3 ) / 4500 - x + 50,
+'cubicdown'            : lambda x: -np.power( x, 3 ) / 4500 + x - 50,
+'arctan_left_pos'      : lambda x: 50 * np.arctan( 0.1 * x + 10 ),
+'arctan_middle_pos'    : lambda x: 50 * np.arctan( 0.1 * x ),
+'arctan_right_pos'     : lambda x: 50 * np.arctan( 0.1 * x - 10 ),
+'arctan_left_neg'      : lambda x: -50 * np.arctan( 0.1 * x + 10 ),
+'arctan_middle_neg'    : lambda x: -50 * np.arctan( 0.1 * x ),
+'arctan_right_neg'     : lambda x: -50 * np.arctan( 0.1 * x - 10 ),
 }
 
 
+singularity_signals = {
+'log_quadI'            : lambda x: 100 * np.log10( 0.05 * x ),
+'log_quadII'           : lambda x: 100 * np.log10( -0.05 * x ),
+'log_quadIII'          : lambda x: -100 * np.log10( -0.05 * x ),
+'log_quadIV'           : lambda x: -100 * np.log10( 0.05 * x ),
+'stepup'               : lambda x: 100 * np.sign( x ),
+'stepdown'             : lambda x: -100 * np.sign( x ),
+'triangleup'           : lambda x: np.fabs( x ) - 50,
+'triangledown'         : lambda x: -np.fabs( x ) + 50,
+'tangent1'             : lambda x: 5 * np.tan( np.pi * x / 50 ),
+'tangent2'             : lambda x: -5 * np.tan( np.pi * (x / 50 - 0.5 ) ),
+}
+
 def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samples=100,
-    num_features_per_signal_type=50, noise_gradient=25, initial_noise_sigma=75,
-    n_samples_per_group=1, random_state=None ):
+    num_features_per_signal_type=25, noise_gradient=10, initial_noise_sigma=10,
+    n_samples_per_group=1, random_state=None, singularity=None, clip=None ):
     """
     Analogous to sklearn.datasets.make_regression, but simplified.
 
@@ -49,6 +59,10 @@ def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samp
     The more features the user asks for via the argument "num_features_per_signal_type",
     the more each successive feature generated using that signal will have a greater degree of
     gaussian noise added to it (controlled via args "noise_gradient" and "initial_noise_sigma").
+
+    singularity = If evals to True, singularity signals are used
+    clip = {False, True, (user_lbound, user_ubound)} signal clipping not used,
+           used with default lbound and ubound, or used with user specifications
     """
     if n_samples_per_group < 1 or type(n_samples_per_group) is not int:
       raise ValueError( "n_samples_per_group has to be an integer, and at least 1." )
@@ -66,8 +80,31 @@ def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samp
     else: # no noise added to feature values
       normal = lambda mu, sigma, n: np.zeros( n )
 
-    from .FeatureSet import FeatureSet_Continuous
+    # Figure out what signals to use
+    if singularity:
+        # combine dicts of signals
+        from itertools import chain
+        signals = dict(chain(well_behaved_signals.iteritems(), singularity_signals.iteritems()))
+    else:
+        signals = well_behaved_signals
 
+    # Use signal clipping?
+    try:
+        if len( clip ) == 2:
+            hi, lo= float( clip[0] ), float( clip[1] )
+            from functools import partial
+            clip = partial( np.clip, a_min=lo, a_max=hi )
+        else:
+            raise ValueError( "Arg clip requires True, false, or a 2-tuple of numbers" )
+    except TypeError:
+        if clip:
+            from functools import partial
+            clip = partial( np.clip, a_min=lbound, a_max=ubound )
+        else:
+            clip = lambda x: x
+
+    # Instantiate and assign basic data members
+    from .FeatureSet import FeatureSet_Continuous
     new_fs = FeatureSet_Continuous()
     new_fs.name = name
     new_fs.source_path = new_fs.name
@@ -80,7 +117,8 @@ def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samp
       new_fs.num_samples_per_group = n_samples_per_group
     new_fs.num_images = n_samples
     new_fs.num_features = num_features_per_signal_type * len( signals )
-    new_fs.data_matrix = np.empty( ( n_samples, new_fs.num_features ), dtype=np.float16 )
+    new_fs.shape = ( n_samples, new_fs.num_features )
+    new_fs.data_matrix = np.empty( new_fs.shape, dtype=np.float16 ) # Half precision floats
     # The function call np.mgrid() requires for the value indicating the number of steps
     # to be imaginary, for some inexplicable reason.
     step = complex(0, n_samples)
@@ -112,7 +150,7 @@ def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samp
           [ tile_index for samplegroup_index in xrange( n_samplegroups ) \
           for tile_index in xrange( n_samples_per_group ) ]
 
-    old_settings = np.seterr( invalid='ignore' ) # Bring on the NaN's!
+    old_settings = np.seterr( all='ignore' ) # Bring on the NaN's!
 
     # Create features across all classes at the same time
     feat_count = 0
@@ -120,7 +158,7 @@ def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samp
     ground_truths = np.array( new_fs._contiguous_ground_truths )
     for func_name in sorted( signals.keys() ):
       f = signals[ func_name ]
-      raw_feature_values = np.clip( f( ground_truths ), lbound, ubound )
+      raw_feature_values = clip( f( ground_truths ) )
       for feat_index in xrange( num_features_per_signal_type ):
         # Add noise proportional to the feature index
         noise_vector = normal( 0, initial_noise_sigma + feat_index * noise_gradient, n_samples )
@@ -133,8 +171,9 @@ def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samp
     return new_fs
 
 def CreateArtificialFeatureSet_Discrete( name="DiscreteArtificialFS", n_samples=100,
-    n_classes=2, num_features_per_signal_type=50, noise_gradient=25,
-    initial_noise_sigma=75, n_samples_per_group=1, interpolatable=True, random_state=None ):
+    n_classes=2, num_features_per_signal_type=25, noise_gradient=10,
+    initial_noise_sigma=10, n_samples_per_group=1, interpolatable=True, random_state=None,
+    singularity=None, clip=None ):
     """
     Analogous to sklearn.datasets.make_classification, but simplified.
 
@@ -172,12 +211,34 @@ def CreateArtificialFeatureSet_Discrete( name="DiscreteArtificialFS", n_samples=
     else: # no noise added to feature values
       normal = lambda mu, sigma, n: np.zeros( n )
 
-    from .FeatureSet import FeatureSet_Discrete
-
     if n_samples_per_group < 1 or type(n_samples_per_group) is not int:
       raise ValueError( "n_samples_per_group has to be an integer, and at least 1." )
 
+    # Figure out what signals to use
+    if singularity:
+        # combine dicts of signals
+        from itertools import chain
+        signals = dict(chain(well_behaved_signals.iteritems(), singularity_signals.iteritems()))
+    else:
+        signals = well_behaved_signals
+
+    # Use signal clipping?
+    try:
+        if len( clip ) == 2:
+            hi, lo= float( clip[0] ), float( clip[1] )
+            from functools import partial
+            clip = partial( np.clip, a_min=lo, a_max=hi )
+        else:
+            raise ValueError( "Arg clip requires True, false, or a 2-tuple of numbers" )
+    except TypeError:
+        if clip:
+            from functools import partial
+            clip = partial( np.clip, a_min=lbound, a_max=ubound )
+        else:
+            clip = lambda x: x
+
     # Initialize the basic data members
+    from .FeatureSet import FeatureSet_Discrete
     new_fs = FeatureSet_Discrete()
     new_fs.name = name
     new_fs.source_path = new_fs.name
@@ -195,8 +256,9 @@ def CreateArtificialFeatureSet_Discrete( name="DiscreteArtificialFS", n_samples=
     if n_samples <= 0:
       raise ValueError( "Specify n_samples to be a multiple of n_classes ({0}) * n_samples_per_group ({1}) >= {2}".format( n_classes, n_samples_per_group, n_classes* n_samples_per_group ) )
     new_fs.num_images = n_samples
-    new_fs.num_features = num_features_per_signal_type * len( signals ) 
-    new_fs.data_matrix = np.empty( ( n_samples, new_fs.num_features ) )
+    new_fs.num_features = num_features_per_signal_type * len( signals )
+    new_fs.shape = ( n_samples, new_fs.num_features )
+    new_fs.data_matrix = np.empty( new_fs.shape, dtype=np.float16 ) # Half precision floats
     new_fs.num_classes = n_classes
     new_fs.classsizes_list = [ n_samples_per_class for i in xrange( n_classes ) ]
  
@@ -250,7 +312,7 @@ def CreateArtificialFeatureSet_Discrete( name="DiscreteArtificialFS", n_samples=
           [ tile_index for samplegroup_index in xrange( n_samplegroups ) \
           for tile_index in xrange( n_samples_per_group ) ]
 
-    old_settings = np.seterr( invalid='ignore' ) # Bring on the NaN's!
+    old_settings = np.seterr( all='ignore' ) # Bring on the NaN's!
 
     # Create features across all classes at the same time
     feat_count = 0
@@ -258,7 +320,7 @@ def CreateArtificialFeatureSet_Discrete( name="DiscreteArtificialFS", n_samples=
     ground_truths = np.array( new_fs.interpolation_coefficients )
     for func_name in sorted( signals.keys() ):
       f = signals[ func_name ]
-      raw_class_feature_values = np.clip( f( ground_truths ), lbound, ubound)
+      raw_class_feature_values = clip( f( ground_truths ) )
       raw_feature_values = np.empty( n_samples, )
       for i, val in enumerate( raw_class_feature_values ):
         raw_feature_values[ i * n_samples_per_class: (i+1) * n_samples_per_class].fill( val )

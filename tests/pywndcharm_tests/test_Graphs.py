@@ -53,8 +53,21 @@ except ImportError:
 class TestGraphs( unittest.TestCase ):
     """Test WND-CHARM's graph-making functionality."""
     
-    fs = CreateArtificialFeatureSet_Discrete( n_samples=1000, n_classes=10, 
-            initial_noise_sigma=100, noise_gradient=10, random_state=43)
+    fs_kwargs = {}
+    fs_kwargs['name'] = "DiscreteArtificialFS 10-class"
+    fs_kwargs['n_samples'] = 1000
+    fs_kwargs['n_classes'] = 10
+    fs_kwargs['num_features_per_signal_type'] = 25
+    fs_kwargs['initial_noise_sigma'] = 40
+    fs_kwargs['noise_gradient'] = 20
+    fs_kwargs['n_samples_per_group'] = 1
+    fs_kwargs['interpolatable'] = True
+    fs_kwargs['random_state'] = 43
+    fs_kwargs['singularity'] = False
+    fs_kwargs['clip'] = False
+
+    fs = CreateArtificialFeatureSet_Discrete( **fs_kwargs )
+
     train_set, test_set = fs.Split( random_state=False, quiet=True )
     train_set.Normalize( quiet=True )
     fw = FisherFeatureWeights.NewFromFeatureSet( train_set ).Threshold()
@@ -74,6 +87,9 @@ class TestGraphs( unittest.TestCase ):
 
     def CompareGraphs( self, graph, testfilename ):
         """Helper function to check output graphs"""
+
+        # Uncoment to see what graph looks like!
+        #graph.SaveToFile( testfilename + 'GRAPH.png' )
 
         # We used to output the graphs to a png file and do a binary diff on a reference png
         # but there are superficial differences between matplotlib versions that result in
@@ -98,6 +114,9 @@ class TestGraphs( unittest.TestCase ):
         else:
             self.fail("Graph doesn't have any lines nor points")
 
+        # uncomment to replace old coords
+        #np.save( testfilename, all_coords )
+        #np.save( testfilename + 'NEW.npy', all_coords )
         reference_array = np.load( testfilename )
 
         if not np.array_equal( all_coords, reference_array ):
@@ -141,10 +160,30 @@ class TestGraphs( unittest.TestCase ):
 
         testfilename = 'test_graph_rank_ordered_experiment.npy'
 
-        small_fs = CreateArtificialFeatureSet_Discrete( n_samples=100, n_classes=5, 
-                initial_noise_sigma=100, noise_gradient=10, random_state=42 )
-        experiment = DiscreteClassificationExperimentResult.NewShuffleSplit( small_fs, quiet=True )
-        graph = PredictedValuesGraph( self.batch_result )
+        # Make a smaller featureset to do multiple splits
+        fs_kwargs = {}
+        fs_kwargs['name'] = "DiscreteArtificialFS RANK ORDERED SHUFFLE SPLIT"
+        fs_kwargs['n_samples'] = 100 # smaller
+        fs_kwargs['n_classes'] = 5 # smaller, 20 samples per class
+        fs_kwargs['num_features_per_signal_type'] = 10 # smaller
+        fs_kwargs['initial_noise_sigma'] = 50
+        fs_kwargs['noise_gradient'] = 20
+        fs_kwargs['n_samples_per_group'] = 1
+        fs_kwargs['interpolatable'] = True
+        fs_kwargs['random_state'] = 42
+        fs_kwargs['singularity'] = False
+        fs_kwargs['clip'] = False
+
+        small_fs = CreateArtificialFeatureSet_Discrete( **fs_kwargs )
+
+        ss_kwargs = {}
+        ss_kwargs['quiet'] = True
+        ss_kwargs['n_iter'] = n_iter = 10
+        ss_kwargs['train_size'] = train_size = 18 # per-class
+        ss_kwargs['test_size' ] = test_size = 2 # per-class
+        ss_kwargs['random_state'] = 42
+        exp = DiscreteClassificationExperimentResult.NewShuffleSplit( small_fs, **ss_kwargs )
+        graph = PredictedValuesGraph( exp )
         graph.RankOrderedPredictedValuesGraph()
         self.CompareGraphs( graph, testfilename )
 
@@ -171,7 +210,6 @@ class TestGraphs( unittest.TestCase ):
         graph.RankOrderedPredictedValuesGraph()
 
         self.CompareGraphs( graph, testfilename )
-
 
     @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOTinstalled" )
     def test_IfNotInterpolatable( self ):
