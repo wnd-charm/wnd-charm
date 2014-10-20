@@ -1878,7 +1878,7 @@ class FeatureSet( object ):
 					val = str( 0 )
 				class_indices[i] = val
 
-		# Finally, alternating lines of features, then path to sample original file (tif or sig)
+		# Finally, alternating lines of features and paths to sample original file (tif or sig)
 		for i, sample_name in enumerate( self._contiguous_samplenames_list ):
 			self.data_matrix[i].tofile( fit, sep=' ' )
 			# add class index of sample to end of features line
@@ -3283,14 +3283,15 @@ class ImageClassificationResult( ClassificationResult ):
 	"""Abstract base class that is meant to contain the information from a single
 	classification of a single image/ROI."""
 
-	name = None
-	source_file = None
-	ground_truth_value = None
-	predicted_value = None
-	batch_number = None
+	def __init__( self ):
+		self.name = None
+		self.source_file = None
+		self.ground_truth_value = None
+		self.predicted_value = None
+		self.batch_number = None
 
-	#: For the future: a member to indicate the position of the ROI within an image
-	kernel_location = None
+		#: For the future: a member to indicate the position of the ROI within an image
+		self.tile_index = None
 
 	@output_railroad_switch
 	def Print():
@@ -3302,22 +3303,32 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 	which includes predicted class, marginal probabilities, etc."""
 
 	def __init__( self ):
+		"""Constructor"""
+		super( DiscreteImageClassificationResult, self ).__init__()
+
 		self.marginal_probabilities = []
 		self.normalization_factor = None
 		self.marginal_probabilities = None
+
 		#: predicted_class_name will always be a string
 		#: the interpolated value, if applicable, gets stored in self.predicted_vlaue
 		self.predicted_class_name = 'UNKNOWN'
 		self.ground_truth_class_name = 'UNKNOWN'
+
 	#==============================================================
 	@output_railroad_switch
-	def Print( self, line_item = False ):
+	def Print( self, line_item=False ):
 		"""Output classification line item data, including predicted class and marginal
 		probabilities"""
 		
 		if line_item:
 			# img name:
 			output_str = self.source_file if self.source_file else ""
+			if self.tile_index is not None:
+				if self.tile_index == 'AVG':
+					output_str += " (AVG)"
+				else:
+					output_str += " ({0}/{1})".format( self.tile_index + 1, self.num_samples_in_group )
 			# normalization factor:
 			if self.normalization_factor is None:
 				# no normalization factor means this is a non-call
@@ -3367,7 +3378,6 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 		NOTE: the trainingset and test image must have the same number of features!!!
 		AND: the features must be in the same order!!
 		Returns an instance of the class DiscreteImageClassificationResult
-		FIXME: what about tiling??
 		"""
 
 		#print "classifying..."
@@ -3482,6 +3492,11 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 	parameters obtained when generating a continuous classifier."""
 
 	#==============================================================
+	def __init__( self ):
+		"""Constructor"""
+		super( ContinuousImageClassificationResult, self ).__init__()
+
+	#==============================================================
 	@output_railroad_switch
 	def Print( self, line_item = False ):
 		"""Output results."""
@@ -3569,6 +3584,7 @@ class BatchClassificationResult( ClassificationResult ):
 		if self.name is None and training_set and training_set.name:
 			self.name = training_set.name
 		self.individual_results = []
+		self.tiled_results = None
 		self.batch_number = batch_number
 
 		self.num_classifications = 0
@@ -3738,7 +3754,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 		# Remember! Dicts are not guaranteed to maintain key order but lists are
 		# When cycling through the matrix, iterate over the lists, and not the keys of the dict
-		from collections import defaultdict
+		from collections import defaultdict # introduced Python 2.5
 
 		self.confusion_matrix = {}
 		self.average_class_probability_matrix = {}
@@ -3758,7 +3774,12 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		self.num_classifications_per_class = defaultdict( int )
 		self.num_correct_classifications_per_class = defaultdict( int )
 
-		for indiv_result in self.individual_results:
+		if self.tiled_results:
+			classification_results = self.tiled_results
+		else:
+			classification_results = self.individual_results
+
+		for indiv_result in classification_results:
 			self.num_classifications_per_class[ indiv_result.ground_truth_class_name ] += 1
 
 			if indiv_result.ground_truth_class_name == indiv_result.predicted_class_name:
@@ -3810,11 +3831,16 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		if self.classification_accuracy == None:
 			self.GenerateStats()
 
+		if self.tiled_results:
+			classification_results = self.tiled_results
+		else:
+			classification_results = self.individual_results
+
 		print "==========================================="
 		print "Batch summary:"
 		if self.name:
 			print "Name: ", self.name
-		print "Total number of classifications: {0}".format( self.num_classifications )
+		print "Total number of classifications: {0}".format( len( classification_results ) )
 		print "Total number of CORRECT classifications: {0}".format( self.num_correct_classifications )
 		print "Total classification accuracy: {0:0.4f}".format( self.classification_accuracy )
 		if self.figure_of_merit is not None:
@@ -3849,7 +3875,6 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 			for col_name in train_set_class_names:
 				line += '{0}\t'.format( self.confusion_matrix[ row_name ][ col_name ] )
 			print line
-
 		print ""
 
 		if self.similarity_matrix:
@@ -3962,8 +3987,8 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		filled with a new instances of DiscreteImageClassificationResult.
 
 		FIXME: What happens when the ground truth is not known? Currently they would all be shoved
-					 into class 1, might not be a big deal since class name should be something
-					 like "UNKNOWN"
+		into class 1, might not be a big deal since class name should be something
+		like "UNKNOWN"
 		"""
 
 		# type checking
@@ -3986,26 +4011,38 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		test_set_len = len( test_set.featurenames_list )
 		feature_weights_len = len( feature_weights.names )
 
+		# instantiate myself
+		batch_result = cls( training_set, test_set, feature_weights, batch_name )
+
+		# Are the samples to be classified tiled?
+		if test_set.num_samples_per_group > 1:
+			batch_result.tiled_results = []
+
+		# Say what we're going to do
 		if not quiet:
 			print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
 					format( test_set.source_path, test_set_len, training_set.source_path, train_set_len )
+			if batch_result.tiled_results:
+				print "Performing tiled classification."
 			column_header = "image\tnorm. fact.\t"
 			column_header +=\
 				"".join( [ "p(" + class_name + ")\t" for class_name in training_set.classnames_list ] )
 			column_header += "act. class\tpred. class\tpred. val."
 			print column_header
 
-		batch_result = cls( training_set, test_set, feature_weights, batch_name )
+		# Give myself a number so that it looks good when I print out results
 		if not batch_number:
 			batch_number = DiscreteBatchClassificationResult.batch_count
 			DiscreteBatchClassificationResult.batch_count += 1
 		batch_result.batch_number = batch_number
 
+		# Will there be a numeric predicted value associated with this classification?
 		train_set_interp_coeffs = None
 		if training_set.interpolation_coefficients != None and len( training_set.interpolation_coefficients) != 0:
 			train_set_interp_coeffs = np.array( training_set.interpolation_coefficients )
 			batch_result.predicted_values = []
 
+		# Are there numeric ground truth values associated with the input samples?
 		test_set_interp_coeffs = None
 		if test_set.interpolation_coefficients != None and len( test_set.interpolation_coefficients ) != 0:
 			test_set_interp_coeffs = np.array( test_set.interpolation_coefficients )
@@ -4013,6 +4050,11 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 		for test_class_index in range( test_set.num_classes ):
 			num_class_imgs, num_class_features = test_set.data_list[ test_class_index ].shape
+
+			# Get tiling ready if need be
+			if test_set.num_samples_per_group > 1:
+				tile_results_in_this_sample_group = []
+
 			for test_image_index in range( num_class_imgs ):
 				one_image_features = test_set.data_list[ test_class_index ][ test_image_index,: ]
 				result = DiscreteImageClassificationResult._WND5( training_set, one_image_features, feature_weights.values )
@@ -4042,9 +4084,56 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 					result.ground_truth_value = test_set_interp_coeffs[ test_class_index ]
 					batch_result.ground_truth_values.append( test_set_interp_coeffs[ test_class_index ] )
 
+				if test_set.num_samples_per_group > 1:
+					result.tile_index = len( tile_results_in_this_sample_group )
+					result.num_samples_in_group = test_set.num_samples_per_group
+
 				if not quiet:
-					result.Print( line_item = True )
+					result.Print( line_item=True )
 				batch_result.individual_results.append( result )
+
+				# TILING SECTION:
+				# Create a whole image classification result that
+				# is the average of all the calls from all the tiles
+				if test_set.num_samples_per_group > 1:
+					tile_results_in_this_sample_group.append( result )
+					if len( tile_results_in_this_sample_group ) >= test_set.num_samples_per_group:
+						aggregated_result = DiscreteImageClassificationResult()
+						# Use the last result from above
+						aggregated_result.source_file = result.source_file
+						aggregated_result.tile_index = 'AVG'
+						aggregated_result.ground_truth_class_name = result.ground_truth_class_name
+						marg_prob_lists = [ [] for i in xrange( training_set.num_classes ) ]
+						norm_factor_list = []
+						for tile_result in tile_results_in_this_sample_group:
+
+							if tile_result.marginal_probabilities:
+								# Sometimes the result comes back with a non-call, like when the sample image
+								# collides with every test image
+								for class_index, val in enumerate( tile_result.marginal_probabilities ):
+									marg_prob_lists[ class_index ].append( val )
+								norm_factor_list.append( tile_result.normalization_factor )
+
+						if any( [ len( class_marg_prob_list ) <= 0 for class_marg_prob_list in marg_prob_lists ] ):
+							aggregated_result.marginal_probabilities = np.array( [np.nan] * training_set.num_classes )
+							aggregated_result.predicted_class_name = "*Collided with every training image*"
+						else:
+							marg_probs = [ sum( l ) / float( len( l ) ) for l in marg_prob_lists ]
+							aggregated_result.marginal_probabilities = marg_probs
+							np_marg_probs = np.array( marg_probs )
+							aggregated_result.predicted_class_name = training_set.classnames_list[ np_marg_probs.argmax() ]
+							aggregated_result.normalization_factor = sum(norm_factor_list)/float(len(norm_factor_list))
+
+						# Save references to the tiled results on the aggregated result
+						# To facilitate creation of graphs, heatmaps, etc
+						aggregated_result.tiled_results = tile_results_in_this_sample_group
+						batch_result.tiled_results.append( aggregated_result )
+						if not quiet:
+							aggregated_result.Print( line_item=True )
+
+						# now reset for the next sample group
+						tile_results_in_this_sample_group = []
+						tile_count = 0
 
 		np.seterr (all='raise')
 

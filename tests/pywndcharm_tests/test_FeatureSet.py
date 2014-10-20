@@ -158,7 +158,6 @@ class TestFeatureSet( unittest.TestCase ):
         batch_result = DiscreteBatchClassificationResult.New(
                                        reduced_fs, reduced_fs, reduced_fw, quiet=True )
 
-    @unittest.skip( "test tile options after it's implemented" )
     def test_TileOptions( self ):
 
         tile_options = None
@@ -191,7 +190,6 @@ class TestFeatureSet( unittest.TestCase ):
         # What if the feature set number of groups within a class are less than called for
         # when specifying by integer?
         self.assertRaises( ValueError, test_set.Split, test_size=25 )
-
 
         # What happens when input fs has unbalanced classes, some of which have enough
         # to satisfy train_size/test_size params, and some don't
