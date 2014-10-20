@@ -4124,6 +4124,11 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 							aggregated_result.predicted_class_name = training_set.classnames_list[ np_marg_probs.argmax() ]
 							aggregated_result.normalization_factor = sum(norm_factor_list)/float(len(norm_factor_list))
 
+							# interpolated value, if applicable
+							if train_set_interp_coeffs is not None:
+								aggregated_result.predicted_value = np.sum( np_marg_probs * train_set_interp_coeffs )
+							if test_set_interp_coeffs is not None:
+								aggregated_result.ground_truth_value = test_set_interp_coeffs[ test_class_index ]
 						# Save references to the tiled results on the aggregated result
 						# To facilitate creation of graphs, heatmaps, etc
 						aggregated_result.tiled_results = tile_results_in_this_sample_group

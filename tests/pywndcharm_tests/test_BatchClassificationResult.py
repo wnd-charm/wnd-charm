@@ -46,11 +46,6 @@ class TestDiscreteBatchClassificationResult( unittest.TestCase ):
     """
     Test the classification functionality
     """
-
-    def setUp( self ):
-        pass
-    
-
     
     def test_TiledFitOnFit( self ):
         """Uses a curated subset of the IICBU 2008 Lymphoma dataset, preprocessed as follows:
@@ -81,11 +76,41 @@ class TestDiscreteBatchClassificationResult( unittest.TestCase ):
             #reduced_test.Normalize( reduced_train, quiet=True )
 
             batch_result = DiscreteBatchClassificationResult.New( reduced_fs, reduced_fs, fw )
-            batch_result.Print()
+            #batch_result.Print()
 
         finally:
             rmtree( tempdir )
 
+    def test_TiledTrainTestSplit( self ):
+        """Uses a fake FeatureSet"""
+
+        from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Discrete
+        fs_kwargs = {}
+        fs_kwargs['name'] = "DiscreteArtificialFS 10-class"
+        fs_kwargs['n_samples'] = 1000
+        fs_kwargs['n_classes'] = 10 # 100 samples per class
+        fs_kwargs['num_features_per_signal_type'] = 25
+        fs_kwargs['initial_noise_sigma'] = 40
+        fs_kwargs['noise_gradient'] = 20
+        fs_kwargs['n_samples_per_group'] = 4 # 25 images, 2x2 tiling scheme
+        fs_kwargs['interpolatable'] = True
+        fs_kwargs['random_state'] = 43
+        fs_kwargs['singularity'] = False
+        fs_kwargs['clip'] = False
+
+        fs = CreateArtificialFeatureSet_Discrete( **fs_kwargs )
+
+        train_set, test_set = fs.Split( random_state=False, quiet=True )
+        train_set.Normalize( quiet=True )
+        fw = FisherFeatureWeights.NewFromFeatureSet( train_set ).Threshold()
+
+        reduced_train_set = train_set.FeatureReduce( fw.names )
+        reduced_test_set = test_set.FeatureReduce( fw.names )
+        reduced_test_set.Normalize( reduced_train_set, quiet=True )
+
+        batch_result = DiscreteBatchClassificationResult.New(
+                reduced_train_set, reduced_test_set, fw  )
+        batch_result.Print()
             
 
 if __name__ == '__main__':
