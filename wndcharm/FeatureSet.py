@@ -987,7 +987,7 @@ class Signatures( FeatureVector ):
 
 	#================================================================
 	@classmethod
-	def NewFromTiffFile( cls, imagepath, options = "-l" ):
+	def NewFromTiffFile( cls, imagepath, options="-l" ):
 		"""@brief Loads precalculated sigs, or calculates new ones
 
 		This function is meant to be the quarterback in deciding what sig
@@ -1077,10 +1077,9 @@ class Signatures( FeatureVector ):
 			raise ValueError( err_msg )
 		return the_sigs
 
-
 	#================================================================
 	@classmethod
-	def NewFromFeatureComputationPlan ( cls, image_path_or_mat, computation_plan, options = None ):
+	def NewFromFeatureComputationPlan( cls, image_path_or_mat, computation_plan, options = None ):
 		"""@brief calculates signatures
 		@argument image_path_or_mat - path to a tiff file as a string or a wndcharm.ImageMatrix object
 		"""
@@ -1133,22 +1132,11 @@ class Signatures( FeatureVector ):
 
 		computation_plan = GenerateComputationPlanFromListOfFeatureStrings( feature_names )
 		sig = cls.NewFromFeatureComputationPlan( path_to_image, computation_plan, options )
-		return sig.FeatureReduce( feature_names ) 
+		return sig.FeatureReduce( feature_names )
 
 	#================================================================
 	@classmethod
-	def FromPickle( cls, path ):
-		"""Not implemented."""
-		raise NotImplementedError()
-
-	#================================================================
-	def PickleMe( self ):
-		"""Not implemented."""
-		raise NotImplementedError()
-
-	#================================================================
-	@classmethod
-	def NewFromSigFile( cls, sigfile_path, image_path = None, options = None ):
+	def NewFromSigFile( cls, sigfile_path, image_path=None, options=None, quiet=True ):
 		"""@argument sigfile_path must be a .sig or a .pysig file
 		
 		@return  - An instantiated signature class with feature names translated from
@@ -1167,48 +1155,59 @@ class Signatures( FeatureVector ):
 			raise ValueError( "The file {0} isn't a signature file (doesn't end in .sig or .pysig)".\
 			                  format( sigfile_path ) )
 
-		#print "Loading features from sigfile {0}".format( sigfile_path )
+		if not quiet:
+			print "Loading features from sigfile {0}".format( sigfile_path )
 
 		signatures = cls()
-		# FIXME: Do we care about the .tif?
-
 		signatures.source_file = sigfile_path
 		signatures.path_to_sigfile = sigfile_path
 		signatures.path_to_image = image_path
 		signatures.options = options
  
- 		import re
 		with open( sigfile_path ) as infile:
-			linenum = 0
-			for line in infile:
-				if linenum == 0:
-					# The class id here may be trash
-					signatures.class_id, signatures.version = re.compile('^(\S+)\s*(\S+)?$').match(line.strip()).group (1, 2)
-					if signatures.version is None: signatures.version = "1.0"
+			lines = infile.read().splitlines()
 
-				elif linenum == 1:
-					# We've already assigned self.source_file
-					# the path in the sig file may be trash anyway
-					#signatures.source_file = line.strip()
-					pass
-				else:
-					value, name = line.strip().split(None, 1 )
-					signatures.values.append( float( value ) )
-					signatures.names.append( wndcharm.FeatureNames.getFeatureInfoByName (name).name )
-				linenum += 1
-			#print "Loaded {0} features.".format( len( signatures.values ) )
+		# First line is metadata
+ 		import re
+		signatures.class_id, signatures.version = \
+		        re.match( '^(\S+)\s*(\S+)?$' , lines[0] ).group( 1, 2 )
+		if signatures.version is None: signatures.version = "1.0"
+
+		# 2nd line is path to original tiff file, just skip
+
+		# Process rest of lines
+		values, names = zip( *[ line.split( None, 1 ) for line in lines[2:] ] )
+		signatures.values = np.fromstring( " ".join( values ), sep=" " )
+
+		signatures.names = [None] * len( names )
+		for i, name in enumerate( names ):
+			#retval = wndcharm.FeatureNames.getFeatureInfoByName( name )
+			#if retval:
+			#	signatures.names[i] = retval.name
+			#else:
+			signatures.names[i] = name
 
 		# Set the minor version to the vector type based on # of features
 		# The minor versions should always specify vector types, but for version 1 vectors,
 		# the version is not written to the file, so it gets read as 0.
-		if (signatures.version == "1.0"):
+		if( signatures.version == "1.0" ):
 			signatures.version = "1." + str(
-				feature_vector_minor_version_from_num_features_v1.get ( len (signatures.values),0 )
-			)
-		
-		print "Features version from file: {0}".format (signatures.version)
+				feature_vector_minor_version_from_num_features_v1.get( len( signatures.values ),0 ) )
+
+		if not quiet:
+			print "Features version from file: {0}".format (signatures.version)
 		return signatures
-	
+
+	#================================================================
+	@classmethod
+	def NewFromPath( cls, path, options=None, quiet=True ):
+		if path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ):
+			return cls.NewFromTiffFile( path, options )
+		elif path.endswith( (".sig", "pysig" ) ):
+			return cls.NewFromSigFile( path, image_path=None, options=options, quiet=quiet )
+		else:
+			raise ValueError( "File {0} isn't a .tif or a .sig file".format( path ) )
+
 	#================================================================
 	def WriteFeaturesToASCIISigFile( self, filepath = None ):
 		"""Write features to a .pysig file, in the same format as a .sig file created 
@@ -1256,63 +1255,6 @@ class Signatures( FeatureVector ):
 			out_file.write( "{0}\n".format( self.source_file ) )
 			for i in range( 0, len( self.names ) ):
 				out_file.write( "{val:0.6f} {name}\n".format( val=self.values[i], name=self.names[i] ) )
-
-	#================================================================
-	def FeatureReduce( self, requested_features ):
-		"""Returns a new instance of Signatures that contains only those features specified
-		by name via the argument requested_features."""
-
-		if self.names == requested_features:
-			return self
-
-		selfs_features = set( self.names )
-		their_features = set( requested_features )
-		if not their_features <= selfs_features:
-			missing_features_from_req = their_features - selfs_features
-			err_str = error_banner + "Feature Reduction error:\n"
-			err_str += "The signatures set for image file '{0}' ".format( self.source_file )
-			err_str += "is missing {0}".format( len( missing_features_from_req ) )
-			err_str += "/{1} features that were requested in the feature reduction list.".format(\
-			             len( requested_features ) )
-			raise ValueError( err_str )
-
-		print "Performing feature reduce/reorder on signatures..."
-		# The featurenames sets are either out of order or contain extraneous features.
-		dictionary = dict( zip( self.names, self.values ) )
-		reduced_sigs = Signatures()
-		reduced_sigs.source_file = self.source_file
-		reduced_sigs.path_to_image = self.path_to_image
-		reduced_sigs.path_to_sigfile = self.path_to_sigfile
-		reduced_sigs.options = self.options
-			
-		for new_name in requested_features:
-			reduced_sigs.names.append( new_name )
-			reduced_sigs.values.append( dictionary[ new_name ] )
-
-		# if the feature vector size changed then it is no longer a standard feature vector.
-		if ( len (reduced_sigs.names) != len (self.names) ):
-			reduced_sigs.version = "{0}.0".format (self.version.split('.',1)[0])
-		else:
-			reduced_sigs.version = self.version
-
-		return reduced_sigs
-
-	#================================================================
-	def Normalize( self, training_set, quiet=False ):
-		"""FIXME: should there be some flag that gets set if this sig has 
-		already been normalized??
-		
-		@return: None"""
-
-		if training_set.featurenames_list != self.names:
-			raise ValueError("Can't normalize signature for {0} against training_set {1}: Features don't match."\
-		  .format( self.source_file, training_set.source_path ) )
-		
-		if not quiet:
-			print "Normalizing features"
-		my_features = np.array( self.values )
-		normalize_by_columns (my_features, training_set.feature_minima, training_set.feature_maxima)
-		self.values = my_features.tolist()
 
 # end definition class Signatures
 
@@ -1701,7 +1643,7 @@ class FeatureSet( object ):
 
 	#==============================================================
 	@classmethod
-	def NewFromFitFile( cls, pathname, tile_options=None, discrete=True ):
+	def NewFromFitFile( cls, pathname, options=None, tile_options=None, discrete=True ):
 		"""Helper function which reads in a c-chrm fit file.
 
 		tile_options - an integer N -> NxN tile scheme, or a tuple (N,M) -> NxM tile scheme
@@ -1736,6 +1678,9 @@ class FeatureSet( object ):
 				new_fs.tile_rows = new_fs.tile_cols = int( tile_options )
 			new_fs.num_samples_per_group = new_fs.tile_rows * new_fs.tile_cols
 
+		if options:
+			new_fs.options = options
+
 		for line in fitfile:
 			if line_num is 0:
 				# 1st line: number of classes and feature vector version
@@ -1768,12 +1713,10 @@ class FeatureSet( object ):
 
 			elif line_num < ( num_features + 3 ):
 				# Lines 4 through num_features contains the feature names
-				# FIXME: segfault when feature name isn't a wndchrm feature name.
-				# If we're worried about legacy wndchrm names, there's a pure python
-				# way to translate them, via pychrm.FeatureNameMap
-				new_fs.featurenames_list[ line_num - 3 ] =\
-								line.strip()
-								#pychrm.FeatureNames.getFeatureInfoByName( line.strip() ).name
+				#retval = wndchrm.FeatureNames.getFeatureInfoByName( line.strip() )
+				#name = retval.name if retval else line.strip()
+				name = line.strip()
+				new_fs.featurenames_list[ line_num - 3 ] = name
 
 			elif line_num == ( num_features + 3 ):
 				# The line after the block of feature names is blank
@@ -1836,6 +1779,7 @@ class FeatureSet( object ):
 
 	#==============================================================
 	def ToFitFile( self, path ):
+		"""Writes features to ASCII text file which can be read by classic wnd-charm."""
 		fit = open( path, 'w' )
 
 		# 1st line: number of classes and feature vector version
@@ -1886,6 +1830,12 @@ class FeatureSet( object ):
 			fit.write( sample_name + '\n' )
 
 		fit.close()
+
+	#==============================================================
+	def Save( self, pathname ):
+		"""Writes features to HDF5 file."""
+		raise NotImplementedError( "FIXME" )
+
 
 	#==============================================================
 	def _RebuildViews( self, reorder=False ):
@@ -1945,10 +1895,121 @@ class FeatureSet( object ):
 
 	#==============================================================
 	@classmethod
-	def NewFromFileOfFiles( cls, fof_path, options = None ):
-		"""Create feature set from a file of files. Implemented in subclasses."""
-		raise NotImplementedError()
+	def NewFromFileOfFiles( cls, pathname, options=None, tile_options=None, discrete=True,
+	                                 quiet=True ):
+		"""Create a FeatureSet from a file of files."""
+
+		if not quiet:
+			print 'Loading {0} from file of files "{1}"'.format( cls.__name__, pathname )
+
+		# Read FOF into a tuple of tuples, sorted on ground truth
+		with open( pathname ) as fof:
+			fof_data = [line.split('\t') for line in fof.read().splitlines()]
+			# FIXME: Implement reordering outside of loading, don't sort here
+			#sorted( [line.split('\t') for line in fof.read().splitlines()], key=lambda x: x[1] )
+
+		first_row = fof_data[0]
+		num_cols = len( first_row )
 	
+		# Test 0: Can't have rows with 1 column
+		if num_cols < 2:
+			raise ValueError( "File of files can't have rows with less than 2 columns")
+
+		# Test 1: All rows need to have the same number of columns
+		for linenum, row in enumerate( fof_data[1:] ):
+			if num_cols != len( row ):
+				errmsg = "Error in row {0}: number of columns is {1} but other rows are {2}"
+				raise ValueError( errmsg.format( linenum, len(row), num_cols ) )
+
+		if num_cols == 2:
+			imagenames_list, ground_truths = zip( *fof_data )
+		else:
+			raise NotImplementedError( "FIXME" )
+
+		new_fs = cls()
+		new_fs.source_path = pathname
+		from os.path import split, sep
+		dir_containing_fof, new_fs.name = split( pathname )
+		new_fs.discrete = discrete
+
+		if discrete:
+			# Uniquify the sample group list, maintaining order of input sample group list.
+			seen = set()
+			seen_add = seen.add
+			new_fs.classnames_list = [ x for x in ground_truths if not (x in seen or seen_add(x) ) ]
+			new_fs.interpolation_coefficients = \
+				CheckIfClassNamesAreInterpolatable( new_fs.classnames_list )
+			new_fs.num_classes = len( new_fs.classnames_list )
+			new_fs.classsizes_list = \
+			  [ ground_truths.count( label ) for label in new_fs.classnames_list ]
+
+		if not discrete or new_fs.interpolation_coefficients is not None:
+			ground_truths = [ float( val ) for val in ground_truths ]
+
+		new_fs._contiguous_samplenames_list = imagenames_list
+		new_fs._contiguous_ground_truths = ground_truths
+
+		# Figure out feature situation:
+		# This will initiate calculation of sigs if doesn't exist
+		# FIXME: better to lazily do this
+		try:
+			first_feature_vector = Signatures.NewFromPath( first_row[0], options=options, quiet=True )
+			dir_containing_fof = None
+		except IOError:
+			# If the path to file given in fof doesn't resolve to a file, try prepending
+			# the fof's containing path to the paths given in the fof
+			first_feature_vector = \
+			    Signatures.NewFromPath( dir_containing_fof + sep + first_row[0], options=options )
+
+		new_fs.featurenames_list = first_feature_vector.names
+		new_fs.feature_vector_version = first_feature_vector.version
+		new_fs.shape = ( len( imagenames_list ), len( first_feature_vector.names ) )
+		new_fs.num_images, new_fs.num_features = new_fs.shape
+		num_samples = new_fs.num_images # alias for sample group code below
+
+		new_fs.data_matrix = np.empty( new_fs.shape, dtype='double' )
+		new_fs.data_matrix[0] = first_feature_vector.values
+
+		for row_index, path in enumerate( imagenames_list[1:], start=1 ):
+			# This will initiate calculation of sigs if doesn't exist
+			if dir_containing_fof:
+				augmented_path = dir_containing_fof + sep + path
+			else:
+				augmented_path = path
+			feature_vector = Signatures.NewFromPath( augmented_path, options=options, quiet=True )
+			new_fs.data_matrix[ row_index ] = feature_vector.values
+
+		if tile_options:
+			try:
+				len(tile_options)
+				new_fs.tile_rows = int(tile_options[0])
+				new_fs.tile_cols = int(tile_options[1])
+			except TypeError:
+				new_fs.tile_rows = new_fs.tile_cols = int( tile_options )
+			new_fs.num_samples_per_group = new_fs.tile_rows * new_fs.tile_cols
+
+		if new_fs.num_samples_per_group != 1:
+			# sample sequence id = tile id
+			# goes: [ 1, 2, 3, 4, 1, 2, 3, 4, ... ]
+			new_fs._contiguous_samplesequenceid_list = [ i \
+			  for j in xrange( num_samples/new_fs.num_samples_per_group ) \
+			    for i in xrange( new_fs.num_samples_per_group ) ]
+			# samples with same group id can't be split
+			# goes: [ 1, 1, 1, 1, 2, 2, 2, 2, ... ]
+			new_fs._contiguous_samplegroupid_list = [ j \
+			  for j in xrange( num_samples/new_fs.num_samples_per_group ) \
+			    for i in xrange( new_fs.num_samples_per_group ) ]
+		else:
+			new_fs._contiguous_samplesequenceid_list = [1] * num_samples
+			new_fs._contiguous_samplegroupid_list = range( num_samples )
+
+		new_fs._RebuildViews()
+
+		if not quiet:
+			new_fs.Print()
+
+		return new_fs
+
 	#==============================================================
 	def _ProcessSigCalculation( self,
 	                            imagenames_list,
@@ -2063,7 +2124,7 @@ class FeatureSet( object ):
 		newdata[ 'name' ] = self.name + "(feature reduced)"
 		newdata[ 'featurenames_list' ] = requested_features
 		newdata[ 'num_features' ] = num_features
-		data_matrix = np.empty( shape , dtype='double')
+		data_matrix = np.empty( shape , dtype='double' )
 		if self.feature_maxima is not None:
 			feature_maxima = np.empty( num_features, )
 		if self.feature_minima is not None:
@@ -2265,11 +2326,6 @@ class FeatureSet( object ):
 		newdata[ '_contiguous_ground_truths' ] = _contiguous_ground_truths
 		newdata[ '_contiguous_samplegroupid_list' ] = _contiguous_samplegroupid_list
 		return self.Derive( **newdata )
-
-	#==============================================================
-	def AddSignature( self, signature, class_id_index = None ):
-		"""Virtual method."""
-		raise NotImplementedError()
 
 	#==============================================================
 	def RemoveClass( self, class_index ):
@@ -2633,64 +2689,6 @@ class FeatureSet_Discrete( FeatureSet ):
 		return new_ts
 
 	#==============================================================
-	@classmethod
-	def NewFromFileOfFiles( cls, fof_path, options = None ):
-		"""FIXME: add ability to specify which features are wanted if none have been calculated yet"""
-
-		#FIXME: Add ability to specify tiling scheme
-		if not os.path.exists( fof_path ):
-			raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( fof_path ) )
-
-		print 'Loading {0} from file of files "{1}"'.format( cls.__name__, fof_path )
-		
-		new_ts = cls()
-		new_ts.num_images = 0
-		new_ts.source_path = fof_path
-		from os.path import basename
-		new_ts.name = basename( fof_path )
-
-		classnames_set = set()
-
-		with open( fof_path ) as fof:
-			for line in fof:
-				class_id_index = None
-				try:
-					file_path, class_name = line.strip().split( "\t" )
-				except ValueError:
-					print "Error reading file of files. Please make sure each line contains a path to a file and a class id, separated by a single tab character."
-					raise
-				if not os.path.exists( file_path ):
-					raise ValueError(\
-					    "The file '{0}' doesn't exist, maybe you need to specify the full path?".\
-					    format( file_path ) )
-				
-				if not class_name in classnames_set:
-					classnames_set.add( class_name )
-					new_ts.classnames_list.append( class_name )
-					class_id_index = len( new_ts.classnames_list ) - 1
-				else:
-					class_id_index = new_ts.classnames_list.index( class_name )
-
-				if file_path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ): 
-					sig = Signatures.NewFromTiffFile( file_path, options )
-				elif file_path.endswith( (".sig", "pysig" ) ): 
-					sig = Signatures.NewFromSigFile( file_path, options = options )
-				else:
-					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
-				new_ts.AddSignature( sig, class_id_index )
-
-		new_ts.interpolation_coefficients = \
-		                    CheckIfClassNamesAreInterpolatable( new_ts.classnames_list )
-		
-		if isinstance( new_ts, FeatureSet_Discrete ):
-			new_ts.num_classes = len( new_ts.data_list )
-
-		new_ts.ContiguousDataMatrix()
-
-		new_ts.Print()
-		return new_ts
-
-	#==============================================================
 	def _ProcessSigCalculation( self,
 	                            imagenames_list,
 	                            feature_set_name="large",
@@ -2723,68 +2721,6 @@ class FeatureSet_Discrete( FeatureSet ):
 					sig.WriteFeaturesToASCIISigFile()
 				self.AddSignature( sig, class_id )
 			class_id += 1
-
-	#==============================================================
-	def AddSignature( self, signature, class_id_index ):
-		""" AddSignature adds signatures quickly to a growing FeatureSet.
-		To be quick, the signatures must be added in class index order
-		i.e., they are appended to the class-ordered feature matrix, so the class_id_index must be the
-		last valid class index, or the one after last.
-		To add signatures in random order, use InsertSignature, which is much slower
-		@argument signature is a valid signature
-		@argument class_id_index identifies the class to which the signature belongs
-			class_id_index is zero-indexed
-		"""
-
-		if None == class_id_index:
-			raise ValueError( 'Must specify either a class_index' )
-		
-		if self.feature_vector_version is None:
-			self.feature_vector_version = signature.version
-		elif ( not self.CompatibleFeatureVectorVersion (signature.version) ):
-			raise ValueError("Can't add feature vector {0} version {1} to feature set {2} with version {3} features: Feature vector versions don't match.".format (
-				signature.source_file, signature.version, self.source_path, self.feature_vector_version ) )
-			
-		if( self.data_list == None ) or ( len( self.data_list ) == 0 ) :
-			# If no class_id_index is specified, sig goes in first matrix in the list by default
-			# make sure there's something there when you try to dereference that index
-			self.data_list = []
-			self.data_list.append( None )
-			self.num_images = 0
-			self.num_classes = 0
-
-			self.featurenames_list = signature.names
-			self.num_features = len( signature.names )
-		else:
-			# Make sure features are in order.
-			# Feature Reduce will throw an exception if they can't be placed in order
-			signature = signature.FeatureReduce( self.featurenames_list )
-
-		# signatures may be coming in out of class order
-		while (len( self.data_list ) ) < class_id_index + 1:
-			self.data_list.append( None )
-		while (len( self.imagenames_list ) ) < class_id_index + 1:
-			self.imagenames_list.append( [] )
-		while (len( self.classnames_list ) ) < class_id_index + 1:
-			self.classnames_list.append( "UNKNOWN"+str(len( self.classnames_list ) + 1) )
-		while (len( self.classsizes_list ) ) < class_id_index + 1:
-			self.classsizes_list.append( 0 )
-
-		self.imagenames_list[class_id_index].append( signature.source_file )
-
-		if self.data_list[ class_id_index ] == None:
-			self.data_list[ class_id_index ] = np.array( signature.values )
-		else:
-			# vstack takes only one argument, a tuple, thus the extra set of parens
-			self.data_list[ class_id_index ] = np.vstack( ( self.data_list[ class_id_index ] ,\
-					np.array( signature.values ) ) )
-
-		self.num_images += 1
-		self.classsizes_list[class_id_index] += 1
-		self.num_classes = len( self.data_list )
-
-		#print 'Added file "{0}" to class {1} "{2}" ({3} images)'.format( signature.source_file, \
-		#    class_id_index, self.classnames_list[class_id_index], len( self.imagenames_list[ class_id_index ] ) ) 
 
 	#==============================================================
 	def ScrambleGroundTruths( self, fine_grained_scramble = True ):
@@ -3110,77 +3046,6 @@ class FeatureSet_Continuous( FeatureSet ):
 		super( FeatureSet_Continuous, self ).__init__()
 
 	#==============================================================
-	@classmethod
-	def NewFromFileOfFiles( cls, fof_path, options = None ):
-		"""Create a continuous feature set from a file of files."""
-
-		if not os.path.exists( fof_path ):
-			raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( fof_path ) )
-
-		print 'Loading {0} from file of files "{1}"'.format( cls.__name__, fof_path )
-		
-		new_ts = cls()
-		new_ts.num_images = 0
-		new_ts.source_path = fof_path
-		from os.path import basename
-		new_ts.name = basename( fof_path )
-
-		classnames_set = set()
-
-		with open( fof_path ) as fof:
-			for line in fof:
-				class_id_index = None
-				try:
-					file_path, class_name = line.strip().split( "\t" )
-				except ValueError:
-					print "Error reading file of files. Please make sure each line contains a path to an image and its corresponding ground truth value, separated by a single tab character."
-					raise
-				if not os.path.exists( file_path ):
-					raise ValueError(\
-					    "The file '{0}' doesn't exist, maybe you need to specify the full path?".\
-					    format( file_path ) )
-				
-				if not class_name in classnames_set:
-					classnames_set.add( class_name )
-					new_ts.classnames_list.append( class_name )
-					
-				if file_path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ): 
-					sig = Signatures.NewFromTiffFile( file_path, options )
-				elif file_path.endswith( (".sig", "pysig" ) ): 
-					sig = Signatures.NewFromSigFile( file_path, options = options )
-				else:
-					raise ValueError( "File {0} isn't a .tif or a .sig file".format( file_path ) )
-				
-				# FIXME: For Continuous Feature sets, the call to AddSignature is made with the
-				# ground truth value, but for Discrete Feature Sets, it's made with the 
-				# class_id_index. There must be a way to unify the two interfaces so
-				# AddSignature can be implemented in the base class and work for all sub classes.
-
-				# This is the Discrete Method:
-				#	class_id_index = len( new_ts.classnames_list ) - 1
-				#else:
-				#	class_id_index = new_ts.classnames_list.index( class_name )
-				#new_ts.AddSignature( sig, class_id_index )
-
-				# This is the Continuous method:
-				ground_truth_val = None
-				try:
-					ground_truth_val = float( class_name )
-				except ValueError:
-					print 'Could not convert the string "{0}" to a number, please check/edit your input file accordingly.'
-					raise
-				new_ts.AddSignature( sig, ground_truth_val )
-
-		new_ts.interpolation_coefficients = \
-		                    CheckIfClassNamesAreInterpolatable( new_ts.classnames_list )
-		
-		if isinstance( new_ts, FeatureSet_Discrete ):
-			new_ts.num_classes = len( new_ts.data_list )
-
-		new_ts.Print()
-		return new_ts
-
-	#==============================================================
 	def _ProcessSigCalculation( self,
 	                            imagenames_list,
 	                            feature_set_name="large",
@@ -3222,33 +3087,6 @@ class FeatureSet_Continuous( FeatureSet ):
 					sig.WriteFeaturesToASCIISigFile()
 				self.AddSignature( sig, class_id )
 			class_id += 1
-			
-	#==============================================================
-	def AddSignature( self, signature, ground_truth = None ):
-		"""@argument signature is a valid signature
-		@argument class_id_index identifies the class to which the signature belongs"""
-
-		if self.feature_vector_version is None:
-			self.feature_vector_version = signature.version
-		if ( not self.CompatibleFeatureVectorVersion (signature.version) ):
-			raise ValueError("Can't add feature vector {0} version {1} to feature set {2} with version {3} features: Feature vector versions don't match.".format (
-				signature.source_file, signature.version, self.source_path, self.feature_vector_version ) )
-
-		if (self.data_matrix == None) or ( len( self.data_matrix ) == 0 ) :
-			self.data_matrix = np.array( signature.values )
-			self.featurenames_list = signature.names
-			self.num_features = len( signature.names )
-		else:
-			# Make sure features are in order.
-			# Feature Reduce will throw an exception if they can't be placed in order
-			signature = signature.FeatureReduce( self.featurenames_list )
-			# vstack takes only one argument, a tuple, thus the extra set of parens
-			self.data_matrix = np.vstack( (self.data_matrix, np.array( signature.values )) )
-
-		self.num_images += 1
-		self.imagenames_list.append( signature.source_file )
-
-		self.ground_truths.append( ground_truth )
 
 	#==============================================================
 	def ScrambleGroundTruths( self ):

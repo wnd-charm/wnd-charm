@@ -44,9 +44,9 @@ from wndcharm.FeatureSet import FeatureSet, FeatureSet_Discrete, FisherFeatureWe
 
 class TestFeatureSet( unittest.TestCase ):
     """
-    Test the wndcharm module to check it still works with OmeroPychrm
+    The FeatureSet is the workhorse object in WND-CHARM.
     """
-
+    maxDiff = None
     def test_ContinuousFitOnFit( self ):
         from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Discrete
 
@@ -199,7 +199,6 @@ class TestFeatureSet( unittest.TestCase ):
 
         self.assertRaises( ValueError, fs_class_2_and_7_smaller.Split, train_size=80,
                            test_size=20 )
-
 
     def test_SampleReduce( self ):
         from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Discrete
@@ -355,6 +354,59 @@ class TestFeatureSet( unittest.TestCase ):
         L = fs_cont.SampleReduce( leave_out_samplegroupid_list=98 )
         self.assertEqual( L.num_images, fs_cont.num_images - num_tiles  )
         del L
+
+    def test_NewFromFileOfFiles( self ):
+        """Pulls in the lymphoma eosin histology 5x6 tiled featureset via sigfiles."""
+
+        # Inflate the zipped test fit into a temp file
+        import zipfile
+        zipped_file_path = pychrm_test_dir + sep + 'lymphoma_t5x6_10imgseach_SIGFILES.zip'
+        zf1 = zipfile.ZipFile( zipped_file_path, mode='r' )
+        tempdir = mkdtemp()
+        zf1.extractall( tempdir )
+
+        # for comparison:
+        zf2 = zipfile.ZipFile( pychrm_test_dir + sep + 'lymphoma_t5x6_10imgseach.fit.zip', mode='r')
+        zf2.extractall( tempdir )
+
+        try:
+            kwargs = {}
+            kwargs['pathname'] = tempdir + sep + 'lymphoma_t5x6_10imgseach.fof'
+            kwargs['options'] = '-l'
+            kwargs['tile_options'] = (5,6)
+            fs_fof = FeatureSet_Discrete.NewFromFileOfFiles( **kwargs )
+
+            kwargs['pathname'] = tempdir + sep + 'lymphoma_t5x6_10imgseach.fit'
+            fs_fit = FeatureSet_Discrete.NewFromFitFile( **kwargs )
+
+            # Fit file has less significant figures than Signature files, and it's not
+            # consistent how many there are. Seems like fit file just lops off numbers
+            # at the end. Example: (signatures on top, fit on bottom)
+            #
+            # Example:
+            # -  17.232246,  # sig
+            # ?         --
+            #
+            # +  17.2322,    # fit
+            # -  -63.549056, # sig
+            # ?         ^^^
+            #
+            # +  -63.5491,   # fit
+            # ?         ^
+            #
+            # -  223.786977, # sig
+            # ?        ---
+            #
+            # +  223.787,    # fit
+
+            # default is rtol=1e-07, atol=0
+            np.testing.assert_allclose( actual=fs_fit.data_matrix, desired=fs_fof.data_matrix,
+                    rtol=5e-06, atol=0 )
+
+            fs_fof.Print(verbose=True)
+
+        finally:
+            rmtree( tempdir )
 
 if __name__ == '__main__':
     unittest.main()
