@@ -56,3 +56,15 @@ _autosave*
 *.lai
 *.la
 *.a
+
+# Stuff generated during configure/build
+*.0
+autom4te.cache/requests
+pychrm/pychrm.py
+pychrm/swig/pychrm_wrap.cpp
+.dirstamp
+
+# Sigs calculated during tests
+tests/wndchrm_tests/images/binuc/*.sig
+tests/wndchrm_tests/images/norm/*.sig
+tests/wndchrm_tests/test-images-sigs-l.fit
