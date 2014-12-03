@@ -1824,7 +1824,7 @@ class FeatureSet( object ):
 
 		# Finally, alternating lines of features and paths to sample original file (tif or sig)
 		for i, sample_name in enumerate( self._contiguous_samplenames_list ):
-			self.data_matrix[i].tofile( fit, sep=' ' )
+			self.data_matrix[i].tofile( fit, sep=' ', format='%g' )
 			# add class index of sample to end of features line
 			fit.write( ' ' + class_indices[i] + '\n' )
 			fit.write( sample_name + '\n' )
