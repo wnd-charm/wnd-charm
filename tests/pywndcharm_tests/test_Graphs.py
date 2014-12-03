@@ -47,6 +47,7 @@ try:
 except ImportError:
     HasMatplotlib = False
 
+@unittest.skip("Skip Graph test suite until merge Tiling branch w/ matplotlib version independent tests.")
 class TestGraphs( unittest.TestCase ):
     """Test WND-CHARM's graph-making functionality."""
     

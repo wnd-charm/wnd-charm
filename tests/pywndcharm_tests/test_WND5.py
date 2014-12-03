@@ -48,16 +48,18 @@ class TestWND5Classification( unittest.TestCase ):
 
 	# Here are the correct values that Python API needs to return:
 	# wndchrm classify -l -f1.0 test-l.fit t1_s01_c05_ij.tif 
-	# t1_s01_c05_ij.tif	2.09e-27	0.047	0.953	*	4cell	3.906
-	# wndchrm classify -l -f0.14765 test-l.fit t1_s01_c05_ij.tif
-	# t1_s01_c05_ij.tif	4.29e-27	0.039	0.961	*	4cell	3.923
+	# t1_s01_c05_ij.tif	1.6e-27	0.083	0.917	*	4cell	3.835
+        # wndchrm classify -l -f0.14765 test-l.fit t1_s01_c05_ij.tif
+	# t1_s01_c05_ij.tif	3.23e-27	0.076	0.924	*	4cell	3.848
 	# wndchrm classify -l -f0.0685 test-l.fit t1_s01_c05_ij.tif
-	# t1_s01_c05_ij.tif	9.05e-27	0.032	0.968	*	4cell	3.936
+	# t1_s01_c05_ij.tif	7.05e-27	0.069	0.931	*	4cell	3.862
 
 	correct_marg_probs = {}
-	correct_marg_probs[2919] = [0.047, 0.953]
-	correct_marg_probs[431] = [0.039, 0.961]
-	correct_marg_probs[200] = [0.032, 0.968]
+	correct_marg_probs[2919] = [0.083, 0.917]
+	correct_marg_probs[431] = [0.076, 0.924]
+	#correct_marg_probs[200] = [0.044, 0.956]
+        # slight difference in marg probs due to my use of round() below
+	correct_marg_probs[200] = [0.069, 0.931]
 
 	# Load the original files once and only once for all this class's tests
 	feature_set = FeatureSet_Discrete.NewFromFitFile( test_fit_path )
@@ -76,8 +78,7 @@ class TestWND5Classification( unittest.TestCase ):
 		result = DiscreteImageClassificationResult.NewWND5( feat_set, weights, sample )
 		result_marg_probs = [ round( val, 3 ) \
 				for val in result.marginal_probabilities ]
-		for target_val, res_val in zip( self.correct_marg_probs[ num_feats ], result_marg_probs ):
-			self.assertAlmostEqual( target_val, res_val, delta=self.epsilon )
+		self.assertSequenceEqual( self.correct_marg_probs[ num_feats ], result_marg_probs )
 
 	# --------------------------------------------------------------------------
 	def test_WND5_all_features( self ):
