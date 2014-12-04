@@ -79,13 +79,14 @@ import logging
 Algorithms = []
 Transforms = []
 # The numbers *must* be consistent with what's defined in wndchrm C-codebase.
-feature_vector_major_version = 2
+# Feature Vector revved to v3.x on 20141201 due to issue 39
+feature_vector_major_version = 3
 # Feature vector lengths in current version
 # #define NUM_LC_FEATURES  4059
 # #define NUM_L_FEATURES   2919
 # #define NUM_C_FEATURES   2199
 # #define NUM_DEF_FEATURES 1059
-# These are definitions for Version 2 features.
+# These are definitions for Version 2 and 3 features.
 feature_vector_minor_version_from_num_features = {
 	1059:1,
 	2919:2,
@@ -2422,7 +2423,7 @@ Y 	Y 	R 	R 	N 	balanced training and test sets, as above but with 75-25 default 
 			if self.feature_vector_version:
 				test_set.feature_vector_version = self.feature_vector_version
 			else:
-				test_set.feature_vector_version = '2.0'
+				test_set.feature_vector_version = '3.0'
 			if self.interpolation_coefficients != None and len( self.interpolation_coefficients ) != 0:
 				test_set.interpolation_coefficients = self.interpolation_coefficients
 

@@ -83,7 +83,7 @@ int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec) {
 	int matr4moments_index;
 	int vec_count=0;
 	readOnlyPixels pix_plane = Im.ReadablePixels();
-	long step;
+	double step,m_pos;
 	Moments4 tmpMoments;
 	for (a = 0; a < 4; a++)    /* initialize */
 		for (matr4moments_index = 0; matr4moments_index < N_COMB_SAMPLES; matr4moments_index++)
@@ -111,10 +111,11 @@ int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec) {
 	m2 = (int)(round(m/2));
 
 	/* major diag -45 degrees */
-	matr4moments_index=0;
-	step = (int)(round((double)m/10));
-	if (step < 1) step = 1;
-	for (ii = 1-m; ii <= m; ii = ii+step) {
+	matr4moments_index = 0;
+	step = (double)m / 10.0;
+	if (step < 1.0) step = 1.0;
+	for (m_pos = 1.0 - m; m_pos <= m; m_pos += step) {
+		ii = round (m_pos);
 		for (a = 0; a < 4; a++) matr4moments[a][matr4moments_index]=z4[a];
 
 		tmpMoments.reset();
@@ -137,10 +138,11 @@ int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec) {
 		for (x = 0; x < n; x++)
 			J1[x][y] = J[n-1-x][y];
 
-	matr4moments_index=0;
-	step = (int)(round((double)m/10));
-	if (step < 1) step = 1;
-	for (ii = 1-m; ii <= m; ii = ii+step) {
+	matr4moments_index = 0;
+	step = (double)m / 10.0;
+	if (step < 1.0) step = 1.0;
+	for (m_pos = 1.0 - m; m_pos <= m; m_pos += step) {
+		ii = round (m_pos);
 		for (a = 0; a < 4; a++) matr4moments[a][matr4moments_index]=z4[a];
 
 		tmpMoments.reset();
@@ -158,10 +160,11 @@ int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec) {
 	vec_count=matr4moments_to_hist(matr4moments,vec,vec_count);
 
 	/* vertical comb */
-	matr4moments_index=0;
-	step = (int)(round((double)n/10));
-	if (step < 1) step = 1;
-	for (ii = 1-n; ii <= n; ii = ii+step) {
+	matr4moments_index = 0;
+	step = (double)m / 10.0;
+	if (step < 1.0) step = 1.0;
+	for (m_pos = 1.0 - m; m_pos <= m; m_pos += step) {
+		ii = round (m_pos);
 		for (a = 0; a < 4; a++) matr4moments[a][matr4moments_index]=z4[a];
 
 		tmpMoments.reset();
@@ -179,10 +182,11 @@ int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec) {
 	vec_count=matr4moments_to_hist(matr4moments,vec,vec_count);
 
 	/* horizontal comb */
-	matr4moments_index=0;
-	step = (int)(round((double)m/10));
-	if (step < 1) step = 1;
-	for (ii = 1-m; ii <= m; ii = ii+step) {
+	matr4moments_index = 0;
+	step = (double)m / 10.0;
+	if (step < 1.0) step = 1.0;
+	for (m_pos = 1.0 - m; m_pos <= m; m_pos += step) {
+		ii = round (m_pos);
 		for (a = 0; a < 4; a++) matr4moments[a][matr4moments_index] = z4[a];
 
 		tmpMoments.reset();
