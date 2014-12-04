@@ -102,26 +102,26 @@ sub compareClassifications {
 # ======================================================================
 sub getExpectedClassifications  {
 my $expected_out = <<END;
-train/2cell/t54_s12_c04_ij.tif	9.3e-27	0.966	0.034	2cell	2cell	2.068
-train/2cell/t54_s12_c06_ij.tif	8.7e-27	0.989	0.011	2cell	2cell	2.021
-train/2cell/t54_s12_c08_ij.tif	4.54e-27	0.838	0.162	2cell	2cell	2.324
-train/2cell/t54_s12_c11_ij.tif	9.88e-27	0.983	0.017	2cell	2cell	2.033
-train/2cell/t55_s03_c03_ij.tif	1.01e-26	0.922	0.078	2cell	2cell	2.156
-train/2cell/t55_s05_c09_ij.tif	6.31e-27	0.976	0.024	2cell	2cell	2.048
-train/2cell/t55_s05_c12_ij.tif	6.04e-27	0.993	0.007	2cell	2cell	2.014
-train/2cell/t55_s10_c11_ij.tif	1.15e-27	0.912	0.088	2cell	2cell	2.176
-train/2cell/t60_s02_c10_ij.tif	6.64e-28	0.878	0.122	2cell	2cell	2.244
-train/2cell/t60_s02_c11_ij.tif	2.18e-27	0.969	0.031	2cell	2cell	2.063
-train/4cell/t130_s05_c06_ij.tif	2.39e-26	0.002	0.998	4cell	4cell	3.996
-train/4cell/t130_s05_c09_ij.tif	2.29e-26	0.016	0.984	4cell	4cell	3.967
-train/4cell/t130_s07_c08_ij.tif	1.15e-26	0.009	0.991	4cell	4cell	3.983
-train/4cell/t130_s07_c11_ij.tif	1.49e-26	0.032	0.968	4cell	4cell	3.936
-train/4cell/t130_s08_c05_ij.tif	2.5e-26	0.001	0.999	4cell	4cell	3.997
-train/4cell/t130_s09_c07_ij.tif	3.32e-26	0.007	0.993	4cell	4cell	3.986
-train/4cell/t130_s10_c01_ij.tif	2.74e-26	0.008	0.992	4cell	4cell	3.983
-train/4cell/t138_s03_c02_ij.tif	1.35e-26	0.006	0.994	4cell	4cell	3.988
-train/4cell/t140_s01_c10_ij.tif	1.78e-26	0.022	0.978	4cell	4cell	3.956
-train/4cell/t140_s04_c01_ij.tif	3.74e-26	0.015	0.985	4cell	4cell	3.970
+train/2cell/t54_s12_c04_ij.tif	1.36e-26	0.970	0.030	2cell	2cell	2.060
+train/2cell/t54_s12_c06_ij.tif	1.48e-26	0.992	0.008	2cell	2cell	2.016
+train/2cell/t54_s12_c08_ij.tif	4.41e-27	0.813	0.187	2cell	2cell	2.374
+train/2cell/t54_s12_c11_ij.tif	8.7e-27	0.981	0.019	2cell	2cell	2.038
+train/2cell/t55_s03_c03_ij.tif	8.83e-27	0.913	0.087	2cell	2cell	2.174
+train/2cell/t55_s05_c09_ij.tif	5.75e-27	0.973	0.027	2cell	2cell	2.054
+train/2cell/t55_s05_c12_ij.tif	7.05e-27	0.993	0.007	2cell	2cell	2.015
+train/2cell/t55_s10_c11_ij.tif	1.25e-27	0.926	0.074	2cell	2cell	2.148
+train/2cell/t60_s02_c10_ij.tif	5.95e-28	0.846	0.154	2cell	2cell	2.308
+train/2cell/t60_s02_c11_ij.tif	2.6e-27	0.970	0.030	2cell	2cell	2.060
+train/4cell/t130_s05_c06_ij.tif	3.8e-26	0.001	0.999	4cell	4cell	3.997
+train/4cell/t130_s05_c09_ij.tif	2.48e-26	0.014	0.986	4cell	4cell	3.973
+train/4cell/t130_s07_c08_ij.tif	1.45e-26	0.009	0.991	4cell	4cell	3.982
+train/4cell/t130_s07_c11_ij.tif	1.76e-26	0.040	0.960	4cell	4cell	3.920
+train/4cell/t130_s08_c05_ij.tif	4.23e-26	0.001	0.999	4cell	4cell	3.998
+train/4cell/t130_s09_c07_ij.tif	2.54e-26	0.010	0.990	4cell	4cell	3.981
+train/4cell/t130_s10_c01_ij.tif	3.11e-26	0.006	0.994	4cell	4cell	3.988
+train/4cell/t138_s03_c02_ij.tif	1.47e-26	0.004	0.996	4cell	4cell	3.991
+train/4cell/t140_s01_c10_ij.tif	2.42e-26	0.020	0.980	4cell	4cell	3.959
+train/4cell/t140_s04_c01_ij.tif	4.48e-26	0.011	0.989	4cell	4cell	3.978
 END
 
 	return ( split (/\n/,$expected_out) );
