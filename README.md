@@ -17,6 +17,11 @@ The wndchrm utility is an implementation of the WND-CHARM algorithm described he
 
 [Orlov N, Shamir L, Macura T, Johnston J, Eckley DM, Goldberg IG. WND-CHARM: Multi-purpose image classification using compound image transforms](http://ome.grc.nia.nih.gov/wnd-charm/PRL_2008.pdf). Pattern Recognition Letters. 29(11): 1684-93, 2008.
 
+
+## Current Release
+
+The current release of the wndchrm command-line utility is  version 1.52, available here: [wndchrm-1.52.774.tar.gz](http://ome.grc.nia.nih.gov/wnd-charm/wndchrm-1.52.774.tar.gz)
+
 ## Supported Platforms
 
 WND-CHARM should compile and run on any POSIX-compliant operating system. It has been tested on Linux (Ubuntu 12.04 w/ GCC 4.6, CentOS 6.3 w/ GCC 4.4) and Mac OS X (<=10.7 w/ GCC 4.2, with experimental support for 10.9 Mavericks w/ `clang` compiler).
