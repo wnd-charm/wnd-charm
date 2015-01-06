@@ -8,22 +8,21 @@ def TranslateToNewStyle( old_name_list ):
     "Feature DistHist" ... See http://code.google.com/p/wnd-charm/issues/detail?id=35
 	"""
 	global name_dict
-	new_name_list = []
+	new_name_list = [None] * len( old_name_list )
 
 	FeatureDistHist_count = 0
-	for old_name in old_name_list:
+	for i, old_name in enumerate( old_name_list ):
 		if old_name == "Feature DistHist":
 			old_name = "FeatureDistHist Bin{0}".format( FeatureDistHist_count )
 			FeatureDistHist_count += 1
 		if old_name in name_dict:
-			new_name_list.append( name_dict[ old_name ] )
+			new_name_list[i] = name_dict[ old_name ]
 		else:
-			new_name_list.append( old_name )
+			new_name_list[i] = old_name
 	return new_name_list
 
 #=================================================================================
 def InitializeThisModule():
-
 
 	global name_dict
 	name_dict[ "Chebishev Statistics bin 0 ()" ]                                     = "Chebyshev Coefficients () [0]"

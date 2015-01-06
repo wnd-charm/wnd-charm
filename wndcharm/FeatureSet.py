@@ -21,58 +21,11 @@
                                                                                
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  Written by:  Christopher Coletta <christopher.coletta [at] nih [dot] gov>
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"""
 
-
-Pychrm TODO (in no particular order):
-* Implement multiprocessing
-* Implement kernel classifier
-* Implement database hookup
-* OMERO integration
-* Use scipy.optimize.curve_fit (http://www.scipy.org/Cookbook/FittingData) to
-  further refine continuous classifiers.
-* Implement dendrogram using scipy.cluster or Biopython.Phylo, including the ability
-  to create dendrograms for individual images as well as entire image classes.
-* Classify images against multiple classifiers, e.g., filter for confluence, then classify.
-* Break out classes into their own modules.
-* Generate documantation, getting started, tutorials, examples.
-  Use some model-building module to map out object model (Pylint/Pyreverse)
-* Migrate over to using the unittest module, and check in unit test related files 
-* Implement Channels.
-* Replace/optimize current slow implementation of Chebyshev coefficients
-  which is the biggest pig of the algorithms
-* Feature family analysis. how to get highest accuracy using least amount of feature groups:
-* Leave one out analysis
-* Wndchrm backend c++ cleanup - potential use of ctypes to facilitate shared memory,
-  construction of new sharable ImageMatrix's.
-* Import feature calculation modules only if required
-* Implement ability to define continuous classification bin walls, based on which
-  classification (i.e., predicted value) can be called "correct" or "incorrect"
-  and consequently confusion/similarity matrices can be built.
-* Add ability to remove sample/image/time by specifying name or index
-"""
-
-# ===========================================================
-# The following are some Pychrm-specific module imports:
-
-# wndcharm.py has the definitions of all the SWIG-wrapped primitive
-# C++ WND_CHARM objects.
+# wndcharm.py has the definitions of all the SWIG-wrapped primitive C++ WND_CHARM objects.
 import wndcharm
-
-# ============================================================
-# Imports from Python core or other installed packages
 import numpy as np
-try:
-	import cPickle as pickle
-except:
-	import pickle
-
-import os
-import os.path 
-import itertools
-import copy
-import logging
-
 
 # ============================================================
 # BEGIN: Initialize module level globals
@@ -121,14 +74,13 @@ feature_vector_num_features_from_vector_type = {
 error_banner = "\n*************************************************************************\n"
 
 def initialize_module(): 
-	"""If you're going to calculate any signatures, you need this stuff.
+	"""If you're going to calculate any features, you need this stuff.
 	FIXME: Rig this stuff to load only on demand."""
 	
 	global Algorithms
 	global Transforms
 	# The verbosity is set by the environment variable WNDCHRM_VERBOSITY, in wndchrm_error.cpp
 	# wndcharm.cvar.verbosity = 7
-
 
 	# These are the auto-registered ComputationTasks, which come in different flavors
 	all_tasks = wndcharm.ComputationTaskInstances.getInstances()
@@ -206,7 +158,7 @@ def output_railroad_switch( method_that_prints_output ):
 
 	return print_method_wrapper
 
-def normalize_by_columns ( full_stack, mins = None, maxs = None ):
+def normalize_by_columns ( full_stack, mins=None, maxs=None ):
 	"""This is a global function to normalize a matrix by columns.
 	If numpy 1D arrays of mins and maxs are provided, the matrix will be normalized against these ranges
 	Otherwise, the mins and maxs will be determined from the matrix, and the matrix will be normalized
@@ -339,54 +291,10 @@ class SampleImageTiles (object):
 
 
 #############################################################################
-# class definition of FeatureVector
-#############################################################################
-class FeatureVector(object):
-	"""A FeatureVector is simply a list of doubles and a list of corresponding strings (i.e., names).
-	The lengths of the two lists must always be equal. A FeatureVector may be rendered 
-	corrupted if the order of one list is changed but not the other. In the future,
-	we might consider Python tuples instead of Python lists to store data since 
-	tuples are immutable."""
-
-	names = None
-	values = None
-	#================================================================
-	def __init__( self, data_dict = None):
-		"""@brief: constructor"""
-
-		self.names = []
-		self.values = []
-
-		if data_dict:
-			if "values" in data_dict:
-				self.values = data_dict[ "values" ]
-			if "names" in data_dict:
-				self.names = data_dict[ "names" ]
-	#================================================================
-	def isvalid( self ):
-		"""@brief: an instance should know all the criteria for being a valid FeatureVector"""
-		if len( self.values ) != len( self.names ):
-			raise RuntimeError( "Instance of {0} is invalid: ".format( self.__class__ ) + \
-			  "different number of values ({0}) and names ({1}).".format( \
-			  len( self.values ), len( self.names ) ) )
-		return True
-	#================================================================
-	def __len__( self ):
-		assert len( self.values ) == len( self.names )
-		return len( self.values )
-
-	#==============================================================
-	def __repr__( self ):
-		outstr = '<' +str( self.__class__.__name__ ) + ' '
-		outstr += 'n_values=' + str( len( self.values ) ) + '>'
-		return outstr
-
-
-#############################################################################
 # class definition of FeatureWeights
 #############################################################################
-class FeatureWeights( FeatureVector ):
-	"""FeatureWeights is an abstract base class inheriting from "FeatureVector"
+class FeatureWeights( object ):
+	"""FeatureWeights is an abstract base class
 	that comprises one-half of a WND-CHARM classifier (the other being a FeatureSet).
 	
 	It is a list of strings which are the names of
@@ -397,13 +305,15 @@ class FeatureWeights( FeatureVector ):
 	those features which provide distinctiveness across classes and ignore noisy features.
 	Thus any instance of a FeatureWeights class is context-specific."""
 
-	name = None
-	associated_training_set = None
-
-	def __init__( self, data_dict = None, name = None ):
-		# call parent constructor
-		super( FeatureWeights, self ).__init__( data_dict )
+	def __init__( self, name=None, size=None ):
 		self.name = name
+		self.associated_training_set = None
+		if size is not None:
+			self.names = [None] * size
+			self.values = [None] * size
+		else:
+			self.names = None
+			self.values = None
 
 	#================================================================
 	@classmethod
@@ -424,48 +334,10 @@ class FeatureWeights( FeatureVector ):
 		raise NotImplementedError
 
 	#================================================================
-	def PickleMe( self, pathname = None ):
-		"""Creates a Python pickle of this class and saves it to a file specified by pathname"""
-
-		outfile_pathname = ""
-		if pathname != None:
-			outfile_pathname = pathname
-		else:
-			outfile_pathname = "feature_weights_len_{0}.weights.pickled".format( len( self.names ) )
-
-		if os.path.exists( outfile_pathname ):
-			print "Overwriting {0}".format( outfile_pathname )
-		else:
-			print "Writing {0}".format( outfile_pathname )
-		with open( outfile_pathname, 'wb') as outfile:
-			pickle.dump( self.__dict__, outfile, pickle.HIGHEST_PROTOCOL )
-
-  #=================================================================================
-	@classmethod
-	def NewFromPickleFile( cls, pathname ):
-		"""
-		The pickle is in the form of a dict
-		"""
-		path, filename = os.path.split( pathname )
-		if filename == "":
-			raise ValueError( 'Invalid pathname: {0}'.format( pathname ) )
-
-		if not filename.endswith( ".weights.pickled" ):
-			raise ValueError( "File isn't named with .weights.pickled extension: {0}".format( pathname ) )
-
-		print "Loading feature weights from pickled file {0}".format( pathname )
-		weights = None
-		with open( pathname, "rb" ) as pkled_in:
-			weights = cls( pickle.load( pkled_in ) )
-
-		return weights
-
-	#================================================================
 	@output_railroad_switch
 	def Print( self ):
 		"""@breif Prints out feature values and statistics"""
 		raise NotImplementedError
-
 
 
 #############################################################################
@@ -483,23 +355,31 @@ class FisherFeatureWeights( FeatureWeights ):
 	groups or bins for the training images.
 	"""
 
-	def __init__( self, data_dict = None, name = None):
+	def __init__( self, name=None, size=None ):
 		"""Simply calls parent constructor"""
-		super( FisherFeatureWeights, self ).__init__( data_dict, name )
-
+		super( FisherFeatureWeights, self ).__init__( name=name, size=size )
 
 	#================================================================
 	@classmethod
 	def NewFromFile( cls, weights_filepath ):
 		"""Written to read in files created by wndchrm -vw/path/to/weightsfile.txt"""
 
-		weights = cls()
-		with open( weights_filepath, 'r' ) as weights_file:
-			for line in weights_file:
-				# split line "number <space> name"
-				feature_line = line.strip().split(None, 1 )
-				weights.values.append( float( feature_line[0] ) )
-				weights.names.append( wndcharm.FeatureNames.getFeatureInfoByName (feature_line[1]).name )
+		weights = cls( name=weights_filepath )
+		with open( weights_filepath ) as weights_file:
+			# split line "number <space> name"
+			raw_vals, raw_names = \
+			  zip( *[ line.strip().split( None, 1 ) for line in weights_file.read().splitlines() ] )
+
+		weights.values = [ float( val ) for val in raw_vals ]
+		weights.names = [None] * len( raw_names )
+
+		for i, name_raw_str in enumerate( raw_names ):
+			# getFeatureInfoByName does some checking, returns a None if it can't parse it
+			retval = wndcharm.FeatureNames.getFeatureInfoByName( name )
+			if retval:
+				weights.names[i] = retval.name
+			else:
+				weights.names[i] = name_raw_str
 
 		return weights
 
@@ -561,7 +441,7 @@ class FisherFeatureWeights( FeatureWeights ):
 		#     0./0. = nan,  nan/0. = nan, 0/nan = nan, nan/nan = nan, nan/inf = nan, inf/nan = nan
 		# We can't deal with NANs only, must also deal with pos/neg infs
 		# The masked array allows for dealing with "invalid" floats, which includes nan and +/-inf
-		denom = np.mean( intra_class_variances, axis = 0 )
+		denom = np.mean( intra_class_variances, axis=0 )
 		denom[denom == 0] = np.nan
 		feature_weights_m =  np.ma.masked_invalid (
 			( np.square( population_means - intra_class_means ).sum( axis = 0 ) /
@@ -569,7 +449,6 @@ class FisherFeatureWeights( FeatureWeights ):
 		    )
 		# return numpy error settings to original
 		np.seterr(**oldsettings)
-
 
 		new_fw = cls()
 		new_fw.names = training_set.featurenames_list[:]
@@ -695,26 +574,26 @@ class ContinuousFeatureWeights( FeatureWeights ):
 
 	An example system where a continuous classifier could be used could be
 	would be defining a spectrum of morphology across age or dose response."""
-
-	slopes = None
-	intercepts = None
-	pearson_coeffs = None
-	pearson_stderrs = None
-	pearson_p_values = None
-	spearman_coeffs = None
-	spearman_p_values = None
 	
-	def __init__( self, data_dict = None ):
+	def __init__( self, name=None, size=None ):
 		"""Constructor"""
-		super( ContinuousFeatureWeights, self ).__init__( data_dict )
-		self.slopes = []
-		self.intercepts = []
-		self.pearson_coeffs = []
-		self.pearson_stderrs = []
-		self.pearson_p_values = []
-		self.spearman_coeffs = []
-		self.spearman_p_values = []
-
+		super( ContinuousFeatureWeights, self ).__init__( name=name, size=size )
+		if size is not None:
+			self.slopes = [None] * size
+			self.intercepts = [None] * size
+			self.pearson_coeffs = [None] * size
+			self.pearson_stderrs = [None] * size
+			self.pearson_p_values = [None] * size
+			self.spearman_coeffs = [None] * size
+			self.spearman_p_values = [None] * size
+		else:
+			self.slopes = None
+			self.intercepts = None
+			self.pearson_coeffs = None
+			self.pearson_stderrs = None
+			self.pearson_p_values = None
+			self.spearman_coeffs = None
+			self.spearman_p_values = None
 
 	#================================================================
 	@classmethod
@@ -733,33 +612,34 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		# back to normal at the end. -CEC
 		np.seterr (under='ignore')
 
-		matrix = training_set.data_matrix
-		#FIXME: maybe add some dummyproofing to constrain incoming array size
-
-		new_fw = cls()
-
-		new_fw.associated_training_set = training_set
 		if training_set.source_path:
-			new_fw.name = cls.__name__ + ' from training set "' + training_set.source_path + '"'
+			name = cls.__name__ + ' from training set "' + training_set.source_path + '"'
+		else:
+			name = None
+
+		new_fw = cls( name=name, size=training_set.num_features )
+		new_fw.associated_training_set = training_set
 
 		#r_val_sum = 0
 		r_val_squared_sum = 0
 		#r_val_cubed_sum = 0
 
-		ground_truths = np.array( [float(val) for val in training_set.ground_truths] )
+		ground_truths = np.array( [ float(val) for val in training_set.ground_truths ] )
+
+		new_fw.names = training_set.featurenames_list[:]
 
 		for feature_index in range( training_set.num_features ):
-			feature_values = matrix[:,feature_index]
+
+			feature_values = training_set.data_matrix[ :, feature_index ]
 
 			slope, intercept, pearson_coeff, p_value, std_err = \
 			             linregress( ground_truths, feature_values )
 
-			new_fw.names.append( training_set.featurenames_list[ feature_index ] )
-			new_fw.pearson_coeffs.append( pearson_coeff )
-			new_fw.slopes.append( slope )
-			new_fw.intercepts.append( intercept )
-			new_fw.pearson_stderrs.append( std_err )
-			new_fw.pearson_p_values.append( p_value )
+			new_fw.pearson_coeffs[ feature_index ] = pearson_coeff
+			new_fw.slopes[ feature_index ] = slope
+			new_fw.intercepts[ feature_index ] = intercept
+			new_fw.pearson_stderrs[ feature_index ] = std_err
+			new_fw.pearson_p_values[ feature_index ] = p_value
 
 			#from math import fabs
 			#r_val_sum += fabs(pearson_coeff)
@@ -772,8 +652,8 @@ class ContinuousFeatureWeights( FeatureWeights ):
 				# to avoid: "FloatingPointError: invalid value encountered in true_divide"
 				spearman_coeff, spearman_p_val = ( 0, 1 )
 
-			new_fw.spearman_coeffs.append( spearman_coeff )
-			new_fw.spearman_p_values.append( spearman_p_val )
+			new_fw.spearman_coeffs[ feature_index ] = spearman_coeff
+			new_fw.spearman_p_values[ feature_index ] = spearman_p_val
 
 		#new_fw.values = [ fabs(val) / r_val_sum for val in new_fw.pearson_coeffs ]
 		new_fw.values = [val*val / r_val_squared_sum for val in new_fw.pearson_coeffs ]
@@ -824,7 +704,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		# sort from max to min
 		sorted_featureweights = sorted( raw_featureweights, key=lambda r: r[0], reverse = True )
 		
-		# take most correllated features, both positive and negative
+		# take most correlated features, both positive and negative
 		if min_corr_coeff is not None:
 			try:
 				val = abs( float( min_corr_coeff ) )
@@ -869,7 +749,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		return new_weights
 
 	#================================================================
-	def Slice( self, start_index, stop_index):
+	def Slice( self, start_index, stop_index ):
 		"""Return a new instance of ContinuousFeatureWeights populated with a
 		chunk of middle-ranked features specified by arguments start_index and stop_index."""
 		
@@ -914,7 +794,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 
 	#================================================================
 	@output_railroad_switch
-	def Print( self, print_legend = True ):
+	def Print( self, print_legend=True ):
 		"""@brief Prints out feature values and statistics"""
 
 		header_str = "Continuous feature weight set"
@@ -952,321 +832,14 @@ class ContinuousFeatureWeights( FeatureWeights ):
 
 
 #############################################################################
-# class definition of Signatures
-#############################################################################
-class Signatures( FeatureVector ):
-	"""
-	Signatures is a concrete class inheriting from FeatureVector
-	that contains the image descriptor values, a.k.a. "Signatures", 
-	for a single image or ROI. It is the values contained in 
-	Signatures that are grouped together to form FeatureSets.
-
-	This class is mostly agnostic w.r.t. the types of image descriptors contained herein.
-	Previous implementations of WND-CHARM have defined a "small feature set" of
-	1025 specific image descriptors as well as a "large feature set" of 2885 features.
-	These specific lists have been preserved here for convenience and interchangeability.
-	"""
-
-	# in the future, signatures can be loaded from be from a database as well.
-	source_file = None
-	path_to_image = None
-	path_to_sigfile = None
-
-	#: Captures some of the image descriptor meta-data, such as whether we
-	#: used the large feature set to generate these features ("-l")
-
-	options = ""
-	version = ""
-
-	#================================================================
-	def __init__( self ):
-		"""@brief: constructor"""
-
-		# call parent constructor
-		super( Signatures, self ).__init__()
-
-	#================================================================
-	@classmethod
-	def NewFromTiffFile( cls, imagepath, options="-l" ):
-		"""@brief Loads precalculated sigs, or calculates new ones
-
-		This function is meant to be the quarterback in deciding what sig
-		loading function is called.
-		@argument path - path to a tiff file
-		@return An instance of the class Signatures for image with sigs calculated."""
-
-		if options == "-l":
-			return cls.LargeFeatureSet( imagepath, options.replace( "-l", "" ) )
-		else:
-			return cls.SmallFeatureSet( imagepath, options )
-		# FIXME: else if a feature list or feature group list were specified...
-
-	#================================================================
-	@classmethod
-	def SmallFeatureSet( cls, imagepath, options = None ):
-		"""@brief Equivalent of invoking wndchrm train in c-chrm
-		@argument path - path to a tiff file
-		@return An instance of the class Signatures for image with sigs calculated."""
-
-		print "====================================================================="
-		print "Calculating small feature set for file:"
-		feature_plan = wndcharm.StdFeatureComputationPlans.getFeatureSet ();
-		the_sigs = cls.NewFromFeatureComputationPlan( imagepath, feature_plan, options )
-		the_sigs.version = str (feature_vector_major_version)+"."+str(feature_plan.feature_vec_type)
-
-		return the_sigs
-
-	#================================================================
-	@classmethod
-	def LargeFeatureSet( cls, imagepath, options = None ):
-		"""@brief Equivalent of invoking wndchrm train -l in c-chrm
-		@argument path - path to a tiff file
-		@return An instance of the class Signatures for image with sigs calculated."""
-
-		the_sigs = cls()
-
-		# Try to find a file that corresponds to this image with signatures in it.
-		# derive the name of the sig/pysig file that would exist if there were one
-		# given the options requested
-
-		sigpath = None
-		root, extension = os.path.splitext( imagepath )
-		options_str = options if options else ""
-		if not "-l" in options_str:
-			options_str += "-l"
-
-		read_in_sig_file = False
-		if os.path.exists( root + options_str + ".pysig" ):
-			sigpath = root + options_str + ".pysig"
-			read_in_sig_file = True
-		elif os.path.exists( root + options_str + ".sig" ):
-			sigpath = root + options_str + ".sig" 
-			read_in_sig_file = True
-		else:
-			sigpath = root + options_str + ".pysig"
-
-		if read_in_sig_file:
-			print "{0}: reading in signature from file: {1}".format( imagepath, sigpath )
-			the_sigs = cls.NewFromSigFile( sigpath, imagepath, options_str )
-
-		# Check to see what, if anything was loaded from file. The file could be corrupted
-		# incomplete, or calculated with different options, e.g., -S1441
-		# FIXME: Here's where you'd calculate a small subset of features
-		# and see if they match what was loaded from file
-		feature_plan = wndcharm.StdFeatureComputationPlans.getFeatureSetLong ()
-		if len( the_sigs.names ) <= 0:
-			# All hope is lost. Calculate sigs
-			print "Calculating large feature set for file: {0}".format( imagepath )
-			if options == None:
-				the_sigs = cls.NewFromFeatureComputationPlan( imagepath, feature_plan, "-l" )
-				the_sigs.version = str (feature_vector_major_version)+"."+str(feature_plan.feature_vec_type)
-			else:
-				# FIXME: dummyproofing: does options already contain '-l'?
-				the_sigs = cls.NewFromFeatureComputationPlan( imagepath, feature_plan, options + "-l" )
-				the_sigs.version = str (feature_vector_major_version)+"."+str(feature_plan.feature_vec_type)
-
-		# Compare the number of features to the expected length for this type of feature vector
-		elif len( the_sigs.names ) != feature_plan.n_features:
-			# FIXME: Calculate the difference of features between what was loaded
-			# from file, and what is supposed to be present in large feature set
-			# and calculate only those. They might also need to be placed in an order
-			# that makes sense.
-			err_msg = "There are only {0} signatures in file '{1}'".format(
-				len( the_sigs.names ), sigpath )
-			err_msg += "where there are supposed to be {0}.".format (feature_plan.n_features)
-			raise ValueError( err_msg )
-		return the_sigs
-
-	#================================================================
-	@classmethod
-	def NewFromFeatureComputationPlan( cls, image_path_or_mat, computation_plan, options = None ):
-		"""@brief calculates signatures
-		@argument image_path_or_mat - path to a tiff file as a string or a wndcharm.ImageMatrix object
-		"""
-
-		if isinstance (image_path_or_mat, str):
-			path_to_image = image_path_or_mat
-			if not os.path.exists( path_to_image ):
-				raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( path_to_image ) )
-			original = wndcharm.ImageMatrix()
-			if 1 != original.OpenImage( path_to_image, 0, None, 0, 0 ):
-				raise ValueError( 'Could not build an ImageMatrix from {0}, check the file.'.\
-					format( path_to_image ) )
-		elif isinstance (image_path_or_mat, wndcharm.ImageMatrix):
-			original = image_path_or_mat
-			path_to_image = "sample" # should really get this from ImageMatrix
-		else:
-			raise ValueError("image parameter 'image_path_or_mat' is not a string or a wndcharm.ImageMatrix")
-
-		print path_to_image
-
-		# instantiate an empty Signatures object
-		signatures = cls()
-		signatures.source_file = path_to_image
-		signatures.path_to_image = path_to_image
-		signatures.options = options
-
-		# pre-allocate space where the features will be stored (C++ std::vector<double>)
-		tmp_vec = wndcharm.DoubleVector (computation_plan.n_features)
-
-		# get the feature names from the plan
-		for i in range( 0, computation_plan.n_features):
-			signatures.names.append (computation_plan.getFeatureNameByIndex(i))
-
-		# Get an executor for this plan and run it
-		plan_exec = wndcharm.FeatureComputationPlanExecutor(computation_plan)
-		plan_exec.run (original, tmp_vec, 0)
-
-		# convert std::vector<double> to native python list of floats
-		signatures.values = list( tmp_vec )
-
-		# set the version
-		signatures.version = str (feature_vector_major_version)+"."+str(computation_plan.feature_vec_type)
-
-		return signatures
-
-	#================================================================
-	@classmethod
-	def NewFromFeatureNameList( cls, path_to_image, feature_names, options = None ):
-		"""@brief calculates signatures"""
-
-		computation_plan = GenerateComputationPlanFromListOfFeatureStrings( feature_names )
-		sig = cls.NewFromFeatureComputationPlan( path_to_image, computation_plan, options )
-		return sig.FeatureReduce( feature_names )
-
-	#================================================================
-	@classmethod
-	def NewFromSigFile( cls, sigfile_path, image_path=None, options=None, quiet=True ):
-		"""@argument sigfile_path must be a .sig or a .pysig file
-		
-		@return  - An instantiated signature class with feature names translated from
-		           the old naming convention, if applicable.
-		@remarks - old style sig files don't know about their options other than 
-		           the information contained in the name. In the future pysig files
-		           may keep that info within the file. Thus, for now, the argument
-		           options is something set externally rather than gleaned from
-		           reading the file."""
-
-		if sigfile_path == None or sigfile_path == "":
-			raise ValueError( "The path to the signature file to be opened was empty or null. "\
-			                  "Check arguments to the function {0}.NewFromSigFile and try again.".\
-			                  format( cls.__name__ ) )
-		if not sigfile_path.endswith( (".sig", ".pysig" ) ):
-			raise ValueError( "The file {0} isn't a signature file (doesn't end in .sig or .pysig)".\
-			                  format( sigfile_path ) )
-
-		if not quiet:
-			print "Loading features from sigfile {0}".format( sigfile_path )
-
-		signatures = cls()
-		signatures.source_file = sigfile_path
-		signatures.path_to_sigfile = sigfile_path
-		signatures.path_to_image = image_path
-		signatures.options = options
- 
-		with open( sigfile_path ) as infile:
-			lines = infile.read().splitlines()
-
-		# First line is metadata
- 		import re
-		signatures.class_id, signatures.version = \
-		        re.match( '^(\S+)\s*(\S+)?$' , lines[0] ).group( 1, 2 )
-		if signatures.version is None: signatures.version = "1.0"
-
-		# 2nd line is path to original tiff file, just skip
-
-		# Process rest of lines
-		values, names = zip( *[ line.split( None, 1 ) for line in lines[2:] ] )
-		signatures.values = np.fromstring( " ".join( values ), sep=" " )
-
-		signatures.names = [None] * len( names )
-		for i, name in enumerate( names ):
-			#retval = wndcharm.FeatureNames.getFeatureInfoByName( name )
-			#if retval:
-			#	signatures.names[i] = retval.name
-			#else:
-			signatures.names[i] = name
-
-		# Set the minor version to the vector type based on # of features
-		# The minor versions should always specify vector types, but for version 1 vectors,
-		# the version is not written to the file, so it gets read as 0.
-		if( signatures.version == "1.0" ):
-			signatures.version = "1." + str(
-				feature_vector_minor_version_from_num_features_v1.get( len( signatures.values ),0 ) )
-
-		if not quiet:
-			print "Features version from file: {0}".format (signatures.version)
-		return signatures
-
-	#================================================================
-	@classmethod
-	def NewFromPath( cls, path, options=None, quiet=True ):
-		if path.endswith( (".tif", ".tiff", ".TIF", ".TIFF" ) ):
-			return cls.NewFromTiffFile( path, options )
-		elif path.endswith( (".sig", "pysig" ) ):
-			return cls.NewFromSigFile( path, image_path=None, options=options, quiet=quiet )
-		else:
-			raise ValueError( "File {0} isn't a .tif or a .sig file".format( path ) )
-
-	#================================================================
-	def WriteFeaturesToASCIISigFile( self, filepath = None ):
-		"""Write features to a .pysig file, in the same format as a .sig file created 
-		
-		If filepath is specified, you get to name it whatever you want and put it
-		wherever you want. Otherwise, it's named according to convention and placed 
-		next to the image file in its directory."""
-
-		self.isvalid()
-
-		outfile_path = ""
-		if not filepath or filepath == "":
-			if not self.source_file or self.source_file == "":
-				raise ValueError( "Can't write sig file. No filepath specified in function call, and no path associated with this instance of Signatures." )
-			outfile_path = self.source_file
-
-			path, filename = os.path.split( outfile_path )
-			
-			# if the filepath is None, you don't have to check if it exists,
-			# it's gonna be created right here
-			if not filepath == None:
-				if not os.path.exists( path ):
-					raise ValueError( 'Invalid path {0}'.format( path ) )
-
-			filename_parts = filename.rsplit( '.', 1 )
-			if self.options and self.options is not "":
-				outfile_path = "{0}{1}.pysig".format( filename_parts[0],\
-																					self.options if self.options else "" )
-			else:
-				outfile_path = "{0}.pysig".format( filename_parts[0] )
-			outfile_path = os.path.join( path, outfile_path )
-		else:
-			outfile_path = filepath
-
-		if os.path.exists( outfile_path ):
-			print "Overwriting {0}".format( outfile_path )
-		else:
-			print 'Writing signature file "{0}"'.format( outfile_path )
-
-		self.path_to_sigfile = outfile_path
-
-		with open( outfile_path, "w" ) as out_file:
-			# FIXME: line 1 contains class membership and version, just hardcode the class membership for now
-			out_file.write( "0\t{0}\n".format (self.version) )
-			out_file.write( "{0}\n".format( self.source_file ) )
-			for i in range( 0, len( self.names ) ):
-				out_file.write( "{val:0.6f} {name}\n".format( val=self.values[i], name=self.names[i] ) )
-
-# end definition class Signatures
-
-#############################################################################
 # class definition of FeatureGroup
 # N.B.: Now implemented in C++ with the FeatureGroup class (originally in FeatureNames.h/.cpp)
 #############################################################################
 # 
-# 	A FeatureGroup is composed of: 1. A list of transforms to apply 
-# 	sequentially to an input image/ROI/pixel plane, and 2. The algorithm to apply to 
+# 	A FeatureGroup is composed of: 1. A list of transforms to apply
+# 	sequentially to an input image/ROI/pixel plane, and 2. The algorithm to apply to
 # 	that transformed pixel plane which produces the image descriptor values.
-# 
+#
 # 	The member "algorithm" is a reference to the SWIG-wrapped C++ class FeatureAlgorithm.
 # 	The member "transform_list" is a list of references to the SWIG-wrapped C++ class
 # 	FeatureTransform.
@@ -1274,7 +847,7 @@ class Signatures( FeatureVector ):
 # 	following the convention "AlgorithmName ([Transform A ([Transform B (])])."""
 #   e.g.: "Tamura Textures (Wavelet (Edge ()))"
 #   These FeatureGroup names are keys to a static cache of FeatureGroups.
-# 
+#
 #================================================================
 def GenerateComputationPlanFromListOfFeatureStrings( feature_list ):
 	"""Takes list of feature strings and chops off bin number at the first space on right, e.g.,
@@ -1296,6 +869,423 @@ def GenerateComputationPlanFromListOfFeatureStrings( feature_list ):
 	return feature_plan
 
 #############################################################################
+# class definition of FeatureVector
+#############################################################################
+class FeatureVector( object ):
+	"""
+	FeatureVector contains features for a single image or ROI, as well as all the sampling
+	options. It is the values contained here that are grouped together to form FeatureSets."""
+
+	import re
+	sig_filename_parser = re.compile( ''.join( [
+	# ROI:
+	r'(?P<roi>-B(?P<x>\d+)_(?P<y>\d+)_(?P<w>\d+)_(?P<h>\d+))?',
+	# downsampling:
+	r'(?:-d(?P<downsample>\d+))?',
+	# pixel intensity adjustment:
+	r'(?:-S(?P<pixel_intensity_mean>\d+)(?:_(?P<pixel_intensity_stddev>\d+))?)?',
+	# rotations:
+	r'(?:-R_(?P<rot>\d))?',
+	# tiling info:
+	r'(?P<tiling_scheme>-t(?P<num_rows>\d+)(?:x(?P<num_cols>\d+))?_(?P<tile_row_index>\d+)_(?P<tile_col_index>\d+))?',
+	# color features:
+	r'(?P<color>-c)?',
+	# long feature set:
+	r'(?P<long>-l)?',
+	# extension: .sig or .pysig
+	r'\.(?:py)?sig$' ] ) )
+
+	#==============================================================
+	def __init__( self, **kwargs ):
+
+		#: feature names
+		self.names = None
+		#: feature vector
+		self.values = None
+		#: Row name, common across all channels
+		self.sample_name = None
+		#: Can also be a reference to a wndchrm.ImageMatrix object
+		self.path_to_image = None
+		#: Path to .sig file, in future hdf/sql file
+		self.auxiliary_feature_storage = None
+		#: label is stringified ground truth
+		self.label = None
+		self.ground_truth = None
+		self.samplegroupid = None
+		self.channel = None
+		self.time_index = None
+		self.tiling_scheme = None
+		self.num_rows = 1
+		self.num_cols = 1
+		self.tile_row_index = None
+		self.tile_col_index = None
+		self.samplesequenceid = None
+		#: downsample (in percents)
+		self.downsample = 0
+		self.pixel_intensity_mean = None
+		self.pixel_intensity_stddev = None
+		self.roi = None
+		self.h = None
+		self.w = None
+		self.x = None
+		self.y = None
+		self.z = None
+		self.z_delta = None
+		self.rot = None
+		self.fs_col = 0
+
+		#: self.num_features should always be == len( self.names ) == len( self.values )
+		self.num_features = None
+
+		# WND-CHARM feature bank-specific params:
+		self.color = None
+		self.long = None
+		self.feature_vector_version = None
+		self.feature_computation_plan = None
+
+		self.Update( **kwargs )
+
+	#==============================================================
+	def Update( self, **kwargs ):
+
+		self_namespace = vars( self )
+		for member, value in kwargs.iteritems():
+			if member in self_namespace:
+				self_namespace[ member ] = value
+			else:
+				raise AttributeError( "No instance variable named {0} in class {1}".format(
+				  member, self.__class__.__name__ ) )
+
+		# FIXME: feature_vector_version refers to WND-CHARM specific feature set specifications.
+		# Want to be able to handle other feature sets from other labs in the future.
+		if self.feature_vector_version == None:
+			major = feature_vector_major_version
+
+			# The feature_vector_version helps describe what features contained in the set.
+			# Major version has to do with fixing bugs in the WND_CHARM algorithm code base.
+			# The minor version describes the composition of features in the feature set.
+			# Minor versions 1-4 have specific combination of WND-CHARM features.
+			# Minor version 0 refers to user-defined combination of features.
+
+			# Check to see if there is a user-defined set of features for this feature vector:
+			if self.names:
+				if len( self.names ) not in feature_vector_minor_version_from_num_features:
+					minor = 0
+				else:
+					# FIXME: If features are out of order, should have a minor version of 0
+					minor = feature_vector_minor_version_from_num_features[ len( self.names ) ]
+			else:
+				if not self.long:
+					if not self.color:
+						minor = 1
+					else:
+						minor = 3
+				else:
+					if not self.color:
+						minor = 2
+					else:
+						minor = 4
+			self.feature_vector_version = '{0}.{1}'.format( major, minor )
+		else:
+			major, minor = [ int( val ) for val in self.feature_vector_version.split('.') ]
+
+		if self.num_features == None:
+			if self.names:
+				self.num_features = len( self.names )
+			else:
+				if major == 1:
+					num_feats_dict = feature_vector_minor_version_from_num_features_v1
+				else:
+					num_feats_dict = feature_vector_minor_version_from_num_features
+				for num_feats, version in num_feats_dict.iteritems():
+					if version == minor:
+						self.num_features = num_feats
+
+	#==============================================================
+	def Derive( self, **kwargs ):
+		"""Make a copy of this FeatureVector, except members passed as kwargs"""
+
+		from copy import deepcopy
+		new_fv = self.__class__()
+		self_namespace = vars( self )
+		newfv_namespace = vars( new_fs )
+
+		# skip these (if any):
+		convenience_view_members = []
+
+		for key in self_namespace:
+			if key in convenience_view_members:
+				continue
+			if key in kwargs:
+				newfv_namespace[key] = kwargs[key]
+			else:
+				newfv_namespace[key] = deepcopy( self_namespace[key] )
+		return new_fv
+
+	#==============================================================
+	def __deepcopy__( self, memo ):
+		"""Make a deepcopy of this FeatureVector"""
+
+		return self.Derive()
+
+	#==============================================================
+	def GenerateSigFilepath( self ):
+		"""The C implementation of wndchrm placed feature metadata
+		in the filename in a specific order, recreated here."""
+
+		if not self.path_to_image:
+			raise ValueError( 'Need for "path_to_image" attribute in FeatureVector object to be set to generate sig filepath.')
+
+		from os.path import splitext
+		basename, ext = splitext( self.path_to_image )
+
+		self_namespace = vars(self)
+		# ROI:
+		roi_params = 'x', 'y', 'w', 'h',
+		if all( [self_namespace[key] is not None for key in roi_params] ):
+			basename.append( "-B{0}_{1}_{2}_{3}".format( [ self_namespace[param] for param in roi_params ] ) )
+		if self_namespace[ 'downsample' ] is not None:
+			basename.append( "-d{0}".format( self_namespace['downsample'] ) )
+		if self_namespace[ 'pixel_intensity_mean' ] in not None:
+			basename.append( "-S{0}".format( self_namespace['pixel_intensity_mean'] ) )
+			if self_namespace[ 'pixel_intensity_stddev' ] is not None:
+				basename.append( "-S{0}".format( self_namespace['pixel_intensity_mean'] ) )
+		if self_namespace[ 'rot' ] is not None:
+			basename.append( "-R_{0}".format( self_namespace[ 'rot' ] ) )
+		if self_namespace[ 'num_rows' ] is not None:
+			basename.append( "-t{0}".format( self_namespace[ 'num_rows' ] ) )
+			if self_namespace[ 'num_cols' ] is not None:
+				basename.append( "x{0}".format( self_namespace[ 'num_cols'] ) )
+			if self_namespace[ 'row_index' ] is not None and self_namespace[ 'col_index' ] is not None:
+				basename.append( "_{0}_{1}".format( self_namespace[ 'row_index'], self_namespace[ 'col_index' ] ) )
+			else:
+				raise ValueError('Need to specify row_index and col_index in self for tiling params')
+		if self_namespace['color'] is not None:
+			basename.append( '-c' )
+		if self_namespace['color'] is not None:
+			basename.append( '-l' )
+
+		return basename + '.sig'
+
+	#================================================================
+	def GenerateFeatures( self, write_sig_files_to_disk=True, quiet=True ):
+		"""@brief Loads precalculated sigs, or calculates new ones, based on which instance
+		attributes have been set, and what their values are.
+		
+		Returns self for convenience."""
+
+		# 0: What features does the user want?
+		# 1: are there features already calculated somewhere?
+		# 2: if so are they current/complete/expected/correct?
+		# 3: if not, what's left to calculate?
+		# 4: Calculate the rest
+		# 5: Reduce the features down to what the user asked for
+
+		if self.values and len( self.values ) != 0:
+			return self
+
+		try:
+			self.LoadSigFile( quiet=quiet )
+			# FIXME: Here's where you'd calculate a small subset of features
+			# and see if they match what was loaded from file. The file could be corrupted
+			# incomplete, or calculated with different options, e.g., -S1441
+			return self
+		except IOError:
+			pass
+
+		# All hope is lost, calculate features.
+
+		# Use user-assigned feature computation plan, if provided:
+		if self.feature_computation_plan != None:
+			comp_plan = self.feature_computation_plan
+			self.feature_vector_version = comp_plan.feature_vec_type
+		else:
+			# Make sure Feature Vector version string is correct:
+			self.Update()
+			major, minor = self.new_fv.feature_vector_version.split('.')
+			if minor == 0:
+				comp_plan = GenerateComputationPlanFromListOfFeatureStrings( self.names )
+			elif minor == 1:
+				comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSet()
+			elif minor == 2:
+				comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSetLong()
+			elif minor == 3:
+				comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSetColor()
+			elif minor == 4:
+				comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSetColorLong()
+			else:
+				raise ValueError( "Not sure which features you want." )
+			self.feature_computation_plan = comp_plan
+
+		# Here are the ImageMatrix API calls:
+		# void normalize(double min, double max, long range, double mean, double stddev);
+		# int OpenImage(char *image_file_name, int downsample, rect *bounding_rect, double mean, double stddev);
+		# void Rotate (const ImageMatrix &matrix_IN, double angle);
+
+		if self.rot is not None:
+			raise NotImplementedError( "FIXME: Implement rotations." )
+
+		self_namespace = vars( self )
+		bb_members = 'x', 'y', 'w', 'h',
+		bb_vals = tuple( [ self_namespace[ var ] for var in bb_members ] )
+		if all( [ val is not None for val in bb_vals ] ):
+			bb = wndcharm.rect( *bb_vals )
+		else:
+			bb = None
+
+		if self.pixel_intensity_mean:
+			mean = self.pixel_intensity_mean
+		else:
+			mean = 0
+
+		if self.pixel_intensity_stddev:
+			stddev = self.pixel_intensity_stddev
+		else:
+			stddev = 0
+
+		if isinstance( self.path_to_image, str ):
+			the_tiff = wndcharm.ImageMatrix()
+			if 1 != the_tiff.OpenImage( self.path_to_image, self.downsample, bb, mean, stddev ):
+				raise ValueError( 'Could not build an ImageMatrix from {0}, check the path.'.\
+					format( self.path_to_image ) )
+		elif isinstance( self.path_to_image, wndcharm.ImageMatrix ):
+			the_tiff = self.path_to_image
+			raise NotImplementedError( "FIXME: Still haven't implemented downsample, bounding box, pixel intensity mean and stddev for an already open instance of ImageMatrix." )
+		else:
+			raise ValueError("image parameter 'image_path_or_mat' is not a string or a wndcharm.ImageMatrix")
+
+		# pre-allocate space where the features will be stored (C++ std::vector<double>)
+		tmp_vec = wndcharm.DoubleVector( comp_plan.n_features )
+
+		# Get an executor for this plan and run it
+		plan_exec = wndcharm.FeatureComputationPlanExecutor( comp_plan )
+		plan_exec.run( the_tiff, tmp_vec, 0 )
+
+		# get the feature names from the plan
+		comp_names = [ comp_plan.getFeatureNameByIndex(i) for i in xrange( comp_plan.n_features ) ]
+
+		# convert std::vector<double> to native python list of floats
+		comp_vals = list( tmp_vec )
+
+		# Feature Reduction/Reorder step:
+		# Feature computation may give more features than are asked for by user, or out of order.
+		if self.names:
+			if self.names != comp_names:
+				self.values = [ comp_vals[ comp_names.index( name ) ] for name in self.names ]
+		else:
+			self.names = comp_names
+			self.values = comp_vals
+
+		if write_sig_files_to_disk:
+			self.ToSigFile( quiet=quiet )
+
+		# Feature names need to be modified for their sampling options.
+		# Base case is that channel goes in the innermost parentheses, but really it's not
+		# just channel, but all sampling options.
+		# For now, let the FeatureSet constructor code handle the modification of feature names
+		# for its own self.featurenames_list
+		return self
+
+	#================================================================
+	def LoadSigFile( self, sigfile_path=None, quiet=False ):
+
+		if sigfile_path:
+			path = sigfile_path
+		elif self.auxiliary_feature_storage:
+			path = self.auxiliary_feature_storage
+		else:
+			path = self.GenerateSigFilepath()
+
+		with open( path ) as infile:
+			lines = infile.read().splitlines()
+
+		# First line is metadata
+		self.class_id, self.feature_vector_version = \
+		        re.match( '^(\S+)\s*(\S+)?$' , lines[0] ).group( 1, 2 )
+		if self.feature_vector_version is None:
+			self.feature_vector_version = "1.0"
+
+		# 2nd line is path to original tiff file, just skip
+
+		# Process rest of lines
+		values, names = zip( *[ line.split( None, 1 ) for line in lines[2:] ] )
+		self.values = np.fromstring( " ".join( values ), sep=" " )
+
+		# We would know by know if there was a sigfile processing error,
+		# e.g., file doesn't exist.
+		# Safe to set this member now if not already set
+		if not self.auxiliary_feature_storage:
+			self.auxiliary_feature_storage = path
+
+		# Pull sampling options from filename
+		result = self.sig_filename_parser.search( sigfile_path )
+		if result:
+			self.Update( result.groupdict() )
+
+		# This is really slow:
+		#for i, name in enumerate( names ):
+			#retval = wndcharm.FeatureNames.getFeatureInfoByName( name )
+			#if retval:
+			#	self.names[i] = retval.name
+			#else:
+			# self.names[i] = name
+
+		# Use pure Python for old-style name translation
+		#from wndcharm import FeatureNameMap
+		#self.names = FeatureNameMap.TranslateToNewStyle( names )
+
+		# Deprecate old-style naming support anyway, those features are pretty buggy
+		# -CEC 20150104
+		self.names = names
+
+		# Cleanup for legacy edge case:
+		# Set the minor version to the vector type based on # of features
+		# The minor versions should always specify vector types, but for version 1 vectors,
+		# the version is not written to the file, so it gets read as 0.
+		if( self.feature_vector_version == "1.0" ):
+			self.version = "1." + str(
+				feature_vector_minor_version_from_num_features_v1.get( len( self.values ),0 ) )
+
+		if not quiet:
+			print "Loaded features from file {0}".format( path )
+
+	#================================================================
+	@classmethod
+	def NewFromSigFile( cls, sigfile_path, image_path=None, quiet=False ):
+		"""@return  - An instantiated FeatureVector class with feature names translated from
+		           the old naming convention, if applicable."""
+		new_fv = cls()
+		new_fv.path_to_image = image_path
+		new_fv.LoadSigFile( sigfile_path, quiet )
+		return new_fv
+
+	#================================================================
+	def ToSigFile( self, path=None, quiet=False ):
+		"""Write features C-WND-CHARM .sig file format
+
+		If filepath is specified, you get to name it whatever you want and put it
+		wherever you want. Otherwise, it's named according to convention and placed 
+		next to the image file in its directory."""
+		from os.path import exists
+		if not path:
+			path = self.GenerateSigFilepath()
+		if not quiet:
+			if exists( path ):
+				print "Overwriting {0}".format( path )
+			else:
+				print 'Writing signature file "{0}"'.format( path )
+		self.auxiliary_feature_storage = path
+		with open( path, "w" ) as out:
+			# FIXME: line 1 contains class membership and version
+			# Just hardcode the class membership for now.
+			out.write( "0\t{0}\n".format( self.feature_vector_version ) )
+			out.write( "{0}\n".format( self.path_to_image ) )
+			for val, name in zip( self.values, self.names ):
+				outfile.write( "{0:0.6g} {1}\n".format( val, name )
+
+# end definition class FeatureVector
+
+#############################################################################
 # class definition of FeatureSet
 #############################################################################
 class FeatureSet( object ):
@@ -1312,6 +1302,11 @@ class FeatureSet( object ):
 	randomly Split() into two subset FeatureSets to be used for cross-validation of a 
 	classifier, one for training the other for testing.
 	"""
+
+	# Used for parsing "File of Files" definition of FeatureSet
+	import re
+	channel_col_finder = re.compile(r'(?P<path>.*?)?\{(?P<opts>.*?)?\}')
+	channel_opt_finder = re.compile(r'(?:(?P<key>.+?)=)?(?P<value>.+)')
 
 	#==============================================================
 	def __init__( self, name=None, source_path=None, num_images=None, num_samples_per_group=1,
@@ -1366,7 +1361,6 @@ class FeatureSet( object ):
 
 		#: shape - supposed to work like numpy.ndarray.shape
 		self.shape = None
-
 
 		# SAMPLE METADATA DATA MEMBERS
 		# N.B. Here data members are grouped into sets of two, the first being the "_contiguous"
@@ -1428,36 +1422,19 @@ class FeatureSet( object ):
 		#: FeatureSets can be transformed.
 		self.feature_minima = None
 
-		### Now set stuff if possible:
-
+		### Now initialize array-like members if possible:
 		if self.num_images and self.num_features:
-			self.data_matrix = np.empty ([ self.num_images, self.num_features ], dtype='double')
+			new_fs.shape = ( self.num_images, self.num_features )
+			self.data_matrix = np.empty( news_fs.shape, dtype='double' )
 
 		if self.num_images:
 			self._contiguous_samplenames_list = [None] * self.num_images
-			self._contiguous_samplegroupid_list = [None]* self.num_images
-			self._contiguous_samplesequenceid_list = [None]* self.num_images
-			self._contiguous_ground_truths = [None]* self.num_images
+			self._contiguous_samplegroupid_list = [None] * self.num_images
+			self._contiguous_samplesequenceid_list = [None] * self.num_images
+			self._contiguous_ground_truths = [None] * self.num_images
 
-#		if self.num_features:
-#			new_fs.num_samples_per_group = self.num_samples_per_group
-#			new_fs.discrete = self.discrete
-#
-#			if self.discrete:
-#				new_fs.num_classes = len( group_membership )
-#				new_fs.classsizes_list = [ self.num_samples_per_group * num_groups \
-#				      for num_groups in group_membership if num_groups ] 
-#				new_fs.num_images = sum( new_fs.classsizes_list )
-#				new_fs.classnames_list = [ self.classnames_list[i] \
-#				      for i, num_groups in enumerate( group_membership ) if num_groups ]
-#				if self.interpolation_coefficients:
-#					new_fs.interpolation_coefficients = [ self.interpolation_coefficients[i] \
-#				      for i, num_groups in enumerate( group_membership ) if num_groups ]
-#
-#			else: # if continuous
-#				new_fs.num_images = self.num_samples_per_group * group_membership
-
-
+		if self.num_features:
+			self.featurenames_list = [None] * self.num_features
 
 	#==============================================================
 	def Derive( self, **kwargs ):
@@ -1485,7 +1462,6 @@ class FeatureSet( object ):
 	#==============================================================
 	def __deepcopy__( self, memo ):
 		"""Make a deepcopy of this FeatureSet"""
-
 		return self.Derive()
 
 	#==============================================================
@@ -1525,7 +1501,6 @@ class FeatureSet( object ):
 			print header_str
 			for line_item in sample_metadata:
 				print format_str.format( *line_item )
-
 		print ""
 
 	#==============================================================
@@ -1589,7 +1564,7 @@ class FeatureSet( object ):
 		return the_training_set
 
 	#==============================================================
-	def PickleMe( self, pathname = None ):
+	def PickleMe( self, pathname=None ):
 		"""Pickle this instance of FeatureSet and write to file whose path is optionally
 		specified by argument "pathname" """
 
@@ -1784,20 +1759,15 @@ class FeatureSet( object ):
 
 		# 1st line: number of classes and feature vector version
 		fit.write( str(self.num_classes) + ' ' + self.feature_vector_version + '\n' )
-
 		# 2nd line: num features
 		fit.write( str(self.num_features) + '\n' )
-
 		# 3rd line: number of samples
 		fit.write( str(self.num_images) + '\n' )
-
 		# Lines 4 through num_features contains the feature names
 		for name in self.featurenames_list:
 			fit.write( name + '\n' )
-
 		# The line after the block of feature names is blank
 		fit.write('\n')
-
 		# Then all the Class labels
 		for label in self.classnames_list:
 			fit.write( label + '\n' )
@@ -1835,7 +1805,6 @@ class FeatureSet( object ):
 	def Save( self, pathname ):
 		"""Writes features to HDF5 file."""
 		raise NotImplementedError( "FIXME" )
-
 
 	#==============================================================
 	def _RebuildViews( self, reorder=False ):
@@ -1889,48 +1858,304 @@ class FeatureSet( object ):
 
 	#==============================================================
 	@classmethod
-	def NewFromDirectory( cls, top_level_dir_path, feature_set = "large", write_sig_files_to_disk = True ):
-		"""The equivalent of the C++ implementation of the command "wndchrm train" """
-		raise NotImplementedError()
+	def NewFromDirectory( cls, top_level_dir_path, discrete=True, num_samples_per_group=1,
+	  quiet=False, global_sampling_options=None, write_sig_files_to_disk=True, **kwargs ):
+		"""@brief Equivalent to the "wndchrm train" command from the C++ implementation by Shamir.
+		Read the the given directory and parse its structure for class membership.
+		Populate a list of FeatureVector instances, then call helper functions to
+		load/calculate features and populate this object."""
+
+		if not global_sampling_options:
+			global_options = FeatureVector( **kwargs )
+
+		if not quiet:
+			print "Creating Training Set from directories of images {0}".format( top_level_dir_path )
+
+		samples = []
+		num_rows = global_sampling_options.num_rows
+		num_cols = global_sampling_options.num_cols
+
+		from copy import deepcopy
+		from os import walk
+		from os.path import join, basename
+		sample_group_count = 0
+		for root, dirs, files in walk( top_level_dir_path ):
+			if root == top_level_dir_path:
+				if len( dirs ) <= 0:
+					# no class structure
+					filelist = [ join( root, _file ) for _file in files \
+					                  if _file.endswith(('.tif','.tiff','.TIF','.TIFF')) ]
+					if len( filelist ) <= 0:
+						raise ValueError( 'No tiff files in directory {0}'.format( root ) )
+					for _file in filelist:
+						tile_position_index = col_index * num_rows + row_index
+						for col_index in xrange( num_cols ):
+							for row_index in xrange( num_rows ):
+								fv = deepcopy( global_sampling_options )
+								fv.path_to_image = _file
+								fv.label = "UNKNOWN"
+								fv.tile_row_index = row_index
+								fv.tile_col_index = col_index
+								fv.samplesequenceid = tile_position_index
+								fv.samplegroupid = sample_group_count
+								samples.append( fv )
+						sample_group_count += 1
+					break
+			else:
+				# If we're here, we're down in one of the sub directories
+				# This class's name will be "subdir" in /path/to/topleveldir/subdir
+				filelist = [ join( root, _file ) for _file in files \
+													if _file.endswith(('.tif','.tiff','.TIF','.TIFF')) ]
+				if len( filelist ) <= 0:
+					# Maybe the user hid them?
+					#raise ValueError( 'No tiff files in directory {0}'.format( root ) )
+					continue
+				class_name = basename( root )
+				for _file in filelist:
+					tile_position_index = col_index * num_rows + row_index
+					for col_index in xrange( num_cols ):
+						for row_index in xrange( num_rows ):
+							fv = deepcopy( global_sampling_options )
+							fv.path_to_image = _file
+							fv.label = class_name
+							fv.tile_row_index = row_index
+							fv.tile_col_index = col_index
+							fv.samplesequenceid = tile_position_index
+							fv.samplegroupid = sample_group_count
+							samples.append( fv )
+					sample_group_count += 1
+
+		# FIXME: Here's where the parallization magic can (will!) happen.
+		[ fv.GenerateFeatures( write_sig_files_to_disk, quiet ) for fv in samples ]
+
+		name = basename( top_level_dir_path )
+		return cls._NewFromListOfFSSampleOptions( samples, name=name,
+		       source_path=top_level_dir_path,
+		       num_samples_per_group=(num_rows*num_cols),
+					 num_features=global_sampling_options.num_features,
+		       discrete=discrete, quiet=quiet )
 
 	#==============================================================
 	@classmethod
-	def NewFromFileOfFiles( cls, pathname, options=None, tile_options=None, discrete=True,
-	                                 quiet=True ):
-		"""Create a FeatureSet from a file of files."""
+	def NewFromFileOfFiles( cls, pathname, discrete=True, num_samples_per_group=1,
+			quiet=False, global_sampling_options=None, write_sig_files_to_disk=True, **kwargs ):
+		"""Create a FeatureSet from a file of files.
+
+		The original FOF format (pre-2015) was just two columns, a path and a ground truth
+		separated by a tab character. The extention to this format supports additional optional
+		columns specifying additional paths and preprocessing options for a more complex
+		feature space."""
+
+		if not global_sampling_options:
+			global_sampling_options = FeatureVector( **kwargs )
 
 		if not quiet:
 			print 'Loading {0} from file of files "{1}"'.format( cls.__name__, pathname )
 
-		# Read FOF into a tuple of tuples, sorted on ground truth
-		with open( pathname ) as fof:
-			fof_data = [line.split('\t') for line in fof.read().splitlines()]
-			# FIXME: Implement reordering outside of loading, don't sort here
-			#sorted( [line.split('\t') for line in fof.read().splitlines()], key=lambda x: x[1] )
+		from os.path import split, splitext
+		basepath, ext = splitext( pathname )
+		dir_containing_fof, file_name = split( basepath )
 
-		first_row = fof_data[0]
-		num_cols = len( first_row )
+		num_fs_columns = None
+		num_features = None
+
+		# A FeatureSet's samples in feature space need to be grouped by ground truth.
+		# These variables help to determine if the samples listed in the input FOF are grouped.
+		seen_ground_truths = set()
+		previous_ground_truth = None
+		current_ground_truth = None
+		samples_grouped_by_ground_truth = True
+
+		samples = []
+		fof = open( pathname )
+
+		num_rows = global_sampling_options.num_rows
+		num_cols = global_sampling_options.num_cols
 	
-		# Test 0: Can't have rows with 1 column
-		if num_cols < 2:
-			raise ValueError( "File of files can't have rows with less than 2 columns")
+		for line_num, line in enumerate( fof ):
+			cols = line.split('\t', 2)
 
-		# Test 1: All rows need to have the same number of columns
-		for linenum, row in enumerate( fof_data[1:] ):
-			if num_cols != len( row ):
-				errmsg = "Error in row {0}: number of columns is {1} but other rows are {2}"
-				raise ValueError( errmsg.format( linenum, len(row), num_cols ) )
+			if samples_grouped_by_ground_truth:
+				if current_ground_truth == None:
+					# first line
+					current_ground_truth = cols[1]
+				else:
+					previous_ground_truth = current_ground_truth
+					current_ground_truth = cols[1]
+					if current_ground_truth != previous_ground_truth:
+						# crossed a class boundary, can't use previous ground truth anymore
+						seen_ground_truths.add( previous_ground_truth )
+					if current_ground_truth in seen_ground_truths:
+						# Samples not grouped, will require sample sorting.
+						# No need to keep checking.
+						samples_grouped_by_ground_truth = False
 
-		if num_cols == 2:
-			imagenames_list, ground_truths = zip( *fof_data )
-		else:
-			raise NotImplementedError( "FIXME" )
+			# BEGIN tiling loops
+			for col_index in xrange( num_cols ):
+				for row_index in xrange( num_rows ):
+					tile_position_index = col_index * num_rows + row_index
 
-		new_fs = cls()
-		new_fs.source_path = pathname
-		from os.path import split, sep
-		dir_containing_fof, new_fs.name = split( pathname )
-		new_fs.discrete = discrete
+					# Classic two-column FOF format
+					if len( cols ) < 3:
+
+						# Fix number of columns in FOF to be uniform
+						if num_fs_columns == None:
+							num_fs_columns = 1
+						elif num_fs_columns != 1:
+							err_smg = "File {0}, line {1} has {2} channel cols, when the rest has {3}"
+							raise ValueError( err_msg.format( pathname, line_num, 1, num_fs_columns ) )
+
+						if cols[0].endswith( '.sig' ):
+							opts = FeatureVector.NewFromSigFile( cols[0] )
+						else:
+							opts = deepcopy( global_sampling_options )
+							opts.path_to_image = cols[0]
+
+						opts.sample_name = cols[0]
+						opts.label = cols[1]
+						opts.samplesequenceid = tile_position_index
+						opts.samplegroupid = line_num
+						opts.tile_row_index = row_index
+						opts.tile_col_index = col_index
+						# Only one column of feature sets in the FeatureSet matrix (count from 0):
+						#opts.fs_col = 0 # is 0 by default
+
+						samples.append( opts )
+
+						if num_features == None:
+							num_features = opts.num_features
+
+					# NEW THREE-column FOF format:
+					# Within "column 3" are sub-columns indicating channel options.
+					# Generates a dict of FeatureSet processing options for each column of
+					# channel options found, which takes the form:
+					# [optional path to tiff or sig file] {[optname1=val1;optname2=val2...]}
+					else:
+						num_feats_in_this_row = 0
+						# tabs are ignored here, now the {} becomes the delimiter
+						tabs_stripped_out = cols[2].translate( None, '\t' )
+						for fs_col, m in enumerate( self.channel_col_finder.finditer( tabs_stripped_out ) ):
+							col_finder_dict = m.groupdict()
+							path = col_finder_dict['path']
+							if path != None and path.endswith('.sig'):
+								opts = FeatureVector.NewFromSigFile( path )
+							else:
+								opts = deepcopy( global_sampling_options )
+							if path == None:
+								# If no path given in this channel column, implies string in cols[0]
+								# is the path upon with the options refer to.
+								# Doesn't make sense to have a sig file be in column 1
+								# then have channel options listed, so cols[0] must be a path to a tiff
+								opts.path_to_image = cols[0]
+							else:
+								opts.path_to_image = path
+							opts.label = cols[1]
+							opts.sample_name = cols[0]
+							opts.samplesequenceid = tile_position_index
+							opts.samplegroupid = line_num
+							opts.tile_row_index = row_index
+							opts.tile_col_index = col_index
+							opts.label = cols[1]
+							opts.fs_col = fs_col
+
+							opts_str = col_finder_dict['opts']
+							if opts_str:
+								col_opts = \
+								  dict( [ mm.groups() for opt in opts_str.split(';') \
+								                    for mm in self.channel_opt_finder.finditer( opt ) ] )
+								if None in col_opts:
+									# value given without key is taken to be default channel
+									col_opts['channel'] = col_opts[None]
+									del col_opts[None]
+								opts.Update( **col_opts )
+
+							num_feats_in_this_row += opts.num_features
+							samples.append( opts )
+						# END loop over {} columns
+
+						# Num features across entire row, no matter the columns, must be uniform
+						if num_features == None:
+							num_features = num_feats_in_this_row
+						elif num_features != num_feats_in_this_row:
+							errmsg = 'FOF "{0}" row {1} calls for {2} features where previous rows ' + \
+							  'call for {3} features.'
+							raise ValueError( 
+								errmsg.format( pathname, line_num, num_feats_in_this_row, num_features ) )
+					# END if len( cols ) < 3
+
+				# END for row_index in xrange( num_rows )
+			# END for col_index in xrange( num_cols )
+			# END tiling loops
+
+			# FIXME: Fix the number of channel column options to be uniform for now,
+			# may be allowable in the future to have different number of channel opt columns
+			# say for when the user wants to pull a ROI for feature calculation for a certain
+			# sample, but use the whole image for all the others.
+			if num_fs_columns == None:
+				num_fs_columns = fs_col
+			elif fs_col != num_fs_columns:
+				err_smg = "File {0}, line {1} has {2} channel cols, when the rest has {3}"
+				raise ValueError( err_msg.format( pathname, line_num, len( channel_opts ), num_fs_columns) )
+
+		# END iterating over lines in FOF
+		fof.close()
+
+		# FIXME: Here's where the parallization magic can (will!) happen.
+		[ fv.GenerateFeatures( write_sig_files_to_disk, quiet ) for fv in samples ]
+
+		return cls._NewFromListOfFSSampleOptions( samples, name=file_name, source_path=pathname,
+		       num_samples_per_group=(num_rows*num_cols), num_features=num_features,
+		       discrete=discrete, quiet=quiet )
+
+	#==============================================================
+	@classmethod
+	def _NewFromListOfFeatureVectors( cls, feature_vectors_list, name, source_path,
+	  num_samples_per_group, num_features, discrete, quiet=True ):
+		"""Input is list of FeatureVectors WHOSE FEATURES HAVE ALREADY BEEN CALCULATED.
+
+		The arguments to this method call are intentionally very similar to the args of
+		FeatureSet.__init__(), except we get num_images from len( samples )."""
+
+		num_samples = len( feature_vectors_list )
+
+		new_fs = cls( name, source_path, num_samples, num_samples_per_group,
+		             num_features, discrete )
+
+		# For compound samples, e.g., multichannel, need to know the column offsets.
+		# key: col index, value: index in data_matrix demarking rightmost feature for this column
+		feature_set_col_offset = {}
+
+		# column enumeration starts at 0, and need to know where the 0th column has its
+		# LEFT boundary, i.e. what is column 0 - 1's right most boundary (exclusive):
+		feature_set_col_offset[-1] = 0
+
+		# Sort list of FeatureVectors by column so we can fill in data_matrix from left to right.
+		for fv in sorted( feature_vectors_list, key=lambda fv: fv.fs_col ):
+			if not fv.values:
+				raise ValueError( "Calls to this method require features to have already been calculated." )
+
+			row_index = (fv.samplegroupid * num_samples_per_group) + fv.samplesequenceid
+			col_left_boundary_index = feature_set_col_offset[ fv.fs_col - 1 ]
+			col_right_boundary_index = col_left_boundary_index + fv.num_features
+
+			# Fill in column metadata if we've not seen a feature vector for this col before
+			if fv.fs_col not in feature_set_col_offset:
+				feature_set_col_offset[ fv.fs_col ] = col_right_boundary_index
+				new_fs.featurenames_list[ col_left_boundary_index : col_right_boundary_index ] = \
+				  fv.names
+
+			# Fill in row metadata with FeatureVector data from column 0 only
+			if fv.fs_col == 0: # (fs_col member must be > 0 and cannot be None)
+				new_fs._contiguous_samplenames_list[ row_index ] = fv.sample_name
+				new_fs._contiguous_samplegroupid_list[ row_index ] = fv.samplegroupid
+				new_fs._contiguous_samplesequenceid_list[ row_index ] = fv.samplesequenceid
+				new_fs._contiguous_ground_truths[ row_index ] = fv.ground_truth
+
+			new_fs.data_matrix[ row_index, col_left_boundary_index : col_right_boundary_index ] = \
+			  fv.values
+
+		# alias:
+		ground_truths = new_fs._contiguous_ground_truths
 
 		if discrete:
 			# Uniquify the sample group list, maintaining order of input sample group list.
@@ -1944,64 +2169,7 @@ class FeatureSet( object ):
 			  [ ground_truths.count( label ) for label in new_fs.classnames_list ]
 
 		if not discrete or new_fs.interpolation_coefficients is not None:
-			ground_truths = [ float( val ) for val in ground_truths ]
-
-		new_fs._contiguous_samplenames_list = imagenames_list
-		new_fs._contiguous_ground_truths = ground_truths
-
-		# Figure out feature situation:
-		# This will initiate calculation of sigs if doesn't exist
-		# FIXME: better to lazily do this
-		try:
-			first_feature_vector = Signatures.NewFromPath( first_row[0], options=options, quiet=True )
-			dir_containing_fof = None
-		except IOError:
-			# If the path to file given in fof doesn't resolve to a file, try prepending
-			# the fof's containing path to the paths given in the fof
-			first_feature_vector = \
-			    Signatures.NewFromPath( dir_containing_fof + sep + first_row[0], options=options )
-
-		new_fs.featurenames_list = first_feature_vector.names
-		new_fs.feature_vector_version = first_feature_vector.version
-		new_fs.shape = ( len( imagenames_list ), len( first_feature_vector.names ) )
-		new_fs.num_images, new_fs.num_features = new_fs.shape
-		num_samples = new_fs.num_images # alias for sample group code below
-
-		new_fs.data_matrix = np.empty( new_fs.shape, dtype='double' )
-		new_fs.data_matrix[0] = first_feature_vector.values
-
-		for row_index, path in enumerate( imagenames_list[1:], start=1 ):
-			# This will initiate calculation of sigs if doesn't exist
-			if dir_containing_fof:
-				augmented_path = dir_containing_fof + sep + path
-			else:
-				augmented_path = path
-			feature_vector = Signatures.NewFromPath( augmented_path, options=options, quiet=True )
-			new_fs.data_matrix[ row_index ] = feature_vector.values
-
-		if tile_options:
-			try:
-				len(tile_options)
-				new_fs.tile_rows = int(tile_options[0])
-				new_fs.tile_cols = int(tile_options[1])
-			except TypeError:
-				new_fs.tile_rows = new_fs.tile_cols = int( tile_options )
-			new_fs.num_samples_per_group = new_fs.tile_rows * new_fs.tile_cols
-
-		if new_fs.num_samples_per_group != 1:
-			# sample sequence id = tile id
-			# goes: [ 1, 2, 3, 4, 1, 2, 3, 4, ... ]
-			new_fs._contiguous_samplesequenceid_list = [ i \
-			  for j in xrange( num_samples/new_fs.num_samples_per_group ) \
-			    for i in xrange( new_fs.num_samples_per_group ) ]
-			# samples with same group id can't be split
-			# goes: [ 1, 1, 1, 1, 2, 2, 2, 2, ... ]
-			new_fs._contiguous_samplegroupid_list = [ j \
-			  for j in xrange( num_samples/new_fs.num_samples_per_group ) \
-			    for i in xrange( new_fs.num_samples_per_group ) ]
-		else:
-			new_fs._contiguous_samplesequenceid_list = [1] * num_samples
-			new_fs._contiguous_samplegroupid_list = range( num_samples )
+			new_fs._contiguous_ground_truths = [ float( val ) for val in ground_truths ]
 
 		new_fs._RebuildViews()
 
@@ -2009,18 +2177,6 @@ class FeatureSet( object ):
 			new_fs.Print()
 
 		return new_fs
-
-	#==============================================================
-	def _ProcessSigCalculation( self,
-	                            imagenames_list,
-	                            feature_set_name="large",
-	                            options="",
-	                            feature_group_list=None,
-	                            feature_name_list=None,
-	                            write_sig_files_to_disk=True,
-	                            parallel=False ):
-		"""Virtual method."""
-		raise NotImplementedError()
 
 	#==============================================================
 	def ContiguousDataMatrix( self ):
@@ -2605,124 +2761,6 @@ class FeatureSet_Discrete( FeatureSet ):
 		return self.data_matrix
 
 	#==============================================================
-	@classmethod
-	def NewFromDirectory( cls, top_level_dir_path, parallel = False, # not yet implemented
-	                                               feature_set_name = "large",
-																								 feature_group_list = None,
-																								 feature_name_list = None,
-																								 write_sig_files_to_disk = False ):
-		"""@brief Equivalent to the "wndchrm train" command from the C++ implementation by Shamir.
-		Read the the given directory, parse its structure, and populate the member
-		self.imagenames_list. Then call another function to farm out the calculation of each 
-		image's features to child processes (or at least it will in the future!)"""
-
-		#FIXME: add ability to specify tiling scheme
-		
-		print "Creating Training Set from directories of images {0}".format( top_level_dir_path )
-		if not( os.path.exists( top_level_dir_path ) ):
-			raise ValueError( 'Path "{0}" doesn\'t exist'.format( top_level_dir_path ) )
-		if not( os.path.isdir( top_level_dir_path ) ):
-			raise ValueError( 'Path "{0}" is not a directory'.format( top_level_dir_path ) )
-
-		num_images = 0
-		num_classes = 0
-		classnames_list = []
-		imagenames_list = []
-
-		for root, dirs, files in os.walk( top_level_dir_path ):
-			if root == top_level_dir_path:
-				if len( dirs ) <= 0:
-					# no class structure
-					file_list = []
-					for file in files:
-						if '.tif' in file:
-							file_list.append( os.path.join( root, file ) )
-					if len( file_list ) <= 0:
-						# nothing here to process!
-						raise ValueError( 'No tiff files in directory {0}'.format( root ) )
-					classnames_list.append( root )
-					num_classes = 1
-					num_images = len( file_list )
-					imagenames_list.append( file_list )
-					break
-			else:
-				file_list = []
-				for file in files:
-					if '.tif' in file:
-						file_list.append( os.path.join( root, file ) )
-				if len( file_list ) <= 0:
-					# nothing here to process!
-					continue
-				# this class's name will be "subdir" in /path/to/topleveldir/subdir
-				root, dirname = os.path.split( root )
-				classnames_list.append( dirname )
-				num_images += len( file_list )
-				num_classes += 1
-				imagenames_list.append( file_list )
-
-		if num_classes <= 0:
-			raise ValueError( 'No valid images or directories of images in this directory' )
-
-		# instantiate a new training set
-		new_ts = cls()
-		#new_ts.num_images = num_images #taken care of by AddSignatures()
-		new_ts.num_images = 0 # initialize
-		new_ts.num_classes = num_classes
-		new_ts.classnames_list = classnames_list
-		#new_ts.imagenames_list = imagenames_list  #taken care of by AddSignatures()
-		new_ts.source_path = top_level_dir_path
-		from os.path import basename
-		new_ts.name = basename( top_level_dir_path )
-
-		# Uncomment this after the change to AddSignature is made:
-		# new_ts._InitializeFeatureMatrix()
-
-		# options here with be sampling options, pixel intensity corrections, etc.
-		options = ""
-		new_ts._ProcessSigCalculation( imagenames_list, feature_set_name, options,
-		       feature_group_list, feature_name_list, write_sig_files_to_disk, parallel )
-		if feature_set_name == "large":
-			# FIXME: add other options
-			new_ts.feature_options = "-l"
-		new_ts.interpolation_coefficients = CheckIfClassNamesAreInterpolatable( classnames_list )
-
-		return new_ts
-
-	#==============================================================
-	def _ProcessSigCalculation( self,
-	                            imagenames_list,
-	                            feature_set_name="large",
-	                            options="",
-	                            feature_group_list=None,
-	                            feature_name_list=None,
-	                            write_sig_files_to_disk=True,
-	                            parallel=False ):
-		"""Calculate image descriptors for all the images contained in self.imagenames_list"""
-
-		# FIXME: check to see if any .sig, or .pysig files exist that match our
-		#        Signature calculation criteria, and if so read them in and incorporate them
-
-		sig = None
-		class_id = 0
-		for class_filelist in imagenames_list:
-			for sourcefile in class_filelist:
-				if feature_set_name == "large":
-					sig = Signatures.LargeFeatureSet( sourcefile, options )
-				elif feature_set_name == "small":
-					sig = Signatures.SmallFeatureSet( sourcefile, options )
-				else:
-					raise ValueError( "You requested '{0}' feature set... sig calculation other than small and large feature set hasn't been implemented yet.".format( feature_set_name ) )
-				# FIXME: add all the other options
-				# check validity
-				if not sig:
-					raise ValueError( "Couldn't create a valid signature from file {0} with options {1}".format( sourcefile, options ) )
-				sig.isvalid()
-				if write_sig_files_to_disk:
-					sig.WriteFeaturesToASCIISigFile()
-				self.AddSignature( sig, class_id )
-			class_id += 1
-
-	#==============================================================
 	def ScrambleGroundTruths( self, fine_grained_scramble = True ):
 		"""Produce an instant negative control training set"""
 
@@ -3046,49 +3084,6 @@ class FeatureSet_Continuous( FeatureSet ):
 		super( FeatureSet_Continuous, self ).__init__()
 
 	#==============================================================
-	def _ProcessSigCalculation( self,
-	                            imagenames_list,
-	                            feature_set_name="large",
-	                            options="",
-	                            feature_group_list=None,
-	                            feature_name_list=None,
-	                            write_sig_files_to_disk=True,
-	                            parallel=False ):
- 
-		"""Begin calculation of image features for the images listed in self.imagenames_list,
-		but do not use parallel computing/ create child processes to do so."""
-
-		# FIXME: check to see if any .sig, or .pysig files exist that match our
-		#        Signature calculation criteria, and if so read them in and incorporate them
-
-		# SUBCLASSING ISSUE: This function only works on subdirectories of images that are arranged
-		# in the way that discrete Featuresets are. There is no such thing as class_ids where 
-		# continuous classification is concerned. This function is copy/pasted from Discrete
-		# merely to facilitate the usage of hybrid FeatureSets which are Discrete by
-		# curation but represent continuous morphology. only a file of files can be used
-		# as input for pure continuous data.
-
-		sig = None
-		class_id = 0
-		for class_filelist in imagenames_list:
-			for sourcefile in class_filelist:
-				if feature_set_name == "large":
-					sig = Signatures.LargeFeatureSet( sourcefile, options )
-				elif feature_set_name == "small":
-					sig = Signatures.SmallFeatureSet( sourcefile, options )
-				else:
-					raise ValueError( "sig calculation other than small and large feature set hasn't been implemented yet." )
-				# FIXME: add all the other options
-				# check validity
-				if not sig:
-					raise ValueError( "Couldn't create a valid signature from file {0} with options {1}".format( sourcefile, options ) )
-				sig.isvalid()
-				if write_sig_files_to_disk:
-					sig.WriteFeaturesToASCIISigFile()
-				self.AddSignature( sig, class_id )
-			class_id += 1
-
-	#==============================================================
 	def ScrambleGroundTruths( self ):
 		"""Produce an instant negative control training set"""
 
@@ -3283,8 +3278,8 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 		if not isinstance( feature_weights, FeatureWeights ):
 			raise ValueError( 'Second argument to NewWND5 must be of type "FeatureWeights" or derived class, you gave a {0}'.format( type( feature_weights ).__name__ ) )
 
-		if not isinstance( test_sig, Signatures ):
-			raise ValueError( 'Third argument to NewWND5 must be of type "Signatures", you gave a {0}'.format( type( test_sig ).__name__ ) )
+		if not isinstance( test_sig, FeatureVector ):
+			raise ValueError( 'Third argument to NewWND5 must be of type "FeatureVector", you gave a {0}'.format( type( test_sig ).__name__ ) )
 
 		# check to see if sig is valid
 		test_sig.isvalid()
@@ -4986,7 +4981,8 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 	#FIXME: Add ability to do the first 50 or 100 features, make the graph, then
 	#       ability to resume from where it left off to do the next 50.
 
-	def __init__( self, training_set, feature_weights, test_image_path, chart_title = None, max_num_features = 300):
+	def __init__( self, training_set, feature_weights, test_image_path,
+	    chart_title=None, max_num_features=300 ):
 
 		self.timing_axes = None
 		import time
@@ -5003,7 +4999,7 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 				# Time the creation and classification of a single signature
 				t1 = time.time()
 				reduced_fw = feature_weights.Threshold( number_of_features_to_use )
-				sig = Signatures.NewFromFeatureNameList( test_image_path, reduced_fw.names )
+				sig = FeatureVector( path_to_image=test_image_path, names=reduced_fw.names ).GenerateFeatures()
 				reduced_ts = training_set.FeatureReduce( reduced_fw.names )
 				sig.Normalize( reduced_ts )
 		
@@ -5138,7 +5134,6 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
 		xytext=( optimal_num_feats_ls, 0.8 * _max ),
 		arrowprops=dict(facecolor='black', shrink=0.05),
 		horizontalalignment='right' )
-
 
 		# Plot Voting method data
 		self.timing_axes = self.main_axes.twinx()
