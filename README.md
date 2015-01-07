@@ -20,7 +20,7 @@ The wndchrm utility is an implementation of the WND-CHARM algorithm described he
 
 ## Current Release
 
-The current release of the wndchrm command-line utility is  version 1.52, available here: [wndchrm-1.52.774.tar.gz](http://ome.grc.nia.nih.gov/wnd-charm/wndchrm-1.52.774.tar.gz)
+The current release of the wndchrm command-line utility is  version 1.52, available here: [wndchrm-1.52.775.tar.gz](http://ome.grc.nia.nih.gov/wnd-charm/wndchrm-1.52.775.tar.gz)
 
 ## Supported Platforms
 
