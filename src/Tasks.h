@@ -266,7 +266,7 @@ class ImageMatrix;
 class FeatureGroup;
 // This class has additional members and methods specific for a feature computation plan
 // Plans aren't executable themselves because they do not hold state durring an execution.
-#define CURRENT_FEATURE_VERSION 2
+#define CURRENT_FEATURE_VERSION 3
 class FeatureComputationPlan : public ComputationPlan {
 	public:
 		size_t n_features;
