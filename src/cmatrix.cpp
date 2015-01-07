@@ -181,12 +181,14 @@ int ImageMatrix::LoadTIFF(char *filename) {
 			else if (B_stats.max() >= R_stats.max() && B_stats.max() >= G_stats.max()) RGB_max = B_stats.max();
 			// Scale the clrData to the global min / max.
 			RGB_scale = (255.0/(RGB_max-RGB_min));
-			for (a = 0; a < num; a++) {
-				rgb.r = (unsigned char)( (R_matrix.ReadablePixels().array().coeff(a) - RGB_min) * RGB_scale);
-				rgb.g = (unsigned char)( (G_matrix.ReadablePixels().array().coeff(a) - RGB_min) * RGB_scale);
-				rgb.b = (unsigned char)( (B_matrix.ReadablePixels().array().coeff(a) - RGB_min) * RGB_scale);
-				pix_plane (y, x) = stats.add (RGB2GRAY (rgb));
-				clr_plane (y, x) = RGB2HSV(rgb);
+			for (y = 0; y < height; y++) {
+				for (x = 0; x < width; x++) {
+					rgb.r = (unsigned char)( (R_matrix.ReadablePixels()(y,x) - RGB_min) * RGB_scale);
+					rgb.g = (unsigned char)( (G_matrix.ReadablePixels()(y,x) - RGB_min) * RGB_scale);
+					rgb.b = (unsigned char)( (B_matrix.ReadablePixels()(y,x) - RGB_min) * RGB_scale);
+					pix_plane (y, x) = stats.add (RGB2GRAY (rgb));
+					clr_plane (y, x) = RGB2HSV(rgb);
+				}
 			}
 		}
 		_TIFFfree(buf8);
