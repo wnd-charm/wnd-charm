@@ -492,8 +492,8 @@ class FisherFeatureWeights( FeatureWeights ):
 
 		sorted_featureweights = sorted( raw_featureweights, key=lambda a: a[0], reverse = True )
 		# take top N features
-		use_these_feature_weights = \
-				list( itertools.islice( sorted_featureweights, num_features_to_be_used ) )
+		from itertools import islice
+		use_these_feature_weights = list( islice( sorted_featureweights, num_features_to_be_used ) )
 
 		if _all is not True:
 			# You have a problem if any of the features have corellation coefficients of 0
@@ -887,7 +887,7 @@ class FeatureVector( object ):
 	# rotations:
 	r'(?:-R_(?P<rot>\d))?',
 	# tiling info:
-	r'(?P<tiling_scheme>-t(?P<num_rows>\d+)(?:x(?P<num_cols>\d+))?_(?P<tile_row_index>\d+)_(?P<tile_col_index>\d+))?',
+	r'(?P<tiling_scheme>-t(?P<num_rows>\d+)(?:x(?P<num_cols>\d+))?_(?P<tile_col_index>\d+)_(?P<tile_row_index>\d+))?',
 	# color features:
 	r'(?P<color>-c)?',
 	# long feature set:
@@ -915,11 +915,13 @@ class FeatureVector( object ):
 		self.channel = None
 		self.time_index = None
 		self.tiling_scheme = None
+		#: If no ROI image subsample, whole image is tile 1 of 1 in this sample group.
 		self.num_rows = 1
 		self.num_cols = 1
-		self.tile_row_index = None
-		self.tile_col_index = None
-		self.samplesequenceid = None
+		#: indices count from 0
+		self.tile_row_index = 0
+		self.tile_col_index = 0
+		self.samplesequenceid = 0
 		#: downsample (in percents)
 		self.downsample = 0
 		self.pixel_intensity_mean = None
@@ -946,15 +948,23 @@ class FeatureVector( object ):
 		self.Update( **kwargs )
 
 	#==============================================================
+	def __repr__( self ):
+		return '"{0}" ({1}) grp {2}, idx {3}, col {4}'.format( self.sample_name, self.label,
+				self.samplegroupid, self.samplesequenceid, self.fs_col )
+
+	#==============================================================
 	def Update( self, **kwargs ):
 
 		self_namespace = vars( self )
-		for member, value in kwargs.iteritems():
-			if member in self_namespace:
-				self_namespace[ member ] = value
+		for key, val in kwargs.iteritems():
+			if key in self_namespace:
+				#if self_namespace[ key ] != None and self_namespace[ key ] != val:
+				#	from warnings import warn
+				#	warn( "Overwriting attrib {0} old val {1} new val {2}".format( key, self_namespace[ key ], val ) )
+				self_namespace[ key ] = val
 			else:
-				raise AttributeError( "No instance variable named {0} in class {1}".format(
-				  member, self.__class__.__name__ ) )
+				raise AttributeError( 'No instance variable named "{0}" in class {1}'.format(
+				  key, self.__class__.__name__ ) )
 
 		# FIXME: feature_vector_version refers to WND-CHARM specific feature set specifications.
 		# Want to be able to handle other feature sets from other labs in the future.
@@ -1001,26 +1011,50 @@ class FeatureVector( object ):
 					if version == minor:
 						self.num_features = num_feats
 
+		# When reading in sampling opts from the path, they get pulled out as strings
+		# instead of ints:
+		if self.tile_row_index and type( self.tile_row_index ) != int:
+			self.tile_row_index = int( self.tile_row_index )
+		if self.tile_col_index and type( self.tile_col_index ) != int:
+			self.tile_col_index = int( self.tile_col_index )
+		if self.num_rows and type( self.num_rows ) != int:
+			self.num_rows = int( self.num_rows )
+		if self.num_cols and type( self.num_cols ) != int:
+			self.num_cols = int( self.num_cols )
+
+		# sequence order:
+		# index 0 = position row 0, col 0
+		# index 1 = position row 0, col 1
+		# index 2 = position row 1, col 0, etc...
+		self.samplesequenceid = self.tile_row_index + ( self.num_cols * self.tile_col_index )
+
 	#==============================================================
 	def Derive( self, **kwargs ):
 		"""Make a copy of this FeatureVector, except members passed as kwargs"""
 
 		from copy import deepcopy
-		new_fv = self.__class__()
+		new_obj = self.__class__()
 		self_namespace = vars( self )
-		newfv_namespace = vars( new_fs )
+		new_obj_namespace = vars( new_obj )
 
 		# skip these (if any):
 		convenience_view_members = []
 
+		# Are all keys in kwargs valid instance attribute names?
+		invalid_kwargs = set( kwargs.keys() ) - set( self_namespace.keys() )
+		if len( invalid_kwargs ) > 0:
+			raise ValueError( "Invalid keyword arg(s) to Derive: {0}".format( invalid_kwargs ) )
+
+		# Go through all of self's members and copy them to new_fs
+		# unless a key-val pair was passed in as kwargs
 		for key in self_namespace:
 			if key in convenience_view_members:
 				continue
 			if key in kwargs:
-				newfv_namespace[key] = kwargs[key]
+				new_obj_namespace[key] = kwargs[key]
 			else:
-				newfv_namespace[key] = deepcopy( self_namespace[key] )
-		return new_fv
+				new_obj_namespace[key] = deepcopy( self_namespace[key] )
+		return new_obj
 
 	#==============================================================
 	def __deepcopy__( self, memo ):
@@ -1042,27 +1076,29 @@ class FeatureVector( object ):
 		self_namespace = vars(self)
 		# ROI:
 		roi_params = 'x', 'y', 'w', 'h',
-		if all( [self_namespace[key] is not None for key in roi_params] ):
-			basename.append( "-B{0}_{1}_{2}_{3}".format( [ self_namespace[param] for param in roi_params ] ) )
-		if self_namespace[ 'downsample' ] is not None:
-			basename.append( "-d{0}".format( self_namespace['downsample'] ) )
-		if self_namespace[ 'pixel_intensity_mean' ] in not None:
-			basename.append( "-S{0}".format( self_namespace['pixel_intensity_mean'] ) )
-			if self_namespace[ 'pixel_intensity_stddev' ] is not None:
-				basename.append( "-S{0}".format( self_namespace['pixel_intensity_mean'] ) )
-		if self_namespace[ 'rot' ] is not None:
-			basename.append( "-R_{0}".format( self_namespace[ 'rot' ] ) )
-		if self_namespace[ 'num_rows' ] is not None:
-			basename.append( "-t{0}".format( self_namespace[ 'num_rows' ] ) )
-			if self_namespace[ 'num_cols' ] is not None:
-				basename.append( "x{0}".format( self_namespace[ 'num_cols'] ) )
-			if self_namespace[ 'row_index' ] is not None and self_namespace[ 'col_index' ] is not None:
-				basename.append( "_{0}_{1}".format( self_namespace[ 'row_index'], self_namespace[ 'col_index' ] ) )
+		bb = [self_namespace[key] for key in roi_params]
+
+		if all( [ val is not None for val in bb ] ):
+			basename.append( "-B{0}_{1}_{2}_{3}".format( *bb ) )
+		if self.downsample:
+			basename.append( "-d" + str(self.downsample) )
+		if self.pixel_intensity_mean is not None:
+			basename.append( "-S" + str(self.pixel_intensity_mean) )
+			if self.pixel_intensity_stddev is not None:
+				basename.append( "-S" + str(self.pixel_intensity_stddev) )
+		if self.rot is not None:
+			basename.append( "-R_" + str(self.rot) )
+		if self.num_rows and self.num_rows != 1:
+			basename.append( "-t" + str(self.num_rows) )
+			if self.num_cols and self.num_cols != 1:
+				basename.append( "x" + str(self.num_cols) )
+			if self.tile_row_index is not None and self.tile_col_index is not None:
+				basename.append( "_{0}_{1}".format( self.tile_row_index, self.tile_col_index ) )
 			else:
-				raise ValueError('Need to specify row_index and col_index in self for tiling params')
-		if self_namespace['color'] is not None:
+				raise ValueError('Need to specify tile_row_index and tile_col_index in self for tiling params')
+		if self.color:
 			basename.append( '-c' )
-		if self_namespace['color'] is not None:
+		if self.long:
 			basename.append( '-l' )
 
 		return basename + '.sig'
@@ -1081,8 +1117,11 @@ class FeatureVector( object ):
 		# 4: Calculate the rest
 		# 5: Reduce the features down to what the user asked for
 
-		if self.values and len( self.values ) != 0:
+		if self.values is not None and len( self.values ) != 0:
 			return self
+
+		# Make sure Feature Vector version string is correct, etc:
+		self.Update()
 
 		try:
 			self.LoadSigFile( quiet=quiet )
@@ -1100,9 +1139,7 @@ class FeatureVector( object ):
 			comp_plan = self.feature_computation_plan
 			self.feature_vector_version = comp_plan.feature_vec_type
 		else:
-			# Make sure Feature Vector version string is correct:
-			self.Update()
-			major, minor = self.new_fv.feature_vector_version.split('.')
+			major, minor = self.feature_vector_version.split('.')
 			if minor == 0:
 				comp_plan = GenerateComputationPlanFromListOfFeatureStrings( self.names )
 			elif minor == 1:
@@ -1199,6 +1236,7 @@ class FeatureVector( object ):
 		with open( path ) as infile:
 			lines = infile.read().splitlines()
 
+		import re
 		# First line is metadata
 		self.class_id, self.feature_vector_version = \
 		        re.match( '^(\S+)\s*(\S+)?$' , lines[0] ).group( 1, 2 )
@@ -1218,9 +1256,9 @@ class FeatureVector( object ):
 			self.auxiliary_feature_storage = path
 
 		# Pull sampling options from filename
-		result = self.sig_filename_parser.search( sigfile_path )
+		result = self.sig_filename_parser.search( path )
 		if result:
-			self.Update( result.groupdict() )
+			self.Update( **result.groupdict() )
 
 		# This is really slow:
 		#for i, name in enumerate( names ):
@@ -1281,7 +1319,7 @@ class FeatureVector( object ):
 			out.write( "0\t{0}\n".format( self.feature_vector_version ) )
 			out.write( "{0}\n".format( self.path_to_image ) )
 			for val, name in zip( self.values, self.names ):
-				outfile.write( "{0:0.6g} {1}\n".format( val, name )
+				outfile.write( "{0:0.6g} {1}\n".format( val, name ) )
 
 # end definition class FeatureVector
 
@@ -1424,8 +1462,8 @@ class FeatureSet( object ):
 
 		### Now initialize array-like members if possible:
 		if self.num_images and self.num_features:
-			new_fs.shape = ( self.num_images, self.num_features )
-			self.data_matrix = np.empty( news_fs.shape, dtype='double' )
+			self.shape = ( self.num_images, self.num_features )
+			self.data_matrix = np.empty( self.shape, dtype='double' )
 
 		if self.num_images:
 			self._contiguous_samplenames_list = [None] * self.num_images
@@ -1441,23 +1479,30 @@ class FeatureSet( object ):
 		"""Make a copy of this FeatureSet, except members passed as kwargs"""
 
 		from copy import deepcopy
-		new_fs = self.__class__()
+		new_obj = self.__class__()
 		self_namespace = vars( self )
-		newfs_namespace = vars( new_fs )
+		new_obj_namespace = vars( new_obj )
 
 		# Don't bother copying these "view" members which are rebuilt by self._RebuildViews()
 		convenience_view_members = [ 'data_list', 'imagenames_list', 'samplegroupid_list',\
 		    'samplesequenceid_list', 'ground_truths' ]
 
+		# Are all keys in kwargs valid instance attribute names?
+		invalid_kwargs = set( kwargs.keys() ) - set( self_namespace.keys() )
+		if len( invalid_kwargs ) > 0:
+			raise ValueError( "Invalid keyword arg(s) to Derive: {0}".format( invalid_kwargs ) )
+
+		# Go through all of self's members and copy them to new_fs
+		# unless a key-val pair was passed in as kwargs
 		for key in self_namespace:
 			if key in convenience_view_members:
 				continue
 			if key in kwargs:
-				newfs_namespace[key] = kwargs[key]
+				new_obj_namespace[key] = kwargs[key]
 			else:
-				newfs_namespace[key] = deepcopy( self_namespace[key] )
-		new_fs._RebuildViews()
-		return new_fs
+				new_obj_namespace[key] = deepcopy( self_namespace[key] )
+		new_obj._RebuildViews()
+		return new_obj
 
 	#==============================================================
 	def __deepcopy__( self, memo ):
@@ -1618,22 +1663,26 @@ class FeatureSet( object ):
 
 	#==============================================================
 	@classmethod
-	def NewFromFitFile( cls, pathname, options=None, tile_options=None, discrete=True ):
+	def NewFromFitFile( cls, pathname, discrete=True, quiet=False, global_sampling_options=None, **kwargs):
 		"""Helper function which reads in a c-chrm fit file.
 
 		tile_options - an integer N -> NxN tile scheme, or a tuple (N,M) -> NxM tile scheme
 		discrete_data - if false, try to interpret classes as continuous variable."""
 
-		import re
+		if not global_sampling_options:
+			global_sampling_options = FeatureVector( **kwargs )
 
-		path, filename = os.path.split( pathname )
+		import re
+		from os.path import basename, split
+
+		path, filename = split( pathname )
 		if not filename.endswith( ".fit" ):
 			raise ValueError( 'Not a .fit file: {0}'.format( pathname ) )
 
-		print "Creating Training Set from legacy WND-CHARM text file file {0}".format( pathname )
+		if not quiet:
+			print "Creating Training Set from legacy WND-CHARM text file file {0}".format( pathname )
 		new_fs = cls()
 
-		from os.path import basename
 		new_fs.source_path = filename
 		new_fs.name = basename( filename )
 		new_fs.discrete = discrete
@@ -1644,17 +1693,10 @@ class FeatureSet( object ):
 		line_num = 0
 		sample_count = 0
 
-		if tile_options:
-			try:
-				len(tile_options)
-				new_fs.tile_rows = int(tile_options[0])
-				new_fs.tile_cols = int(tile_options[1])
-			except TypeError:
-				new_fs.tile_rows = new_fs.tile_cols = int( tile_options )
-			new_fs.num_samples_per_group = new_fs.tile_rows * new_fs.tile_cols
-
-		if options:
-			new_fs.options = options
+		new_fs.tile_rows = global_sampling_options.num_rows
+		new_fs.tile_cols = global_sampling_options.num_cols
+		new_fs.num_samples_per_group = new_fs.tile_rows * new_fs.tile_cols
+		new_fs.global_sampling_options = global_sampling_options
 
 		for line in fitfile:
 			if line_num is 0:
@@ -1866,7 +1908,7 @@ class FeatureSet( object ):
 		load/calculate features and populate this object."""
 
 		if not global_sampling_options:
-			global_options = FeatureVector( **kwargs )
+			global_sampling_options = FeatureVector( **kwargs )
 
 		if not quiet:
 			print "Creating Training Set from directories of images {0}".format( top_level_dir_path )
@@ -1929,7 +1971,7 @@ class FeatureSet( object ):
 		[ fv.GenerateFeatures( write_sig_files_to_disk, quiet ) for fv in samples ]
 
 		name = basename( top_level_dir_path )
-		return cls._NewFromListOfFSSampleOptions( samples, name=name,
+		return cls._NewFromListOfFeatureVectors( samples, name=name,
 		       source_path=top_level_dir_path,
 		       num_samples_per_group=(num_rows*num_cols),
 					 num_features=global_sampling_options.num_features,
@@ -1937,8 +1979,8 @@ class FeatureSet( object ):
 
 	#==============================================================
 	@classmethod
-	def NewFromFileOfFiles( cls, pathname, discrete=True, num_samples_per_group=1,
-			quiet=False, global_sampling_options=None, write_sig_files_to_disk=True, **kwargs ):
+	def NewFromFileOfFiles( cls, pathname, discrete=True, quiet=False,
+		     global_sampling_options=None, write_sig_files_to_disk=True, **kwargs ):
 		"""Create a FeatureSet from a file of files.
 
 		The original FOF format (pre-2015) was just two columns, a path and a ground truth
@@ -1946,15 +1988,19 @@ class FeatureSet( object ):
 		columns specifying additional paths and preprocessing options for a more complex
 		feature space."""
 
+		from os import getcwd
+		from os.path import split, splitext, isfile, join
+		from copy import deepcopy
+
 		if not global_sampling_options:
 			global_sampling_options = FeatureVector( **kwargs )
 
 		if not quiet:
 			print 'Loading {0} from file of files "{1}"'.format( cls.__name__, pathname )
 
-		from os.path import split, splitext
 		basepath, ext = splitext( pathname )
 		dir_containing_fof, file_name = split( basepath )
+		cwd = getcwd()
 
 		num_fs_columns = None
 		num_features = None
@@ -1971,9 +2017,13 @@ class FeatureSet( object ):
 
 		num_rows = global_sampling_options.num_rows
 		num_cols = global_sampling_options.num_cols
-	
+		num_samples_per_group = num_rows * num_cols
+
+		# There are a number of places to look for the existence of the files
+		# specified via relative path.
+
 		for line_num, line in enumerate( fof ):
-			cols = line.split('\t', 2)
+			cols = line.strip().split('\t', 2)
 
 			if samples_grouped_by_ground_truth:
 				if current_ground_truth == None:
@@ -1990,112 +2040,143 @@ class FeatureSet( object ):
 						# No need to keep checking.
 						samples_grouped_by_ground_truth = False
 
-			# BEGIN tiling loops
-			for col_index in xrange( num_cols ):
-				for row_index in xrange( num_rows ):
-					tile_position_index = col_index * num_rows + row_index
+			# Classic two-column FOF format
+			if len( cols ) < 3:
 
-					# Classic two-column FOF format
-					if len( cols ) < 3:
+				# If first time through, set a flag to indicate this is an classic version FOF
+				# Set number of sample columns = -1 so as not to confuse with columns 0, 1, 2, ...
+				# in multichannel FOF format below.
+				if num_fs_columns == None:
+					num_fs_columns = -1
+				elif num_fs_columns != -1:
+					err_smg = "File {0}, line {1} has old-style two-column FOF format, while the other lines use the new-style format with {3} columns"
+					raise ValueError( err_msg.format( pathname, line_num, num_fs_columns + 3 ) )
 
-						# Fix number of columns in FOF to be uniform
-						if num_fs_columns == None:
-							num_fs_columns = 1
-						elif num_fs_columns != 1:
-							err_smg = "File {0}, line {1} has {2} channel cols, when the rest has {3}"
-							raise ValueError( err_msg.format( pathname, line_num, 1, num_fs_columns ) )
+				# Create a sampling opts template for this line in the FOF
+				base_sample_opts = deepcopy( global_sampling_options )
+				base_sample_opts.sample_name = cols[0]
+				base_sample_opts.label = cols[1]
+				if not discrete:
+					base_sample_opts.ground_truth = float(cols[1])
+				base_sample_opts.samplegroupid = line_num // num_samples_per_group
+				# Note only difference with base_sampling_opts in the 3+ col version code below
+				# is the fs_col is always 0
+				base_sample_opts.fs_col = 0
 
-						if cols[0].endswith( '.sig' ):
-							opts = FeatureVector.NewFromSigFile( cols[0] )
-						else:
-							opts = deepcopy( global_sampling_options )
-							opts.path_to_image = cols[0]
+				if not isfile( cols[0] ):
+					# Try prepending current working directory
+					path_to_sample = join( cwd, cols[0] )
+					if not isfile( path_to_sample ):
+						# Try prepending path to this FOF
+						path_to_sample = join( dir_containing_fof, cols[0] )
+						if not isfile( path_to_sample ):
+							# Don't know what else to tell ya, pal.
+							raise ValueError( "Can't find sample \"{0}\"".format( cols[0] ) )
+				else:
+					path_to_sample = cols[0]
 
-						opts.sample_name = cols[0]
-						opts.label = cols[1]
-						opts.samplesequenceid = tile_position_index
-						opts.samplegroupid = line_num
-						opts.tile_row_index = row_index
-						opts.tile_col_index = col_index
-						# Only one column of feature sets in the FeatureSet matrix (count from 0):
-						#opts.fs_col = 0 # is 0 by default
+				if path_to_sample.endswith('sig'):
+					# Not possible to tile over a feature vector, so it's just one and done here.
+					# Need to actually load the sig file here to tell how many features are contained
+					base_sample_opts.LoadSigFile( path_to_sample )
+					samples.append( base_sample_opts )
+				else:
+					base_sample_opts.path_to_image = path_to_sample
+					for col_index in xrange( num_cols ):
+						for row_index in xrange( num_rows ):
+							fv = deepcopy( base_sample_opts )
+							fv.Update( tile_row_index=row_index, tile_col_index=col_index )
+							samples.append( fv )
+				# By now (after perhaps needing to load sig file) we know how many features in this sample
+				num_feats_in_this_row = base_sample_opts.num_features
 
-						samples.append( opts )
+			# NEW THREE-column FOF format:
+			# Within "column 3" are sub-columns indicating channel options.
+			# Generates a dict of FeatureSet processing options for each column of
+			# channel options found, which takes the form:
+			# [optional path to tiff or sig file] {[optname1=val1;optname2=val2...]}
+			else:
+				num_feats_in_this_row = 0
+				# tabs are ignored here, now the {} becomes the delimiter
+				tabs_stripped_out = cols[2].translate( None, '\t' )
+				for fs_col, m in enumerate( self.channel_col_finder.finditer( tabs_stripped_out ) ):
 
-						if num_features == None:
-							num_features = opts.num_features
+					# Start with a clean sample options template for each column
+					base_sample_opts = deepcopy( global_sampling_options )
+					base_sample_opts.sample_name = cols[0]
+					base_sample_opts.label = cols[1]
+					if not discrete:
+						base_sample_opts.ground_truth = float(cols[1])
+					base_sample_opts.samplegroupid = line_num // num_samples_per_group
+					base_sample_opts.fs_col = fs_col
 
-					# NEW THREE-column FOF format:
-					# Within "column 3" are sub-columns indicating channel options.
-					# Generates a dict of FeatureSet processing options for each column of
-					# channel options found, which takes the form:
-					# [optional path to tiff or sig file] {[optname1=val1;optname2=val2...]}
+					# Pull sampling options out of parentheses and load into template
+					col_finder_dict = m.groupdict()
+					opts_str = col_finder_dict['opts']
+					if opts_str:
+						col_opts = \
+							dict( [ mm.groups() for opt in opts_str.split(';') \
+																for mm in self.channel_opt_finder.finditer( opt ) ] )
+						if None in col_opts:
+							# value given without key is taken to be default channel
+							col_opts['channel'] = col_opts[None]
+							del col_opts[None]
+						base_sample_opts.Update( **col_opts )
+
+					# Now we deal with the path:
+					if col_finder_dict['path'] == None:
+						# If no path given in this channel column, implies string in cols[0]
+						# is the path upon with the options refer to.
+						# Doesn't make sense to have a sig file be in column 1
+						# then have channel options listed, so cols[0] must be a path to a tiff
+						path = cols[0]
 					else:
-						num_feats_in_this_row = 0
-						# tabs are ignored here, now the {} becomes the delimiter
-						tabs_stripped_out = cols[2].translate( None, '\t' )
-						for fs_col, m in enumerate( self.channel_col_finder.finditer( tabs_stripped_out ) ):
-							col_finder_dict = m.groupdict()
-							path = col_finder_dict['path']
-							if path != None and path.endswith('.sig'):
-								opts = FeatureVector.NewFromSigFile( path )
-							else:
-								opts = deepcopy( global_sampling_options )
-							if path == None:
-								# If no path given in this channel column, implies string in cols[0]
-								# is the path upon with the options refer to.
-								# Doesn't make sense to have a sig file be in column 1
-								# then have channel options listed, so cols[0] must be a path to a tiff
-								opts.path_to_image = cols[0]
-							else:
-								opts.path_to_image = path
-							opts.label = cols[1]
-							opts.sample_name = cols[0]
-							opts.samplesequenceid = tile_position_index
-							opts.samplegroupid = line_num
-							opts.tile_row_index = row_index
-							opts.tile_col_index = col_index
-							opts.label = cols[1]
-							opts.fs_col = fs_col
+						path = col_finder_dict['path']
+					if not isfile( path ):
+						# Try prepending current working directory
+						path_to_sample = join( cwd, path )
+						if not isfile( path_to_sample ):
+							# Try prepending path to this FOF
+							path_to_sample = join( dir_containing_fof, path )
+							if not isfile( path_to_sample ):
+								# Don't know what else to tell ya, pal.
+								raise ValueError( "Can't find sample \"{0}\"".format( path_to_sample ) )
 
-							opts_str = col_finder_dict['opts']
-							if opts_str:
-								col_opts = \
-								  dict( [ mm.groups() for opt in opts_str.split(';') \
-								                    for mm in self.channel_opt_finder.finditer( opt ) ] )
-								if None in col_opts:
-									# value given without key is taken to be default channel
-									col_opts['channel'] = col_opts[None]
-									del col_opts[None]
-								opts.Update( **col_opts )
+					if path_to_sample.endswith('sig'):
+						# Not possible to tile over a feature vector, so it's just one and done here
+						base_sample_opts.LoadSigFile( path_to_sample )
+						samples.append( base_sample_opts )
+					else:
+						base_sample_opts.path_to_image = path_to_sample
+						for col_index in xrange( num_cols ):
+							for row_index in xrange( num_rows ):
+								fv = deepcopy( base_sample_opts )
+								fv.Update( tile_row_index=row_index, tile_col_index=col_index )
+								samples.append( fv )
+					# By now (after perhaps needing to load sig file) we know how many features in this sample
+					num_feats_in_this_row += base_sample_opts.num_features
 
-							num_feats_in_this_row += opts.num_features
-							samples.append( opts )
-						# END loop over {} columns
+				# END loop over {} columns
+				# FIXME: Fix the number of channel column options to be uniform for now,
+				# may be allowable in the future to have different number of channel opt columns
+				# say for when the user wants to pull a ROI for feature calculation for a certain
+				# sample, but use the whole image for all the others.
+				if num_fs_columns == None:
+					num_fs_columns = fs_col
+				elif fs_col != num_fs_columns:
+					err_smg = "File {0}, line {1} has {2} channel cols, when the rest has {3}"
+					raise ValueError( err_msg.format( pathname, line_num, fs_col, num_fs_columns) )
 
-						# Num features across entire row, no matter the columns, must be uniform
-						if num_features == None:
-							num_features = num_feats_in_this_row
-						elif num_features != num_feats_in_this_row:
-							errmsg = 'FOF "{0}" row {1} calls for {2} features where previous rows ' + \
-							  'call for {3} features.'
-							raise ValueError( 
-								errmsg.format( pathname, line_num, num_feats_in_this_row, num_features ) )
-					# END if len( cols ) < 3
+			# END if len( cols ) < 3
 
-				# END for row_index in xrange( num_rows )
-			# END for col_index in xrange( num_cols )
-			# END tiling loops
-
-			# FIXME: Fix the number of channel column options to be uniform for now,
-			# may be allowable in the future to have different number of channel opt columns
-			# say for when the user wants to pull a ROI for feature calculation for a certain
-			# sample, but use the whole image for all the others.
-			if num_fs_columns == None:
-				num_fs_columns = fs_col
-			elif fs_col != num_fs_columns:
-				err_smg = "File {0}, line {1} has {2} channel cols, when the rest has {3}"
-				raise ValueError( err_msg.format( pathname, line_num, len( channel_opts ), num_fs_columns) )
+			# Num features across entire row, no matter the columns, must be uniform
+			if num_features == None:
+				num_features = num_feats_in_this_row
+			elif num_features != num_feats_in_this_row:
+				errmsg = 'FOF "{0}" row {1} calls for {2} features where previous rows ' + \
+					'call for {3} features.'
+				raise ValueError(
+					errmsg.format( pathname, line_num, num_feats_in_this_row, num_features ) )
 
 		# END iterating over lines in FOF
 		fof.close()
@@ -2103,7 +2184,9 @@ class FeatureSet( object ):
 		# FIXME: Here's where the parallization magic can (will!) happen.
 		[ fv.GenerateFeatures( write_sig_files_to_disk, quiet ) for fv in samples ]
 
-		return cls._NewFromListOfFSSampleOptions( samples, name=file_name, source_path=pathname,
+		assert num_features > 0
+
+		return cls._NewFromListOfFeatureVectors( samples, name=file_name, source_path=pathname,
 		       num_samples_per_group=(num_rows*num_cols), num_features=num_features,
 		       discrete=discrete, quiet=quiet )
 
@@ -2131,12 +2214,12 @@ class FeatureSet( object ):
 
 		# Sort list of FeatureVectors by column so we can fill in data_matrix from left to right.
 		for fv in sorted( feature_vectors_list, key=lambda fv: fv.fs_col ):
-			if not fv.values:
+			if fv.values is None:
 				raise ValueError( "Calls to this method require features to have already been calculated." )
 
-			row_index = (fv.samplegroupid * num_samples_per_group) + fv.samplesequenceid
 			col_left_boundary_index = feature_set_col_offset[ fv.fs_col - 1 ]
 			col_right_boundary_index = col_left_boundary_index + fv.num_features
+			row_index = fv.samplegroupid * num_samples_per_group +fv.samplesequenceid
 
 			# Fill in column metadata if we've not seen a feature vector for this col before
 			if fv.fs_col not in feature_set_col_offset:
@@ -2149,7 +2232,10 @@ class FeatureSet( object ):
 				new_fs._contiguous_samplenames_list[ row_index ] = fv.sample_name
 				new_fs._contiguous_samplegroupid_list[ row_index ] = fv.samplegroupid
 				new_fs._contiguous_samplesequenceid_list[ row_index ] = fv.samplesequenceid
-				new_fs._contiguous_ground_truths[ row_index ] = fv.ground_truth
+				if discrete:
+					new_fs._contiguous_ground_truths[ row_index ] = fv.label
+				else:
+					new_fs._contiguous_ground_truths[ row_index ] = fv.ground_truth
 
 			new_fs.data_matrix[ row_index, col_left_boundary_index : col_right_boundary_index ] = \
 			  fv.values
@@ -2687,10 +2773,10 @@ class FeatureSet_Discrete( FeatureSet ):
 	and a list of ground truth values associated with each image, respectively."""
 
 	#==============================================================
-	def __init__( self ):
+	def __init__( self, *args, **kwargs ):
 		"""constructor"""
 
-		super( FeatureSet_Discrete, self ).__init__( )
+		super( FeatureSet_Discrete, self ).__init__( *args, **kwargs )
 
 	#==============================================================
 	def ContiguousDataMatrix( self ):
