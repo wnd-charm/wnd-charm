@@ -4,8 +4,10 @@
 #include <cfloat> // DBL_MAX
 #include "../statistics/Moments.h"
 #include "tamura.h"
-
-
+#ifdef GPU
+#include "tamura_cuda.h"
+#endif
+#include <stdio.h>
 
 double contrast(const ImageMatrix &image) {
 	unsigned int x,y;
@@ -180,7 +182,36 @@ double coarseness(const ImageMatrix &image, double *hist,unsigned int nbins) {
 	Sbest = new ImageMatrix;
 	Sbest->allocate (image.width,image.height);
 
+#ifdef GPU
+		double *laufendeSumme_hostPtr;
+		double *Ak_pix_plane_host[K_VALUE];
+		double *Ekh_pix_plane_host[K_VALUE];
+		double *Ekv_pix_plane_host[K_VALUE];
+		int ret = 0;
+               /* Initilize the host pointers to the respective data raw pointer of elements of type pixDataMat */
+		for(k = 1; k <= K_VALUE; ++k) {
+		     pixDataMat &Ak_pix_plane  = *Ak[k-1];
+		     pixDataMat &Ekh_pix_plane = *Ekh[k-1];
+	             pixDataMat &Ekv_pix_plane = *Ekv[k-1];
+                     Ak_pix_plane_host[k-1]    = &Ak_pix_plane(0,0);
+                     Ekh_pix_plane_host[k-1]   = &Ekh_pix_plane(0,0);
+	             Ekv_pix_plane_host[k-1]   = &Ekv_pix_plane(0,0);
+                }
+                /* Input image */
+		laufendeSumme_hostPtr = &laufendeSumme(0,0);
+                /* Calculate the Ak pix data and EKv and EKh pix data */
+		ret = GPU_process_pix(laufendeSumme_hostPtr,Ak_pix_plane_host,Ekh_pix_plane_host,Ekv_pix_plane_host,yDim,xDim,K_VALUE);
+                if(ret < 0)
+                {
+                    for (k = 1; k <= K_VALUE; k++) {
+                        delete Ak[k-1];
+                        delete Ekh[k-1];
+                        delete Ekv[k-1];
+                    }
+                    exit(EXIT_FAILURE);
+                }
 
+#else
 	//step 1
 	int lenOfk = 1;
 	for(k = 1; k <= K_VALUE; ++k) {
@@ -215,6 +246,7 @@ double coarseness(const ImageMatrix &image, double *hist,unsigned int nbins) {
 			}
 		}
 	}
+#endif
 
 	//step3
 	writeablePixels Sbest_pix_plane = Sbest->WriteablePixels();
