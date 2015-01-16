@@ -310,5 +310,6 @@ private:
 };
 
 #ifdef GPU
+extern "C" void Chebyshev2D_gpu(const ImageMatrix &Im, double *out, unsigned int N);
 #endif
 #endif

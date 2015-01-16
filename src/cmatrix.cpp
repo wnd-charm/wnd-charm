@@ -1096,7 +1096,14 @@ void ImageMatrix::ChebyshevTransform(const ImageMatrix &matrix_IN, unsigned int 
 	if (N<2)
 		N = MIN( width, height );
 	out=new double[height*N];
+#if GPU_DEBUG
+	printf("Calling Chebyshev2D with out dimension height = %d, width(N) = %d\n", height, N);
+#endif
+#ifdef GPU
+	Chebyshev2D_gpu(matrix_IN, out,N);
+#else
 	Chebyshev2D(matrix_IN, out,N);
+#endif
 	width=N;
 	height = MIN( height, N );   /* prevent error */
 
