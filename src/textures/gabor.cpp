@@ -176,7 +176,12 @@ double *GaborEnergy(const ImageMatrix &Im, double* out, double f0, double sig2la
 		for (x = 0; x < Im.width; x++)
 			image[y*Im.width+x] = pix_plane(y,x);
 
+#ifdef GPU
+	gpu_conv2comp(c, image, Gexp, Im.width, Im.height, n, n);
+
+#else
 	conv2comp(c, image, Gexp, Im.width, Im.height, n, n);
+#endif
 
 	b = 0;
 	for (y = (int)ceil((double)n/2); b < Im.height; y++) {
