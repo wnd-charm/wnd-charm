@@ -20,6 +20,63 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 
+#--------------------------------------------------------------------
+# Check For CUDA Support
+#--------------------------------------------------------------------
+# initialize array index
+
+#N="0"
+
+# Setup default CUDA paths
+CUDA_INSTALL_PATH="/usr/local/cuda"
+CUDA_SDK_INSTALL_PATH="/usr/local/cuda"
+
+# Check: enable CUDA?
+AC_MSG_CHECKING([whether to use CUDA library])
+AC_ARG_ENABLE(cuda,
+    [AS_HELP_STRING(--disable-cuda,disable CUDA support)],
+    cudaval="yes",
+    cudaval="no")
+AC_MSG_RESULT([$cudaval])
+
+# check to see if CUDA been disabled
+if test "$cudaval" == "yes"; then
+	AC_MSG_WARN([Not using CUDA!])
+fi
+
+# Setup custom CUDA paths
+AC_ARG_WITH([cuda],
+   [AS_HELP_STRING(
+        [--with-cuda=PATH],
+        [prefix where CUDA is installed @<:@default=auto@:>@])],
+   [CUDA_INSTALL_PATH=$withval],
+   [with_cuda=auto])
+AC_ARG_WITH([cuda-sdk],
+   [AS_HELP_STRING(
+        [--with-cuda-sdk=PATH],
+        [prefix where CUDA SDK is installed @<:@default=auto@:>@])],
+   [CUDA_SDK_INSTALL_PATH=$withval],
+   [with_cuda_sdk=auto])
+
+# Setup nvcc flags
+if test  "$cudaval" = "no"; then
+    cuda_enable=true;
+    NVCCFLAGS="$NVCCFLAGS"
+    CUDA_CFLAGS="$CUDA_CFLAGS"
+    CUDA_CFLAGS="$CUDA_CFLAGS -I$CUDA_INSTALL_PATH/include"
+    CUDA_LDFLAGS="-L$CUDA_INSTALL_PATH/lib64"
+    CUDA_LIBS="-lcuda -lcudart -lcufft -lcublas"
+    NVCCFLAGS="$NVCCFLAGS $CUDA_CFLAGS $CUDA_LDFLAGS $CUDA_LIBS"
+    NVCC="nvcc"
+    AC_SUBST(NVCC)
+    AC_SUBST(NVCCFLAGS)
+    AC_DEFINE([_CUDA],[1],[Defined if CUDA should be used])
+#    eval "ARRAY${N}='-D_CUDA'"
+#    N=`expr $N + 1`
+fi
+
+#--------------------------------------------------------------------
+
 #AC_PROG_CXX sets CXX to g++ if it cannot find a working C++ compiler 
 #thus, we test here whether $CXX is actually working  
 AC_LANG_PUSH(C++) 
@@ -155,5 +212,8 @@ AC_ARG_ENABLE(class-prob-tsv,
  [ AC_DEFINE(AVG_CLASS_PROB_TSV,,[Define optional output. ]) 
  ])
 
+
+#Set Variable for check CUDA support in Makefile.am
+AM_CONDITIONAL(CUDA_ENABLE, test x$cuda_enable = xtrue)
 AC_CONFIG_FILES([Makefile src/Makefile])
 AC_OUTPUT

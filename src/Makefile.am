@@ -79,6 +79,8 @@ libchrm_a_SOURCES = \
   wndchrm_error.cpp \
   wndchrm_error.h
 
+GPU_source = \
+
 libchrm_a_CXXFLAGS = -Wall
 
 bin_PROGRAMS=wndchrm
@@ -87,3 +89,27 @@ wndchrm_SOURCES = wndchrm_src/wndchrm.cpp
 
 wndchrm_LDADD = libchrm.a -lm -ltiff -L. -lchrm -lfftw3
 
+# Check if CUDA enable
+# If enable add GPU sources to libchrm_a_SOURCES
+# Add Extra dependancies.
+# Ad autotools dont support CUDA have to add LDADD Manually
+
+if CUDA_ENABLE
+
+libchrm_a_SOURCES += $(GPU_source)
+CXXFLAGS += -DGPU
+
+wndchrm_LDADD+=$(NVCCFLAGS)
+EXTRA_wndchrm_DEPENDENCIES =
+EXTRA_wndchrm_DEPENDENCIES +=
+EXTRA_wndchrm_DEPENDENCIES +=
+
+.cu.o:
+	$(NVCC) $(NVCC_INCLUDES) $(DEFAULT_INCLUDES) $(INCLUDES) $(NVCCFLAGS) -c -o $@ $<
+
+wndchrm$(EXEEXT): $(wndchrm_OBJECTS) $(wndchrm_DEPENDENCIES) $(EXTRA_wndchrm_DEPENDENCIES)
+	@rm -f wndchrm$(EXEEXT)
+	$(NVCC) $(NVCC_FLAGS) $(EXTRA_wndchrm_DEPENDENCIES) $(wndchrm_OBJECTS) $(wndchrm_LDADD) $(LIBS) -o $@
+endif
+
+#END GPU
