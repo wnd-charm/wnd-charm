@@ -67,6 +67,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "CVIPtexture.h"
+#include <iostream>
 
 #define RADIX 2.0
 #define EPSILON 0.000000001
@@ -90,6 +91,8 @@ double f12_icorr (double **P, int Ng);
 double f13_icorr (double **P, int Ng);
 double f14_maxcorr (double **P, int Ng);
 
+extern "C"
+int f14_maxcorr_gpu (double **, double *, double *, double *, double *, int, double **);
 
 double *allocate_vector (int nl, int nh);
 double **allocate_matrix (int nrl, int nrh, int ncl, int nch);
@@ -941,6 +944,7 @@ double f13_icorr (double **P, int Ng) {
 	return (sqrt (fabs (1 - exp (-2.0 * (hxy2 - hxy)))));
 }
 
+
 /* Returns the Maximal Correlation Coefficient */
 double f14_maxcorr (double **P, int Ng) {
 	int i, j, k;
@@ -965,6 +969,36 @@ double f14_maxcorr (double **P, int Ng) {
 		}
 	}
 	
+
+	#ifdef DISPLAY_TIME
+		clock_t start_cpu,stop_cpu;
+		double time_cpu;
+		start_cpu=clock();
+	#endif
+
+	#ifdef GPU
+		double *gpu_Q=(double *)malloc(sizeof(double)*(Ng+1)*(Ng+1));
+		if(gpu_Q == NULL)
+		{
+			printf("Error in malloc : at gpu_Q\n");
+			exit(1);
+		}
+
+		/*calling f14_maxcorr_gpu function to calculate matrix Q on GPU*/
+		int ret=f14_maxcorr_gpu(P, px, py, x, iy, Ng,&gpu_Q);
+		if(ret == -1){
+			free(gpu_Q);
+			exit (0);
+		}
+		else{
+			for (i = 0; i < Ng; ++i) {
+				for (j = 0; j < Ng; ++j) {
+					Q[i + 1][j + 1]=gpu_Q[(j+i*Ng)+Ng];
+				}
+			}
+			free(gpu_Q);
+		}
+	#else
 	/* Find the Q matrix */
 	for (i = 0; i < Ng; ++i) {
 		for (j = 0; j < Ng; ++j) {
@@ -974,6 +1008,13 @@ double f14_maxcorr (double **P, int Ng) {
   			    Q[i + 1][j + 1] += P[i][k] * P[j][k] / px[i] / py[k];
 		}
 	}
+	#endif
+
+	#ifdef DISPLAY_TIME
+		stop_cpu=clock();
+		time_cpu=(double)(stop_cpu-start_cpu)/CLOCKS_PER_SEC*1000;
+		std::cout<<"Time to f14_maxcorr (GPU):"<<time_cpu<<std::endl;
+	#endif
 
 	/* Balance the matrix */
 	mkbalanced (Q, Ng);
