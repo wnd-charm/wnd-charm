@@ -309,4 +309,6 @@ private:
 	};
 };
 
+#ifdef GPU
+#endif
 #endif
