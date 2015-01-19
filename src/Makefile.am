@@ -80,7 +80,8 @@ libchrm_a_SOURCES = \
   wndchrm_error.h
 
 GPU_source = \
-  common.cu
+  common.cu \
+  transforms/chebyshev_kernel.cu
 libchrm_a_CXXFLAGS = -Wall
 
 bin_PROGRAMS=wndchrm
@@ -100,7 +101,7 @@ libchrm_a_SOURCES += $(GPU_source)
 CXXFLAGS += -DGPU
 
 wndchrm_LDADD+=$(NVCCFLAGS)
-EXTRA_wndchrm_DEPENDENCIES = common.o
+EXTRA_wndchrm_DEPENDENCIES = common.o transforms/chebyshev_kernel.o
 EXTRA_wndchrm_DEPENDENCIES +=
 EXTRA_wndchrm_DEPENDENCIES +=
 
