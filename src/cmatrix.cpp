@@ -1699,8 +1699,24 @@ void ImageMatrix::TamuraTexture2D(double *vec) const {
    zvalue -array of double- a pre-allocated array of double of a suficient size
                             (the actual size is returned by "output_size))
    output_size -* long- the number of enteries in the array "zvalues" (normally 72)
+
 */
+
 void ImageMatrix::zernike2D(double *zvalues, long *output_size) const {
-	mb_zernike2D(*this, 0, 0, zvalues, output_size);
+
+#ifdef GPU
+	int result;
+
+//  call to gpu function
+	result = gpu_mb_zernike2D (*this, 0, 0, zvalues, output_size);
+
+	if(result == -1){
+
+		exit(EXIT_FAILURE);
+	}
+
+#else
+		mb_zernike2D(*this, 0, 0, zvalues, output_size);
+#endif
 }
 
