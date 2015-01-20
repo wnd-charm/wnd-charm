@@ -88,7 +88,8 @@ GPU_source = \
   gpu_convolve.cuh \
   statistics/FeatureStatistics_kernel.cu \
   fft2.cu \
-  fft2.cuh
+  fft2.cuh \
+  textures/haralick/f14_maxcorr_gpu.cu
 libchrm_a_CXXFLAGS = -Wall
 
 bin_PROGRAMS=wndchrm
@@ -109,7 +110,7 @@ CXXFLAGS += -DGPU
 
 wndchrm_LDADD+=$(NVCCFLAGS)
 EXTRA_wndchrm_DEPENDENCIES = common.o transforms/chebyshev_kernel.o textures/gpu_conv2comp.o
-EXTRA_wndchrm_DEPENDENCIES += gpu_convolve.o statistics/FeatureStatistics_kernel.o fft2.o
+EXTRA_wndchrm_DEPENDENCIES += gpu_convolve.o statistics/FeatureStatistics_kernel.o fft2.o textures/haralick/f14_maxcorr_gpu.o
 EXTRA_wndchrm_DEPENDENCIES +=
 
 .cu.o:
