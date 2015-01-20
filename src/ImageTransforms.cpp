@@ -62,7 +62,7 @@ FourierTransform::FourierTransform () : ImageTransform ("Fourier") {};
 // http://www.fftw.org/doc/
 void FourierTransform::execute (const ImageMatrix &matrix_IN, ImageMatrix &matrix_OUT ) const {
 	if (verbosity > 3) std::cout << "Performing transform " << name << std::endl;
-	matrix_OUT.fft2(matrix_IN);
+	matrix_OUT.fft2(matrix_IN, matrix_OUT);
 	matrix_OUT.finish();
 }
 

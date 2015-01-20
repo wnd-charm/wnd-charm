@@ -1030,7 +1030,11 @@ void ImageMatrix::histogram(double *bins,unsigned short nbins, bool imhist, cons
 
 /* fft 2 dimensional transform */
 // http://www.fftw.org/doc/
-double ImageMatrix::fft2 (const ImageMatrix &matrix_IN) {
+double ImageMatrix::fft2 (const ImageMatrix &matrix_IN, const ImageMatrix &matrix_OUT) {
+#ifdef GPU
+	gpu_fft2(this, matrix_IN);
+
+#else
 	fftw_plan p;
 	unsigned int half_height = matrix_IN.height/2+1;
 
@@ -1109,6 +1113,7 @@ double ImageMatrix::fft2 (const ImageMatrix &matrix_IN) {
 // 	fftw_free(in);
 // 	fftw_free(out);
 
+#endif
 	return(0);
 }
 
