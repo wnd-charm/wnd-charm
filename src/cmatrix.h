@@ -311,5 +311,6 @@ private:
 
 #ifdef GPU
 extern "C" void Chebyshev2D_gpu(const ImageMatrix &Im, double *out, unsigned int N);
+extern "C" void gpu_convolve(double *, double *, unsigned long, unsigned long, unsigned long, unsigned long, double *);
 #endif
 #endif

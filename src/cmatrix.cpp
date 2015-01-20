@@ -812,6 +812,31 @@ void ImageMatrix::convolve(const pixDataMat &filter) {
 	temp.finish();
 	readOnlyPixels copy_pix_plane = temp.ReadablePixels();
 	writeablePixels pix_plane = WriteablePixels();
+
+#ifdef GPU
+
+	double *h_filter = NULL, *h_pix_img = NULL, *h_temp = NULL;
+
+	h_temp = (double *)malloc(sizeof(double) * width * height);
+	if(h_temp == NULL) {
+		printf("Error in malloc : h_pix_img \n");
+	}
+
+	h_pix_img = (double *)copy_pix_plane.data();
+	h_filter =  (double *)&filter(0,0);
+
+	gpu_convolve(h_pix_img, h_filter, height, width, filter.rows(), filter.cols(), h_temp);
+
+	for(y=0; y<height; y++) {
+		for(x=0; x<width; x++) {
+			pix_plane(y,x) = stats.add(h_temp[y * width + x]);
+		}
+	}
+
+//Free malloc mem
+	free(h_temp);
+
+#else
 	for (x = 0; x < width; ++x) {
 		for (y = 0; y < height; ++y) {
 			tmp=0.0;
@@ -829,6 +854,7 @@ void ImageMatrix::convolve(const pixDataMat &filter) {
 			pix_plane (y,x) = stats.add(tmp);
 		}
 	}
+#endif
 }
 
 /* find the basic color statistics
