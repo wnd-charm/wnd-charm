@@ -1,4 +1,4 @@
-# echo "noinst_HEADERS = $(find Eigen  -not -path '*.svn/*'  -type f | perl -n -e 'chomp;s/^\.\///;push (@foo,$_); END{print join(" \\\n    ",@foo)}')" > Eigen/sources.am 
+# echo "noinst_HEADERS = $(find Eigen  -not -path '*.svn/*'  -type f | perl -n -e 'chomp;s/^\.\///;push (@foo,$_); END{print join(" \\\n    ",@foo)}')" > Eigen/sources.am
 include Eigen/sources.am
 
 AM_CPPFLAGS = -fPIC
@@ -85,7 +85,8 @@ GPU_source = \
   textures/gpu_conv2comp.cu \
   textures/gpu_conv2comp.cuh \
   gpu_convolve.cu \
-  gpu_convolve.cuh
+  gpu_convolve.cuh \
+  statistics/FeatureStatistics_kernel.cu
 libchrm_a_CXXFLAGS = -Wall
 
 bin_PROGRAMS=wndchrm
@@ -106,7 +107,7 @@ CXXFLAGS += -DGPU
 
 wndchrm_LDADD+=$(NVCCFLAGS)
 EXTRA_wndchrm_DEPENDENCIES = common.o transforms/chebyshev_kernel.o textures/gpu_conv2comp.o
-EXTRA_wndchrm_DEPENDENCIES += gpu_convolve.o
+EXTRA_wndchrm_DEPENDENCIES += gpu_convolve.o statistics/FeatureStatistics_kernel.o
 EXTRA_wndchrm_DEPENDENCIES +=
 
 .cu.o:
