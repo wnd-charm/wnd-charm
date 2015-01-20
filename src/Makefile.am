@@ -81,7 +81,9 @@ libchrm_a_SOURCES = \
 
 GPU_source = \
   common.cu \
-  transforms/chebyshev_kernel.cu
+  transforms/chebyshev_kernel.cu \
+  textures/gpu_conv2comp.cu \
+  textures/gpu_conv2comp.cuh
 libchrm_a_CXXFLAGS = -Wall
 
 bin_PROGRAMS=wndchrm
@@ -101,7 +103,7 @@ libchrm_a_SOURCES += $(GPU_source)
 CXXFLAGS += -DGPU
 
 wndchrm_LDADD+=$(NVCCFLAGS)
-EXTRA_wndchrm_DEPENDENCIES = common.o transforms/chebyshev_kernel.o
+EXTRA_wndchrm_DEPENDENCIES = common.o transforms/chebyshev_kernel.o textures/gpu_conv2comp.o
 EXTRA_wndchrm_DEPENDENCIES +=
 EXTRA_wndchrm_DEPENDENCIES +=
 
