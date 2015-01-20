@@ -1568,6 +1568,7 @@ void ImageMatrix::FeatureStatistics(unsigned long *count, long *Euler, double *c
 	ImageMatrix BWImage;
 	unsigned long *object_areas;
 	double *centroid_dists, sum_dist, hist_scale;
+	int result;
 
 	BWImage.OtsuBinaryMaskTransform(*this);
 	BWImage.centroid(centroid_x,centroid_y);
@@ -1579,6 +1580,12 @@ void ImageMatrix::FeatureStatistics(unsigned long *count, long *Euler, double *c
 	sum_dists = 0;
 	object_areas = new unsigned long[*count];
 	centroid_dists = new double[*count];
+#ifdef GPU
+	result = FeatureCentroid_gpu(BWImage, &sum_areas, &sum_dists, object_areas, centroid_dists, count, centroid_x, centroid_y);
+	if(result == -1){
+		exit(EXIT_FAILURE);
+	}
+#else
 	for (object_index = 0; object_index < *count; object_index++) {
 		double x_centroid,y_centroid;
 		object_areas[object_index] = FeatureCentroid(BWImage, object_index+1, &x_centroid, &y_centroid);
@@ -1586,7 +1593,7 @@ void ImageMatrix::FeatureStatistics(unsigned long *count, long *Euler, double *c
 		sum_areas += object_areas[object_index];
 		sum_dists += centroid_dists[object_index];
 	}
-
+#endif
 	// compute area statistics
 	qsort(object_areas,*count,sizeof(unsigned long),compare_ulongs);
 	*AreaMin=object_areas[0];

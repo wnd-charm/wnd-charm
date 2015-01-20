@@ -312,5 +312,7 @@ private:
 #ifdef GPU
 extern "C" void Chebyshev2D_gpu(const ImageMatrix &Im, double *out, unsigned int N);
 extern "C" void gpu_convolve(double *, double *, unsigned long, unsigned long, unsigned long, unsigned long, double *);
+extern "C" int FeatureCentroid_gpu(const ImageMatrix &Im, double *sum_areas, double *sum_dists, unsigned long *object_area, double *centroid_dists,
+                                unsigned long *count, double *centroid_x, double *centroid_y);
 #endif
 #endif
