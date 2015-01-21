@@ -32,19 +32,21 @@ pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pywndchrm
 wndchrm_test_dir = join( dirname( pychrm_test_dir ), 'wndchrm_tests' )
 test_dir = wndchrm_test_dir
 
-from wndcharm.FeatureSet import FeatureSet_Discrete, FisherFeatureWeights,\
-        DiscreteImageClassificationResult, Signatures
+from wndcharm.FeatureSet import FeatureSpace, FisherFeatureWeights,\
+        DiscreteImageClassificationResult, FeatureVector
 
 class TestWND5Classification( unittest.TestCase ):
 	"""WND5 Classification"""
 
-	epsilon = 0.00001
+	# --------------------------------------------------------------------------
+	def test_WND5_all_features( self ):
+		epsilon = 0.00001
 
-	# Define paths to original files
-	test_sig_path = join( test_dir,'t1_s01_c05_ij-l_precalculated.sig' )
-	test_fit_path = join( test_dir,'test-l.fit' )
-	test_feat_wght_path = join( test_dir,'test_fit-l.weights' )
-	test_tif_path = join( test_dir,'t1_s01_c05_ij.tif' )
+		# Define paths to original files
+		test_sig_path = join( test_dir,'t1_s01_c05_ij-l_precalculated.sig' )
+		test_fit_path = join( test_dir,'test-l.fit' )
+		test_feat_wght_path = join( test_dir,'test_fit-l.weights' )
+		test_tif_path = join( test_dir,'t1_s01_c05_ij.tif' )
 
 	# Here are the correct values that Python API needs to return:
 	# wndchrm classify -l -f1.0 test-l.fit t1_s01_c05_ij.tif 
@@ -61,41 +63,33 @@ class TestWND5Classification( unittest.TestCase ):
         # slight difference in marg probs due to my use of round() below
 	correct_marg_probs[200] = [0.069, 0.931]
 
-	# Load the original files once and only once for all this class's tests
-	feature_set = FeatureSet_Discrete.NewFromFitFile( test_fit_path )
-	feature_set.Normalize()
+		# Load the original files once and only once for all this class's tests
+		feature_set = FeatureSpace.NewFromFitFile( test_fit_path )
+		fs1 = feature_set.featurenames_list
+		feature_set.Normalize()
+		fs2 = feature_set.featurenames_list
+		self.assertSequenceEqual( fs1, fs2 )
 
-	test_sample = Signatures.NewFromSigFile( test_sig_path, test_tif_path )
-	test_sample.Normalize( feature_set )
+		test_sample = FeatureVector.NewFromSigFile( test_sig_path, test_tif_path )
+		self.assertSequenceEqual( feature_set.featurenames_list, test_sample.featurenames_list )
+		test_sample.Normalize( feature_set )
 
-	all_weights = FisherFeatureWeights.NewFromFile( test_feat_wght_path )
+		all_weights = FisherFeatureWeights.NewFromFile( test_feat_wght_path )
 
-	# --------------------------------------------------------------------------
-	def Check( self, num_feats=None ):
-		weights = self.all_weights.Threshold( num_feats )
-		feat_set = self.feature_set.FeatureReduce( weights.names )
-		sample = self.test_sample.FeatureReduce( weights.names )
-		result = DiscreteImageClassificationResult.NewWND5( feat_set, weights, sample )
-		result_marg_probs = [ round( val, 3 ) \
-				for val in result.marginal_probabilities ]
-		for target_val, res_val in zip( self.correct_marg_probs[ num_feats ], result_marg_probs ):
-			self.assertAlmostEqual( target_val, res_val, delta=self.epsilon )
+		def Check( num_feats ):
+			weights = all_weights.Threshold( num_feats )
+			feat_set = feature_set.FeatureReduce( weights )
+			sample = test_sample.FeatureReduce( weights )
+			result = DiscreteImageClassificationResult.NewWND5( feat_set, weights, sample )
+			result_marg_probs = [ round( val, 3 ) \
+					for val in result.marginal_probabilities ]
+			for target_val, res_val in zip( correct_marg_probs[ num_feats ], result_marg_probs ):
+				self.assertAlmostEqual( target_val, res_val, delta=epsilon )
 
 	# --------------------------------------------------------------------------
 	def test_WND5_all_features( self ):
 		"""WND5 classification with entire large feature set (2919 features)"""
 		self.Check( 2919 )
-
-	# --------------------------------------------------------------------------
-	def test_WND5_15percent_threshold( self ):
-		"""WND5 classification with large feature set 15% threshold (431 features)"""
-		self.Check( 431 )
-
-	# --------------------------------------------------------------------------
-	def test_WND5_200_feat_threshold( self ):
-		"""WND5 classification with large feature set & 200 feature threshold"""
-		self.Check( 200 )
-
 
 if __name__ == '__main__':
 	unittest.main()

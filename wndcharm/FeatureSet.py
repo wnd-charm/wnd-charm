@@ -71,8 +71,6 @@ feature_vector_num_features_from_vector_type = {
 	'long_color':4059
 }
 
-error_banner = "\n*************************************************************************\n"
-
 def initialize_module(): 
 	"""If you're going to calculate any features, you need this stuff.
 	FIXME: Rig this stuff to load only on demand."""
@@ -158,7 +156,7 @@ def output_railroad_switch( method_that_prints_output ):
 
 	return print_method_wrapper
 
-def normalize_by_columns ( full_stack, mins=None, maxs=None ):
+def normalize_by_columns( full_stack, mins=None, maxs=None ):
 	"""This is a global function to normalize a matrix by columns.
 	If numpy 1D arrays of mins and maxs are provided, the matrix will be normalized against these ranges
 	Otherwise, the mins and maxs will be determined from the matrix, and the matrix will be normalized
@@ -295,7 +293,7 @@ class SampleImageTiles (object):
 #############################################################################
 class FeatureWeights( object ):
 	"""FeatureWeights is an abstract base class
-	that comprises one-half of a WND-CHARM classifier (the other being a FeatureSet).
+	that comprises one-half of a WND-CHARM classifier (the other being a FeatureSpace).
 	
 	It is a list of strings which are the names of
 	individual image descriptors (features) and a corresponding list of doubles which
@@ -309,10 +307,10 @@ class FeatureWeights( object ):
 		self.name = name
 		self.associated_training_set = None
 		if size is not None:
-			self.names = [None] * size
+			self.featurenames_list = [None] * size
 			self.values = [None] * size
 		else:
-			self.names = None
+			self.featurenames_list = None
 			self.values = None
 
 	#================================================================
@@ -329,8 +327,8 @@ class FeatureWeights( object ):
 
 	#================================================================
 	@classmethod
-	def NewFromFeatureSet( cls, num_features_to_be_used  ):
-		"""@breif Calculate FeatureWeights from a FeatureSet"""
+	def NewFromFeatureSpace( cls, num_features_to_be_used  ):
+		"""@breif Calculate FeatureWeights from a FeatureSpace"""
 		raise NotImplementedError
 
 	#================================================================
@@ -371,22 +369,22 @@ class FisherFeatureWeights( FeatureWeights ):
 			  zip( *[ line.strip().split( None, 1 ) for line in weights_file.read().splitlines() ] )
 
 		weights.values = [ float( val ) for val in raw_vals ]
-		weights.names = [None] * len( raw_names )
+		weights.featurenames_list = [None] * len( raw_names )
 
 		for i, name_raw_str in enumerate( raw_names ):
 			# getFeatureInfoByName does some checking, returns a None if it can't parse it
-			retval = wndcharm.FeatureNames.getFeatureInfoByName( name )
+			retval = wndcharm.FeatureNames.getFeatureInfoByName( name_raw_str )
 			if retval:
-				weights.names[i] = retval.name
+				weights.featurenames_list[i] = retval.name
 			else:
-				weights.names[i] = name_raw_str
+				weights.featurenames_list[i] = name_raw_str
 
 		return weights
 
 	#================================================================
 	@classmethod
-	def NewFromFeatureSet( cls, training_set ):
-		"""Takes a FeatureSet_Discrete as input and calculates a Fisher score for 
+	def NewFromFeatureSpace( cls, training_set ):
+		"""Takes a FeatureSpace as input and calculates a Fisher score for 
 		each feature. Returns a newly instantiated instance of FisherFeatureWeights.
 
 		For:
@@ -451,7 +449,7 @@ class FisherFeatureWeights( FeatureWeights ):
 		np.seterr(**oldsettings)
 
 		new_fw = cls()
-		new_fw.names = training_set.featurenames_list[:]
+		new_fw.featurenames_list = training_set.featurenames_list[:]
 		# the filled(0) method of the masked array sets all nan and infs to 0
 		new_fw.values = feature_weights_m.filled(0).tolist()
 		new_fw.associated_training_set = training_set
@@ -464,9 +462,9 @@ class FisherFeatureWeights( FeatureWeights ):
 		FisherFeatureWeights without those features."""
 
 		new_weights = FisherFeatureWeights()
-		scores = zip( self.names, self.values )
+		scores = zip( self.featurenames_list, self.values )
 		nonzero_scores = [ (name, weight) for name, weight in scores if weight != 0 ]
-		new_weights.names, new_weights.values = zip( *nonzero_scores )
+		new_weights.featurenames_list, new_weights.values = zip( *nonzero_scores )
 		return new_weights
 
 	#================================================================
@@ -487,7 +485,7 @@ class FisherFeatureWeights( FeatureWeights ):
 			                      format( len( self.values ), num_features_to_be_used ) )
 
 		new_weights = self.__class__()
-		raw_featureweights = zip( self.values, self.names )
+		raw_featureweights = zip( self.values, self.featurenames_list )
 		# raw_featureweights is now a list of tuples := [ (value1, name1), (value2, name2), ... ] 
 
 		sorted_featureweights = sorted( raw_featureweights, key=lambda a: a[0], reverse = True )
@@ -511,7 +509,7 @@ class FisherFeatureWeights( FeatureWeights ):
 						raise ValueError( err_msg )
 
 		# we want lists, not tuples!
-		new_weights.values, new_weights.names =\
+		new_weights.values, new_weights.featurenames_list =\
 		  [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
 
 		new_weights.associated_training_set = self.associated_training_set
@@ -537,13 +535,13 @@ class FisherFeatureWeights( FeatureWeights ):
 			raise ValueError( 'Cannot slice, check your start and stop indices.' )
 
 		new_weights = self.__class__()
-		raw_featureweights = zip( self.names, self.values )
+		raw_featureweights = zip( self.featurenames_list, self.values )
 
 		use_these_feature_weights = \
 				list( itertools.islice( raw_featureweights, min_index, max_index ) )
 		
 		# we want lists, not tuples!
-		new_weights.names, new_weights.values =\
+		new_weights.featurenames_list, new_weights.values =\
 		  [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
 
 		new_weights.associated_training_set = self.associated_training_set
@@ -557,9 +555,9 @@ class FisherFeatureWeights( FeatureWeights ):
 		print "Fisher Feature Weight set {0}:".format( self.name )
 		print "Rank\tValue\tName"
 		print "====\t=====\t===="
-		for i in range( 0, len( self.names ) ):
-			#print "{0}\t{1:.5f}\t{2}".format( i+1, self.values[i], self.names[i] )
-			print "{0:.6f}\t{1}".format( self.values[i], self.names[i] )
+		for i in range( 0, len( self.featurenames_list ) ):
+			#print "{0}\t{1:.5f}\t{2}".format( i+1, self.values[i], self.featurenames_list[i] )
+			print "{0:.6f}\t{1}".format( self.values[i], self.featurenames_list[i] )
 		print ""
 
 
@@ -597,7 +595,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 
 	#================================================================
 	@classmethod
-	def NewFromFeatureSet( cls, training_set ):
+	def NewFromFeatureSpace( cls, training_set ):
 		"""Calculate regression parameters and correlation statistics that fully define
 		a continuous classifier.
 
@@ -612,8 +610,8 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		# back to normal at the end. -CEC
 		np.seterr (under='ignore')
 
-		if training_set.source_path:
-			name = cls.__name__ + ' from training set "' + training_set.source_path + '"'
+		if training_set.name:
+			name = cls.__name__ + ' from training set "' + training_set.name + '"'
 		else:
 			name = None
 
@@ -626,7 +624,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 
 		ground_truths = np.array( [ float(val) for val in training_set.ground_truths ] )
 
-		new_fw.names = training_set.featurenames_list[:]
+		new_fw.featurenames_list = training_set.featurenames_list[:]
 
 		for feature_index in range( training_set.num_features ):
 
@@ -687,7 +685,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 
 		new_weights = self.__class__()
 		if self.name:
-			if num_features_to_be_used == len( self.names ):
+			if num_features_to_be_used == len( self.featurenames_list ):
 				new_weights.name = self.name + " (rank-ordered)"
 			else:
 				new_weights.name = self.name + " (top {0} features)".format( num_features_to_be_used )
@@ -697,7 +695,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		else:
 			abs_corr_coeffs = [ abs( val ) for val in self.pearson_coeffs ]
 
-		raw_featureweights = zip( abs_corr_coeffs, self.names, self.pearson_coeffs, \
+		raw_featureweights = zip( abs_corr_coeffs, self.featurenames_list, self.pearson_coeffs, \
 		    self.slopes, self.intercepts, self.pearson_stderrs, self.pearson_p_values, \
 		    self.spearman_coeffs, self.spearman_p_values )
 		
@@ -734,7 +732,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 							raise ValueError( err_msg )
 
 		# we want lists, not tuples!
-		abs_corr_coeffs, new_weights.names, new_weights.pearson_coeffs, new_weights.slopes, \
+		abs_corr_coeffs, new_weights.featurenames_list, new_weights.pearson_coeffs, new_weights.slopes, \
 		    new_weights.intercepts, new_weights.pearson_stderrs, new_weights.pearson_p_values,\
 		    new_weights.spearman_coeffs, new_weights. spearman_p_values =\
 		      [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
@@ -771,14 +769,14 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			new_weights.name = self.name + " (sliced {0}-{1})".format( min_index, max_index )
 
 		abs_val_pearson_coeffs = [ abs( val ) for val in self.pearson_coeffs ]
-		raw_featureweights = zip( self.names, abs_val_pearson_coeffs, self.pearson_coeffs, \
+		raw_featureweights = zip( self.featurenames_list, abs_val_pearson_coeffs, self.pearson_coeffs, \
 		    self.slopes, self.intercepts, self.pearson_stderrs, self.pearson_p_values, \
 		    self.spearman_coeffs, self.spearman_p_values )
 
 		use_these_feature_weights = \
 				list( itertools.islice( raw_featureweights, min_index, max_index ) )
 		
-		new_weights.names, abs_pearson_coeffs, new_weights.pearson_coeffs, new_weights.slopes, \
+		new_weights.featurenames_list, abs_pearson_coeffs, new_weights.pearson_coeffs, new_weights.slopes, \
 		    new_weights.intercepts, new_weights.pearson_stderrs, new_weights.pearson_p_values,\
 		    new_weights.spearman_coeffs, new_weights. spearman_p_values =\
 		      [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
@@ -824,10 +822,10 @@ class ContinuousFeatureWeights( FeatureWeights ):
 			line_item += "{0:2.4f}\t".format( self.pearson_p_values[i] )
 			line_item += "{0:2.4f}\t".format( self.spearman_coeffs[i] )
 			line_item += "{0:2.4f}\t".format( self.spearman_p_values[i] )
-			if len( self.names[i] ) < 50:
-				line_item += self.names[i]
+			if len( self.featurenames_list[i] ) < 50:
+				line_item += self.featurenames_list[i]
 			else:
-				line_item += self.names[i][:50] + '... (truncated)'
+				line_item += self.featurenames_list[i][:50] + '... (truncated)'
 			print line_item
 
 
@@ -874,10 +872,12 @@ def GenerateComputationPlanFromListOfFeatureStrings( feature_list ):
 class FeatureVector( object ):
 	"""
 	FeatureVector contains features for a single image or ROI, as well as all the sampling
-	options. It is the values contained here that are grouped together to form FeatureSets."""
+	options. It is the values contained here that are grouped together to form FeatureSpaces."""
 
 	import re
 	sig_filename_parser = re.compile( ''.join( [
+	# basename:
+	r'(?P<basename>.+?)',
 	# ROI:
 	r'(?P<roi>-B(?P<x>\d+)_(?P<y>\d+)_(?P<w>\d+)_(?P<h>\d+))?',
 	# downsampling:
@@ -898,14 +898,23 @@ class FeatureVector( object ):
 	#==============================================================
 	def __init__( self, **kwargs ):
 
+		#: Row name, common across all channels
+		self.name = None
+
 		#: feature names
-		self.names = None
+		self.featurenames_list = None
 		#: feature vector
 		self.values = None
-		#: Row name, common across all channels
-		self.sample_name = None
+		#: feature_maxima, feature_minima, and normalized_against are members
+		#: this object shares with the FeatureSpaceObject, as well as implementations
+		#: of FeatureReduce() and Normalize(), and CompatibleFeatureSetVersion()
+		self.feature_maxima = None
+		self.feature_minima = None
+		self.normalized_against = None
+		#: the prefix string to which sampling options will be appended to form .sig filepath
+		self.basename = None
 		#: Can also be a reference to a wndchrm.ImageMatrix object
-		self.path_to_image = None
+		self.source_filepath = None
 		#: Path to .sig file, in future hdf/sql file
 		self.auxiliary_feature_storage = None
 		#: label is stringified ground truth
@@ -936,54 +945,58 @@ class FeatureVector( object ):
 		self.rot = None
 		self.fs_col = 0
 
-		#: self.num_features should always be == len( self.names ) == len( self.values )
+		#: self.num_features should always be == len( self.featurenames_list ) == len( self.values )
 		self.num_features = None
 
 		# WND-CHARM feature bank-specific params:
 		self.color = None
 		self.long = None
-		self.feature_vector_version = None
+		self.feature_set_version = None
 		self.feature_computation_plan = None
 
 		self.Update( **kwargs )
 
 	#==============================================================
 	def __repr__( self ):
-		return '"{0}" ({1}) grp {2}, idx {3}, col {4}'.format( self.sample_name, self.label,
+		return '"{0}" ({1}) grp {2}, idx {3}, col {4}'.format( self.name, self.label,
 				self.samplegroupid, self.samplesequenceid, self.fs_col )
 
 	#==============================================================
-	def Update( self, **kwargs ):
+	def Update( self, force=False, **kwargs ):
+		"""force - if True then kwargs coming in with None values will overwrite
+		members in self, even if those members are non-None before calling Update."""
 
 		self_namespace = vars( self )
 		for key, val in kwargs.iteritems():
-			if key in self_namespace:
-				#if self_namespace[ key ] != None and self_namespace[ key ] != val:
-				#	from warnings import warn
-				#	warn( "Overwriting attrib {0} old val {1} new val {2}".format( key, self_namespace[ key ], val ) )
-				self_namespace[ key ] = val
-			else:
-				raise AttributeError( 'No instance variable named "{0}" in class {1}'.format(
-				  key, self.__class__.__name__ ) )
+			# don't bother setting a val if it's None unless force
+			if val is not None or force:  
+				if key in self_namespace:
+					#if self_namespace[ key ] != None and self_namespace[ key ] != val:
+					#	from warnings import warn
+					#	warn( "Overwriting attrib {0} old val {1} new val {2}".format( key, self_namespace[ key ], val ) )
+					self_namespace[ key ] = val
+				else:
+					raise AttributeError( 'No instance variable named "{0}" in class {1}'.format(
+						key, self.__class__.__name__ ) )
 
-		# FIXME: feature_vector_version refers to WND-CHARM specific feature set specifications.
+		# FIXME: feature_set_version refers to WND-CHARM specific feature set specifications.
 		# Want to be able to handle other feature sets from other labs in the future.
-		if self.feature_vector_version == None:
+		if self.feature_set_version == None:
 			major = feature_vector_major_version
 
-			# The feature_vector_version helps describe what features contained in the set.
+			# The feature_set_version helps describe what features contained in the set.
 			# Major version has to do with fixing bugs in the WND_CHARM algorithm code base.
 			# The minor version describes the composition of features in the feature set.
 			# Minor versions 1-4 have specific combination of WND-CHARM features.
 			# Minor version 0 refers to user-defined combination of features.
 
 			# Check to see if there is a user-defined set of features for this feature vector:
-			if self.names:
-				if len( self.names ) not in feature_vector_minor_version_from_num_features:
+			if self.featurenames_list:
+				if len( self.featurenames_list ) not in feature_vector_minor_version_from_num_features:
 					minor = 0
 				else:
 					# FIXME: If features are out of order, should have a minor version of 0
-					minor = feature_vector_minor_version_from_num_features[ len( self.names ) ]
+					minor = feature_vector_minor_version_from_num_features[ len( self.featurenames_list ) ]
 			else:
 				if not self.long:
 					if not self.color:
@@ -995,13 +1008,13 @@ class FeatureVector( object ):
 						minor = 2
 					else:
 						minor = 4
-			self.feature_vector_version = '{0}.{1}'.format( major, minor )
+			self.feature_set_version = '{0}.{1}'.format( major, minor )
 		else:
-			major, minor = [ int( val ) for val in self.feature_vector_version.split('.') ]
+			major, minor = [ int( val ) for val in self.feature_set_version.split('.') ]
 
 		if self.num_features == None:
-			if self.names:
-				self.num_features = len( self.names )
+			if self.featurenames_list:
+				self.num_features = len( self.featurenames_list )
 			else:
 				if major == 1:
 					num_feats_dict = feature_vector_minor_version_from_num_features_v1
@@ -1067,11 +1080,18 @@ class FeatureVector( object ):
 		"""The C implementation of wndchrm placed feature metadata
 		in the filename in a specific order, recreated here."""
 
-		if not self.path_to_image:
-			raise ValueError( 'Need for "path_to_image" attribute in FeatureVector object to be set to generate sig filepath.')
-
-		from os.path import splitext
-		basename, ext = splitext( self.path_to_image )
+		# FIXME: sigpaths for FeatureVectors with different channels
+		# may have sig file names that will collide/overwrite each other.
+		if self.basename:
+			base = self.basename
+		elif self.source_filepath:
+			from os.path import splitext
+			base, ext = splitext( self.source_filepath )
+		elif self.name:
+			base = self.name
+			self.basename = base
+		else:
+			raise ValueError( 'Need for "basename" or "source_filepath" or "name" attribute in FeatureVector object to be set to generate sig filepath.')
 
 		self_namespace = vars(self)
 		# ROI:
@@ -1079,29 +1099,29 @@ class FeatureVector( object ):
 		bb = [self_namespace[key] for key in roi_params]
 
 		if all( [ val is not None for val in bb ] ):
-			basename.append( "-B{0}_{1}_{2}_{3}".format( *bb ) )
+			base += "-B{0}_{1}_{2}_{3}".format( *bb )
 		if self.downsample:
-			basename.append( "-d" + str(self.downsample) )
+			base += "-d" + str(self.downsample)
 		if self.pixel_intensity_mean is not None:
-			basename.append( "-S" + str(self.pixel_intensity_mean) )
+			base += "-S" + str(self.pixel_intensity_mean)
 			if self.pixel_intensity_stddev is not None:
-				basename.append( "-S" + str(self.pixel_intensity_stddev) )
+				base += "-S" + str(self.pixel_intensity_stddev)
 		if self.rot is not None:
-			basename.append( "-R_" + str(self.rot) )
+			base += "-R_" + str(self.rot)
 		if self.num_rows and self.num_rows != 1:
-			basename.append( "-t" + str(self.num_rows) )
+			base += "-t" + str(self.num_rows)
 			if self.num_cols and self.num_cols != 1:
-				basename.append( "x" + str(self.num_cols) )
+				base +="x" + str(self.num_cols)
 			if self.tile_row_index is not None and self.tile_col_index is not None:
-				basename.append( "_{0}_{1}".format( self.tile_row_index, self.tile_col_index ) )
+				base += "_{0}_{1}".format( self.tile_row_index, self.tile_col_index )
 			else:
 				raise ValueError('Need to specify tile_row_index and tile_col_index in self for tiling params')
 		if self.color:
-			basename.append( '-c' )
+			base += '-c'
 		if self.long:
-			basename.append( '-l' )
+			base += '-l'
 
-		return basename + '.sig'
+		return base + '.sig'
 
 	#================================================================
 	def GenerateFeatures( self, write_sig_files_to_disk=True, quiet=True ):
@@ -1137,11 +1157,11 @@ class FeatureVector( object ):
 		# Use user-assigned feature computation plan, if provided:
 		if self.feature_computation_plan != None:
 			comp_plan = self.feature_computation_plan
-			self.feature_vector_version = comp_plan.feature_vec_type
+			self.feature_set_version = comp_plan.feature_vec_type
 		else:
-			major, minor = self.feature_vector_version.split('.')
+			major, minor = self.feature_set_version.split('.')
 			if minor == 0:
-				comp_plan = GenerateComputationPlanFromListOfFeatureStrings( self.names )
+				comp_plan = GenerateComputationPlanFromListOfFeatureStrings( self.featurenames_list )
 			elif minor == 1:
 				comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSet()
 			elif minor == 2:
@@ -1180,13 +1200,13 @@ class FeatureVector( object ):
 		else:
 			stddev = 0
 
-		if isinstance( self.path_to_image, str ):
+		if isinstance( self.source_filepath, str ):
 			the_tiff = wndcharm.ImageMatrix()
-			if 1 != the_tiff.OpenImage( self.path_to_image, self.downsample, bb, mean, stddev ):
+			if 1 != the_tiff.OpenImage( self.source_filepath, self.downsample, bb, mean, stddev ):
 				raise ValueError( 'Could not build an ImageMatrix from {0}, check the path.'.\
-					format( self.path_to_image ) )
-		elif isinstance( self.path_to_image, wndcharm.ImageMatrix ):
-			the_tiff = self.path_to_image
+					format( self.source_filepath ) )
+		elif isinstance( self.source_filepath, wndcharm.ImageMatrix ):
+			the_tiff = self.source_filepath
 			raise NotImplementedError( "FIXME: Still haven't implemented downsample, bounding box, pixel intensity mean and stddev for an already open instance of ImageMatrix." )
 		else:
 			raise ValueError("image parameter 'image_path_or_mat' is not a string or a wndcharm.ImageMatrix")
@@ -1206,11 +1226,11 @@ class FeatureVector( object ):
 
 		# Feature Reduction/Reorder step:
 		# Feature computation may give more features than are asked for by user, or out of order.
-		if self.names:
-			if self.names != comp_names:
-				self.values = [ comp_vals[ comp_names.index( name ) ] for name in self.names ]
+		if self.featurenames_list:
+			if self.featurenames_list != comp_names:
+				self.values = [ comp_vals[ comp_names.index( name ) ] for name in self.featurenames_list ]
 		else:
-			self.names = comp_names
+			self.featurenames_list = comp_names
 			self.values = comp_vals
 
 		if write_sig_files_to_disk:
@@ -1219,10 +1239,153 @@ class FeatureVector( object ):
 		# Feature names need to be modified for their sampling options.
 		# Base case is that channel goes in the innermost parentheses, but really it's not
 		# just channel, but all sampling options.
-		# For now, let the FeatureSet constructor code handle the modification of feature names
+		# For now, let the FeatureSpace constructor code handle the modification of feature names
 		# for its own self.featurenames_list
 		return self
 
+
+	#==============================================================
+	def CompatibleFeatureSetVersion( self, version ):
+		"""Note that if either minor version is 0 (i.e not a standard feature vector)
+		we return true while in fact, the compatibility is unknown"""
+
+		try:
+			version = version.feature_set_version
+		except AttributeError:
+			# Assume version is the version string then.
+			pass
+
+		if self.feature_set_version is None or version is None:
+			err_str = "Can't tell if FeatureSpace {0} is compatible with version {1} because "
+			if self.feature_set_version is None and version is None:
+				err_str += "both are null."
+			elif self.feature_set_version is None:
+				err_str += "the FS instance's version string is null."
+			else:
+				err_str += "input version string is null."
+			raise AttributeError( err_str.format( self.name, version ) )
+
+		their_major, their_minor = [ int(v) for v in version.split('.',1) ]
+		our_major, our_minor = [ int(v) for v in self.feature_set_version.split('.',1) ]
+
+		if( their_major != our_major ):
+			return False
+		if our_minor and their_minor and our_minor != their_minor:
+			return False
+
+		return True
+
+	#==============================================================
+	def Normalize( self, input_feat_container=None, inplace=True, quiet=False ):
+		"""By convention, the range of feature values in the WND-CHARM algorithm are
+		normalized on the interval [0,100]. Normalizing is useful in making the variation 
+		of features human readable. Normalized samples are only comprable if they've been 
+		normalized against the same feature maxima/minima."""
+
+		if self.normalized_against:
+			# I've already been normalized, and you want to normalize me again?
+			raise ValueError( "{0} \"{1}\" has already been normalized against {2}.".format (
+				self.__class__.__name__, self.name, self.normalized_against ) )
+
+		newdata = {}
+
+		if not input_feat_container:
+			# Specific to FeatureVector implementation:
+			# Doesn't make sense to Normalize a 1-D FeatureVector against itself
+			# The FeatureSpace implementation of this function has stuff in this block
+			err = "Can't normalize {0} \"{1}\" against itself (Normalize() called with blank arg)."
+			raise ValueError( err.format( self.__class__.__name__, self.name ) )
+		else:
+			# Recalculate my feature space according to maxima/minima in input_feat_container
+			if input_feat_container.featurenames_list != self.featurenames_list:
+				err_str = "Can't normalize {0} \"{1}\" against {2} \"{3}\": Features don't match.".format(
+				  self.__class__.__name__, self.name,
+					input_feat_container.__class__.__name__, input_feat_container.name )
+				raise ValueError( err_str )
+			if not self.CompatibleFeatureSetVersion( input_feat_container ):
+				err_str = 'Incompatible feature versions: "{0}" ({1}) and "{2}" ({3})'
+				raise ValueError( err_str.format( self.name, self.feature_set_version,
+				    input_feat_container.name, input_feat_container.feature_set_version ) )
+
+			if not quiet:
+				# Specific to FeatureVector implementation:
+				# no num_samples member:
+				print 'Normalizing {0} "{1}" ({2} features) against {3} "{4}"'.format(
+					self.__class__.__name__, self.name, len( self.featurenames_list),
+					input_feat_container.__class__.__name__, input_feat_container.name )
+
+			# Need to make sure there are feature minima/maxima to normalize against:
+			if not input_feat_container.normalized_against:
+				input_feat_container.Normalize( quiet=quiet )
+
+			mins = input_feat_container.feature_minima
+			maxs = input_feat_container.feature_maxima
+			newdata['normalized_against'] = input_feat_container
+
+		newdata['values'] = np.copy( self.values )
+		newdata['feature_minima'], newdata['feature_maxima'] = \
+		    normalize_by_columns( newdata['values'], mins, maxs )
+
+		if inplace:
+			self.Update( **newdata )
+		else:
+			return self.Derive( **newdata )
+
+	#==============================================================
+	def FeatureReduce( self, requested_features ):
+		"""Returns a new FeatureVector that contains a subset of the data by dropping
+		features (columns), and/or rearranging columns.
+
+		requested_features := an object with a "featurenames_list" member
+		    (FeatureVector/FeatureSpace/FeatureWeights) or an iterable containing
+		    strings that are feature names.
+
+		Implementation detail: compares input "requested_features" to self.featurenames_list,
+		and "requested_features" becomes the self.featurenames_list of the returned FeatureVector."""
+
+		try:
+			requested_features = requested_features.featurenames_list
+		except AttributeError:
+			# assume it's already a list then
+			pass
+
+		# Check that self's faturelist contains all the features in requested_features
+		selfs_features = set( self.featurenames_list )
+		their_features = set( requested_features )
+		if not their_features <= selfs_features:
+			missing_features_from_req = their_features - selfs_features
+			err_str = "Feature Reduction error:\n"
+			err_str += '{0} "{1}" is missing '.format( self.__class__.__name__, self.name )
+			err_str += "{0}/{1} features that were requested in the feature reduction list.".format(\
+					len( missing_features_from_req ), len( requested_features ) )
+			err_str += "\nDid you forget to convert the feature names into their modern counterparts?"
+			raise ValueError( err_str )
+
+		# The implementation of FeatureReduce here is similar to FeatureSpace.FeatureReduce
+		# Here is where the implementations diverge"
+		num_features = len( requested_features )
+
+		newdata = {}
+		newdata[ 'name' ] = self.name + "(feature reduced)"
+		newdata[ 'featurenames_list' ] = requested_features
+		newdata[ 'num_features' ] = num_features
+
+		new_order = [ self.featurenames_list.index( name ) for name in requested_features ]
+
+		# N.B. 1-D version used here, contrast with FeatureSpace.FeatureReduce() implementation.
+		newdata[ 'values' ] = self.values[ new_order ]
+
+		if self.feature_maxima is not None:
+			newdata[ 'feature_maxima' ] = self.feature_maxima[ new_order ]
+		if self.feature_minima is not None:
+			newdata[ 'feature_minima' ] = self.feature_minima[ new_order ]
+
+		# If the feature vectors sizes changed then they are no longer standard feature vectors.
+		if self.feature_set_version is not None and num_features != self.num_features:
+			newdata[ 'feature_set_version' ] = \
+					"{0}.0".format( self.feature_set_version.split('.',1)[0] )
+
+		return self.Derive( **newdata )
 	#================================================================
 	def LoadSigFile( self, sigfile_path=None, quiet=False ):
 
@@ -1238,16 +1401,23 @@ class FeatureVector( object ):
 
 		import re
 		# First line is metadata
-		self.class_id, self.feature_vector_version = \
+		self.class_id, self.feature_set_version = \
 		        re.match( '^(\S+)\s*(\S+)?$' , lines[0] ).group( 1, 2 )
-		if self.feature_vector_version is None:
-			self.feature_vector_version = "1.0"
+		if self.feature_set_version is None:
+			self.feature_set_version = "1.0"
 
 		# 2nd line is path to original tiff file, just skip
 
 		# Process rest of lines
 		values, names = zip( *[ line.split( None, 1 ) for line in lines[2:] ] )
-		self.values = np.fromstring( " ".join( values ), sep=" " )
+
+		# np.fromstring is a 3x PIG:
+		# %timeit out = np.array( [ float(val) for val in thing ] )
+		# 10 loops, best of 3: 38.3 ms per loop
+		# %timeit out = np.fromstring( " ".join( thing ), sep=" " )
+		# 10 loops, best of 3: 98.1 ms per loop
+
+		self.values = np.array( [ float( val ) for val in values ] )
 
 		# We would know by know if there was a sigfile processing error,
 		# e.g., file doesn't exist.
@@ -1255,8 +1425,12 @@ class FeatureVector( object ):
 		if not self.auxiliary_feature_storage:
 			self.auxiliary_feature_storage = path
 
+		# Subtract path so that path part doesn't become part of name
+		from os.path import basename
 		# Pull sampling options from filename
-		result = self.sig_filename_parser.search( path )
+		path_removed = basename( path )
+		self.name = path_removed
+		result = self.sig_filename_parser.search( path_removed )
 		if result:
 			self.Update( **result.groupdict() )
 
@@ -1264,23 +1438,23 @@ class FeatureVector( object ):
 		#for i, name in enumerate( names ):
 			#retval = wndcharm.FeatureNames.getFeatureInfoByName( name )
 			#if retval:
-			#	self.names[i] = retval.name
+			#	self.featurenames_list[i] = retval.name
 			#else:
-			# self.names[i] = name
+			# self.featurenames_list[i] = name
 
 		# Use pure Python for old-style name translation
 		#from wndcharm import FeatureNameMap
-		#self.names = FeatureNameMap.TranslateToNewStyle( names )
+		#self.featurenames_list = FeatureNameMap.TranslateToNewStyle( featurenames_list )
 
 		# Deprecate old-style naming support anyway, those features are pretty buggy
 		# -CEC 20150104
-		self.names = names
+		self.featurenames_list = list( names )
 
 		# Cleanup for legacy edge case:
 		# Set the minor version to the vector type based on # of features
 		# The minor versions should always specify vector types, but for version 1 vectors,
 		# the version is not written to the file, so it gets read as 0.
-		if( self.feature_vector_version == "1.0" ):
+		if( self.feature_set_version == "1.0" ):
 			self.version = "1." + str(
 				feature_vector_minor_version_from_num_features_v1.get( len( self.values ),0 ) )
 
@@ -1293,7 +1467,7 @@ class FeatureVector( object ):
 		"""@return  - An instantiated FeatureVector class with feature names translated from
 		           the old naming convention, if applicable."""
 		new_fv = cls()
-		new_fv.path_to_image = image_path
+		new_fv.source_filepath = image_path
 		new_fv.LoadSigFile( sigfile_path, quiet )
 		return new_fv
 
@@ -1316,40 +1490,36 @@ class FeatureVector( object ):
 		with open( path, "w" ) as out:
 			# FIXME: line 1 contains class membership and version
 			# Just hardcode the class membership for now.
-			out.write( "0\t{0}\n".format( self.feature_vector_version ) )
-			out.write( "{0}\n".format( self.path_to_image ) )
-			for val, name in zip( self.values, self.names ):
+			out.write( "0\t{0}\n".format( self.feature_set_version ) )
+			out.write( "{0}\n".format( self.source_filepath ) )
+			for val, name in zip( self.values, self.featurenames_list ):
 				outfile.write( "{0:0.6g} {1}\n".format( val, name ) )
 
 # end definition class FeatureVector
 
 #############################################################################
-# class definition of FeatureSet
+# class definition of FeatureSpace
 #############################################################################
-class FeatureSet( object ):
-	"""An abstract base class inherited by FeatureSet_Discrete (used with FisherFeatureWeights)
-	and FeatureSet_Continuous (used with Pearson Corellation Coefficient-weighted 
-	ContinuousFeatureWeights).
-
-	An instance of FeatureSet is one-half of a WND-CHARM classifier, the other half being the 
+class FeatureSpace( object ):
+	"""An instance of FeatureSpace is one-half of a WND-CHARM classifier, the other half being the
 	FeatureWeights instance.
 
-	The FeatureSet class is a container for sets of image descriptors, which are collected
-	into Numpy matrices organized by image class or ground truth. FeatureSets are also used
-	as containers for test images which have yet to be classified. FeatureSets can also be
-	randomly Split() into two subset FeatureSets to be used for cross-validation of a 
+	The FeatureSpace class is a container for sets of image descriptors, which are collected
+	into Numpy matrices organized by image class or ground truth. FeatureSpaces are also used
+	as containers for test images which have yet to be classified. FeatureSpaces can also be
+	randomly Split() into two subset FeatureSpaces to be used for cross-validation of a
 	classifier, one for training the other for testing.
 	"""
 
-	# Used for parsing "File of Files" definition of FeatureSet
+	# Used for parsing "File of Files" definition of FeatureSpace
 	import re
 	channel_col_finder = re.compile(r'(?P<path>.*?)?\{(?P<opts>.*?)?\}')
 	channel_opt_finder = re.compile(r'(?:(?P<key>.+?)=)?(?P<value>.+)')
 
 	#==============================================================
-	def __init__( self, name=None, source_path=None, num_images=None, num_samples_per_group=1,
-					num_features=None, discrete=None ):
-		"""FeatureSet constructor"""
+	def __init__( self, name=None, source_filepath=None, num_samples=None, num_samples_per_group=1,
+					num_features=None, discrete=True, feature_set_version=None ):
+		"""FeatureSpace constructor"""
 		
 		# Let F = # features for a given 5D ROI.
 		# Let S = total # samples (rows) in a feature set.
@@ -1363,12 +1533,12 @@ class FeatureSet( object ):
 		self.name = name
 
 		#: type: string
-		#: Path to FeatureSet source/definition/origination file or directory.
-		self.source_path = source_path
+		#: Path to FeatureSpace source/definition/origination file or directory.
+		self.source_filepath = source_filepath
 
-		#: type: FeatureSet
+		#: type: FeatureSpace, or string containing 'self'
 		#: By convention, the range of values are normalized on an interval [0,100].
-		#: Reference to self or another FeatureSet, indicating source of feature 
+		#: Reference to self or another FeatureSpace, indicating source of feature
 		#: maxima/minima to transform feature space to normalized interval.
 		self.normalized_against = None
 
@@ -1382,10 +1552,10 @@ class FeatureSet( object ):
 		#: Set to True when features packed into single matrix via internal
 		self.data_matrix_is_contiguous = False
 		
-		#: The feature vector version contained in this FeatureSet
-		#: The major version must match for all feature vectors in the FeatureSet
+		#: The feature vector version contained in this FeatureSpace
+		#: The major version must match for all feature vectors in the FeatureSpace
 		#: The minor version must match also if it is one of the standard feature vectors (i.e. non-0)
-		self.feature_vector_version = None
+		self.feature_set_version = feature_set_version
 
 		#: A string keep track of all the options (-l -S###, -t etc)
 		#: FIXME: expand to have all options kept track of individually
@@ -1408,19 +1578,19 @@ class FeatureSet( object ):
 		# -------------------------------------------
 
 		#: FIXME: Eliminate in favor of len( self.samplenames_list )
-		self.num_images = num_images
+		self.num_samples = num_samples
 
 		#: A list of sample names in same row order as their samples appear in self.data_matrix.
 		#: Corresponding lists of lists of sample names grouped by view.
 
 		self._contiguous_samplenames_list = None
-		self.imagenames_list = None
+		self.samplenames_list = None
 
 		#: By default, samples are independent/not grouped for splitting purposes
 		self.num_samples_per_group = num_samples_per_group
 
 		#: Keeps track of which samples are grouped together and must not be separated
-		#: when FeatureSet is split for cross-validation purposes
+		#: when FeatureSpace is split for cross-validation purposes
 		self._contiguous_samplegroupid_list = None
 		self.samplegroupid_list = None
 
@@ -1453,30 +1623,30 @@ class FeatureSet( object ):
 		self.featurenames_list = None
 
 		#: Contains pre-normalized feature maxima so feature space of this or other
-		#: FeatureSets can be transformed.
+		#: FeatureSpaces can be transformed.
 		self.feature_maxima = None
 
 		#: Contains pre-normalized feature minima so feature space of this or other
-		#: FeatureSets can be transformed.
+		#: FeatureSpaces can be transformed.
 		self.feature_minima = None
 
 		### Now initialize array-like members if possible:
-		if self.num_images and self.num_features:
-			self.shape = ( self.num_images, self.num_features )
+		if self.num_samples and self.num_features:
+			self.shape = ( self.num_samples, self.num_features )
 			self.data_matrix = np.empty( self.shape, dtype='double' )
 
-		if self.num_images:
-			self._contiguous_samplenames_list = [None] * self.num_images
-			self._contiguous_samplegroupid_list = [None] * self.num_images
-			self._contiguous_samplesequenceid_list = [None] * self.num_images
-			self._contiguous_ground_truths = [None] * self.num_images
+		if self.num_samples:
+			self._contiguous_samplenames_list = [None] * self.num_samples
+			self._contiguous_samplegroupid_list = [None] * self.num_samples
+			self._contiguous_samplesequenceid_list = [None] * self.num_samples
+			self._contiguous_ground_truths = [None] * self.num_samples
 
 		if self.num_features:
 			self.featurenames_list = [None] * self.num_features
 
 	#==============================================================
 	def Derive( self, **kwargs ):
-		"""Make a copy of this FeatureSet, except members passed as kwargs"""
+		"""Make a copy of this FeatureSpace, except members passed as kwargs"""
 
 		from copy import deepcopy
 		new_obj = self.__class__()
@@ -1484,7 +1654,7 @@ class FeatureSet( object ):
 		new_obj_namespace = vars( new_obj )
 
 		# Don't bother copying these "view" members which are rebuilt by self._RebuildViews()
-		convenience_view_members = [ 'data_list', 'imagenames_list', 'samplegroupid_list',\
+		convenience_view_members = [ 'data_list', 'samplenames_list', 'samplegroupid_list',\
 		    'samplesequenceid_list', 'ground_truths' ]
 
 		# Are all keys in kwargs valid instance attribute names?
@@ -1505,8 +1675,22 @@ class FeatureSet( object ):
 		return new_obj
 
 	#==============================================================
+	def Update( self, **kwargs ):
+
+		self_namespace = vars( self )
+		for key, val in kwargs.iteritems():
+			if key in self_namespace:
+				#if self_namespace[ key ] != None and self_namespace[ key ] != val:
+				#	from warnings import warn
+				#	warn( "Overwriting attrib {0} old val {1} new val {2}".format( key, self_namespace[ key ], val ) )
+				self_namespace[ key ] = val
+			else:
+				raise AttributeError( 'No instance variable named "{0}" in class {1}'.format(
+				  key, self.__class__.__name__ ) )
+
+	#==============================================================
 	def __deepcopy__( self, memo ):
-		"""Make a deepcopy of this FeatureSet"""
+		"""Make a deepcopy of this FeatureSpace"""
 		return self.Derive()
 
 	#==============================================================
@@ -1515,19 +1699,20 @@ class FeatureSet( object ):
 		"""Prints out basic attributes about this training set, including name, path to
 		source data, number and composition of image classes, number of features, etc."""
 
-		print '{0} "{1}"'.format( self.__class__.__name__ , self.name )
-		if self.name != self.source_path:
-			print 'source: "{0}"'.format( self.source_path )
-		print 'Total number of images: {0}'.format( self.num_images )
-		print 'Number features: {0}'.format( len( self.featurenames_list ) )
-		print 'Feature Vector Version: {0}'.format( self.feature_vector_version )
+		print 'Summary of {0} "{1}":'.format( self.__class__.__name__ , self.name )
+		if self.name != self.source_filepath:
+			print 'source: "{0}"'.format( self.source_filepath )
+		print 'Total samples: {0} ({1} groups, {2} samples/group)'.format( self.num_samples,
+		  len( set( self._contiguous_samplegroupid_list ) ), self.num_samples_per_group )
+		print 'Total num features: {0}'.format( len( self.featurenames_list ) )
+		print 'Feature Set Version: {0}'.format( self.feature_set_version )
 
 		if self.discrete:
-			class_index = 0
-			for class_name in self.classnames_list:
-				print '\tClass {0} "{1}": {2} images'.format(
-				  class_index, class_name, len( self.imagenames_list[ class_index ] ) )
-				class_index += 1
+			rpt_str = '\tClass {0} "{1}": {2} samples ({3} groups)'
+			if self.classnames_list is not None:
+				for i, class_name in enumerate( self.classnames_list ):
+					print rpt_str.format( i, class_name, len( self.samplenames_list[i] ),
+							len( set( self.samplegroupid_list[i] ) ) )
 
 		if verbose: # verbose implies print info for each sample
 			if self.num_samples_per_group == 1:
@@ -1542,7 +1727,6 @@ class FeatureSet( object ):
 				header_str = "SAMP NAME\tGROUP INDEX\tTILE INDEX\tGROUND TRUTH\n===================================================================="
 				format_str = "{0}\t{1:03d}\t{2:02d}\t{3}"
 
-
 			print header_str
 			for line_item in sample_metadata:
 				print format_str.format( *line_item )
@@ -1556,7 +1740,7 @@ class FeatureSet( object ):
 		outstr = '<' +str( self.__class__.__name__ ) + ' '
 		outstr += '"{0}"'.format( self.name ) + ' '
 		outstr += 'n_features=' + str( self.num_features ) + ' '
-		outstr += 'n_total_samples=' + str( self.num_images )
+		outstr += 'n_total_samples=' + str( self.num_samples )
 		if self.discrete:
 			outstr += ' n_classes=' + str( self.num_classes ) + ' '
 			outstr += 'samples_per_class=(' + ', '.join( [ '"{0}": {1}'.format( name, quant ) \
@@ -1565,19 +1749,40 @@ class FeatureSet( object ):
 		return outstr
 
 	#==============================================================
-	def CompatibleFeatureVectorVersion( self, version ):
-		in_major, in_minor = tuple (int (v) for v in version.split('.',1))
-		our_major, our_minor = tuple (int (v) for v in self.feature_vector_version.split('.',1))
-		if (in_major != our_major): return False
-		if (our_minor and in_minor and in_minor != our_minor): return False
-		# Note that if either minor version is 0 (i.e not a standard feature vector),
-		# we return true while in fact, the compatibility is unknown
+	def CompatibleFeatureSetVersion( self, version ):
+		"""Note that if either minor version is 0 (i.e not a standard feature vector)
+		we return true while in fact, the compatibility is unknown"""
+
+		try:
+			version = version.feature_set_version
+		except AttributeError:
+			# Assume version is the version string then.
+			pass
+
+		if self.feature_set_version is None or version is None:
+			err_str = "Can't tell if FeatureSpace {0} is compatible with version {1} because "
+			if self.feature_set_version is None and version is None:
+				err_str += "both are null."
+			elif self.feature_set_version is None:
+				err_str += "the FS instance's version string is null."
+			else:
+				err_str += "input version string is null."
+			raise AttributeError( err_str.format( self.name, version ) )
+
+		their_major, their_minor = [ int(v) for v in version.split('.',1) ]
+		our_major, our_minor = [ int(v) for v in self.feature_set_version.split('.',1) ]
+
+		if( their_major != our_major ):
+			return False
+		if our_minor and their_minor and our_minor != their_minor:
+			return False
+
 		return True
 
 	#==============================================================
 	@classmethod
 	def NewFromPickleFile( cls, pathname ):
-		"""Returns new instance of FeatureSet build from a saved pickle file,
+		"""Returns new instance of FeatureSpace build from a saved pickle file,
 		with a filename ending in .fit.pickle"""
 
 		path, filename = os.path.split( pathname )
@@ -1585,7 +1790,7 @@ class FeatureSet( object ):
 			raise ValueError( 'Invalid pathname: {0}'.format( pathname ) )
 
 		if not filename.endswith( ".fit.pickled" ):
-			raise ValueError( 'Not a pickled FeatureSet file: {0}'.format( pathname ) )
+			raise ValueError( 'Not a pickled FeatureSpace file: {0}'.format( pathname ) )
 
 		print "Loading Training Set from pickled file {0}".format( pathname )
 		the_training_set = None
@@ -1601,8 +1806,8 @@ class FeatureSet( object ):
 				the_training_set.data_list[i] = the_training_set.data_matrix[sample_row : sample_row + nrows]
 				sample_row += nrows
 
-		if (the_training_set.feature_vector_version is None):
-			the_training_set.feature_vector_version = "1." + str(
+		if (the_training_set.feature_set_version is None):
+			the_training_set.feature_set_version = "1." + str(
 				feature_vector_minor_version_from_num_features_v1.get( 
 					len(the_training_set.featurenames_list), 0 ) )
 
@@ -1610,35 +1815,35 @@ class FeatureSet( object ):
 
 	#==============================================================
 	def PickleMe( self, pathname=None ):
-		"""Pickle this instance of FeatureSet and write to file whose path is optionally
+		"""Pickle this instance of FeatureSpace and write to file whose path is optionally
 		specified by argument "pathname" """
 
 		outfile_pathname = ""
 		if pathname != None:
 			outfile_pathname = pathname
 		else:
-			# try to generate a path based on member source_path
-			if self.source_path == None or self.source_path == "":
-				raise ValueError( "Can't pickle this training set: its 'source_path' member"\
+			# try to generate a path based on member source_filepath
+			if self.source_filepath == None or self.source_filepath == "":
+				raise ValueError( "Can't pickle this training set: its 'source_filepath' member"\
 						"is not defined, and you did not specify a file path for the pickle file." )
-			if os.path.isdir( self.source_path ):
+			if os.path.isdir( self.source_filepath ):
 				# this trainingset was generated from a directory
 				# naming convention is /path/to/topleveldir/topleveldir-options.fit.pickled
-				root, top_level_dir = os.path.split( self.source_path )
+				root, top_level_dir = os.path.split( self.source_filepath )
 				if self.feature_options != None and self.feature_options != "":
-					outfile_pathname = os.path.join( self.source_path, \
+					outfile_pathname = os.path.join( self.source_filepath, \
 							                  top_level_dir + self.feature_options + ".fit.pickled" )
 				else:
-					outfile_pathname = os.path.join( self.source_path, \
+					outfile_pathname = os.path.join( self.source_filepath, \
 					                      top_level_dir + ".fit.pickled" )
 			else:
 				# was genearated from a file, could have already been a pickled file
-				if self.source_path.endswith( "fit.pickled" ):
-					outfile_pathname = self.source_path
-				elif self.source_path.endswith( ".fit" ):
-					outfile_pathname = self.source_path + ".pickled"
+				if self.source_filepath.endswith( "fit.pickled" ):
+					outfile_pathname = self.source_filepath
+				elif self.source_filepath.endswith( ".fit" ):
+					outfile_pathname = self.source_filepath + ".pickled"
 				else:
-					outfile_pathname = self.source_path + ".fit.pickled"	
+					outfile_pathname = self.source_filepath + ".fit.pickled"	
 
 		if os.path.exists( outfile_pathname ):
 			print "Overwriting {0}".format( outfile_pathname )
@@ -1683,7 +1888,7 @@ class FeatureSet( object ):
 			print "Creating Training Set from legacy WND-CHARM text file file {0}".format( pathname )
 		new_fs = cls()
 
-		new_fs.source_path = filename
+		new_fs.source_filepath = filename
 		new_fs.name = basename( filename )
 		new_fs.discrete = discrete
 
@@ -1701,10 +1906,10 @@ class FeatureSet( object ):
 		for line in fitfile:
 			if line_num is 0:
 				# 1st line: number of classes and feature vector version
-				num_classes, feature_vector_version = re.match('^(\S+)\s*(\S+)?$', line.strip()).group(1, 2)
-				if feature_vector_version is None:
-					feature_vector_version = "1.0"
-				new_fs.feature_vector_version = feature_vector_version
+				num_classes, feature_set_version = re.match('^(\S+)\s*(\S+)?$', line.strip()).group(1, 2)
+				if feature_set_version is None:
+					feature_set_version = "1.0"
+				new_fs.feature_set_version = feature_set_version
 				num_classes = int( num_classes )
 				new_fs.num_classes = num_classes
 				new_fs.classsizes_list = [0] * num_classes
@@ -1715,15 +1920,15 @@ class FeatureSet( object ):
 				num_features = int( line )
 				new_fs.num_features = num_features
 				new_fs.featurenames_list = [None] * num_features
-				if( feature_vector_version == "1.0" ):
-					feature_vector_version = "1." + str(
+				if( feature_set_version == "1.0" ):
+					feature_set_version = "1." + str(
 						feature_vector_minor_version_from_num_features_v1.get ( num_features,0 ) )
-					new_fs.feature_vector_version = feature_vector_version
+					new_fs.feature_set_version = feature_set_version
 
 			elif line_num is 2:
 				# 3rd line: number of samples
 				num_samples = int( line )
-				new_fs.num_images = num_samples
+				new_fs.num_samples = num_samples
 				new_fs.shape = ( num_samples, num_features )
 				new_fs.data_matrix = np.empty( new_fs.shape, dtype='double' )
 				new_fs._contiguous_samplenames_list = [None] * num_samples
@@ -1752,7 +1957,10 @@ class FeatureSet( object ):
 					features_string, class_index_string  = line.strip().rsplit( " ", 1 )
 					class_index = int( class_index_string ) - 1
 					new_fs.classsizes_list[ class_index ] += 1
-					new_fs.data_matrix[ sample_count ] = np.fromstring( features_string, sep=' ' )
+					# np.fromstring is a PIG, see timeit data elsewhere in code
+
+					new_fs.data_matrix[ sample_count ] = \
+					  np.array( [ float(val) for val in features_string.split() ] )
 				else:
 					new_fs._contiguous_samplenames_list[ sample_count ] = line.strip()
 					sample_count += 1
@@ -1790,7 +1998,7 @@ class FeatureSet( object ):
 			new_fs._contiguous_samplesequenceid_list = [1] * num_samples
 			new_fs._contiguous_samplegroupid_list = range( num_samples )
 
-		print "Features version from .fit file: {0}".format( new_fs.feature_vector_version )
+		print "Features version from .fit file: {0}".format( new_fs.feature_set_version )
 		new_fs._RebuildViews()
 		return new_fs
 
@@ -1800,11 +2008,11 @@ class FeatureSet( object ):
 		fit = open( path, 'w' )
 
 		# 1st line: number of classes and feature vector version
-		fit.write( str(self.num_classes) + ' ' + self.feature_vector_version + '\n' )
+		fit.write( str(self.num_classes) + ' ' + self.feature_set_version + '\n' )
 		# 2nd line: num features
 		fit.write( str(self.num_features) + '\n' )
 		# 3rd line: number of samples
-		fit.write( str(self.num_images) + '\n' )
+		fit.write( str(self.num_samples) + '\n' )
 		# Lines 4 through num_features contains the feature names
 		for name in self.featurenames_list:
 			fit.write( name + '\n' )
@@ -1819,15 +2027,15 @@ class FeatureSet( object ):
 		# to the UNKNOWN CLASS so in practical terms, fit file indexing starts at 1.
 		if self.interpolation_coefficients is None and self.classnames_list is None:
 			# For classless data, assign all samples to the UNKNOWN CLASS.
-			class_indices = [0] * self.num_images
+			class_indices = [0] * self.num_samples
 		else:
 			if self.interpolation_coefficients:
 				ground_truth_class_vals = self.interpolation_coefficients
 			else:
 				ground_truth_class_vals = self.classnames_list
 
-			class_indices = [None] * self.num_images
-			for i in xrange( self.num_images ):
+			class_indices = [None] * self.num_samples
+			for i in xrange( self.num_samples ):
 				try:
 					val = str( 1 + ground_truth_class_vals.index( self._contiguous_ground_truths[i] ) )
 				except ValueError:
@@ -1860,13 +2068,13 @@ class FeatureSet( object ):
 			raise NotImplementedError( "Sorry, this method doesn't handle sorting by classes yet" )
 
 		if self.discrete is None:
-			errmsg = 'FeatureSet {0} "discrete" member hasn\'t been set. '.format( self )
+			errmsg = 'FeatureSpace {0} "discrete" member hasn\'t been set. '.format( self )
 			errmsg += 'Please set the flag on the object indicating classification vs. regression/clustering.'
 			raise ValueError( errmsg )
 
 		if self.discrete == True:
 			self.data_list = [None] * self.num_classes
-			self.imagenames_list = [None] * self.num_classes
+			self.samplenames_list = [None] * self.num_classes
 			self.samplegroupid_list = [None] * self.num_classes
 			self.samplesequenceid_list = [None] * self.num_classes
 			if self._contiguous_ground_truths:
@@ -1877,7 +2085,7 @@ class FeatureSet( object ):
 				n_class_samples = self.classsizes_list[ class_index ]
 				self.data_list[ class_index ] = \
 					self.data_matrix[ class_bndry_index : class_bndry_index + n_class_samples ]
-				self.imagenames_list[ class_index ] = \
+				self.samplenames_list[ class_index ] = \
 					self._contiguous_samplenames_list[ class_bndry_index : class_bndry_index + n_class_samples ]
 				self.samplegroupid_list[ class_index ] = \
 					self._contiguous_samplegroupid_list[ class_bndry_index : class_bndry_index + n_class_samples ]
@@ -1891,7 +2099,7 @@ class FeatureSet( object ):
 
 		else:
 			self.data_list = self.data_matrix
-			self.imagenames_list = self._contiguous_samplenames_list
+			self.samplenames_list = self._contiguous_samplenames_list
 			self.samplegroupid_list = self._contiguous_samplegroupid_list 
 			self.samplesequenceid_list = self._contiguous_samplesequenceid_list
 			self.ground_truths = self._contiguous_ground_truths
@@ -1934,12 +2142,11 @@ class FeatureSet( object ):
 						for col_index in xrange( num_cols ):
 							for row_index in xrange( num_rows ):
 								fv = deepcopy( global_sampling_options )
-								fv.path_to_image = _file
+								fv.source_filepath = _file
 								fv.label = "UNKNOWN"
 								fv.tile_row_index = row_index
 								fv.tile_col_index = col_index
-								fv.samplesequenceid = tile_position_index
-								fv.samplegroupid = sample_group_count
+								fv.Update()
 								samples.append( fv )
 						sample_group_count += 1
 					break
@@ -1958,12 +2165,11 @@ class FeatureSet( object ):
 					for col_index in xrange( num_cols ):
 						for row_index in xrange( num_rows ):
 							fv = deepcopy( global_sampling_options )
-							fv.path_to_image = _file
+							fv.source_filepath = _file
 							fv.label = class_name
 							fv.tile_row_index = row_index
 							fv.tile_col_index = col_index
-							fv.samplesequenceid = tile_position_index
-							fv.samplegroupid = sample_group_count
+							fv.Update()
 							samples.append( fv )
 					sample_group_count += 1
 
@@ -1972,7 +2178,8 @@ class FeatureSet( object ):
 
 		name = basename( top_level_dir_path )
 		return cls._NewFromListOfFeatureVectors( samples, name=name,
-		       source_path=top_level_dir_path,
+		       source_filepath=top_level_dir_path,
+					 num_samples=None,
 		       num_samples_per_group=(num_rows*num_cols),
 					 num_features=global_sampling_options.num_features,
 		       discrete=discrete, quiet=quiet )
@@ -1981,7 +2188,7 @@ class FeatureSet( object ):
 	@classmethod
 	def NewFromFileOfFiles( cls, pathname, discrete=True, quiet=False,
 		     global_sampling_options=None, write_sig_files_to_disk=True, **kwargs ):
-		"""Create a FeatureSet from a file of files.
+		"""Create a FeatureSpace from a file of files.
 
 		The original FOF format (pre-2015) was just two columns, a path and a ground truth
 		separated by a tab character. The extention to this format supports additional optional
@@ -2004,20 +2211,30 @@ class FeatureSet( object ):
 
 		num_fs_columns = None
 		num_features = None
+		feature_set_version = None
 
-		# A FeatureSet's samples in feature space need to be grouped by ground truth.
+		# A FeatureSpace's samples in feature space need to be grouped by ground truth.
 		# These variables help to determine if the samples listed in the input FOF are grouped.
 		seen_ground_truths = set()
 		previous_ground_truth = None
 		current_ground_truth = None
 		samples_grouped_by_ground_truth = True
 
-		samples = []
-		fof = open( pathname )
-
 		num_rows = global_sampling_options.num_rows
 		num_cols = global_sampling_options.num_cols
 		num_samples_per_group = num_rows * num_cols
+
+		# Keeps track of the sample names to help organize like
+		# samples into sample groups
+		samp_name_to_samp_group_id_dict = {}
+
+		def ReturnSampleGroupID( name ):
+			if name not in samp_name_to_samp_group_id_dict:
+				samp_name_to_samp_group_id_dict[ name ] = len(samp_name_to_samp_group_id_dict)
+			return samp_name_to_samp_group_id_dict[ name ]
+
+		samples = []
+		fof = open( pathname )
 
 		# There are a number of places to look for the existence of the files
 		# specified via relative path.
@@ -2054,11 +2271,10 @@ class FeatureSet( object ):
 
 				# Create a sampling opts template for this line in the FOF
 				base_sample_opts = deepcopy( global_sampling_options )
-				base_sample_opts.sample_name = cols[0]
+				base_sample_opts.name = cols[0]
 				base_sample_opts.label = cols[1]
 				if not discrete:
 					base_sample_opts.ground_truth = float(cols[1])
-				base_sample_opts.samplegroupid = line_num // num_samples_per_group
 				# Note only difference with base_sampling_opts in the 3+ col version code below
 				# is the fs_col is always 0
 				base_sample_opts.fs_col = 0
@@ -2079,9 +2295,13 @@ class FeatureSet( object ):
 					# Not possible to tile over a feature vector, so it's just one and done here.
 					# Need to actually load the sig file here to tell how many features are contained
 					base_sample_opts.LoadSigFile( path_to_sample )
+					# Classic 2-col FOF listing sig path is an edgecase where we assign sample group id
+					# based on base prefix resulting from parsing out the sampling options ("-l", etc).
+					base_sample_opts.samplegroupid = ReturnSampleGroupID( base_sample_opts.basename )
 					samples.append( base_sample_opts )
 				else:
-					base_sample_opts.path_to_image = path_to_sample
+					base_sample_opts.source_filepath = path_to_sample
+					base_sample_opts.samplegroupid = ReturnSampleGroupID( cols[0] )
 					for col_index in xrange( num_cols ):
 						for row_index in xrange( num_rows ):
 							fv = deepcopy( base_sample_opts )
@@ -2089,34 +2309,38 @@ class FeatureSet( object ):
 							samples.append( fv )
 				# By now (after perhaps needing to load sig file) we know how many features in this sample
 				num_feats_in_this_row = base_sample_opts.num_features
-
+				if feature_set_version is None:
+					feature_set_version = base_sample_opts.feature_set_version
+				elif feature_set_version != base_sample_opts.feature_set_version:
+					err_str = 'FOF line {0} has feature set version "{1}" that differs from rest "{1}"'
+					raise ValueError( err_str.format( line_num, base_sample_opts.feature_set_version,
+					    feature_set_version ) )
 			# NEW THREE-column FOF format:
 			# Within "column 3" are sub-columns indicating channel options.
-			# Generates a dict of FeatureSet processing options for each column of
+			# Generates a dict of FeatureSpace processing options for each column of
 			# channel options found, which takes the form:
 			# [optional path to tiff or sig file] {[optname1=val1;optname2=val2...]}
 			else:
 				num_feats_in_this_row = 0
 				# tabs are ignored here, now the {} becomes the delimiter
 				tabs_stripped_out = cols[2].translate( None, '\t' )
-				for fs_col, m in enumerate( self.channel_col_finder.finditer( tabs_stripped_out ) ):
+				for fs_col, m in enumerate( cls.channel_col_finder.finditer( tabs_stripped_out ) ):
 
 					# Start with a clean sample options template for each column
 					base_sample_opts = deepcopy( global_sampling_options )
-					base_sample_opts.sample_name = cols[0]
+					base_sample_opts.name = cols[0]
+					base_sample_opts.samplegroupid = ReturnSampleGroupID( cols[0] )
 					base_sample_opts.label = cols[1]
 					if not discrete:
 						base_sample_opts.ground_truth = float(cols[1])
-					base_sample_opts.samplegroupid = line_num // num_samples_per_group
 					base_sample_opts.fs_col = fs_col
 
 					# Pull sampling options out of parentheses and load into template
 					col_finder_dict = m.groupdict()
 					opts_str = col_finder_dict['opts']
 					if opts_str:
-						col_opts = \
-							dict( [ mm.groups() for opt in opts_str.split(';') \
-																for mm in self.channel_opt_finder.finditer( opt ) ] )
+						col_opts = dict( [ mm.groups() for opt in opts_str.split(';') \
+						                    for mm in cls.channel_opt_finder.finditer( opt ) ] )
 						if None in col_opts:
 							# value given without key is taken to be default channel
 							col_opts['channel'] = col_opts[None]
@@ -2141,13 +2365,14 @@ class FeatureSet( object ):
 							if not isfile( path_to_sample ):
 								# Don't know what else to tell ya, pal.
 								raise ValueError( "Can't find sample \"{0}\"".format( path_to_sample ) )
+						path = path_to_sample
 
-					if path_to_sample.endswith('sig'):
+					if path.endswith('sig'):
 						# Not possible to tile over a feature vector, so it's just one and done here
-						base_sample_opts.LoadSigFile( path_to_sample )
+						base_sample_opts.LoadSigFile( path )
 						samples.append( base_sample_opts )
 					else:
-						base_sample_opts.path_to_image = path_to_sample
+						base_sample_opts.source_filepath = path
 						for col_index in xrange( num_cols ):
 							for row_index in xrange( num_rows ):
 								fv = deepcopy( base_sample_opts )
@@ -2166,6 +2391,16 @@ class FeatureSet( object ):
 				elif fs_col != num_fs_columns:
 					err_smg = "File {0}, line {1} has {2} channel cols, when the rest has {3}"
 					raise ValueError( err_msg.format( pathname, line_num, fs_col, num_fs_columns) )
+
+				# FIXME: This is kinda kludgy since it doesn't evaluate major versions across columns
+				if feature_set_version is None:
+					# More than one col = must be nonstandard FS
+					# Take major version sample opts from most recent col and call that this
+					# FeatureSapce's major version
+					if fs_col > 0:
+						feature_set_version = base_sample_opts.feature_set_version.split('.',1)[0] + '.0'
+					else:
+						base_sample_opts.feature_set_version
 
 			# END if len( cols ) < 3
 
@@ -2186,23 +2421,25 @@ class FeatureSet( object ):
 
 		assert num_features > 0
 
-		return cls._NewFromListOfFeatureVectors( samples, name=file_name, source_path=pathname,
-		       num_samples_per_group=(num_rows*num_cols), num_features=num_features,
-		       discrete=discrete, quiet=quiet )
+		return cls._NewFromListOfFeatureVectors( samples, name=file_name, source_filepath=pathname,
+		       num_samples=len(samp_name_to_samp_group_id_dict)*num_samples_per_group,
+		       num_samples_per_group=num_samples_per_group, num_features=num_features,
+		       feature_set_version=feature_set_version, discrete=discrete, quiet=quiet )
 
 	#==============================================================
 	@classmethod
-	def _NewFromListOfFeatureVectors( cls, feature_vectors_list, name, source_path,
-	  num_samples_per_group, num_features, discrete, quiet=True ):
+	def _NewFromListOfFeatureVectors( cls, feature_vectors_list, name, source_filepath=None,
+	  num_samples=None, num_samples_per_group=1, num_features=None, feature_set_version=None,
+	  discrete=True, quiet=True ):
 		"""Input is list of FeatureVectors WHOSE FEATURES HAVE ALREADY BEEN CALCULATED.
 
 		The arguments to this method call are intentionally very similar to the args of
-		FeatureSet.__init__(), except we get num_images from len( samples )."""
+		FeatureSpace.__init__()"""
 
-		num_samples = len( feature_vectors_list )
+		new_fs = cls( name, source_filepath, num_samples, num_samples_per_group,
+		             num_features, discrete, feature_set_version )
 
-		new_fs = cls( name, source_path, num_samples, num_samples_per_group,
-		             num_features, discrete )
+		new_fs.Print()
 
 		# For compound samples, e.g., multichannel, need to know the column offsets.
 		# key: col index, value: index in data_matrix demarking rightmost feature for this column
@@ -2219,17 +2456,17 @@ class FeatureSet( object ):
 
 			col_left_boundary_index = feature_set_col_offset[ fv.fs_col - 1 ]
 			col_right_boundary_index = col_left_boundary_index + fv.num_features
-			row_index = fv.samplegroupid * num_samples_per_group +fv.samplesequenceid
+			row_index = (fv.samplegroupid * num_samples_per_group) + fv.samplesequenceid
 
 			# Fill in column metadata if we've not seen a feature vector for this col before
 			if fv.fs_col not in feature_set_col_offset:
 				feature_set_col_offset[ fv.fs_col ] = col_right_boundary_index
 				new_fs.featurenames_list[ col_left_boundary_index : col_right_boundary_index ] = \
-				  fv.names
+				  [ name.replace( '()', '({0})'.format( fv.fs_col ) ) for name in fv.featurenames_list ]
 
 			# Fill in row metadata with FeatureVector data from column 0 only
 			if fv.fs_col == 0: # (fs_col member must be > 0 and cannot be None)
-				new_fs._contiguous_samplenames_list[ row_index ] = fv.sample_name
+				new_fs._contiguous_samplenames_list[ row_index ] = fv.name
 				new_fs._contiguous_samplegroupid_list[ row_index ] = fv.samplegroupid
 				new_fs._contiguous_samplesequenceid_list[ row_index ] = fv.samplesequenceid
 				if discrete:
@@ -2271,106 +2508,168 @@ class FeatureSet( object ):
 		this method ensures that the data_matrix is a vstack of all data_lists
 		After this call, the self.data_matrix field will be contiguous, and all of the views in data_list
 		are consistent with it.
-		In the base class, just returns the data_matrix
 		"""
-		self._contiguous_samplenames_list = self.imagenames_list
-		self._contiguous_samplegroupid_list = self.samplegroupid_list
-		self._contiguous_samplesequenceid_list = self.samplesequenceid_list
-		self._contiguous_ground_truths = self.ground_truths
+		if not self.discrete:
+			self._contiguous_samplenames_list = self.samplenames_list
+			self._contiguous_samplegroupid_list = self.samplegroupid_list
+			self._contiguous_samplesequenceid_list = self.samplesequenceid_list
+			self._contiguous_ground_truths = self.ground_truths
+			return self.data_matrix
 
-		return (self.data_matrix)
+		# If its already contiguous, or there are no data_lists, just return it
+		if (self.data_matrix_is_contiguous or not self.data_list or not len (self.data_list) ):
+			return self.data_matrix
+
+		num_features = 0
+		copy_class = 0
+		copy_row = 0
+		for class_mat in self.data_list:
+			# Make sure all classes have the same number of features
+			if (num_features and class_mat.shape[1] != num_features):
+				raise ValueError ( "class index {0}:'{1}' has a different number of features than other classes ({3}).".format (
+					copy_class, self.classnames_list[i], num_features) )
+			else:
+				num_features = class_mat.shape[1]
+			# if this flag is set in the numpy, then it is not a view.
+			if class_mat.flags.owndata:
+				# We don't need to keep going, all we need is the startpoint for the copy
+				break
+			copy_row += class_mat.shape[0]
+			copy_class += 1
+
+		if copy_class == len( self.data_list ):
+			raise RuntimeError( "Internal error: ContiguousDataMatrix: none of the class views had their own data. Is the data_matrix contiguous already?" )
+
+		# resize the matrix
+		if self.data_matrix is not None:
+			self.data_matrix.resize (self.num_samples, self.num_features)
+		else:
+			#print "called with empty data_matrix"
+			self.data_matrix = np.empty ([ self.num_samples, self.num_features ], dtype='double')
+			copy_class = 0
+			copy_row = 0
+
+		# In addition, keep a list of sample names corresponding to the 
+		# rows in the contiguous feature matrix
+		self._contiguous_samplenames_list = [ None ] * self.num_samples
+		self._contiguous_samplegroupid_list = [ None ] * self.num_samples
+		self._contiguous_samplesequenceid_list = [ None ] * self.num_samples
+		self._contiguous_ground_truths = [ None ] * self.num_samples
+
+		# We need to start copying at the first non-view class mat to the end.
+		for class_index in range (copy_class, len (self.data_list)):
+			#print "copy class"+str(class_index)
+			nrows = self.data_list[class_index].shape[0]
+			self.data_matrix[copy_row : copy_row + nrows] = np.copy (self.data_list[class_index])
+			self.data_list[class_index] = self.data_matrix[copy_row : copy_row + nrows]
+			self._contiguous_samplenames_list[copy_row : copy_row + nrows] = \
+			                                             self.samplenames_list[class_index]
+			self._contiguous_samplegroupid_list[copy_row : copy_row + nrows] = \
+			                                             self.samplegroupid_list[class_index]
+			self._contiguous_samplesequenceid_list[copy_row : copy_row + nrows] = \
+			                                             self.samplesequenceid_list[class_index]
+			self._contiguous_ground_truths[copy_row : copy_row + nrows] = \
+			                                             self.ground_truths[class_index]
+			copy_row += nrows
+
+		self.data_matrix_is_contiguous = True
+		return self.data_matrix
 
 	#==============================================================
-	def Normalize( self, training_set=None, inplace=True, quiet=False ):
-		"""By convention, the range of values are normalized on an interval [0,100].
-		Normalizing is useful in making the variation of features human readable
-		and that all samples are comprable if they've been normalized against
-		the same ranges of feature values.
-		Raw features computed during training are normalized in the training set.
-		These training ranges are then used to normalize raw features computed for test images.
-
-		FIXME: change default inplace to False.
-		"""
+	def Normalize( self, input_feat_container=None, inplace=True, quiet=False ):
+		"""By convention, the range of feature values in the WND-CHARM algorithm are
+		normalized on the interval [0,100]. Normalizing is useful in making the variation 
+		of features human readable. Normalized samples are only comprable if they've been 
+		normalized against the same feature maxima/minima."""
 
 		if self.normalized_against:
 			# I've already been normalized, and you want to normalize me again?
-			raise ValueError( "Set {0} has already been normalized against {1}.".format (
-				self.source_path, self.normalized_against ) )
+			raise ValueError( "{0} \"{1}\" has already been normalized against {2}.".format (
+				self.__class__.__name__, self.name, self.normalized_against ) )
 
-		if inplace:
-			target = self
-		else:
-			from copy import deepcopy
-			target = deepcopy( self )
+		newdata = {}
 
-		if not training_set:
-			# Normalize me against mytarget
+		if not input_feat_container:
+			# Recalculate my feature space using my own maxima/minima
 			if not quiet:
-				print 'Normalizing set "{0}" ({1} images) against ittarget'.format (
-					target.source_path, target.num_images )
-
-			(target.feature_minima, target.feature_maxima) = normalize_by_columns (target.ContiguousDataMatrix())
-			target.normalized_against = "ittarget"
-
+				print 'Normalizing {0} "{1}" ({2} images) against self'.format(
+					self.__class__.__name__, self.name, self.num_samples )
+			mins = None
+			maxs = None
+			newdata['normalized_against'] = 'self'
 		else:
-			# Normalize me against the given training set
-			if training_set.featurenames_list != target.featurenames_list:
-				raise ValueError("Can't normalize test_set {0} against training_set {1}: Features don't match.".format (
-					target.source_path, training_set.source_path ) )
-			if ( not target.CompatibleFeatureVectorVersion (training_set.feature_vector_version) ):
-				raise ValueError("Can't normalize test_set {0} with version {1} features against training_set {2} with version {3} features: Feature vector versions don't match.".format (
-					target.source_path, target.feature_vector_version, training_set.source_path, training_set.feature_vector_version ) )
+			# Recalculate my feature space according to maxima/minima in input_feat_container
+			if input_feat_container.featurenames_list != self.featurenames_list:
+				err_str = "Can't normalize {0} \"{1}\" against {2} \"{3}\": Features don't match.".format(
+				  self.__class__.__name__, self.name,
+					input_feat_container.__class__.__name__, input_feat_container.name )
+				raise ValueError( err_str )
+			if not self.CompatibleFeatureSetVersion( input_feat_container ):
+				err_str = 'Incompatible feature versions: "{0}" ({1}) and "{2}" ({3})'
+				raise ValueError( err_str.format( self.name, self.feature_set_version,
+				    input_feat_container.name, input_feat_container.feature_set_version ) )
 			
 			if not quiet:
-				print 'Normalizing set "{0}" ({1} images) against set "{2}" ({3} images)'.format(
-					target.source_path, target.num_images, training_set.source_path, training_set.num_images )
+				print 'Normalizing "{0}" ({1} samples) against "{2}" ({3} samples)'.format(
+					self.name, self.num_samples, input_feat_container.name, input_feat_container.num_samples )
 
-			if not training_set.normalized_against:
-				training_set.Normalize( quiet=quiet )
+			# Need to make sure there are feature minima/maxima to normalize against:
+			if not input_feat_container.normalized_against:
+				input_feat_container.Normalize( quiet=quiet )
 
-			assert target.num_features > 0
-			(target.feature_minima, target.feature_maxima) = normalize_by_columns (target.ContiguousDataMatrix(), training_set.feature_minima, training_set.feature_maxima)
-			target.normalized_against = training_set.source_path
+			mins = input_feat_container.feature_minima
+			maxs = input_feat_container.feature_maxima
+			newdata['normalized_against'] = input_feat_container
 
-		if not inplace:
-			return target
+		newdata['data_matrix'] = np.copy( self.ContiguousDataMatrix() )
+		newdata['feature_minima'], newdata['feature_maxima'] = \
+		    normalize_by_columns( newdata['data_matrix'], mins, maxs )
+
+		if inplace:
+			self.Update( **newdata )
+		else:
+			return self.Derive( **newdata )
 
 	#==============================================================
 	def FeatureReduce( self, requested_features ):
-		"""Returns a new FeatureSet that contains a subset of the data by dropping
+		"""Returns a new FeatureSpace that contains a subset of the data by dropping
 		features (columns), and/or rearranging columns.
 
-		requested_features := an iterable containing strings that are feature names.
+		requested_features := an object with a "featurenames_list" member
+		    (FeatureVector/FeatureSpace/FeatureWeights) or an iterable containing 
+		    strings that are feature names.
 
 		Implementation detail: compares input "requested_features" to self.featurenames_list,
-		and "requested_features" becomes the self.featurenames_list of the returned FeatureSet."""
+		and "requested_features" becomes the self.featurenames_list of the returned FeatureSpace."""
+
+		try:
+			requested_features = requested_features.featurenames_list
+		except AttributeError:
+			# assume it's already a list then
+			pass
 
 		# Check that self's faturelist contains all the features in requested_features
 		selfs_features = set( self.featurenames_list )
 		their_features = set( requested_features )
 		if not their_features <= selfs_features:
 			missing_features_from_req = their_features - selfs_features
-			err_str = error_banner + "Feature Reduction error:\n"
-			err_str += "The training set '{0}' is missing ".format( self.source_path )
+			err_str = "Feature Reduction error:\n"
+			err_str += '{0} "{1}" is missing '.format( self.__class__.__name__, self.name )
 			err_str += "{0}/{1} features that were requested in the feature reduction list.".format(\
 					len( missing_features_from_req ), len( requested_features ) )
 			err_str += "\nDid you forget to convert the feature names into their modern counterparts?"
 			raise ValueError( err_str )
 
 		num_features = len( requested_features )
-		shape = ( self.num_images, num_features )
+		shape = ( self.num_samples, num_features )
 
 		newdata = {}
 		newdata[ 'shape' ] = shape
-		newdata[ 'source_path' ] = self.source_path + "(feature reduced)"
+		newdata[ 'source_filepath' ] = self.source_filepath + "(feature reduced)"
 		newdata[ 'name' ] = self.name + "(feature reduced)"
 		newdata[ 'featurenames_list' ] = requested_features
 		newdata[ 'num_features' ] = num_features
 		data_matrix = np.empty( shape , dtype='double' )
-		if self.feature_maxima is not None:
-			feature_maxima = np.empty( num_features, )
-		if self.feature_minima is not None:
-			feature_minima = np.empty( num_features, )
 
 		# Columnwise operations in Numpy are a pig:
 		# %timeit thing = shuffle_my_cols[:,desired_cols]
@@ -2383,37 +2682,33 @@ class FeatureSet( object ):
 		#    thing[ :, new_index ] = shuffle_my_cols[ :, old_index ]
 		# 1 loops, best of 3: 2.25 s per loop
 
-		for new_index, featurename in enumerate( requested_features ):
-			old_index = self.featurenames_list.index( featurename )
+		new_order = [ self.featurenames_list.index( name ) for name in requested_features ]
+		for new_index, old_index in enumerate( new_order ):
 			data_matrix[ :, new_index ] = self.data_matrix[ :, old_index ]
-			if self.feature_maxima is not None:
-				feature_maxima[ new_index ] = self.feature_maxima[ old_index ]
-			if self.feature_minima is not None:
-				feature_minima[ new_index ] = self.feature_minima[ old_index ]
-
 		newdata[ 'data_matrix' ] = data_matrix
+
 		if self.feature_maxima is not None:
-			newdata[ 'feature_maxima' ] = feature_maxima
+			newdata[ 'feature_maxima' ] = self.feature_maxima[ new_order ]
 		if self.feature_minima is not None:
-			newdata[ 'feature_minima' ] = feature_minima
+			newdata[ 'feature_minima' ] = self.feature_minima[ new_order ]
 
 		# If the feature vectors sizes changed then they are no longer standard feature vectors.
-		if self.feature_vector_version is not None and num_features != self.num_features:
-			newdata[ 'feature_vector_version' ] = \
-					"{0}.0".format( self.feature_vector_version.split('.',1)[0] )
+		if self.feature_set_version is not None and num_features != self.num_features:
+			newdata[ 'feature_set_version' ] = \
+					"{0}.0".format( self.feature_set_version.split('.',1)[0] )
 
 		return self.Derive( **newdata )
 
 	#==============================================================
 	def SampleReduce( self, leave_in_samplegroupid_list=None, leave_out_samplegroupid_list=None ):
-		"""Returns a new FeatureSet that contains a subset of the data by dropping
+		"""Returns a new FeatureSpace that contains a subset of the data by dropping
 		samples (rows), and/or rearranging rows.
 
-		leave_in_sample_group_list := indicate the composition of the FeatureSet to be returned.
-				For discrete/classification FeatureSets -
-				  an iterable of iterables of sample group indices indicating desired sample groups;
-		    For continuous/regression FeatureSets - 
-		      a iterable of desired sample group indices.
+		leave_in_sample_group_list := indicate the composition of the FeatureSpace to be returned.
+			For discrete/classification FeatureSpaces:
+		    an iterable of iterables of sample group indices indicating desired sample groups;
+			For continuous/regression FeatureSpaces:
+		    a iterable of desired sample group indices.
 
 		leave_out_samplegroupid_list := a list containing sample group ids
 		    that should be left out
@@ -2424,21 +2719,21 @@ class FeatureSet( object ):
 			raise ValueError( 'Invalid input, both leave_in_samplegroupid_list and leave_out_samplegroupid_list were None')
 
 		if self.normalized_against:
-			errmsg = 'Cannot perform SampleReduce on FeatureSet "{0}" '.format( self.name ) + \
+			errmsg = 'Cannot perform SampleReduce on FeatureSpace "{0}" '.format( self.name ) + \
 			    "because it's features have already been normalized and is therefore immutable."
 			raise ValueError( errmsg )
 
 		# Helper nested functions:
 		#==================================
 		def CheckForValidListOfInts( the_list ):
-			"""Items in list must be ints that are valid sample group ids for this FeatureSet"""
+			"""Items in list must be ints that are valid sample group ids for this FeatureSpace"""
 			for item in the_list:
 				if type( item ) is not int:
 					raise TypeError( "Input must be an int or a flat iterable containing only ints.")
 
 			if not set( the_list ) < set( self._contiguous_samplegroupid_list ):
 				msg = "Input contains sample group ids that aren't " + \
-							'contained in FeatureSet "' + self.name + '", specifically: ' + \
+							'contained in FeatureSpace "' + self.name + '", specifically: ' + \
 				      str( sorted( list( set( the_list ) - set( self._contiguous_samplegroupid_list ) ) ) )
 				raise ValueError( msg )
 
@@ -2491,7 +2786,7 @@ class FeatureSet( object ):
 				total_num_sample_groups = \
 					sum( len( class_list ) for class_list in leave_in_samplegroupid_list if class_list )
 			except TypeError:
-				errmsg = 'Leave in list for discrete FeatureSets has to be a list (of length ' + \
+				errmsg = 'Leave in list for discrete FeatureSpaces has to be a list (of length ' + \
 				         'num_classes) of lists of ' + \
 				         'desired sample group ids. Did you mean to pass it in as the leave OUT list?'
 				raise TypeError( errmsg )
@@ -2503,9 +2798,9 @@ class FeatureSet( object ):
 
 		newdata = {}
 		newdata[ 'shape' ] = shape
-		newdata[ 'source_path' ] = self.source_path + " (subset)"
+		newdata[ 'source_filepath' ] = self.source_filepath + " (subset)"
 		newdata[ 'name' ] = self.name + " (subset)"
-		newdata[ 'num_images' ] = total_num_samples
+		newdata[ 'num_samples' ] = total_num_samples
 		data_matrix = np.empty( shape, dtype='double' )
 		_contiguous_samplegroupid_list = [None] * total_num_samples
 		_contiguous_samplenames_list = [None] * total_num_samples
@@ -2589,7 +2884,7 @@ class FeatureSet( object ):
 	#==============================================================
 	def Split( self, train_size=None, test_size=None, random_state=True,
 					balanced_classes=True, quiet=False ):
-		"""Used for dividing the current FeatureSet into two subsets used for classifier
+		"""Used for dividing the current FeatureSpace into two subsets used for classifier
 		cross-validation (i.e., training set and test set).
 
 		Analogous to Scikit-learn's cross_validation.train_test_split().
@@ -2611,9 +2906,9 @@ class FeatureSet( object ):
 
 		random_state : int or RandomState
                 If true, generate a new random split. If int or Pseudo-random number
-								generator state used for random sampling. If value evaluates to false,
-								then do not randomize, but take the first samples in the order
-								the occur in the FeatureSet/class."""
+		            generator state used for random sampling. If value evaluates to false,
+		            then do not randomize, but take the first samples in the order
+		            the occur in the FeatureSpace/class."""
 
 		# Step 1: Determine composition of split classes, i.e.,
 		# figure out how many images/samples goes into the train and test sets respectively.
@@ -2735,7 +3030,7 @@ class FeatureSet( object ):
 					  CalcTrainTestSampleGroupMembership( self.samplegroupid_list[class_index], _max=smallest_class_size  )
 				except ValueError as e:
 					addl_msg = "Error with class index " + str(class_index) + \
-					           '. For discrete FeatureSets (with classes), train_size and test_size' + \
+					           '. For discrete FeatureSpaces (with classes), train_size and test_size' + \
 					           ' are evaluated per-class. '
 					raise ValueError( addl_msg + e.message )
 				else:
@@ -2757,6 +3052,7 @@ class FeatureSet( object ):
 		return training_set, test_set
 
 
+<<<<<<< HEAD
 # END FeatureSet class definition
 
 #############################################################################
@@ -3178,6 +3474,9 @@ class FeatureSet_Continuous( FeatureSet ):
 		self.source_path += " (scrambled)"
 
 # END FeatureSet_Continuous class definition
+=======
+# END FeatureSpace class definition
+>>>>>>> API changes. FeatureSet->FeatureSpace. member names more consistent across objects
 
 #=================================================================================
 class ClassificationResult( object ):
@@ -3204,7 +3503,7 @@ class ImageClassificationResult( ClassificationResult ):
 
 	def __init__( self ):
 		self.name = None
-		self.source_file = None
+		self.source_filepath = None
 		self.ground_truth_value = None
 		self.predicted_value = None
 		self.batch_number = None
@@ -3242,7 +3541,7 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 		
 		if line_item:
 			# img name:
-			output_str = self.source_file if self.source_file else ""
+			output_str = self.source_filepath if self.source_filepath else ""
 			if self.tile_index is not None:
 				if self.tile_index == 'AVG':
 					output_str += " (AVG)"
@@ -3271,7 +3570,7 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 				output_str += "{0:0.3f}".format( self.predicted_value )
 			print output_str
 		else:
-			print "Image:             \t{0}".format( self.source_file )
+			print "Image:             \t{0}".format( self.source_filepath )
 			print "Normalization Factor:\t{0}".format( self.normalization_factor )
 			print "Marg. Probabilities:\t" + "\t".join(\
 					[ "{val:0.3f}".format( val=prob ) for prob in self.marginal_probabilities ] )
@@ -3354,39 +3653,36 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 
 	#=================================================================================
 	@classmethod
-	def NewWND5( cls, training_set, feature_weights, test_sig, quiet = False ):
+	def NewWND5( cls, training_set, feature_weights, test_samp, quiet = False ):
 		"""@brief: A wrapper function for _ClassifyOneImageWND5 that does dummyproofing
 		@return: An instance of a DiscreteBatchClassificationResult"""
 
-		if not isinstance( training_set, FeatureSet_Discrete ):
-			raise ValueError( 'First argument to NewWND5 must be of type "FeatureSet_Discrete", you gave a {0}'.format( type( training_set ).__name__ ) )
+		if not isinstance( training_set, FeatureSpace ):
+			raise ValueError( 'First argument to NewWND5 must be of type "FeatureSpace", you gave a {0}'.format( type( training_set ).__name__ ) )
 		
 		if not isinstance( feature_weights, FeatureWeights ):
 			raise ValueError( 'Second argument to NewWND5 must be of type "FeatureWeights" or derived class, you gave a {0}'.format( type( feature_weights ).__name__ ) )
 
-		if not isinstance( test_sig, FeatureVector ):
-			raise ValueError( 'Third argument to NewWND5 must be of type "FeatureVector", you gave a {0}'.format( type( test_sig ).__name__ ) )
-
-		# check to see if sig is valid
-		test_sig.isvalid()
+		if not isinstance( test_samp, FeatureVector ):
+			raise ValueError( 'Third argument to NewWND5 must be of type "FeatureVector", you gave a {0}'.format( type( test_samp ).__name__ ) )
 
 		train_set_len = len( training_set.featurenames_list )
-		test_set_len = len( test_sig.names )
-		feature_weights_len = len( feature_weights.names )
+		test_set_len = len( test_samp.featurenames_list )
+		feature_weights_len = len( feature_weights.featurenames_list )
 
-		if test_sig.names != feature_weights.names:
+		if test_samp.featurenames_list != feature_weights.featurenames_list:
 			raise ValueError("Can't classify, features in signature don't match features in weights." )
 
-		if test_sig.names != training_set.featurenames_list:
+		if test_samp.featurenames_list != training_set.featurenames_list:
 			raise ValueError("Can't classify, features in signature don't match features in training_set." )
 
 		if not quiet:
 			print "Classifying image '{0}' ({1} features) against test set '{2}' ({3} features)".\
-			 format( test_sig.source_file, train_set_len, training_set.source_path, test_set_len )
+			 format( test_samp.name, train_set_len, training_set.name, test_set_len )
 
-		result = cls._WND5( training_set, test_sig.values, feature_weights.values )
+		result = cls._WND5( training_set, test_samp.values, feature_weights.values )
 
-		result.source_file = test_sig.source_file
+		result.source_filepath = test_samp.source_filepath
 		marg_probs = np.array( result.marginal_probabilities )
 		result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
 		# interpolated value, if applicable
@@ -3422,7 +3718,7 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 
 		if line_item:
 			# img name:
-			output_str = str( self.source_file )
+			output_str = str( self.source_filepath )
 			output_str += "\t"
 			# actual class:
 			if self.ground_truth_value is not None:
@@ -3433,7 +3729,7 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 			output_str += str( self.predicted_value )
 			print output_str
 		else:
-			print "Image:             \t{0}".format( self.source_file )
+			print "Image:             \t{0}".format( self.source_filepath )
 			print "Ground truth class:\t {0}".format( self.ground_truth_value ) 
 			print "Predicted class:\t {0}".format( self.predicted_value ) 
 
@@ -3911,15 +4207,15 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		"""
 
 		# type checking
-		if not isinstance( training_set, FeatureSet_Discrete ):
-			raise ValueError( 'First argument to New must be of type "FeatureSet_Discrete", you gave a {0}'.format( type( test_set ).__name__ ) )	
-		if not isinstance( test_set, FeatureSet_Discrete ):
-			raise ValueError( 'Second argument to New must be of type "FeatureSet_Discrete", you gave a {0}'.format( type( test_set ).__name__ ) )	
+		if not isinstance( training_set, FeatureSpace ):
+			raise ValueError( 'First argument to New must be of type "FeatureSpace", you gave a {0}'.format( type( test_set ).__name__ ) )
+		if not isinstance( test_set, FeatureSpace ):
+			raise ValueError( 'Second argument to New must be of type "FeatureSpace", you gave a {0}'.format( type( test_set ).__name__ ) )
 		if not isinstance( feature_weights, FeatureWeights ):
 			raise ValueError( 'Third argument to New must be of type "FeatureWeights" or derived class, you gave a {0}'.format( type( feature_weights ).__name__ ) )
 	
 		# feature comparison
-		if test_set.featurenames_list != feature_weights.names:
+		if test_set.featurenames_list != feature_weights.featurenames_list:
 			raise ValueError( "Can't classify, features in test set don't match features in weights. Try translating feature names from old style to new, or performing a FeatureReduce()" )
 		if test_set.featurenames_list != training_set.featurenames_list:
 			raise ValueError( "Can't classify, features in test set don't match features in training set. Try translating feature names from old style to new, or performing a FeatureReduce()" )
@@ -3928,7 +4224,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 		train_set_len = len( training_set.featurenames_list )
 		test_set_len = len( test_set.featurenames_list )
-		feature_weights_len = len( feature_weights.names )
+		feature_weights_len = len( feature_weights.featurenames_list )
 
 		# instantiate myself
 		batch_result = cls( training_set, test_set, feature_weights, batch_name )
@@ -3940,7 +4236,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		# Say what we're going to do
 		if not quiet:
 			print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
-					format( test_set.source_path, test_set_len, training_set.source_path, train_set_len )
+					format( test_set.name, test_set_len, training_set.name, train_set_len )
 			if batch_result.tiled_results:
 				print "Performing tiled classification."
 			column_header = "image\tnorm. fact.\t"
@@ -3980,7 +4276,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 				
 				if norm_factor_threshold and (result.normalization_factor > norm_factor_threshold):
 					continue
-				result.source_file = test_set.imagenames_list[ test_class_index ][ test_image_index ]
+				result.source_filepath = test_set.samplenames_list[ test_class_index ][ test_image_index ]
 				result.ground_truth_class_name = test_set.classnames_list[ test_class_index ]
 				result.batch_number = batch_number
 				result.name = batch_name
@@ -4019,7 +4315,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 					if len( tile_results_in_this_sample_group ) >= test_set.num_samples_per_group:
 						aggregated_result = DiscreteImageClassificationResult()
 						# Use the last result from above
-						aggregated_result.source_file = result.source_file
+						aggregated_result.source_filepath = result.source_filepath
 						aggregated_result.tile_index = 'AVG'
 						aggregated_result.ground_truth_class_name = result.ground_truth_class_name
 						marg_prob_lists = [ [] for i in xrange( training_set.num_classes ) ]
@@ -4107,23 +4403,23 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		"""Uses Pearson-coefficient weighted Regression-Voting classifier."""
 
 		# type checking
-		if not isinstance( test_set, FeatureSet_Continuous ):
-			raise ValueError( 'First argument to New must be of type "FeatureSet_Continuous", you gave a {0}'.format( type( test_set ).__name__ ) )	
+		if not isinstance( test_set, FeatureSpace ):
+			raise ValueError( 'First argument to New must be of type "FeatureSpace", you gave a {0}'.format( type( test_set ).__name__ ) )	
 		if not isinstance( feature_weights, ContinuousFeatureWeights ):
 			raise ValueError( 'Second argument to New must be of type "ContinuousFeatureWeights", you gave a {0}'.format( type( feature_weights ).__name__ ) )
 
 		# feature comparison
-		if test_set.featurenames_list != feature_weights.names:
+		if test_set.featurenames_list != feature_weights.featurenames_list:
 			raise ValueError("Can't classify, features don't match. Try a FeatureReduce()" )
 
 		# say what we're gonna do
 		if not quiet:
 			out_str = 'Classifying test set "{0}" ({1} images, {2} features)\n\tagainst training set "{3}" ({4} images)'
-			print out_str.format( test_set.source_path, \
-			                      test_set.num_images, \
+			print out_str.format( test_set.name, \
+			                      test_set.num_samples, \
 			                      len( test_set.featurenames_list ), \
-			                      feature_weights.associated_training_set.source_path, \
-			                      feature_weights.associated_training_set.num_images )
+			                      feature_weights.associated_training_set.name, \
+			                      feature_weights.associated_training_set.num_samples )
 
 		if not quiet:
 			column_header = "image\tground truth\tpred. val."
@@ -4135,12 +4431,12 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		if test_set.ground_truths is not None and len( test_set.ground_truths ) != 0:
 			batch_result.ground_truth_values = test_set.ground_truths
 
-		for test_image_index in range( test_set.num_images ):
+		for test_image_index in range( test_set.num_samples ):
 			one_image_features = test_set.data_matrix[ test_image_index,: ]
 			result = ContinuousImageClassificationResult._LinearRegression( one_image_features, feature_weights )
 			result.batch_number = batch_number
 			result.name = batch_name
-			result.source_file = test_set.imagenames_list[ test_image_index ]
+			result.source_filepath = test_set.samplenames_list[ test_image_index ]
 			result.ground_truth_value = test_set.ground_truths[ test_image_index ]
 			batch_result.predicted_values.append( result.predicted_value )
 
@@ -4165,12 +4461,12 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		"""
 
 		# Type checking
-		# First arg must be a FeatureSet_Continuous
-		if not isinstance( training_set, FeatureSet_Continuous ):
-			raise ValueError( 'First argument to NewLeastSquaresRegression must be of type "FeatureSet_Continuous", you gave a {0}'.format( type( test_set ).__name__ ) )	
-		# Second arg must be a FeatureSet_Continuous or a None
-		if (not isinstance( test_set, FeatureSet_Continuous )) and (test_set is not None):
-			raise ValueError( 'Second argument to NewLeastSquaresRegression must be of type "FeatureSet_Continuous" or None, you gave a {0}'.format( type( test_set ).__name__ ) )	
+		# First arg must be a FeatureSpace
+		if not isinstance( training_set, FeatureSpace ):
+			raise ValueError( 'First argument to NewLeastSquaresRegression must be of type "FeatureSpace", you gave a {0}'.format( type( test_set ).__name__ ) )
+		# Second arg must be a FeatureSpace or a None
+		if (not isinstance( test_set, FeatureSpace )) and (test_set is not None):
+			raise ValueError( 'Second argument to NewLeastSquaresRegression must be of type "FeatureSpace" or None, you gave a {0}'.format( type( test_set ).__name__ ) )
 		if not isinstance( feature_weights, ContinuousFeatureWeights ):
 			raise ValueError( 'Third argument to New must be of type "ContinuousFeatureWeights", you gave a {0}'.format( type( feature_weights ).__name__ ) )
 
@@ -4179,7 +4475,7 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 			if training_set.featurenames_list != training_set.featurenames_list:
 				raise ValueError("Can't classify, features don't match. Try a FeatureReduce()" )
 		# Check feature_weights
-		if training_set.featurenames_list != feature_weights.names:
+		if training_set.featurenames_list != feature_weights.featurenames_list:
 			raise ValueError("Can't classify, features don't match. Try a FeatureReduce()" )
 
 		# Least squares regression requires a featres matrix augmented with ones
@@ -4204,7 +4500,7 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		if not quiet:
 			if cross_validation:
 				out_str = 'Cross validation of training set "{0}" ({1} images, {2} features)'.format(
-			          training_set.source_path, training_set.num_images, len( training_set.featurenames_list ) )
+			          training_set.name, training_set.num_samples, len( training_set.featurenames_list ) )
 
 				out_str += "\nWITH"
 				if not leave_one_out:
@@ -4213,9 +4509,9 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 			
 			else:
 				out_str = 'Classifying test set "{0}" ({1} images, {2} features)'.format(
-			          test_set.source_path, test_set.num_images, len( test_set.featurenames_list ) )
+			          test_set.name, test_set.num_samples, len( test_set.featurenames_list ) )
 				out_str += '\n\tagainst training set "{0}" ({1} images)'.format(
-				            training_set.source_path, training_set.num_images )
+				            training_set.name, training_set.num_samples )
 			print out_str
 
 		# Now, build the augmented feature matrices, which includes multiplying the feature
@@ -4225,12 +4521,12 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 
 		augmented_train_set.data_matrix *= feature_weights.values
 		augmented_train_set.data_matrix = np.hstack( 
-		      [ augmented_train_set.data_matrix, np.ones( ( augmented_train_set.num_images, 1 ) ) ] )
+		      [ augmented_train_set.data_matrix, np.ones( ( augmented_train_set.num_samples, 1 ) ) ] )
 		augmented_train_set.num_features += 1 # Tell the object it has a new feature column
 		if not cross_validation:
 			augmented_test_set.data_matrix *= feature_weights.values
 			augmented_test_set.data_matrix = np.hstack( 
-		      [ augmented_test_set.data_matrix, np.ones( ( augmented_test_set.num_images, 1 ) ) ] )
+		      [ augmented_test_set.data_matrix, np.ones( ( augmented_test_set.num_samples, 1 ) ) ] )
 			augmented_test_set.num_features += 1 # Tell the object it has a new feature column
 
 		if not quiet:
@@ -4243,7 +4539,7 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 			batch_result.ground_truth_values = augmented_test_set.ground_truths
 
 		intermediate_train_set = augmented_train_set
-		for test_image_index in range( augmented_test_set.num_images ):
+		for test_image_index in range( augmented_test_set.num_samples ):
 			if leave_one_out:
 				sample_group_id = augmented_train_set.samplegroupid_list[ test_image_index ]
 				intermediate_train_set = augmented_train_set.SampleReduce(\
@@ -4253,7 +4549,7 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 			               one_image_features, intermediate_train_set )
 			result.batch_number = batch_number
 			result.name = batch_name
-			result.source_file = augmented_test_set.imagenames_list[ test_image_index ]
+			result.source_filepath = augmented_test_set.samplenames_list[ test_image_index ]
 			result.ground_truth_value = augmented_test_set.ground_truths[ test_image_index ]
 			batch_result.predicted_values.append( result.predicted_value )
 
@@ -4335,7 +4631,7 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 		for batch_result in self.individual_results:
 			if not batch_result.feature_weights:
 				continue
-			weight_names_and_values = zip( batch_result.feature_weights.names, 
+			weight_names_and_values = zip( batch_result.feature_weights.featurenames_list, 
 					                                        batch_result.feature_weights.values)
 			for name, weight in weight_names_and_values:
 				if not name in feature_weight_lists:
@@ -4373,7 +4669,7 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 		the optimal classifier configuration and outputs that."""
 
 		print "Calculating optimized continuous classifier for training set {0}".\
-				format( self.training_set.source_path )
+				format( self.training_set.source_filepath )
 
 		best_classification_result = None
 		best_weights = None
@@ -4466,13 +4762,14 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 			
 			if feature_set.discrete:
 				weights = \
-				  FisherFeatureWeights.NewFromFeatureSet( train_set ).Threshold( num_features )
+				  FisherFeatureWeights.NewFromFeatureSpace( train_set ).Threshold( num_features )
 			else:	
 				weights = \
-				  ContinuousFeatureWeights.NewFromFeatureSet( train_set ).Threshold( num_features )
+				  ContinuousFeatureWeights.NewFromFeatureSpace( train_set ).Threshold( num_features )
 
-			reduced_train_set = train_set.FeatureReduce( weights.names )
-			reduced_test_set = test_set.FeatureReduce( weights.names )
+			weights.Print()
+			reduced_train_set = train_set.FeatureReduce( weights )
+			reduced_test_set = test_set.FeatureReduce( weights )
 			reduced_test_set.Normalize( reduced_train_set, quiet=quiet )
 
 			if feature_set.discrete:
@@ -4585,7 +4882,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 
 		def ParseClassSummaryHTML( the_html ):
 			rows = row_re.findall( the_html )
-			ts = FeatureSet_Discrete()
+			ts = FeatureSpace()
 			ts.num_classes = 0
 			ts.interpolation_coefficients = []
 			ts.classnames_list = []
@@ -4683,7 +4980,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 					# Sometimes c-chrm labels classes with a * to say it's not part of the training set
 					result.ground_truth_class_name = values[ ground_truth_col ].strip('*')
 					result.name = name_re.search( values[ name_col ] ).groups()[0]
-					result.source_file = result.name
+					result.source_filepath = result.name
 					result.ground_truth_value = float( num_re.search( result.ground_truth_class_name ).group(1) )
 					#result.predicted_value = float( values[ interp_val_col ] )
 					result.predicted_value = \
@@ -4718,10 +5015,10 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 
 		for batch in self.individual_results:
 			for result in batch.individual_results:
-				if not result.source_file in self.accumulated_individual_results:
+				if not result.source_filepath in self.accumulated_individual_results:
 					# initialize list of individual results for this file
-					self.accumulated_individual_results[ result.source_file ] = []
-				self.accumulated_individual_results[ result.source_file ].append( result )
+					self.accumulated_individual_results[ result.source_filepath ] = []
+				self.accumulated_individual_results[ result.source_filepath ].append( result )
 
 		for filename in self.accumulated_individual_results:
 
@@ -4756,7 +5053,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		res_dict = self.accumulated_individual_results
 
 		# sort by ground truth, then alphanum
-		sort_func = lambda A, B: cmp( A, B ) if res_dict[A][0].ground_truth_class_name == res_dict[B][0].ground_truth_class_name else cmp( res_dict[A][0].source_file, res_dict[B][0].source_file  ) 
+		sort_func = lambda A, B: cmp( A, B ) if res_dict[A][0].ground_truth_class_name == res_dict[B][0].ground_truth_class_name else cmp( res_dict[A][0].source_filepath, res_dict[B][0].source_filepath  ) 
 		sorted_images = sorted( self.accumulated_individual_results.iterkeys(), sort_func )
 
 		for samplename in sorted_images:
@@ -4870,10 +5167,10 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 
 		for batch in self.individual_results:
 			for result in batch.individual_results:
-				if not result.source_file in self.accumulated_individual_results:
+				if not result.source_filepath in self.accumulated_individual_results:
 					# initialize list of individual results for this file
-					self.accumulated_individual_results[ result.source_file ] = []
-				self.accumulated_individual_results[ result.source_file ].append( result )
+					self.accumulated_individual_results[ result.source_filepath ] = []
+				self.accumulated_individual_results[ result.source_filepath ].append( result )
 
 		for filename in self.accumulated_individual_results:
 			vals = np.array( [result.predicted_value for result in self.accumulated_individual_results[filename] ])
@@ -4997,7 +5294,8 @@ class PredictedValuesGraph( BaseGraph ):
 		matplotlib.use('Agg')
 		import matplotlib.pyplot as plt
 
-		color = itertools.cycle(['r', 'g', 'b', 'c', 'm', 'y', 'k'])
+		from itertools import cycle
+		color = cycle(['r', 'g', 'b', 'c', 'm', 'y', 'k'])
 
 		self.figure = plt.figure()
 		self.main_axes = self.figure.add_subplot(111)
@@ -5033,7 +5331,8 @@ class PredictedValuesGraph( BaseGraph ):
 		matplotlib.use('Agg')
 		import matplotlib.pyplot as plt
 
-		color = itertools.cycle(['r', 'g', 'b', 'c', 'm', 'y', 'k'])
+		from itertools import cycle
+		color = cycle(['r', 'g', 'b', 'c', 'm', 'y', 'k'])
 
 		self.figure = plt.figure()
 		self.main_axes = self.figure.add_subplot(111)
@@ -5085,8 +5384,8 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 				# Time the creation and classification of a single signature
 				t1 = time.time()
 				reduced_fw = feature_weights.Threshold( number_of_features_to_use )
-				sig = FeatureVector( path_to_image=test_image_path, names=reduced_fw.names ).GenerateFeatures()
-				reduced_ts = training_set.FeatureReduce( reduced_fw.names )
+				sig = FeatureVector( source_filepath=test_image_path, featurenames_list=reduced_fw.featurenames_list ).GenerateFeatures()
+				reduced_ts = training_set.FeatureReduce( reduced_fw )
 				sig.Normalize( reduced_ts )
 		
 				result = DiscreteImageClassificationResult.NewWND5( reduced_ts, reduced_fw, sig )
@@ -5152,7 +5451,7 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
 
 		for number_of_features_to_use in x_vals:
 			reduced_fw = feature_weights.Threshold( number_of_features_to_use )
-			reduced_ts = training_set.FeatureReduce( reduced_fw.names )
+			reduced_ts = training_set.FeatureReduce( reduced_fw )
 			if not quiet:
 				reduced_fw.Print()
 

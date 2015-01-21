@@ -30,7 +30,7 @@ pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pywndchrm
 wndchrm_test_dir = join( dirname( pychrm_test_dir ), 'wndchrm_tests' )
 test_dir = wndchrm_test_dir
 
-from wndcharm.FeatureSet import FeatureSet_Discrete, FisherFeatureWeights
+from wndcharm.FeatureSet import FeatureSpace, FisherFeatureWeights
 
 class TestFisherFeatureWeights( unittest.TestCase ):
 	"""Fisher score calculation"""
@@ -45,9 +45,9 @@ class TestFisherFeatureWeights( unittest.TestCase ):
 	def test_NewFromFeatureSet( self ):
 		"""Fisher score calculation"""
 
-		feature_set = FeatureSet_Discrete.NewFromFitFile( self.test_fit_path )
+		feature_set = FeatureSpace.NewFromFitFile( self.test_fit_path )
 		feature_set.Normalize()
-		result_weights = FisherFeatureWeights.NewFromFeatureSet( feature_set )
+		result_weights = FisherFeatureWeights.NewFromFeatureSpace( feature_set )
 
 		# test weights generated from test-l.fit:
 		# wndchrm classify -l -f1.0 -vtest_fit-l.weights test-l.fit test-l.fit 
@@ -61,9 +61,9 @@ class TestFisherFeatureWeights( unittest.TestCase ):
 		"""FIXME: THIS TEST BELONGS IN TEST_FEATURESET.PY"""
 
 		from numpy.testing import assert_allclose
-		result_fs = FeatureSet_Discrete.NewFromFitFile( self.test_fit_path )
+		result_fs = FeatureSpace.NewFromFitFile( self.test_fit_path )
 		result_fs.Normalize()
-		target_fs = FeatureSet_Discrete.NewFromFitFile( self.test_normalized_fit_path )
+		target_fs = FeatureSpace.NewFromFitFile( self.test_normalized_fit_path )
 
 		assert_allclose( result_fs.data_matrix, target_fs.data_matrix, rtol=self.epsilon )
 

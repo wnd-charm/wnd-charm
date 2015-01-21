@@ -38,8 +38,8 @@ from shutil import rmtree
 pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pychrm_tests
 wndchrm_test_dir = dirname( pychrm_test_dir ) + sep + 'wndchrm_tests'
 
-from wndcharm.FeatureSet import FeatureSet_Discrete, FisherFeatureWeights,\
-        DiscreteBatchClassificationResult, FeatureSet_Continuous, ContinuousFeatureWeights,\
+from wndcharm.FeatureSet import FeatureSpace, FisherFeatureWeights,\
+        DiscreteBatchClassificationResult, ContinuousFeatureWeights,\
         ContinuousBatchClassificationResult
 
 class TestDiscreteBatchClassificationResult( unittest.TestCase ):
@@ -62,15 +62,15 @@ class TestDiscreteBatchClassificationResult( unittest.TestCase ):
 
         try:
             fitfilepath = tempdir + sep + zf.namelist()[0]
-            #fs = FeatureSet.NewFromFitFile( fitfilepath  )
-            fs = FeatureSet_Discrete.NewFromFitFile( fitfilepath, tile_options=(5,6) )
+            #fs = FeatureSpace.NewFromFitFile( fitfilepath  )
+            fs = FeatureSpace.NewFromFitFile( fitfilepath, tile_options=(5,6) )
             #fs.Print( verbose=True )
             #print "\n\n\n********************\n\n\n"
             #full_train, full_test = fs.Split( random_state=42, quiet=True )
             #full_train.Print( verbose=True )
             #full_test.Print( verbose=True )
             fs.Normalize( quiet=True )
-            fw = FisherFeatureWeights.NewFromFeatureSet( fs ).Threshold()
+            fw = FisherFeatureWeights.NewFromFeatureSpace( fs ).Threshold()
             reduced_fs = fs.FeatureReduce( fw.names )
             #reduced_test = full_test.FeatureReduce( fw.names )
             #reduced_test.Normalize( reduced_train, quiet=True )
@@ -82,9 +82,9 @@ class TestDiscreteBatchClassificationResult( unittest.TestCase ):
             rmtree( tempdir )
 
     def test_TiledTrainTestSplit( self ):
-        """Uses a fake FeatureSet"""
+        """Uses a fake FeatureSpace"""
 
-        from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Discrete
+        from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSpace_Discrete
         fs_kwargs = {}
         fs_kwargs['name'] = "DiscreteArtificialFS 10-class"
         fs_kwargs['n_samples'] = 1000
@@ -98,11 +98,11 @@ class TestDiscreteBatchClassificationResult( unittest.TestCase ):
         fs_kwargs['singularity'] = False
         fs_kwargs['clip'] = False
 
-        fs = CreateArtificialFeatureSet_Discrete( **fs_kwargs )
+        fs = CreateArtificialFeatureSpace_Discrete( **fs_kwargs )
 
         train_set, test_set = fs.Split( random_state=False, quiet=True )
         train_set.Normalize( quiet=True )
-        fw = FisherFeatureWeights.NewFromFeatureSet( train_set ).Threshold()
+        fw = FisherFeatureWeights.NewFromFeatureSpace( train_set ).Threshold()
 
         reduced_train_set = train_set.FeatureReduce( fw.names )
         reduced_test_set = test_set.FeatureReduce( fw.names )

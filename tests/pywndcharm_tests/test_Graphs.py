@@ -39,9 +39,9 @@ pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pychrm_te
 wndchrm_test_dir = dirname( pychrm_test_dir ) + sep + 'wndchrm_tests'
 
 from wndcharm.FeatureSet import FisherFeatureWeights, DiscreteBatchClassificationResult,\
-        PredictedValuesGraph, DiscreteClassificationExperimentResult, FeatureSet_Discrete
+        PredictedValuesGraph, DiscreteClassificationExperimentResult, FeatureSpace
 
-from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Discrete
+from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
 try:
     import matplotlib
@@ -66,14 +66,14 @@ class TestGraphs( unittest.TestCase ):
     fs_kwargs['singularity'] = False
     fs_kwargs['clip'] = False
 
-    fs = CreateArtificialFeatureSet_Discrete( **fs_kwargs )
+    fs = CreateArtificialFeatureSpace_Discrete( **fs_kwargs )
 
     train_set, test_set = fs.Split( random_state=False, quiet=True )
     train_set.Normalize( quiet=True )
-    fw = FisherFeatureWeights.NewFromFeatureSet( train_set ).Threshold()
+    fw = FisherFeatureWeights.NewFromFeatureSpace( train_set ).Threshold()
 
-    reduced_train_set = train_set.FeatureReduce( fw.names )
-    reduced_test_set = test_set.FeatureReduce( fw.names )
+    reduced_train_set = train_set.FeatureReduce( fw )
+    reduced_test_set = test_set.FeatureReduce( fw )
     reduced_test_set.Normalize( reduced_train_set, quiet=True )
 
     batch_result = DiscreteBatchClassificationResult.New(
@@ -174,7 +174,7 @@ class TestGraphs( unittest.TestCase ):
         fs_kwargs['singularity'] = False
         fs_kwargs['clip'] = False
 
-        small_fs = CreateArtificialFeatureSet_Discrete( **fs_kwargs )
+        small_fs = CreateArtificialFeatureSpace_Discrete( **fs_kwargs )
 
         ss_kwargs = {}
         ss_kwargs['quiet'] = True
@@ -216,14 +216,14 @@ class TestGraphs( unittest.TestCase ):
         """You can't graph predicted values if the classes aren't interpolatable."""
 
         testfilename = 'ShouldntBeGraphable.png'
-        small_fs = CreateArtificialFeatureSet_Discrete( 
+        small_fs = CreateArtificialFeatureSpace_Discrete( 
                         n_samples=20, n_classes=2, random_state=42, interpolatable=False )
         train_set, test_set = small_fs.Split( random_state=False, quiet=True )
         train_set.Normalize()
 
-        fw = FisherFeatureWeights.NewFromFeatureSet( train_set ).Threshold()
-        reduced_train_set = train_set.FeatureReduce( fw.names )
-        reduced_test_set = test_set.FeatureReduce( fw.names )
+        fw = FisherFeatureWeights.NewFromFeatureSpace( train_set ).Threshold()
+        reduced_train_set = train_set.FeatureReduce( fw )
+        reduced_test_set = test_set.FeatureReduce( fw )
         test_set.Normalize( train_set, quiet=True )
 
         batch_result = DiscreteBatchClassificationResult.New(

@@ -19,9 +19,6 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-#
-#
-
 import sys
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -38,8 +35,8 @@ from shutil import rmtree
 pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pychrm_tests
 wndchrm_test_dir = dirname( pychrm_test_dir ) + sep + 'wndchrm_tests'
 
-from wndcharm.FeatureSet import FeatureSet, FeatureSet_Discrete, FisherFeatureWeights,\
-        DiscreteBatchClassificationResult, FeatureSet_Continuous, ContinuousFeatureWeights,\
+from wndcharm.FeatureSet import FeatureSpace, FisherFeatureWeights,\
+        DiscreteBatchClassificationResult, ContinuousFeatureWeights,\
         ContinuousBatchClassificationResult
 
 class TestFeatureSet( unittest.TestCase ):
@@ -48,9 +45,9 @@ class TestFeatureSet( unittest.TestCase ):
     """
     maxDiff = None
     def test_ContinuousFitOnFit( self ):
-        from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Discrete
+        from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
-        fs_discrete = CreateArtificialFeatureSet_Discrete( n_samples=1000, n_classes=10,
+        fs_discrete = CreateArtificialFeatureSpace_Discrete( n_samples=1000, n_classes=10,
                 num_features_per_signal_type=30, noise_gradient=5, initial_noise_sigma=10,
                 n_samples_per_group=1, interpolatable=True)
 
@@ -59,12 +56,12 @@ class TestFeatureSet( unittest.TestCase ):
  
         try:
           fs_discrete.ToFitFile( path_to_fit )
-          fs_continuous = FeatureSet_Continuous.NewFromFitFile(
+          fs_continuous = FeatureSpace.NewFromFitFile(
                   path_to_fit, discrete=False )
 
           fs_continuous.Normalize( quiet=True )
-          fw_reduced = ContinuousFeatureWeights.NewFromFeatureSet( fs_continuous ).Threshold()
-          fs_reduced = fs_continuous.FeatureReduce( fw_reduced.names )
+          fw_reduced = ContinuousFeatureWeights.NewFromFeatureSpace( fs_continuous ).Threshold()
+          fs_reduced = fs_continuous.FeatureReduce( fw_reduced )
           batch_result = ContinuousBatchClassificationResult.New( 
                   fs_reduced, fw_reduced, quiet=True )
 
@@ -75,16 +72,16 @@ class TestFeatureSet( unittest.TestCase ):
         """Uses binucleate test set"""
 
         fitfilepath = wndchrm_test_dir + sep + 'test-l.fit'
-        fs = FeatureSet_Discrete.NewFromFitFile( fitfilepath )
+        fs = FeatureSpace.NewFromFitFile( fitfilepath )
 
         from numpy.random import RandomState
         prng = RandomState(42)
         full_train, full_test = fs.Split( random_state=prng, quiet=True )
         full_train.Normalize( quiet=True )
-        reduced_fw = FisherFeatureWeights.NewFromFeatureSet( full_train ).Threshold()
-        reduced_train = full_train.FeatureReduce( reduced_fw.names )
+        reduced_fw = FisherFeatureWeights.NewFromFeatureSpace( full_train ).Threshold()
+        reduced_train = full_train.FeatureReduce( reduced_fw )
 
-        reduced_test = full_test.FeatureReduce( reduced_fw.names )
+        reduced_test = full_test.FeatureReduce( reduced_fw )
         reduced_test.Normalize( reduced_train, quiet=True )
 
         batch_result = DiscreteBatchClassificationResult.New( reduced_train,
@@ -107,7 +104,7 @@ class TestFeatureSet( unittest.TestCase ):
         try:
             fitfilepath = tempdir + sep + zf.namelist()[0]
             #fs = FeatureSet.NewFromFitFile( fitfilepath  )
-            fs = FeatureSet_Discrete.NewFromFitFile( fitfilepath, num_rows=5, num_cols=6 )
+            fs = FeatureSpace.NewFromFitFile( fitfilepath, num_rows=5, num_cols=6 )
             from numpy.random import RandomState
             prng = RandomState(42)
             #fs.Print( verbose=True )
@@ -116,9 +113,9 @@ class TestFeatureSet( unittest.TestCase ):
             #full_train.Print( verbose=True )
             #full_test.Print( verbose=True )
             full_train.Normalize( quiet=True )
-            fw = FisherFeatureWeights.NewFromFeatureSet( full_train ).Threshold()
-            reduced_train = full_train.FeatureReduce( fw.names )
-            reduced_test = full_test.FeatureReduce( fw.names )
+            fw = FisherFeatureWeights.NewFromFeatureSpace( full_train ).Threshold()
+            reduced_train = full_train.FeatureReduce( fw )
+            reduced_test = full_test.FeatureReduce( fw )
             reduced_test.Normalize( reduced_train, quiet=True )
 
         finally:
@@ -128,9 +125,9 @@ class TestFeatureSet( unittest.TestCase ):
         """Uses a synthetic preprocessed as follows: 500 total samples, 25 tiles per group
         240 total features"""
 
-        from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Continuous
+        from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Continuous
 
-        fs = CreateArtificialFeatureSet_Continuous( n_samples=500,
+        fs = CreateArtificialFeatureSpace_Continuous( n_samples=500,
                 num_features_per_signal_type=20, n_samples_per_group=25 )
 
         from numpy.random import RandomState
@@ -142,26 +139,26 @@ class TestFeatureSet( unittest.TestCase ):
         #full_test.Print( verbose=True )
 
         full_train.Normalize( quiet=True )
-        fw = ContinuousFeatureWeights.NewFromFeatureSet( full_train ).Threshold()
-        reduced_train = full_train.FeatureReduce( fw.names )
-        reduced_test = full_test.FeatureReduce( fw.names )
+        fw = ContinuousFeatureWeights.NewFromFeatureSpace( full_train ).Threshold()
+        reduced_train = full_train.FeatureReduce( fw )
+        reduced_test = full_test.FeatureReduce( fw )
         reduced_test.Normalize( reduced_train, quiet=True )
 
     def test_FitOnFitClassification( self ):
 
         fitfile_path = wndchrm_test_dir + sep + 'test-l.fit'
         #fs = FeatureSet.NewFromFitFile( fitfile_path )
-        fs = FeatureSet_Discrete.NewFromFitFile( fitfile_path )
+        fs = FeatureSpace.NewFromFitFile( fitfile_path )
         fs.Normalize( quiet=True )
-        reduced_fw = FisherFeatureWeights.NewFromFeatureSet( fs ).Threshold()
-        reduced_fs = fs.FeatureReduce( reduced_fw.names )
+        reduced_fw = FisherFeatureWeights.NewFromFeatureSpace( fs ).Threshold()
+        reduced_fs = fs.FeatureReduce( reduced_fw )
         batch_result = DiscreteBatchClassificationResult.New(
                                        reduced_fs, reduced_fs, reduced_fw, quiet=True )
 
     @unittest.skip('')
     def test_TileOptions( self ):
 
-        fs = FeatureSet.NewFromFitFile( wndchrm_test_dir + sep + 'test-l.fit', tile_options  )
+        fs = FeatureSpace.NewFromFitFile( wndchrm_test_dir + sep + 'test-l.fit', tile_options  )
 
         # pass an int
         # pass a tuple
@@ -169,9 +166,9 @@ class TestFeatureSet( unittest.TestCase ):
         # Wht if tile options passed doesn't match fit file?
 
     def test_SplitOptions( self ):
-        from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Discrete
+        from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
-        fs_discrete = CreateArtificialFeatureSet_Discrete( n_samples=1000, n_classes=10,
+        fs_discrete = CreateArtificialFeatureSpace_Discrete( n_samples=1000, n_classes=10,
                 num_features_per_signal_type=30, noise_gradient=5, initial_noise_sigma=10,
                 n_samples_per_group=1, interpolatable=True, random_state=42)
 
@@ -201,12 +198,12 @@ class TestFeatureSet( unittest.TestCase ):
                            test_size=20 )
 
     def test_SampleReduce( self ):
-        from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Discrete
+        from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
         n_classes = 10
         #========================================================
         # Section 1: LEAVE IN, Untiled Discrete (w/ classes) FeatureSets
-        fs_discrete = CreateArtificialFeatureSet_Discrete( n_samples=1000, n_classes=n_classes,
+        fs_discrete = CreateArtificialFeatureSpace_Discrete( n_samples=1000, n_classes=n_classes,
                 num_features_per_signal_type=30, noise_gradient=5, initial_noise_sigma=10,
                 n_samples_per_group=1, interpolatable=True)
 
@@ -244,25 +241,25 @@ class TestFeatureSet( unittest.TestCase ):
 
         UNdesired = range(50, 950, 100)
         C = fs_discrete.SampleReduce( leave_out_samplegroupid_list=UNdesired )
-        self.assertEqual( C.num_images, fs_discrete.num_images - len( UNdesired ) )
+        self.assertEqual( C.num_samples, fs_discrete.num_samples - len( UNdesired ) )
 
         # Single integers for leave_out_list is ok
         UNdesired = 50
         C = fs_discrete.SampleReduce( leave_out_samplegroupid_list=UNdesired )
-        self.assertEqual( C.num_images, fs_discrete.num_images - 1 )
+        self.assertEqual( C.num_samples, fs_discrete.num_samples - 1 )
         del C
 
         #========================================================
         # Section 3: LEAVE IN, Tiled Feature sets, Discrete FeatureSets
         num_tiles = 4
-        fs_discrete = CreateArtificialFeatureSet_Discrete( n_samples=1000, n_classes=n_classes,
+        fs_discrete = CreateArtificialFeatureSpace_Discrete( n_samples=1000, n_classes=n_classes,
                 num_features_per_signal_type=30, noise_gradient=5, initial_noise_sigma=10,
                 n_samples_per_group=num_tiles, interpolatable=True)
 
         desired = [ [val] for val in xrange(5, 95, 10) ] # Rearrange into 9 classes
         D = fs_discrete.SampleReduce( desired )
         # Total num samples should be 9 classes, 1 sample group per class, 4 tiles per SG = 36
-        self.assertEqual( num_tiles * len( desired ), D.num_images )
+        self.assertEqual( num_tiles * len( desired ), D.num_samples )
         del D
 
         #========================================================
@@ -286,14 +283,14 @@ class TestFeatureSet( unittest.TestCase ):
         # This input is ok:
         UNdesired = range(5, 95, 10)
         E = fs_discrete.SampleReduce( leave_out_samplegroupid_list=UNdesired )
-        self.assertEqual( E.num_images, fs_discrete.num_images - len( UNdesired ) * num_tiles )
+        self.assertEqual( E.num_samples, fs_discrete.num_samples - len( UNdesired ) * num_tiles )
         del E
 
         #========================================================
         # Section 5: LEAVE IN, Untiled Continuous FeatureSets
-        from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Continuous
+        from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Continuous
 
-        fs_cont = CreateArtificialFeatureSet_Continuous( n_samples=1000,
+        fs_cont = CreateArtificialFeatureSpace_Continuous( n_samples=1000,
                 num_features_per_signal_type=30, noise_gradient=5, initial_noise_sigma=10,
                 n_samples_per_group=1)
 
@@ -307,7 +304,7 @@ class TestFeatureSet( unittest.TestCase ):
 
         desired = range(50, 950)
         F = fs_cont.SampleReduce( desired )
-        self.assertEqual( F.num_images, len(desired) )
+        self.assertEqual( F.num_samples, len(desired) )
         del F
 
         #========================================================
@@ -315,29 +312,29 @@ class TestFeatureSet( unittest.TestCase ):
 
         UNdesired = range(50, 950)
         G = fs_cont.SampleReduce( leave_out_samplegroupid_list=UNdesired )
-        self.assertEqual( G.num_images, fs_cont.num_images - len(UNdesired) )
+        self.assertEqual( G.num_samples, fs_cont.num_samples - len(UNdesired) )
         del G
 
         # single int is ok
         H = fs_cont.SampleReduce( leave_out_samplegroupid_list=998 )
-        self.assertEqual( H.num_images, fs_cont.num_images - 1 )
+        self.assertEqual( H.num_samples, fs_cont.num_samples - 1 )
         del H
 
         #========================================================
         # Section 7: LEAVE IN, TILED Continuous FeatureSets
 
-        fs_cont = CreateArtificialFeatureSet_Continuous( n_samples=1000,
+        fs_cont = CreateArtificialFeatureSpace_Continuous( n_samples=1000,
                 num_features_per_signal_type=30, noise_gradient=5, initial_noise_sigma=10,
                 n_samples_per_group=num_tiles)
 
         desired = range(50, 95)
         I = fs_cont.SampleReduce( desired )
-        self.assertEqual( I.num_images, len(desired) * num_tiles )
+        self.assertEqual( I.num_samples, len(desired) * num_tiles )
         del I
 
         # single int is ok, ALTHOUGH NOT SURE WHY YOU'D EVER WANT A FS WITH A SINGLE SAMPLE
         J = fs_cont.SampleReduce( 98 )
-        self.assertEqual( J.num_images, num_tiles )
+        self.assertEqual( J.num_samples, num_tiles )
         del J
 
 
@@ -346,12 +343,12 @@ class TestFeatureSet( unittest.TestCase ):
 
         UNdesired = range(50, 95)
         K = fs_cont.SampleReduce( leave_out_samplegroupid_list=UNdesired )
-        self.assertEqual( K.num_images, fs_cont.num_images - len(UNdesired) * num_tiles )
+        self.assertEqual( K.num_samples, fs_cont.num_samples - len(UNdesired) * num_tiles )
         del K
 
         # single int is ok
         L = fs_cont.SampleReduce( leave_out_samplegroupid_list=98 )
-        self.assertEqual( L.num_images, fs_cont.num_images - num_tiles  )
+        self.assertEqual( L.num_samples, fs_cont.num_samples - num_tiles  )
         del L
 
     def test_NewFromFileOfFiles( self ):
@@ -376,10 +373,10 @@ class TestFeatureSet( unittest.TestCase ):
             kwargs['long'] = True
             kwargs['num_rows'] = 5
             kwargs['num_cols'] = 6
-            fs_fof = FeatureSet_Discrete.NewFromFileOfFiles( **kwargs )
+            fs_fof = FeatureSpace.NewFromFileOfFiles( **kwargs )
 
             kwargs['pathname'] = tempdir + sep + 'lymphoma_t5x6_10imgseach.fit'
-            fs_fit = FeatureSet_Discrete.NewFromFitFile( **kwargs )
+            fs_fit = FeatureSpace.NewFromFitFile( **kwargs )
 
             # Fit file has less significant figures than Signature files, and it's not
             # consistent how many there are. Seems like fit file just lops off numbers

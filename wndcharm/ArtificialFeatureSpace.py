@@ -44,7 +44,9 @@ singularity_signals = {
 'tangent2'             : lambda x: -5 * np.tan( np.pi * (x / 50 - 0.5 ) ),
 }
 
-def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samples=100,
+from .FeatureSet import FeatureSpace
+
+def CreateArtificialFeatureSpace_Continuous( name="ContinuousArtificialFS", n_samples=100,
     num_features_per_signal_type=25, noise_gradient=10, initial_noise_sigma=10,
     n_samples_per_group=1, random_state=None, singularity=None, clip=None ):
     """
@@ -103,22 +105,17 @@ def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samp
         else:
             clip = lambda x: x
 
-    # Instantiate and assign basic data members
-    from .FeatureSet import FeatureSet_Continuous
-    new_fs = FeatureSet_Continuous()
-    new_fs.name = name
-    new_fs.source_path = new_fs.name
-    new_fs.feature_vector_version = '2.0'
-    new_fs.discrete = False
+    num_features = num_features_per_signal_type * len( signals )
 
     if n_samples_per_group > 1:
       # make n_samples evenly divisible
       n_samples = int( n_samples // n_samples_per_group ) * n_samples_per_group
-      new_fs.num_samples_per_group = n_samples_per_group
-    new_fs.num_images = n_samples
-    new_fs.num_features = num_features_per_signal_type * len( signals )
-    new_fs.shape = ( n_samples, new_fs.num_features )
-    new_fs.data_matrix = np.empty( new_fs.shape, dtype=np.float16 ) # Half precision floats
+
+    # Instantiate and assign basic data members
+    new_fs = FeatureSpace( name=name, source_filepath=name, num_samples=n_samples,
+      num_samples_per_group=n_samples_per_group, num_features=num_features, discrete=False,
+      feature_set_version='-1.0')
+
     # The function call np.mgrid() requires for the value indicating the number of steps
     # to be imaginary, for some inexplicable reason.
     step = complex(0, n_samples)
@@ -170,7 +167,7 @@ def CreateArtificialFeatureSet_Continuous( name="ContinuousArtificialFS", n_samp
     new_fs._RebuildViews()
     return new_fs
 
-def CreateArtificialFeatureSet_Discrete( name="DiscreteArtificialFS", n_samples=100,
+def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_samples=100,
     n_classes=2, num_features_per_signal_type=25, noise_gradient=10,
     initial_noise_sigma=10, n_samples_per_group=1, interpolatable=True, random_state=None,
     singularity=None, clip=None ):
@@ -237,15 +234,6 @@ def CreateArtificialFeatureSet_Discrete( name="DiscreteArtificialFS", n_samples=
         else:
             clip = lambda x: x
 
-    # Initialize the basic data members
-    from .FeatureSet import FeatureSet_Discrete
-    new_fs = FeatureSet_Discrete()
-    new_fs.name = name
-    new_fs.source_path = new_fs.name
-    new_fs.feature_vector_version = '2.0'
-    new_fs.discrete = True
-    new_fs.num_samples_per_group = n_samples_per_group
-
     # num_samples must be evenly divisible by the number of samples per sample group
     # and the number of classes - therefore the final number of total samples may be
     # less than the user asked for.
@@ -255,10 +243,15 @@ def CreateArtificialFeatureSet_Discrete( name="DiscreteArtificialFS", n_samples=
     n_samples = int( n_samples_per_class * n_classes ) # changes number inputted!
     if n_samples <= 0:
       raise ValueError( "Specify n_samples to be a multiple of n_classes ({0}) * n_samples_per_group ({1}) >= {2}".format( n_classes, n_samples_per_group, n_classes* n_samples_per_group ) )
-    new_fs.num_images = n_samples
-    new_fs.num_features = num_features_per_signal_type * len( signals )
-    new_fs.shape = ( n_samples, new_fs.num_features )
-    new_fs.data_matrix = np.empty( new_fs.shape, dtype=np.float16 ) # Half precision floats
+    # Initialize the basic data members
+
+    num_features = num_features_per_signal_type * len( signals )
+
+    # Instantiate and assign basic data members
+    new_fs = FeatureSpace( name=name, source_filepath=name, num_samples=n_samples,
+      num_samples_per_group=n_samples_per_group, num_features=num_features, discrete=True,
+      feature_set_version='-1.0')
+
     new_fs.num_classes = n_classes
     new_fs.classsizes_list = [ n_samples_per_class for i in xrange( n_classes ) ]
  
