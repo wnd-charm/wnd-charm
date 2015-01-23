@@ -1,0 +1,765 @@
+<HTML>
+<HEAD>
+<TITLE> lymphoma_t5x6_10imgseach_WITH_TILED_SAMPLES.html </TITLE>
+ </HEAD> 
+ <BODY> 
+ <br> WNDCHRM 1.60.&nbsp;&nbsp;&nbsp;2015-01-23 15:44:25 EST
+ <br><br> <h1>lymphoma_t5x6_10imgseach</h1>
+ <table id="trainset_summary" border="1" cellspacing="0" cellpadding="3" > 
+<caption>30 Images. Samples per image: 30, total samples: 900.</caption> 
+ <tr><tr><th>Class</th><th>Images (Samples)</th></tr><tr><th>CLL</th>
+<td>10 (300)</td></tr><tr><th>FL</th>
+<td>10 (300)</td></tr><tr><th>MCL</th>
+<td>10 (300)</td></tr></table>
+<br><br><br>
+<h3>Testing with data file:<br>lymphoma_t5x6_10imgseach.fit</h3><table id="testset_summary" border="1" cellspacing="0" cellpadding="3" > 
+<caption>30 Images. Samples per image: 30, total samples: 900.</caption> 
+ <tr><tr><th>Class</th><th>Images (Samples)</th></tr><tr><th>CLL</th>
+<td>10 (300)</td></tr><tr><th>FL</th>
+<td>10 (300)</td></tr><tr><th>MCL</th>
+<td>10 (300)</td></tr></table>
+<br><br>Command line: <pre> ../../src/wndchrm classify -l -t5x6 lymphoma_t5x6_10imgseach.fit lymphoma_t5x6_10imgseach.fit lymphoma_t5x6_10imgseach_WITH_TILED_SAMPLES.html</pre><br><hr/><CENTER>
+<table id="classifier_split_params" border="1" cellspacing="0" cellpadding="3" align="center"> 
+ <caption>Images for training and testing</caption> 
+ <tr><th></th>
+<th>CLL</th>
+<th>FL</th>
+<th>MCL</th>
+<th>total</th></tr>
+<tr><th>Testing</th>
+<td>10</td>
+<td>10</td>
+<td>10</td>
+<td>30</td></tr>
+<tr>
+<th>Training</th>
+<td>10</td>
+<td>10</td>
+<td>10</td>
+<td>30</td>
+</tr> 
+ </table><br>
+<h2>Results</h2>
+<table id="test_results" border="1" align="center"><caption></caption> 
+<tr> <td>Split 1</td> 
+ <td align="center" valign="top"> 
+Accuracy: <b>1.00 of total (P=4.86e-15) </b><br> 
+<b>1.00 Avg per Class Correct of total</b><br> 
+<a href="#split0">Full details</a><br> </td></tr>
+<tr> <td>Total</td> 
+ <td id="overall_test_results" align="center" valign="top"> 
+Total tested: 30<br> 
+Total correct: 30<br> 
+Accuracy: <b>100.0% of total (P=4.86e-15)</b><br> 
+Classification accuracy: 100.0<br> 
+</table>
+<br><br><br><br> 
+
+
+
+
+
+
+
+<table id="master_confusion_matrix" border="1" align="center"><caption>Confusion Matrix (sum of all splits)</caption> 
+ <tr><td></td> <th>CLL</th> <th>FL</th> <th>MCL</th> <th></th><th>Total Tested</th><th>Per-Class Accuracy</th></tr>
+<tr><th>CLL</th> <td bgcolor=#D5D5D5>10</td> <td>0</td> <td>0</td> <td></td><td>10</td><td>100.0</td></tr>
+<tr><th>FL</th> <td>0</td> <td bgcolor=#D5D5D5>10</td> <td>0</td> <td></td><td>10</td><td>100.0</td></tr>
+<tr><th>MCL</th> <td>0</td> <td>0</td> <td bgcolor=#D5D5D5>10</td> <td></td><td>10</td><td>100.0</td></tr>
+</table><br><br>
+<table id="average_similarity_matrix" border="1" align="center"><caption>Average Similarity Matrix</caption>
+ <tr><td></td> <th>CLL</th> <th>FL</th> <th>MCL</th> </tr>
+<tr><th>CLL</th> <td bgcolor=#D5D5D5>1.00</td> <td>0.01</td> <td>0.06</td> </tr>
+<tr><th>FL</th> <td>0.01</td> <td bgcolor=#D5D5D5>1.00</td> <td>0.08</td> </tr>
+<tr><th>MCL</th> <td>0.05</td> <td>0.07</td> <td bgcolor=#D5D5D5>1.00</td> </tr>
+</table><br><table id="average_class_probability_matrix" border="1" align="center"><caption>Average Class Probability Matrix</caption>
+ <tr><td></td> <th>CLL</th> <th>FL</th> <th>MCL</th> </tr>
+<tr><th>CLL</th> <td bgcolor=#D5D5D5>0.9361<td>0.0105<td>0.0534</tr>
+<tr><th>FL</th> <td>0.0103<td bgcolor=#D5D5D5>0.9191<td>0.0706</tr>
+<tr><th>MCL</th> <td>0.0470<td>0.0655<td bgcolor=#D5D5D5>0.8875</tr>
+</table><br><br>
+<br><br><br><br> 
+<HR><BR><A NAME="split0">
+<B>Split 1</B><br><br>
+<table  id="confusion_matrix-split0" border="1" align="center"><caption>Confusion Matrix</caption> 
+<tr><th></th>
+<th>CLL</th>
+<th>FL</th>
+<th>MCL</th>
+</tr>
+<tr><th>CLL</th>
+<td bgcolor=#D5D5D5>10</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr><th>FL</th>
+<td>0</td>
+<td bgcolor=#D5D5D5>10</td>
+<td>0</td>
+</tr>
+<tr><th>MCL</th>
+<td>0</td>
+<td>0</td>
+<td bgcolor=#D5D5D5>10</td>
+</tr>
+</table> 
+ <br><br> 
+<table id="similarity_matrix-split0" border="1" align="center"><caption>Similarity Matrix</caption> 
+<tr><th></th>
+<th>CLL</th>
+<th>FL</th>
+<th>MCL</th>
+</tr>
+<tr><th>CLL</th>
+<td bgcolor=#D5D5D5>1.00</td>
+<td>0.01</td>
+<td>0.06</td>
+</tr>
+<tr><th>FL</th>
+<td>0.01</td>
+<td bgcolor=#D5D5D5>1.00</td>
+<td>0.08</td>
+</tr>
+<tr><th>MCL</th>
+<td>0.05</td>
+<td>0.07</td>
+<td bgcolor=#D5D5D5>1.00</td>
+</tr>
+</table><br>
+<table id="class_probability_matrix-split0" border="1" align="center"><caption>Class Probability Matrix</caption> 
+<tr><th></th>
+<th>CLL</th>
+<th>FL</th>
+<th>MCL</th>
+</tr>
+<tr><th>CLL</th>
+<td bgcolor=#D5D5D5>0.94</td>
+<td>0.01</td>
+<td>0.05</td>
+</tr>
+<tr><th>FL</th>
+<td>0.01</td>
+<td bgcolor=#D5D5D5>0.92</td>
+<td>0.07</td>
+</tr>
+<tr><th>MCL</th>
+<td>0.05</td>
+<td>0.07</td>
+<td bgcolor=#D5D5D5>0.89</td>
+</tr>
+</table>
+<br>438 features selected (out of 2919 features computed).<br> <a href="#" onClick="sigs_used=document.getElementById('FeaturesUsed_split0'); if (sigs_used.style.display=='none'){ sigs_used.style.display='inline'; } else { sigs_used.style.display='none'; } return false;">Toggle feature names</a><br><br>
+<TABLE ID="FeaturesUsed_split0" border="1" style="display: none;">
+<tr><th>Rank</th><th>Name</th><th>Weight</th></tr>
+<tr><td>1</td><td>Haralick Textures (Fourier (Wavelet ())) [12]</td><td>0.6919</td></tr>
+<tr><td>2</td><td>Multiscale Histograms (Wavelet ()) [19]</td><td>0.6638</td></tr>
+<tr><td>3</td><td>Multiscale Histograms (Wavelet ()) [11]</td><td>0.6405</td></tr>
+<tr><td>4</td><td>Multiscale Histograms (Wavelet ()) [21]</td><td>0.6385</td></tr>
+<tr><td>5</td><td>Zernike Coefficients (Fourier (Wavelet ())) [54]</td><td>0.6016</td></tr>
+<tr><td>6</td><td>Multiscale Histograms (Wavelet ()) [5]</td><td>0.5738</td></tr>
+<tr><td>7</td><td>Zernike Coefficients (Fourier ()) [41]</td><td>0.5736</td></tr>
+<tr><td>8</td><td>Zernike Coefficients (Fourier ()) [71]</td><td>0.5726</td></tr>
+<tr><td>9</td><td>Multiscale Histograms (Wavelet ()) [6]</td><td>0.5654</td></tr>
+<tr><td>10</td><td>Edge Features () [22]</td><td>0.5458</td></tr>
+<tr><td>11</td><td>Multiscale Histograms () [21]</td><td>0.5363</td></tr>
+<tr><td>12</td><td>Haralick Textures (Fourier ()) [0]</td><td>0.529</td></tr>
+<tr><td>13</td><td>Multiscale Histograms () [6]</td><td>0.5273</td></tr>
+<tr><td>14</td><td>Zernike Coefficients (Fourier (Wavelet ())) [56]</td><td>0.4972</td></tr>
+<tr><td>15</td><td>Zernike Coefficients (Fourier (Wavelet ())) [18]</td><td>0.4952</td></tr>
+<tr><td>16</td><td>Multiscale Histograms (Chebyshev (Fourier ())) [19]</td><td>0.4895</td></tr>
+<tr><td>17</td><td>Zernike Coefficients (Fourier ()) [16]</td><td>0.483</td></tr>
+<tr><td>18</td><td>Zernike Coefficients (Fourier ()) [11]</td><td>0.4827</td></tr>
+<tr><td>19</td><td>Zernike Coefficients (Fourier ()) [29]</td><td>0.475</td></tr>
+<tr><td>20</td><td>Zernike Coefficients (Fourier (Wavelet ())) [9]</td><td>0.4746</td></tr>
+<tr><td>21</td><td>Zernike Coefficients (Fourier ()) [51]</td><td>0.4692</td></tr>
+<tr><td>22</td><td>Zernike Coefficients (Fourier (Wavelet ())) [28]</td><td>0.4691</td></tr>
+<tr><td>23</td><td>Multiscale Histograms () [12]</td><td>0.4672</td></tr>
+<tr><td>24</td><td>Haralick Textures (Fourier (Wavelet ())) [1]</td><td>0.4667</td></tr>
+<tr><td>25</td><td>Zernike Coefficients (Fourier ()) [50]</td><td>0.4632</td></tr>
+<tr><td>26</td><td>Haralick Textures (Fourier (Wavelet ())) [18]</td><td>0.4621</td></tr>
+<tr><td>27</td><td>Zernike Coefficients (Fourier ()) [27]</td><td>0.4591</td></tr>
+<tr><td>28</td><td>Zernike Coefficients (Fourier ()) [54]</td><td>0.4565</td></tr>
+<tr><td>29</td><td>Zernike Coefficients (Fourier ()) [17]</td><td>0.4533</td></tr>
+<tr><td>30</td><td>Haralick Textures (Fourier ()) [14]</td><td>0.4525</td></tr>
+<tr><td>31</td><td>Multiscale Histograms () [13]</td><td>0.451</td></tr>
+<tr><td>32</td><td>Zernike Coefficients (Fourier (Wavelet ())) [62]</td><td>0.4445</td></tr>
+<tr><td>33</td><td>Edge Features () [23]</td><td>0.4397</td></tr>
+<tr><td>34</td><td>Zernike Coefficients (Fourier (Wavelet ())) [67]</td><td>0.4371</td></tr>
+<tr><td>35</td><td>Multiscale Histograms (Chebyshev (Fourier ())) [11]</td><td>0.4336</td></tr>
+<tr><td>36</td><td>Haralick Textures (Wavelet ()) [13]</td><td>0.4314</td></tr>
+<tr><td>37</td><td>Haralick Textures () [12]</td><td>0.4176</td></tr>
+<tr><td>38</td><td>Multiscale Histograms (Fourier (Chebyshev ())) [19]</td><td>0.4092</td></tr>
+<tr><td>39</td><td>Multiscale Histograms (Fourier (Chebyshev ())) [11]</td><td>0.4078</td></tr>
+<tr><td>40</td><td>Comb Moments (Chebyshev (Fourier ())) [24]</td><td>0.4071</td></tr>
+<tr><td>41</td><td>Haralick Textures (Fourier ()) [8]</td><td>0.4032</td></tr>
+<tr><td>42</td><td>Zernike Coefficients (Fourier (Wavelet ())) [1]</td><td>0.402</td></tr>
+<tr><td>43</td><td>Multiscale Histograms (Fourier (Chebyshev ())) [5]</td><td>0.4018</td></tr>
+<tr><td>44</td><td>Comb Moments (Chebyshev (Fourier ())) [2]</td><td>0.4007</td></tr>
+<tr><td>45</td><td>Zernike Coefficients (Fourier (Edge ())) [20]</td><td>0.3993</td></tr>
+<tr><td>46</td><td>Comb Moments (Fourier ()) [15]</td><td>0.399</td></tr>
+<tr><td>47</td><td>Haralick Textures (Wavelet ()) [11]</td><td>0.3978</td></tr>
+<tr><td>48</td><td>Multiscale Histograms (Wavelet ()) [2]</td><td>0.3962</td></tr>
+<tr><td>49</td><td>Zernike Coefficients (Fourier (Wavelet ())) [26]</td><td>0.396</td></tr>
+<tr><td>50</td><td>Multiscale Histograms (Wavelet ()) [1]</td><td>0.3955</td></tr>
+<tr><td>51</td><td>Haralick Textures () [4]</td><td>0.3907</td></tr>
+<tr><td>52</td><td>Multiscale Histograms (Wavelet ()) [13]</td><td>0.3881</td></tr>
+<tr><td>53</td><td>Zernike Coefficients (Fourier (Wavelet ())) [59]</td><td>0.3859</td></tr>
+<tr><td>54</td><td>Multiscale Histograms () [20]</td><td>0.3788</td></tr>
+<tr><td>55</td><td>Multiscale Histograms (Fourier (Chebyshev ())) [1]</td><td>0.3754</td></tr>
+<tr><td>56</td><td>Multiscale Histograms () [18]</td><td>0.3701</td></tr>
+<tr><td>57</td><td>Zernike Coefficients (Fourier (Edge ())) [2]</td><td>0.3671</td></tr>
+<tr><td>58</td><td>Haralick Textures (Fourier (Wavelet ())) [11]</td><td>0.3662</td></tr>
+<tr><td>59</td><td>Zernike Coefficients (Fourier (Edge ())) [33]</td><td>0.3577</td></tr>
+<tr><td>60</td><td>Zernike Coefficients (Fourier (Edge ())) [6]</td><td>0.3573</td></tr>
+<tr><td>61</td><td>Haralick Textures (Fourier ()) [10]</td><td>0.3513</td></tr>
+<tr><td>62</td><td>Haralick Textures () [18]</td><td>0.3466</td></tr>
+<tr><td>63</td><td>Zernike Coefficients (Fourier (Edge ())) [0]</td><td>0.3466</td></tr>
+<tr><td>64</td><td>Zernike Coefficients (Fourier (Wavelet ())) [66]</td><td>0.3442</td></tr>
+<tr><td>65</td><td>Multiscale Histograms (Fourier (Chebyshev ())) [18]</td><td>0.3398</td></tr>
+<tr><td>66</td><td>Haralick Textures (Fourier ()) [22]</td><td>0.3389</td></tr>
+<tr><td>67</td><td>Multiscale Histograms () [10]</td><td>0.3369</td></tr>
+<tr><td>68</td><td>Comb Moments (Chebyshev (Fourier ())) [26]</td><td>0.3332</td></tr>
+<tr><td>69</td><td>Comb Moments (Wavelet (Fourier ())) [15]</td><td>0.33</td></tr>
+<tr><td>70</td><td>Haralick Textures (Fourier (Wavelet ())) [24]</td><td>0.3293</td></tr>
+<tr><td>71</td><td>Multiscale Histograms () [22]</td><td>0.3255</td></tr>
+<tr><td>72</td><td>Haralick Textures () [19]</td><td>0.3247</td></tr>
+<tr><td>73</td><td>Zernike Coefficients (Fourier (Edge ())) [19]</td><td>0.3247</td></tr>
+<tr><td>74</td><td>Zernike Coefficients (Fourier ()) [1]</td><td>0.3232</td></tr>
+<tr><td>75</td><td>Zernike Coefficients (Fourier (Edge ())) [55]</td><td>0.3206</td></tr>
+<tr><td>76</td><td>Zernike Coefficients (Fourier (Edge ())) [32]</td><td>0.3197</td></tr>
+<tr><td>77</td><td>Haralick Textures (Wavelet (Edge ())) [9]</td><td>0.3194</td></tr>
+<tr><td>78</td><td>Zernike Coefficients (Fourier (Edge ())) [1]</td><td>0.3189</td></tr>
+<tr><td>79</td><td>Haralick Textures (Fourier (Wavelet ())) [26]</td><td>0.3166</td></tr>
+<tr><td>80</td><td>Comb Moments (Wavelet (Fourier ())) [16]</td><td>0.316</td></tr>
+<tr><td>81</td><td>Comb Moments (Fourier (Edge ())) [15]</td><td>0.3127</td></tr>
+<tr><td>82</td><td>Multiscale Histograms () [2]</td><td>0.3095</td></tr>
+<tr><td>83</td><td>Zernike Coefficients (Fourier (Edge ())) [61]</td><td>0.3072</td></tr>
+<tr><td>84</td><td>Multiscale Histograms (Fourier (Chebyshev ())) [20]</td><td>0.304</td></tr>
+<tr><td>85</td><td>Haralick Textures (Chebyshev (Fourier ())) [27]</td><td>0.3026</td></tr>
+<tr><td>86</td><td>Zernike Coefficients (Fourier (Wavelet ())) [37]</td><td>0.3001</td></tr>
+<tr><td>87</td><td>Multiscale Histograms (Fourier (Chebyshev ())) [16]</td><td>0.2968</td></tr>
+<tr><td>88</td><td>Haralick Textures (Chebyshev ()) [18]</td><td>0.2922</td></tr>
+<tr><td>89</td><td>Haralick Textures () [5]</td><td>0.2918</td></tr>
+<tr><td>90</td><td>Multiscale Histograms (Wavelet ()) [12]</td><td>0.2901</td></tr>
+<tr><td>91</td><td>Zernike Coefficients (Fourier (Edge ())) [48]</td><td>0.2898</td></tr>
+<tr><td>92</td><td>Multiscale Histograms (Fourier (Chebyshev ())) [10]</td><td>0.289</td></tr>
+<tr><td>93</td><td>Zernike Coefficients (Fourier (Edge ())) [70]</td><td>0.2861</td></tr>
+<tr><td>94</td><td>Zernike Coefficients (Fourier (Edge ())) [15]</td><td>0.2858</td></tr>
+<tr><td>95</td><td>Multiscale Histograms (Chebyshev (Fourier ())) [5]</td><td>0.285</td></tr>
+<tr><td>96</td><td>Tamura Textures (Fourier (Chebyshev ())) [4]</td><td>0.2842</td></tr>
+<tr><td>97</td><td>Comb Moments (Fourier (Wavelet ())) [15]</td><td>0.2841</td></tr>
+<tr><td>98</td><td>Zernike Coefficients (Fourier (Wavelet ())) [71]</td><td>0.2819</td></tr>
+<tr><td>99</td><td>Haralick Textures (Wavelet (Edge ())) [13]</td><td>0.281</td></tr>
+<tr><td>100</td><td>Zernike Coefficients (Fourier ()) [33]</td><td>0.2805</td></tr>
+<tr><td>101</td><td>Zernike Coefficients (Fourier (Wavelet ())) [12]</td><td>0.2756</td></tr>
+<tr><td>102</td><td>Haralick Textures (Chebyshev (Wavelet ())) [18]</td><td>0.2754</td></tr>
+<tr><td>103</td><td>Haralick Textures (Fourier (Chebyshev ())) [24]</td><td>0.2745</td></tr>
+<tr><td>104</td><td>Fractal Features (Chebyshev (Fourier ())) [1]</td><td>0.2744</td></tr>
+<tr><td>105</td><td>Haralick Textures (Wavelet (Edge ())) [5]</td><td>0.2738</td></tr>
+<tr><td>106</td><td>Haralick Textures (Fourier (Wavelet ())) [6]</td><td>0.2731</td></tr>
+<tr><td>107</td><td>Tamura Textures (Fourier ()) [5]</td><td>0.2708</td></tr>
+<tr><td>108</td><td>Multiscale Histograms (Fourier (Chebyshev ())) [12]</td><td>0.2701</td></tr>
+<tr><td>109</td><td>Tamura Textures (Fourier ()) [2]</td><td>0.269</td></tr>
+<tr><td>110</td><td>Tamura Textures (Wavelet ()) [3]</td><td>0.2689</td></tr>
+<tr><td>111</td><td>Pixel Intensity Statistics (Fourier (Chebyshev ())) [1]</td><td>0.268</td></tr>
+<tr><td>112</td><td>Comb Moments (Chebyshev ()) [13]</td><td>0.2668</td></tr>
+<tr><td>113</td><td>Zernike Coefficients (Fourier ()) [38]</td><td>0.2658</td></tr>
+<tr><td>114</td><td>Haralick Textures (Fourier (Chebyshev ())) [21]</td><td>0.2646</td></tr>
+<tr><td>115</td><td>Pixel Intensity Statistics (Wavelet (Fourier ())) [3]</td><td>0.2622</td></tr>
+<tr><td>116</td><td>Fractal Features (Chebyshev (Fourier ())) [3]</td><td>0.2622</td></tr>
+<tr><td>117</td><td>Tamura Textures (Fourier ()) [3]</td><td>0.2617</td></tr>
+<tr><td>118</td><td>Comb Moments (Wavelet (Fourier ())) [39]</td><td>0.2609</td></tr>
+<tr><td>119</td><td>Comb Moments (Chebyshev (Wavelet ())) [26]</td><td>0.2601</td></tr>
+<tr><td>120</td><td>Haralick Textures (Fourier (Wavelet ())) [0]</td><td>0.2594</td></tr>
+<tr><td>121</td><td>Tamura Textures (Fourier (Chebyshev ())) [3]</td><td>0.2592</td></tr>
+<tr><td>122</td><td>Pixel Intensity Statistics (Chebyshev (Wavelet ())) [3]</td><td>0.2585</td></tr>
+<tr><td>123</td><td>Pixel Intensity Statistics (Wavelet (Fourier ())) [4]</td><td>0.2585</td></tr>
+<tr><td>124</td><td>Haralick Textures (Fourier ()) [1]</td><td>0.2581</td></tr>
+<tr><td>125</td><td>Pixel Intensity Statistics (Wavelet ()) [2]</td><td>0.2576</td></tr>
+<tr><td>126</td><td>Pixel Intensity Statistics (Fourier (Chebyshev ())) [0]</td><td>0.2574</td></tr>
+<tr><td>127</td><td>Pixel Intensity Statistics (Chebyshev (Fourier ())) [2]</td><td>0.2571</td></tr>
+<tr><td>128</td><td>Pixel Intensity Statistics (Wavelet (Fourier ())) [2]</td><td>0.2565</td></tr>
+<tr><td>129</td><td>Fractal Features (Chebyshev (Fourier ())) [11]</td><td>0.2554</td></tr>
+<tr><td>130</td><td>Fractal Features (Chebyshev (Fourier ())) [2]</td><td>0.2553</td></tr>
+<tr><td>131</td><td>Fractal Features (Chebyshev (Fourier ())) [0]</td><td>0.2552</td></tr>
+<tr><td>132</td><td>Fractal Features (Chebyshev (Fourier ())) [4]</td><td>0.2551</td></tr>
+<tr><td>133</td><td>Pixel Intensity Statistics (Chebyshev ()) [2]</td><td>0.2551</td></tr>
+<tr><td>134</td><td>Fractal Features (Chebyshev (Fourier ())) [15]</td><td>0.2551</td></tr>
+<tr><td>135</td><td>Fractal Features (Chebyshev (Fourier ())) [17]</td><td>0.255</td></tr>
+<tr><td>136</td><td>Fractal Features (Chebyshev (Fourier ())) [13]</td><td>0.255</td></tr>
+<tr><td>137</td><td>Fractal Features (Chebyshev (Fourier ())) [9]</td><td>0.2549</td></tr>
+<tr><td>138</td><td>Fractal Features (Chebyshev (Fourier ())) [6]</td><td>0.2549</td></tr>
+<tr><td>139</td><td>Pixel Intensity Statistics (Fourier ()) [2]</td><td>0.2546</td></tr>
+<tr><td>140</td><td>Fractal Features (Chebyshev (Fourier ())) [19]</td><td>0.2546</td></tr>
+<tr><td>141</td><td>Fractal Features (Chebyshev (Fourier ())) [8]</td><td>0.2545</td></tr>
+<tr><td>142</td><td>Fractal Features (Chebyshev (Fourier ())) [5]</td><td>0.2544</td></tr>
+<tr><td>143</td><td>Fractal Features (Chebyshev (Fourier ())) [10]</td><td>0.2542</td></tr>
+<tr><td>144</td><td>Fractal Features (Chebyshev (Fourier ())) [16]</td><td>0.2541</td></tr>
+<tr><td>145</td><td>Zernike Coefficients (Fourier (Edge ())) [11]</td><td>0.2541</td></tr>
+<tr><td>146</td><td>Fractal Features (Chebyshev (Fourier ())) [12]</td><td>0.254</td></tr>
+<tr><td>147</td><td>Fractal Features (Chebyshev (Fourier ())) [14]</td><td>0.2539</td></tr>
+<tr><td>148</td><td>Fractal Features (Chebyshev (Fourier ())) [7]</td><td>0.2534</td></tr>
+<tr><td>149</td><td>Pixel Intensity Statistics (Wavelet ()) [0]</td><td>0.2532</td></tr>
+<tr><td>150</td><td>Pixel Intensity Statistics (Fourier (Wavelet ())) [4]</td><td>0.2532</td></tr>
+<tr><td>151</td><td>Pixel Intensity Statistics () [0]</td><td>0.253</td></tr>
+<tr><td>152</td><td>Pixel Intensity Statistics (Chebyshev ()) [4]</td><td>0.253</td></tr>
+<tr><td>153</td><td>Pixel Intensity Statistics (Fourier ()) [4]</td><td>0.253</td></tr>
+<tr><td>154</td><td>Haralick Textures (Fourier (Wavelet ())) [2]</td><td>0.253</td></tr>
+<tr><td>155</td><td>Pixel Intensity Statistics (Chebyshev (Wavelet ())) [2]</td><td>0.2528</td></tr>
+<tr><td>156</td><td>Pixel Intensity Statistics (Fourier (Wavelet ())) [2]</td><td>0.2523</td></tr>
+<tr><td>157</td><td>Pixel Intensity Statistics (Chebyshev ()) [3]</td><td>0.2517</td></tr>
+<tr><td>158</td><td>Zernike Coefficients (Fourier ()) [25]</td><td>0.2509</td></tr>
+<tr><td>159</td><td>Pixel Intensity Statistics (Chebyshev (Wavelet ())) [4]</td><td>0.25</td></tr>
+<tr><td>160</td><td>Comb Moments (Fourier (Wavelet ())) [16]</td><td>0.2499</td></tr>
+<tr><td>161</td><td>Fractal Features (Chebyshev (Fourier ())) [18]</td><td>0.2495</td></tr>
+<tr><td>162</td><td>Multiscale Histograms (Edge ()) [9]</td><td>0.2482</td></tr>
+<tr><td>163</td><td>Multiscale Histograms (Edge ()) [8]</td><td>0.2472</td></tr>
+<tr><td>164</td><td>Zernike Coefficients (Fourier ()) [40]</td><td>0.2448</td></tr>
+<tr><td>165</td><td>Haralick Textures (Fourier (Chebyshev ())) [20]</td><td>0.2447</td></tr>
+<tr><td>166</td><td>Haralick Textures (Fourier (Chebyshev ())) [26]</td><td>0.2445</td></tr>
+<tr><td>167</td><td>Zernike Coefficients (Fourier (Wavelet ())) [22]</td><td>0.2439</td></tr>
+<tr><td>168</td><td>Haralick Textures (Fourier (Wavelet ())) [23]</td><td>0.2437</td></tr>
+<tr><td>169</td><td>Gini Coefficient (Wavelet ()) [0]</td><td>0.2423</td></tr>
+<tr><td>170</td><td>Zernike Coefficients (Fourier ()) [49]</td><td>0.2409</td></tr>
+<tr><td>171</td><td>Comb Moments (Fourier (Wavelet ())) [24]</td><td>0.2398</td></tr>
+<tr><td>172</td><td>Zernike Coefficients (Fourier (Edge ())) [54]</td><td>0.2385</td></tr>
+<tr><td>173</td><td>Multiscale Histograms (Edge ()) [15]</td><td>0.237</td></tr>
+<tr><td>174</td><td>Haralick Textures (Fourier (Chebyshev ())) [5]</td><td>0.2369</td></tr>
+<tr><td>175</td><td>Pixel Intensity Statistics () [1]</td><td>0.2367</td></tr>
+<tr><td>176</td><td>Radon Coefficients (Wavelet (Fourier ())) [11]</td><td>0.2348</td></tr>
+<tr><td>177</td><td>Comb Moments (Fourier (Wavelet ())) [25]</td><td>0.2344</td></tr>
+<tr><td>178</td><td>Zernike Coefficients (Fourier (Wavelet ())) [68]</td><td>0.2344</td></tr>
+<tr><td>179</td><td>Haralick Textures (Fourier ()) [23]</td><td>0.2343</td></tr>
+<tr><td>180</td><td>Haralick Textures (Fourier (Wavelet ())) [7]</td><td>0.2311</td></tr>
+<tr><td>181</td><td>Multiscale Histograms (Edge ()) [3]</td><td>0.2299</td></tr>
+<tr><td>182</td><td>Multiscale Histograms (Fourier (Chebyshev ())) [6]</td><td>0.2285</td></tr>
+<tr><td>183</td><td>Haralick Textures (Wavelet (Edge ())) [21]</td><td>0.2283</td></tr>
+<tr><td>184</td><td>Edge Features () [27]</td><td>0.2279</td></tr>
+<tr><td>185</td><td>Comb Moments (Fourier (Wavelet ())) [18]</td><td>0.2277</td></tr>
+<tr><td>186</td><td>Haralick Textures (Wavelet (Edge ())) [11]</td><td>0.2233</td></tr>
+<tr><td>187</td><td>Chebyshev Coefficients (Fourier (Wavelet ())) [13]</td><td>0.2211</td></tr>
+<tr><td>188</td><td>Zernike Coefficients (Fourier (Edge ())) [14]</td><td>0.221</td></tr>
+<tr><td>189</td><td>Comb Moments (Wavelet (Fourier ())) [40]</td><td>0.2199</td></tr>
+<tr><td>190</td><td>Zernike Coefficients (Fourier (Edge ())) [9]</td><td>0.2195</td></tr>
+<tr><td>191</td><td>Haralick Textures (Wavelet (Edge ())) [19]</td><td>0.2191</td></tr>
+<tr><td>192</td><td>Zernike Coefficients (Fourier ()) [5]</td><td>0.2189</td></tr>
+<tr><td>193</td><td>Multiscale Histograms () [4]</td><td>0.217</td></tr>
+<tr><td>194</td><td>Haralick Textures (Fourier (Wavelet ())) [25]</td><td>0.2165</td></tr>
+<tr><td>195</td><td>Haralick Textures (Fourier (Chebyshev ())) [27]</td><td>0.2162</td></tr>
+<tr><td>196</td><td>Zernike Coefficients (Fourier (Edge ())) [41]</td><td>0.2157</td></tr>
+<tr><td>197</td><td>Comb Moments (Chebyshev (Wavelet ())) [24]</td><td>0.2152</td></tr>
+<tr><td>198</td><td>Multiscale Histograms (Edge ()) [4]</td><td>0.2144</td></tr>
+<tr><td>199</td><td>Zernike Coefficients (Fourier ()) [62]</td><td>0.2135</td></tr>
+<tr><td>200</td><td>Zernike Coefficients (Fourier ()) [10]</td><td>0.2133</td></tr>
+<tr><td>201</td><td>Chebyshev Coefficients (Fourier ()) [14]</td><td>0.2127</td></tr>
+<tr><td>202</td><td>Pixel Intensity Statistics (Fourier (Chebyshev ())) [2]</td><td>0.2102</td></tr>
+<tr><td>203</td><td>Comb Moments (Fourier (Chebyshev ())) [8]</td><td>0.21</td></tr>
+<tr><td>204</td><td>Zernike Coefficients (Fourier (Edge ())) [28]</td><td>0.2099</td></tr>
+<tr><td>205</td><td>Comb Moments (Fourier ()) [16]</td><td>0.2086</td></tr>
+<tr><td>206</td><td>Multiscale Histograms (Edge ()) [17]</td><td>0.2085</td></tr>
+<tr><td>207</td><td>Haralick Textures (Wavelet ()) [24]</td><td>0.2085</td></tr>
+<tr><td>208</td><td>Haralick Textures (Wavelet ()) [20]</td><td>0.2081</td></tr>
+<tr><td>209</td><td>Haralick Textures (Fourier ()) [20]</td><td>0.2081</td></tr>
+<tr><td>210</td><td>Comb Moments (Chebyshev (Fourier ())) [22]</td><td>0.2061</td></tr>
+<tr><td>211</td><td>Haralick Textures (Fourier (Wavelet ())) [21]</td><td>0.2061</td></tr>
+<tr><td>212</td><td>Zernike Coefficients (Fourier (Edge ())) [62]</td><td>0.2058</td></tr>
+<tr><td>213</td><td>Zernike Coefficients (Fourier (Edge ())) [13]</td><td>0.2057</td></tr>
+<tr><td>214</td><td>Haralick Textures (Wavelet (Edge ())) [14]</td><td>0.2051</td></tr>
+<tr><td>215</td><td>Haralick Textures (Wavelet (Edge ())) [10]</td><td>0.2051</td></tr>
+<tr><td>216</td><td>Haralick Textures (Chebyshev ()) [19]</td><td>0.205</td></tr>
+<tr><td>217</td><td>Haralick Textures (Wavelet ()) [9]</td><td>0.2047</td></tr>
+<tr><td>218</td><td>Tamura Textures (Wavelet (Edge ())) [3]</td><td>0.2041</td></tr>
+<tr><td>219</td><td>Haralick Textures (Fourier (Wavelet ())) [3]</td><td>0.2039</td></tr>
+<tr><td>220</td><td>Haralick Textures (Wavelet (Edge ())) [22]</td><td>0.2032</td></tr>
+<tr><td>221</td><td>Zernike Coefficients (Fourier ()) [30]</td><td>0.2026</td></tr>
+<tr><td>222</td><td>Comb Moments (Wavelet (Fourier ())) [46]</td><td>0.2022</td></tr>
+<tr><td>223</td><td>Haralick Textures (Fourier ()) [11]</td><td>0.2015</td></tr>
+<tr><td>224</td><td>Haralick Textures (Wavelet (Edge ())) [8]</td><td>0.2011</td></tr>
+<tr><td>225</td><td>Zernike Coefficients (Fourier (Edge ())) [45]</td><td>0.2003</td></tr>
+<tr><td>226</td><td>Haralick Textures (Fourier (Edge ())) [14]</td><td>0.1997</td></tr>
+<tr><td>227</td><td>Comb Moments (Chebyshev (Fourier ())) [33]</td><td>0.1995</td></tr>
+<tr><td>228</td><td>Comb Moments (Chebyshev (Fourier ())) [34]</td><td>0.1995</td></tr>
+<tr><td>229</td><td>Zernike Coefficients (Fourier (Wavelet ())) [31]</td><td>0.1994</td></tr>
+<tr><td>230</td><td>Zernike Coefficients (Fourier (Edge ())) [18]</td><td>0.1992</td></tr>
+<tr><td>231</td><td>Haralick Textures (Wavelet (Edge ())) [26]</td><td>0.1991</td></tr>
+<tr><td>232</td><td>Zernike Coefficients (Fourier (Edge ())) [27]</td><td>0.198</td></tr>
+<tr><td>233</td><td>Comb Moments (Fourier (Edge ())) [16]</td><td>0.1975</td></tr>
+<tr><td>234</td><td>Comb Moments (Chebyshev (Fourier ())) [23]</td><td>0.1966</td></tr>
+<tr><td>235</td><td>Haralick Textures (Wavelet ()) [15]</td><td>0.1965</td></tr>
+<tr><td>236</td><td>Gini Coefficient (Fourier (Edge ())) [0]</td><td>0.196</td></tr>
+<tr><td>237</td><td>Zernike Coefficients (Fourier (Wavelet ())) [57]</td><td>0.1955</td></tr>
+<tr><td>238</td><td>Zernike Coefficients (Fourier ()) [19]</td><td>0.1953</td></tr>
+<tr><td>239</td><td>Zernike Coefficients (Fourier (Wavelet ())) [27]</td><td>0.1942</td></tr>
+<tr><td>240</td><td>Haralick Textures (Fourier ()) [9]</td><td>0.1935</td></tr>
+<tr><td>241</td><td>Chebyshev Coefficients (Fourier ()) [15]</td><td>0.1934</td></tr>
+<tr><td>242</td><td>Haralick Textures (Wavelet ()) [18]</td><td>0.193</td></tr>
+<tr><td>243</td><td>Multiscale Histograms (Wavelet (Edge ())) [5]</td><td>0.1926</td></tr>
+<tr><td>244</td><td>Zernike Coefficients (Fourier (Wavelet ())) [49]</td><td>0.1919</td></tr>
+<tr><td>245</td><td>Haralick Textures (Wavelet (Edge ())) [27]</td><td>0.1909</td></tr>
+<tr><td>246</td><td>Zernike Coefficients (Fourier (Wavelet ())) [63]</td><td>0.1905</td></tr>
+<tr><td>247</td><td>Haralick Textures (Fourier (Edge ())) [0]</td><td>0.1901</td></tr>
+<tr><td>248</td><td>Tamura Textures (Wavelet ()) [2]</td><td>0.1891</td></tr>
+<tr><td>249</td><td>Comb Moments (Chebyshev ()) [12]</td><td>0.1886</td></tr>
+<tr><td>250</td><td>Haralick Textures (Fourier (Chebyshev ())) [19]</td><td>0.1877</td></tr>
+<tr><td>251</td><td>Tamura Textures (Chebyshev (Fourier ())) [3]</td><td>0.1876</td></tr>
+<tr><td>252</td><td>Multiscale Histograms (Wavelet (Edge ())) [11]</td><td>0.1876</td></tr>
+<tr><td>253</td><td>Haralick Textures (Wavelet ()) [26]</td><td>0.1872</td></tr>
+<tr><td>254</td><td>Haralick Textures (Fourier (Chebyshev ())) [22]</td><td>0.186</td></tr>
+<tr><td>255</td><td>Comb Moments (Fourier (Wavelet ())) [19]</td><td>0.186</td></tr>
+<tr><td>256</td><td>Haralick Textures (Wavelet ()) [27]</td><td>0.1859</td></tr>
+<tr><td>257</td><td>Chebyshev Coefficients (Fourier (Wavelet ())) [11]</td><td>0.1858</td></tr>
+<tr><td>258</td><td>Zernike Coefficients (Fourier (Wavelet ())) [70]</td><td>0.1858</td></tr>
+<tr><td>259</td><td>Haralick Textures (Edge ()) [4]</td><td>0.185</td></tr>
+<tr><td>260</td><td>Fractal Features (Fourier (Wavelet ())) [0]</td><td>0.1837</td></tr>
+<tr><td>261</td><td>Edge Features () [5]</td><td>0.1828</td></tr>
+<tr><td>262</td><td>Multiscale Histograms (Wavelet (Edge ())) [19]</td><td>0.1819</td></tr>
+<tr><td>263</td><td>Haralick Textures (Wavelet ()) [12]</td><td>0.1813</td></tr>
+<tr><td>264</td><td>Gini Coefficient (Fourier ()) [0]</td><td>0.181</td></tr>
+<tr><td>265</td><td>Zernike Coefficients (Fourier ()) [32]</td><td>0.1805</td></tr>
+<tr><td>266</td><td>Haralick Textures (Chebyshev (Fourier ())) [25]</td><td>0.1805</td></tr>
+<tr><td>267</td><td>Tamura Textures (Wavelet ()) [5]</td><td>0.1798</td></tr>
+<tr><td>268</td><td>Tamura Textures (Wavelet ()) [4]</td><td>0.1784</td></tr>
+<tr><td>269</td><td>Multiscale Histograms (Fourier (Chebyshev ())) [9]</td><td>0.1784</td></tr>
+<tr><td>270</td><td>Multiscale Histograms (Fourier (Chebyshev ())) [21]</td><td>0.1778</td></tr>
+<tr><td>271</td><td>Zernike Coefficients (Fourier ()) [20]</td><td>0.1771</td></tr>
+<tr><td>272</td><td>Haralick Textures (Edge ()) [12]</td><td>0.1765</td></tr>
+<tr><td>273</td><td>Haralick Textures (Fourier (Chebyshev ())) [9]</td><td>0.1751</td></tr>
+<tr><td>274</td><td>Zernike Coefficients (Fourier ()) [70]</td><td>0.1751</td></tr>
+<tr><td>275</td><td>Comb Moments (Chebyshev (Fourier ())) [9]</td><td>0.1747</td></tr>
+<tr><td>276</td><td>Haralick Textures (Fourier (Wavelet ())) [20]</td><td>0.1741</td></tr>
+<tr><td>277</td><td>Zernike Coefficients (Fourier (Wavelet ())) [40]</td><td>0.1741</td></tr>
+<tr><td>278</td><td>Tamura Textures (Chebyshev ()) [1]</td><td>0.1724</td></tr>
+<tr><td>279</td><td>Zernike Coefficients (Fourier (Wavelet ())) [11]</td><td>0.171</td></tr>
+<tr><td>280</td><td>Comb Moments (Fourier (Wavelet ())) [13]</td><td>0.1705</td></tr>
+<tr><td>281</td><td>Inverse-Otsu Object Features () [17]</td><td>0.1704</td></tr>
+<tr><td>282</td><td>Inverse-Otsu Object Features () [0]</td><td>0.1699</td></tr>
+<tr><td>283</td><td>Zernike Coefficients (Fourier ()) [45]</td><td>0.1697</td></tr>
+<tr><td>284</td><td>Haralick Textures (Wavelet ()) [21]</td><td>0.1683</td></tr>
+<tr><td>285</td><td>Multiscale Histograms (Fourier (Chebyshev ())) [2]</td><td>0.1679</td></tr>
+<tr><td>286</td><td>Chebyshev-Fourier Coefficients (Fourier (Wavelet ())) [4]</td><td>0.1679</td></tr>
+<tr><td>287</td><td>Comb Moments (Chebyshev (Wavelet ())) [0]</td><td>0.1676</td></tr>
+<tr><td>288</td><td>Chebyshev Coefficients (Fourier ()) [16]</td><td>0.1674</td></tr>
+<tr><td>289</td><td>Haralick Textures (Chebyshev (Wavelet ())) [8]</td><td>0.167</td></tr>
+<tr><td>290</td><td>Haralick Textures (Edge ()) [19]</td><td>0.1664</td></tr>
+<tr><td>291</td><td>Zernike Coefficients (Fourier ()) [61]</td><td>0.1662</td></tr>
+<tr><td>292</td><td>Haralick Textures (Fourier (Edge ())) [10]</td><td>0.166</td></tr>
+<tr><td>293</td><td>Haralick Textures (Fourier (Wavelet ())) [19]</td><td>0.1659</td></tr>
+<tr><td>294</td><td>Multiscale Histograms (Edge ()) [10]</td><td>0.1654</td></tr>
+<tr><td>295</td><td>Haralick Textures (Fourier (Edge ())) [8]</td><td>0.1639</td></tr>
+<tr><td>296</td><td>Gini Coefficient (Wavelet (Edge ())) [0]</td><td>0.1638</td></tr>
+<tr><td>297</td><td>Haralick Textures (Wavelet (Edge ())) [0]</td><td>0.1626</td></tr>
+<tr><td>298</td><td>Comb Moments (Chebyshev (Wavelet ())) [2]</td><td>0.1621</td></tr>
+<tr><td>299</td><td>Zernike Coefficients (Fourier ()) [44]</td><td>0.1619</td></tr>
+<tr><td>300</td><td>Comb Moments (Chebyshev (Fourier ())) [47]</td><td>0.1618</td></tr>
+<tr><td>301</td><td>Multiscale Histograms (Wavelet ()) [22]</td><td>0.1608</td></tr>
+<tr><td>302</td><td>Inverse-Otsu Object Features () [23]</td><td>0.1607</td></tr>
+<tr><td>303</td><td>Edge Features () [10]</td><td>0.1604</td></tr>
+<tr><td>304</td><td>Zernike Coefficients (Fourier (Wavelet ())) [21]</td><td>0.1604</td></tr>
+<tr><td>305</td><td>Haralick Textures (Fourier ()) [5]</td><td>0.1601</td></tr>
+<tr><td>306</td><td>Chebyshev Coefficients (Fourier (Wavelet ())) [1]</td><td>0.1593</td></tr>
+<tr><td>307</td><td>Haralick Textures (Wavelet ()) [19]</td><td>0.1591</td></tr>
+<tr><td>308</td><td>Haralick Textures (Fourier (Chebyshev ())) [10]</td><td>0.1581</td></tr>
+<tr><td>309</td><td>Haralick Textures (Fourier (Edge ())) [22]</td><td>0.1577</td></tr>
+<tr><td>310</td><td>Fractal Features (Fourier (Wavelet ())) [12]</td><td>0.1577</td></tr>
+<tr><td>311</td><td>Inverse-Otsu Object Features () [26]</td><td>0.1576</td></tr>
+<tr><td>312</td><td>Fractal Features (Fourier (Wavelet ())) [10]</td><td>0.1574</td></tr>
+<tr><td>313</td><td>Haralick Textures (Wavelet (Edge ())) [1]</td><td>0.1574</td></tr>
+<tr><td>314</td><td>Gabor Textures () [5]</td><td>0.157</td></tr>
+<tr><td>315</td><td>Gabor Textures () [4]</td><td>0.1569</td></tr>
+<tr><td>316</td><td>Multiscale Histograms (Fourier (Chebyshev ())) [4]</td><td>0.1567</td></tr>
+<tr><td>317</td><td>Fractal Features (Fourier (Wavelet ())) [14]</td><td>0.1564</td></tr>
+<tr><td>318</td><td>Zernike Coefficients (Fourier (Wavelet ())) [29]</td><td>0.1563</td></tr>
+<tr><td>319</td><td>Zernike Coefficients (Fourier (Edge ())) [69]</td><td>0.156</td></tr>
+<tr><td>320</td><td>Comb Moments (Fourier (Chebyshev ())) [20]</td><td>0.1557</td></tr>
+<tr><td>321</td><td>Fractal Features (Fourier (Wavelet ())) [8]</td><td>0.1556</td></tr>
+<tr><td>322</td><td>Haralick Textures (Chebyshev (Fourier ())) [3]</td><td>0.1554</td></tr>
+<tr><td>323</td><td>Fractal Features (Fourier (Wavelet ())) [15]</td><td>0.1548</td></tr>
+<tr><td>324</td><td>Haralick Textures (Chebyshev (Fourier ())) [7]</td><td>0.1547</td></tr>
+<tr><td>325</td><td>Fractal Features (Fourier (Wavelet ())) [17]</td><td>0.1547</td></tr>
+<tr><td>326</td><td>Inverse-Otsu Object Features () [24]</td><td>0.1546</td></tr>
+<tr><td>327</td><td>Fractal Features (Fourier (Wavelet ())) [16]</td><td>0.1545</td></tr>
+<tr><td>328</td><td>Fractal Features (Fourier (Wavelet ())) [19]</td><td>0.1542</td></tr>
+<tr><td>329</td><td>Multiscale Histograms () [17]</td><td>0.1537</td></tr>
+<tr><td>330</td><td>Haralick Textures (Wavelet ()) [14]</td><td>0.1535</td></tr>
+<tr><td>331</td><td>Fractal Features (Fourier (Wavelet ())) [6]</td><td>0.1535</td></tr>
+<tr><td>332</td><td>Haralick Textures (Fourier ()) [2]</td><td>0.1532</td></tr>
+<tr><td>333</td><td>Fractal Features (Fourier (Wavelet ())) [13]</td><td>0.1532</td></tr>
+<tr><td>334</td><td>Gini Coefficient (Chebyshev ()) [0]</td><td>0.1531</td></tr>
+<tr><td>335</td><td>Fractal Features (Fourier (Chebyshev ())) [19]</td><td>0.152</td></tr>
+<tr><td>336</td><td>Fractal Features (Fourier (Wavelet ())) [2]</td><td>0.1519</td></tr>
+<tr><td>337</td><td>Fractal Features (Fourier (Wavelet ())) [4]</td><td>0.1517</td></tr>
+<tr><td>338</td><td>Fractal Features (Fourier (Wavelet ())) [18]</td><td>0.1514</td></tr>
+<tr><td>339</td><td>Haralick Textures (Fourier (Edge ())) [20]</td><td>0.1512</td></tr>
+<tr><td>340</td><td>Inverse-Otsu Object Features () [22]</td><td>0.151</td></tr>
+<tr><td>341</td><td>Haralick Textures (Edge ()) [18]</td><td>0.1499</td></tr>
+<tr><td>342</td><td>Haralick Textures (Chebyshev (Fourier ())) [26]</td><td>0.1492</td></tr>
+<tr><td>343</td><td>Haralick Textures (Chebyshev (Fourier ())) [2]</td><td>0.149</td></tr>
+<tr><td>344</td><td>Fractal Features (Fourier (Wavelet ())) [11]</td><td>0.1489</td></tr>
+<tr><td>345</td><td>Comb Moments (Chebyshev (Fourier ())) [37]</td><td>0.148</td></tr>
+<tr><td>346</td><td>Multiscale Histograms (Edge ()) [16]</td><td>0.1473</td></tr>
+<tr><td>347</td><td>Zernike Coefficients (Fourier (Wavelet ())) [42]</td><td>0.1473</td></tr>
+<tr><td>348</td><td>Zernike Coefficients (Fourier (Wavelet ())) [5]</td><td>0.1462</td></tr>
+<tr><td>349</td><td>Inverse-Otsu Object Features () [25]</td><td>0.1459</td></tr>
+<tr><td>350</td><td>Fractal Features (Fourier (Chebyshev ())) [18]</td><td>0.1455</td></tr>
+<tr><td>351</td><td>Otsu Object Features () [0]</td><td>0.1452</td></tr>
+<tr><td>352</td><td>Multiscale Histograms (Fourier (Chebyshev ())) [13]</td><td>0.1452</td></tr>
+<tr><td>353</td><td>Gabor Textures () [6]</td><td>0.1451</td></tr>
+<tr><td>354</td><td>Haralick Textures (Chebyshev (Fourier ())) [6]</td><td>0.1446</td></tr>
+<tr><td>355</td><td>Haralick Textures () [14]</td><td>0.1442</td></tr>
+<tr><td>356</td><td>Multiscale Histograms (Edge ()) [18]</td><td>0.1438</td></tr>
+<tr><td>357</td><td>Chebyshev-Fourier Coefficients (Edge ()) [0]</td><td>0.1436</td></tr>
+<tr><td>358</td><td>Pixel Intensity Statistics (Wavelet ()) [4]</td><td>0.1432</td></tr>
+<tr><td>359</td><td>Zernike Coefficients (Fourier (Wavelet ())) [19]</td><td>0.1432</td></tr>
+<tr><td>360</td><td>Comb Moments (Chebyshev (Fourier ())) [38]</td><td>0.1432</td></tr>
+<tr><td>361</td><td>Pixel Intensity Statistics (Fourier (Chebyshev ())) [3]</td><td>0.1427</td></tr>
+<tr><td>362</td><td>Tamura Textures (Fourier (Chebyshev ())) [2]</td><td>0.1424</td></tr>
+<tr><td>363</td><td>Haralick Textures (Wavelet ()) [2]</td><td>0.1424</td></tr>
+<tr><td>364</td><td>Fractal Features (Fourier (Wavelet ())) [9]</td><td>0.1423</td></tr>
+<tr><td>365</td><td>Multiscale Histograms (Chebyshev (Fourier ())) [1]</td><td>0.1419</td></tr>
+<tr><td>366</td><td>Chebyshev-Fourier Coefficients (Edge ()) [2]</td><td>0.1419</td></tr>
+<tr><td>367</td><td>Haralick Textures (Fourier (Wavelet ())) [8]</td><td>0.1411</td></tr>
+<tr><td>368</td><td>Haralick Textures (Chebyshev (Wavelet ())) [22]</td><td>0.141</td></tr>
+<tr><td>369</td><td>Chebyshev Coefficients (Fourier (Edge ())) [19]</td><td>0.1405</td></tr>
+<tr><td>370</td><td>Chebyshev-Fourier Coefficients (Fourier (Edge ())) [0]</td><td>0.14</td></tr>
+<tr><td>371</td><td>Haralick Textures (Chebyshev (Fourier ())) [23]</td><td>0.1399</td></tr>
+<tr><td>372</td><td>Otsu Object Features () [12]</td><td>0.1394</td></tr>
+<tr><td>373</td><td>Haralick Textures (Fourier (Chebyshev ())) [23]</td><td>0.1394</td></tr>
+<tr><td>374</td><td>Haralick Textures (Chebyshev (Fourier ())) [12]</td><td>0.1394</td></tr>
+<tr><td>375</td><td>Haralick Textures (Chebyshev (Wavelet ())) [10]</td><td>0.1391</td></tr>
+<tr><td>376</td><td>Haralick Textures (Wavelet ()) [6]</td><td>0.1388</td></tr>
+<tr><td>377</td><td>Haralick Textures (Wavelet ()) [1]</td><td>0.1388</td></tr>
+<tr><td>378</td><td>Fractal Features (Fourier (Chebyshev ())) [17]</td><td>0.1386</td></tr>
+<tr><td>379</td><td>Zernike Coefficients (Fourier (Wavelet ())) [36]</td><td>0.1376</td></tr>
+<tr><td>380</td><td>Haralick Textures (Fourier (Chebyshev ())) [0]</td><td>0.137</td></tr>
+<tr><td>381</td><td>Pixel Intensity Statistics (Wavelet ()) [1]</td><td>0.137</td></tr>
+<tr><td>382</td><td>Haralick Textures (Chebyshev (Fourier ())) [21]</td><td>0.1368</td></tr>
+<tr><td>383</td><td>Multiscale Histograms (Edge ()) [1]</td><td>0.1367</td></tr>
+<tr><td>384</td><td>Comb Moments (Chebyshev (Fourier ())) [10]</td><td>0.1363</td></tr>
+<tr><td>385</td><td>Comb Moments (Fourier ()) [23]</td><td>0.1361</td></tr>
+<tr><td>386</td><td>Chebyshev-Fourier Coefficients (Wavelet (Edge ())) [1]</td><td>0.1358</td></tr>
+<tr><td>387</td><td>Multiscale Histograms (Chebyshev (Fourier ())) [21]</td><td>0.1357</td></tr>
+<tr><td>388</td><td>Zernike Coefficients (Fourier (Wavelet ())) [58]</td><td>0.1354</td></tr>
+<tr><td>389</td><td>Pixel Intensity Statistics (Wavelet (Edge ())) [1]</td><td>0.1351</td></tr>
+<tr><td>390</td><td>Chebyshev-Fourier Coefficients () [1]</td><td>0.1349</td></tr>
+<tr><td>391</td><td>Tamura Textures () [4]</td><td>0.1348</td></tr>
+<tr><td>392</td><td>Haralick Textures (Fourier (Chebyshev ())) [1]</td><td>0.1335</td></tr>
+<tr><td>393</td><td>Zernike Coefficients (Fourier (Edge ())) [38]</td><td>0.1334</td></tr>
+<tr><td>394</td><td>Comb Moments (Edge ()) [10]</td><td>0.1332</td></tr>
+<tr><td>395</td><td>Fractal Features (Fourier (Wavelet ())) [7]</td><td>0.133</td></tr>
+<tr><td>396</td><td>Inverse-Otsu Object Features () [21]</td><td>0.1329</td></tr>
+<tr><td>397</td><td>Inverse-Otsu Object Features () [27]</td><td>0.1329</td></tr>
+<tr><td>398</td><td>Comb Moments (Edge ()) [11]</td><td>0.1326</td></tr>
+<tr><td>399</td><td>Haralick Textures (Wavelet (Edge ())) [24]</td><td>0.1325</td></tr>
+<tr><td>400</td><td>Comb Moments (Fourier ()) [17]</td><td>0.1322</td></tr>
+<tr><td>401</td><td>Tamura Textures (Fourier (Chebyshev ())) [5]</td><td>0.1322</td></tr>
+<tr><td>402</td><td>Edge Features () [16]</td><td>0.1321</td></tr>
+<tr><td>403</td><td>Otsu Object Features () [17]</td><td>0.1318</td></tr>
+<tr><td>404</td><td>Tamura Textures (Edge ()) [5]</td><td>0.1317</td></tr>
+<tr><td>405</td><td>Fractal Features (Wavelet ()) [0]</td><td>0.1316</td></tr>
+<tr><td>406</td><td>Haralick Textures (Chebyshev (Wavelet ())) [13]</td><td>0.1315</td></tr>
+<tr><td>407</td><td>Chebyshev Coefficients (Fourier ()) [13]</td><td>0.1313</td></tr>
+<tr><td>408</td><td>Comb Moments (Fourier (Chebyshev ())) [7]</td><td>0.1311</td></tr>
+<tr><td>409</td><td>Zernike Coefficients (Fourier (Edge ())) [30]</td><td>0.1308</td></tr>
+<tr><td>410</td><td>Comb Moments (Chebyshev (Fourier ())) [1]</td><td>0.1308</td></tr>
+<tr><td>411</td><td>Comb Moments (Fourier ()) [21]</td><td>0.1306</td></tr>
+<tr><td>412</td><td>Inverse-Otsu Object Features () [19]</td><td>0.1304</td></tr>
+<tr><td>413</td><td>Haralick Textures (Chebyshev (Fourier ())) [11]</td><td>0.1304</td></tr>
+<tr><td>414</td><td>Gabor Textures () [3]</td><td>0.1304</td></tr>
+<tr><td>415</td><td>Haralick Textures (Wavelet (Edge ())) [20]</td><td>0.1301</td></tr>
+<tr><td>416</td><td>Fractal Features (Fourier (Chebyshev ())) [16]</td><td>0.13</td></tr>
+<tr><td>417</td><td>Tamura Textures (Fourier (Edge ())) [5]</td><td>0.1298</td></tr>
+<tr><td>418</td><td>Inverse-Otsu Object Features () [20]</td><td>0.1296</td></tr>
+<tr><td>419</td><td>Chebyshev-Fourier Coefficients (Edge ()) [1]</td><td>0.1295</td></tr>
+<tr><td>420</td><td>Zernike Coefficients (Fourier (Wavelet ())) [50]</td><td>0.1292</td></tr>
+<tr><td>421</td><td>Haralick Textures (Fourier (Edge ())) [2]</td><td>0.1289</td></tr>
+<tr><td>422</td><td>Haralick Textures (Wavelet ()) [0]</td><td>0.1286</td></tr>
+<tr><td>423</td><td>Multiscale Histograms (Chebyshev (Fourier ())) [15]</td><td>0.1284</td></tr>
+<tr><td>424</td><td>Zernike Coefficients (Fourier ()) [58]</td><td>0.128</td></tr>
+<tr><td>425</td><td>Pixel Intensity Statistics () [4]</td><td>0.1273</td></tr>
+<tr><td>426</td><td>Chebyshev Coefficients (Fourier ()) [9]</td><td>0.1272</td></tr>
+<tr><td>427</td><td>Chebyshev-Fourier Coefficients (Wavelet (Edge ())) [0]</td><td>0.1269</td></tr>
+<tr><td>428</td><td>Haralick Textures (Wavelet (Edge ())) [12]</td><td>0.1269</td></tr>
+<tr><td>429</td><td>Tamura Textures (Edge ()) [3]</td><td>0.1267</td></tr>
+<tr><td>430</td><td>Zernike Coefficients (Fourier (Edge ())) [23]</td><td>0.1266</td></tr>
+<tr><td>431</td><td>Tamura Textures (Fourier (Edge ())) [2]</td><td>0.1263</td></tr>
+<tr><td>432</td><td>Chebyshev Coefficients (Fourier (Edge ())) [5]</td><td>0.1261</td></tr>
+<tr><td>433</td><td>Haralick Textures (Wavelet (Edge ())) [2]</td><td>0.1255</td></tr>
+<tr><td>434</td><td>Haralick Textures (Wavelet ()) [8]</td><td>0.1255</td></tr>
+<tr><td>435</td><td>Comb Moments (Fourier (Wavelet ())) [36]</td><td>0.1254</td></tr>
+<tr><td>436</td><td>Otsu Object Features () [26]</td><td>0.125</td></tr>
+<tr><td>437</td><td>Multiscale Histograms (Wavelet ()) [18]</td><td>0.125</td></tr>
+<tr><td>438</td><td>Otsu Object Features () [23]</td><td>0.1244</td></tr>
+</table><br>
+<a href="#" onClick="sigs_used=document.getElementById('FeaturesGroups_split0'); if (sigs_used.style.display=='none'){ sigs_used.style.display='inline'; } else { sigs_used.style.display='none'; } return false; ">Analysis of Fisher scores for each feature family, ranked by mean Fisher score</a><br><br>
+<TABLE ID="FeaturesGroups_split0" border="1" style="display: none;">
+<tr><th>Rank</th><th>Name</th><th>Min</th><th>Max</th><th>Mean</th><th>Std. dev.</th></tr>
+<tr><td>1</td><td>Fractal Features (Chebyshev (Fourier ()))</td><td>0.2495</td><td>0.2744</td><td>0.2557</td><td>0.004894</td></tr>
+<tr><td>2</td><td>Gini Coefficient (Wavelet ())</td><td>0.2423</td><td>0.2423</td><td>0.2423</td><td>nan</td></tr>
+<tr><td>3</td><td>Multiscale Histograms (Wavelet ())</td><td>0</td><td>0.6638</td><td>0.2185</td><td>0.2449</td></tr>
+<tr><td>4</td><td>Multiscale Histograms (Fourier (Chebyshev ()))</td><td>0.006435</td><td>0.4092</td><td>0.1976</td><td>0.1308</td></tr>
+<tr><td>5</td><td>Haralick Textures (Fourier (Wavelet ()))</td><td>0.01278</td><td>0.6919</td><td>0.1969</td><td>0.1643</td></tr>
+<tr><td>6</td><td>Gini Coefficient (Fourier (Edge ()))</td><td>0.196</td><td>0.196</td><td>0.196</td><td>nan</td></tr>
+<tr><td>7</td><td>Multiscale Histograms ()</td><td>0.002344</td><td>0.5363</td><td>0.1939</td><td>0.1853</td></tr>
+<tr><td>8</td><td>Pixel Intensity Statistics (Wavelet (Fourier ()))</td><td>0.0685</td><td>0.2622</td><td>0.1936</td><td>0.09168</td></tr>
+<tr><td>9</td><td>Pixel Intensity Statistics (Fourier (Chebyshev ()))</td><td>0.06891</td><td>0.268</td><td>0.1894</td><td>0.08356</td></tr>
+<tr><td>10</td><td>Pixel Intensity Statistics (Chebyshev ())</td><td>0.06629</td><td>0.2551</td><td>0.1857</td><td>0.09342</td></tr>
+<tr><td>11</td><td>Gini Coefficient (Fourier ())</td><td>0.181</td><td>0.181</td><td>0.181</td><td>nan</td></tr>
+<tr><td>12</td><td>Pixel Intensity Statistics (Wavelet ())</td><td>0.03872</td><td>0.2576</td><td>0.1659</td><td>0.09158</td></tr>
+<tr><td>13</td><td>Gini Coefficient (Wavelet (Edge ()))</td><td>0.1638</td><td>0.1638</td><td>0.1638</td><td>nan</td></tr>
+<tr><td>14</td><td>Tamura Textures (Wavelet ())</td><td>0</td><td>0.2689</td><td>0.1566</td><td>0.08978</td></tr>
+<tr><td>15</td><td>Zernike Coefficients (Fourier ())</td><td>0.004355</td><td>0.5736</td><td>0.155</td><td>0.1556</td></tr>
+<tr><td>16</td><td>Pixel Intensity Statistics (Fourier (Wavelet ()))</td><td>0.04797</td><td>0.2532</td><td>0.1546</td><td>0.09368</td></tr>
+<tr><td>17</td><td>Gini Coefficient (Chebyshev ())</td><td>0.1531</td><td>0.1531</td><td>0.1531</td><td>nan</td></tr>
+<tr><td>18</td><td>Zernike Coefficients (Fourier (Wavelet ()))</td><td>0.001564</td><td>0.6016</td><td>0.1528</td><td>0.1482</td></tr>
+<tr><td>19</td><td>Pixel Intensity Statistics (Chebyshev (Wavelet ()))</td><td>0.000479</td><td>0.2585</td><td>0.1526</td><td>0.1385</td></tr>
+<tr><td>20</td><td>Tamura Textures (Fourier (Chebyshev ()))</td><td>0</td><td>0.2842</td><td>0.1517</td><td>0.106</td></tr>
+<tr><td>21</td><td>Haralick Textures (Wavelet (Edge ()))</td><td>0.005278</td><td>0.3194</td><td>0.1496</td><td>0.08391</td></tr>
+<tr><td>22</td><td>Haralick Textures (Fourier ())</td><td>0.002959</td><td>0.529</td><td>0.1493</td><td>0.1497</td></tr>
+<tr><td>23</td><td>Pixel Intensity Statistics ()</td><td>0.0187</td><td>0.253</td><td>0.1467</td><td>0.09821</td></tr>
+<tr><td>24</td><td>Fractal Features (Fourier (Wavelet ()))</td><td>0.08629</td><td>0.1837</td><td>0.1464</td><td>0.02101</td></tr>
+<tr><td>25</td><td>Haralick Textures (Wavelet ())</td><td>0.003494</td><td>0.4314</td><td>0.1453</td><td>0.09958</td></tr>
+<tr><td>26</td><td>Tamura Textures (Fourier ())</td><td>0</td><td>0.2708</td><td>0.1425</td><td>0.1369</td></tr>
+<tr><td>27</td><td>Pixel Intensity Statistics (Fourier ())</td><td>0.03061</td><td>0.2546</td><td>0.1402</td><td>0.1084</td></tr>
+<tr><td>28</td><td>Zernike Coefficients (Fourier (Edge ()))</td><td>3.158e-05</td><td>0.3993</td><td>0.1353</td><td>0.1129</td></tr>
+<tr><td>29</td><td>Haralick Textures (Fourier (Chebyshev ()))</td><td>0.01445</td><td>0.2745</td><td>0.1304</td><td>0.0766</td></tr>
+<tr><td>30</td><td>Multiscale Histograms (Edge ())</td><td>0</td><td>0.2482</td><td>0.1261</td><td>0.0752</td></tr>
+<tr><td>31</td><td>Multiscale Histograms (Chebyshev (Fourier ()))</td><td>0.001631</td><td>0.4895</td><td>0.107</td><td>0.1262</td></tr>
+<tr><td>32</td><td>Gini Coefficient ()</td><td>0.1042</td><td>0.1042</td><td>0.1042</td><td>nan</td></tr>
+<tr><td>33</td><td>Haralick Textures ()</td><td>6.112e-06</td><td>0.4176</td><td>0.1016</td><td>0.1263</td></tr>
+<tr><td>34</td><td>Gini Coefficient (Wavelet (Fourier ()))</td><td>0.1009</td><td>0.1009</td><td>0.1009</td><td>nan</td></tr>
+<tr><td>35</td><td>Edge Features ()</td><td>0.0008545</td><td>0.5458</td><td>0.09828</td><td>0.127</td></tr>
+<tr><td>36</td><td>Gini Coefficient (Edge ())</td><td>0.09635</td><td>0.09635</td><td>0.09635</td><td>nan</td></tr>
+<tr><td>37</td><td>Gabor Textures ()</td><td>0.02073</td><td>0.157</td><td>0.09533</td><td>0.06561</td></tr>
+<tr><td>38</td><td>Gini Coefficient (Fourier (Chebyshev ()))</td><td>0.08985</td><td>0.08985</td><td>0.08985</td><td>nan</td></tr>
+<tr><td>39</td><td>Gini Coefficient (Fourier (Wavelet ()))</td><td>0.08777</td><td>0.08777</td><td>0.08777</td><td>nan</td></tr>
+<tr><td>40</td><td>Tamura Textures (Wavelet (Edge ()))</td><td>0</td><td>0.2041</td><td>0.0865</td><td>0.06725</td></tr>
+<tr><td>41</td><td>Haralick Textures (Chebyshev (Fourier ()))</td><td>0.0009223</td><td>0.3026</td><td>0.08429</td><td>0.07502</td></tr>
+<tr><td>42</td><td>Fractal Features (Wavelet (Fourier ()))</td><td>0.06741</td><td>0.118</td><td>0.08409</td><td>0.01543</td></tr>
+<tr><td>43</td><td>Fractal Features (Fourier (Chebyshev ()))</td><td>0.02799</td><td>0.152</td><td>0.08241</td><td>0.04148</td></tr>
+<tr><td>44</td><td>Comb Moments (Chebyshev (Fourier ()))</td><td>0</td><td>0.4071</td><td>0.07932</td><td>0.1026</td></tr>
+<tr><td>45</td><td>Haralick Textures (Chebyshev (Wavelet ()))</td><td>0.001463</td><td>0.2754</td><td>0.0792</td><td>0.05898</td></tr>
+<tr><td>46</td><td>Pixel Intensity Statistics (Fourier (Edge ()))</td><td>0.04625</td><td>0.1047</td><td>0.07906</td><td>0.02322</td></tr>
+<tr><td>47</td><td>Fractal Features (Wavelet ())</td><td>0.03871</td><td>0.1316</td><td>0.07708</td><td>0.02684</td></tr>
+<tr><td>48</td><td>Fractal Features (Wavelet (Edge ()))</td><td>0.074</td><td>0.09197</td><td>0.07591</td><td>0.003853</td></tr>
+<tr><td>49</td><td>Multiscale Histograms (Wavelet (Edge ()))</td><td>0.01458</td><td>0.1926</td><td>0.07574</td><td>0.05228</td></tr>
+<tr><td>50</td><td>Haralick Textures (Edge ())</td><td>0.008414</td><td>0.185</td><td>0.07164</td><td>0.05116</td></tr>
+<tr><td>51</td><td>Pixel Intensity Statistics (Chebyshev (Fourier ()))</td><td>7.129e-05</td><td>0.2571</td><td>0.07109</td><td>0.1061</td></tr>
+<tr><td>52</td><td>Pixel Intensity Statistics (Wavelet (Edge ()))</td><td>0.02035</td><td>0.1351</td><td>0.06995</td><td>0.04916</td></tr>
+<tr><td>53</td><td>Haralick Textures (Fourier (Edge ()))</td><td>0.0003326</td><td>0.1997</td><td>0.06957</td><td>0.0642</td></tr>
+<tr><td>54</td><td>Fractal Features (Fourier (Edge ()))</td><td>0.06423</td><td>0.07023</td><td>0.06821</td><td>0.001842</td></tr>
+<tr><td>55</td><td>Fractal Features (Chebyshev (Wavelet ()))</td><td>0.03868</td><td>0.08705</td><td>0.06737</td><td>0.01412</td></tr>
+<tr><td>56</td><td>Fractal Features (Fourier ())</td><td>0.04396</td><td>0.07199</td><td>0.06189</td><td>0.008954</td></tr>
+<tr><td>57</td><td>Inverse-Otsu Object Features ()</td><td>0.0002045</td><td>0.1704</td><td>0.06147</td><td>0.06365</td></tr>
+<tr><td>58</td><td>Tamura Textures (Edge ())</td><td>0</td><td>0.1317</td><td>0.06023</td><td>0.06119</td></tr>
+<tr><td>59</td><td>Fractal Features (Edge ())</td><td>0.05046</td><td>0.09769</td><td>0.05607</td><td>0.01173</td></tr>
+<tr><td>60</td><td>Radon Coefficients (Wavelet (Fourier ()))</td><td>0.01338</td><td>0.2348</td><td>0.05506</td><td>0.06138</td></tr>
+<tr><td>61</td><td>Chebyshev Coefficients (Fourier (Wavelet ()))</td><td>0</td><td>0.2211</td><td>0.05506</td><td>0.05607</td></tr>
+<tr><td>62</td><td>Chebyshev Coefficients (Fourier ())</td><td>0.003166</td><td>0.2127</td><td>0.05435</td><td>0.0584</td></tr>
+<tr><td>63</td><td>Comb Moments (Edge ())</td><td>0.001667</td><td>0.1332</td><td>0.05054</td><td>0.03337</td></tr>
+<tr><td>64</td><td>Pixel Intensity Statistics (Edge ())</td><td>0</td><td>0.1031</td><td>0.05049</td><td>0.04703</td></tr>
+<tr><td>65</td><td>Tamura Textures (Fourier (Edge ()))</td><td>0</td><td>0.1298</td><td>0.04836</td><td>0.06277</td></tr>
+<tr><td>66</td><td>Otsu Object Features ()</td><td>0</td><td>0.1452</td><td>0.04686</td><td>0.05058</td></tr>
+<tr><td>67</td><td>Comb Moments (Fourier (Wavelet ()))</td><td>0</td><td>0.2841</td><td>0.0462</td><td>0.08142</td></tr>
+<tr><td>68</td><td>Fractal Features (Chebyshev ())</td><td>0.02968</td><td>0.05126</td><td>0.04502</td><td>0.005368</td></tr>
+<tr><td>69</td><td>Radon Coefficients (Edge ())</td><td>0.003341</td><td>0.09361</td><td>0.04495</td><td>0.03569</td></tr>
+<tr><td>70</td><td>Gini Coefficient (Chebyshev (Wavelet ()))</td><td>0.04472</td><td>0.04472</td><td>0.04472</td><td>nan</td></tr>
+<tr><td>71</td><td>Comb Moments (Wavelet (Fourier ()))</td><td>0</td><td>0.33</td><td>0.04316</td><td>0.08155</td></tr>
+<tr><td>72</td><td>Radon Coefficients (Wavelet (Edge ()))</td><td>0.003428</td><td>0.08761</td><td>0.04185</td><td>0.02926</td></tr>
+<tr><td>73</td><td>Haralick Textures (Chebyshev ())</td><td>0.001719</td><td>0.2922</td><td>0.04156</td><td>0.06403</td></tr>
+<tr><td>74</td><td>Tamura Textures (Chebyshev ())</td><td>0</td><td>0.1724</td><td>0.03923</td><td>0.06657</td></tr>
+<tr><td>75</td><td>Comb Moments (Fourier ())</td><td>0</td><td>0.399</td><td>0.03853</td><td>0.07028</td></tr>
+<tr><td>76</td><td>Chebyshev Coefficients (Fourier (Edge ()))</td><td>0</td><td>0.1405</td><td>0.03642</td><td>0.04413</td></tr>
+<tr><td>77</td><td>Gini Coefficient (Chebyshev (Fourier ()))</td><td>0.03515</td><td>0.03515</td><td>0.03515</td><td>nan</td></tr>
+<tr><td>78</td><td>Tamura Textures (Chebyshev (Fourier ()))</td><td>0</td><td>0.1876</td><td>0.03501</td><td>0.07492</td></tr>
+<tr><td>79</td><td>Comb Moments (Fourier (Chebyshev ()))</td><td>0</td><td>0.21</td><td>0.03469</td><td>0.04467</td></tr>
+<tr><td>80</td><td>Comb Moments (Chebyshev (Wavelet ()))</td><td>0</td><td>0.2601</td><td>0.0346</td><td>0.06183</td></tr>
+<tr><td>81</td><td>Chebyshev-Fourier Coefficients (Fourier (Wavelet ()))</td><td>0</td><td>0.1679</td><td>0.03235</td><td>0.03701</td></tr>
+<tr><td>82</td><td>Radon Coefficients (Wavelet ())</td><td>0.002936</td><td>0.1087</td><td>0.03215</td><td>0.03017</td></tr>
+<tr><td>83</td><td>Radon Coefficients (Chebyshev (Fourier ()))</td><td>0.00072</td><td>0.08623</td><td>0.03094</td><td>0.03012</td></tr>
+<tr><td>84</td><td>Radon Coefficients (Fourier ())</td><td>0</td><td>0.09867</td><td>0.03062</td><td>0.03586</td></tr>
+<tr><td>85</td><td>Chebyshev-Fourier Coefficients (Fourier (Edge ()))</td><td>0</td><td>0.14</td><td>0.02869</td><td>0.03121</td></tr>
+<tr><td>86</td><td>Chebyshev-Fourier Coefficients (Fourier ())</td><td>0.0003918</td><td>0.1231</td><td>0.02863</td><td>0.02911</td></tr>
+<tr><td>87</td><td>Radon Coefficients (Fourier (Chebyshev ()))</td><td>0.001744</td><td>0.05099</td><td>0.02828</td><td>0.01901</td></tr>
+<tr><td>88</td><td>Tamura Textures ()</td><td>0</td><td>0.1348</td><td>0.02806</td><td>0.05262</td></tr>
+<tr><td>89</td><td>Fractal Features ()</td><td>0.01545</td><td>0.09392</td><td>0.0266</td><td>0.01859</td></tr>
+<tr><td>90</td><td>Comb Moments (Chebyshev ())</td><td>0</td><td>0.2668</td><td>0.02578</td><td>0.04952</td></tr>
+<tr><td>91</td><td>Comb Moments (Fourier (Edge ()))</td><td>0</td><td>0.3127</td><td>0.02575</td><td>0.0553</td></tr>
+<tr><td>92</td><td>Zernike Coefficients (Edge ())</td><td>0.000143</td><td>0.0632</td><td>0.02369</td><td>0.01678</td></tr>
+<tr><td>93</td><td>Chebyshev-Fourier Coefficients (Edge ())</td><td>0</td><td>0.1436</td><td>0.02003</td><td>0.0411</td></tr>
+<tr><td>94</td><td>Tamura Textures (Chebyshev (Wavelet ()))</td><td>0</td><td>0.04162</td><td>0.01966</td><td>0.01904</td></tr>
+<tr><td>95</td><td>Haralick Textures (Wavelet (Fourier ()))</td><td>0.0002173</td><td>0.09906</td><td>0.01924</td><td>0.02129</td></tr>
+<tr><td>96</td><td>Zernike Coefficients (Wavelet (Edge ()))</td><td>2.238e-06</td><td>0.06006</td><td>0.01895</td><td>0.01684</td></tr>
+<tr><td>97</td><td>Radon Coefficients ()</td><td>0</td><td>0.04752</td><td>0.01857</td><td>0.0162</td></tr>
+<tr><td>98</td><td>Comb Moments (Wavelet (Edge ()))</td><td>0</td><td>0.07863</td><td>0.01851</td><td>0.02102</td></tr>
+<tr><td>99</td><td>Chebyshev-Fourier Coefficients (Wavelet (Edge ()))</td><td>0</td><td>0.1358</td><td>0.01735</td><td>0.03244</td></tr>
+<tr><td>100</td><td>Zernike Coefficients ()</td><td>0.0002588</td><td>0.06218</td><td>0.01543</td><td>0.01213</td></tr>
+<tr><td>101</td><td>Tamura Textures (Fourier (Wavelet ()))</td><td>0</td><td>0.07283</td><td>0.01494</td><td>0.02852</td></tr>
+<tr><td>102</td><td>Chebyshev Coefficients (Wavelet (Edge ()))</td><td>0.0005952</td><td>0.07789</td><td>0.01412</td><td>0.01426</td></tr>
+<tr><td>103</td><td>Radon Coefficients (Fourier (Edge ()))</td><td>0.001273</td><td>0.03947</td><td>0.01387</td><td>0.01348</td></tr>
+<tr><td>104</td><td>Comb Moments ()</td><td>0</td><td>0.09882</td><td>0.01382</td><td>0.01899</td></tr>
+<tr><td>105</td><td>Radon Coefficients (Fourier (Wavelet ()))</td><td>0.0007322</td><td>0.04837</td><td>0.01277</td><td>0.0137</td></tr>
+<tr><td>106</td><td>Chebyshev-Fourier Coefficients ()</td><td>0</td><td>0.1349</td><td>0.0123</td><td>0.02744</td></tr>
+<tr><td>107</td><td>Radon Coefficients (Chebyshev (Wavelet ()))</td><td>0.0002067</td><td>0.02693</td><td>0.01162</td><td>0.009469</td></tr>
+<tr><td>108</td><td>Tamura Textures (Wavelet (Fourier ()))</td><td>0</td><td>0.0622</td><td>0.01149</td><td>0.0249</td></tr>
+<tr><td>109</td><td>Chebyshev Coefficients (Wavelet ())</td><td>9.013e-05</td><td>0.03652</td><td>0.0113</td><td>0.0109</td></tr>
+<tr><td>110</td><td>Comb Moments (Wavelet ())</td><td>0</td><td>0.04814</td><td>0.01127</td><td>0.01272</td></tr>
+<tr><td>111</td><td>Chebyshev-Fourier Coefficients (Wavelet ())</td><td>0</td><td>0.03575</td><td>0.00863</td><td>0.008249</td></tr>
+<tr><td>112</td><td>Radon Coefficients (Chebyshev ())</td><td>0</td><td>0.03916</td><td>0.008498</td><td>0.01439</td></tr>
+<tr><td>113</td><td>Multiscale Histograms (Wavelet (Fourier ()))</td><td>0</td><td>0.0554</td><td>0.008412</td><td>0.01523</td></tr>
+<tr><td>114</td><td>Chebyshev Coefficients (Edge ())</td><td>0</td><td>0.04692</td><td>0.008216</td><td>0.01166</td></tr>
+<tr><td>115</td><td>Chebyshev Coefficients (Chebyshev ())</td><td>0.000128</td><td>0.04403</td><td>0.007076</td><td>0.008835</td></tr>
+<tr><td>116</td><td>Chebyshev-Fourier Coefficients (Chebyshev ())</td><td>0.0001033</td><td>0.02982</td><td>0.006969</td><td>0.006956</td></tr>
+<tr><td>117</td><td>Chebyshev Coefficients ()</td><td>0</td><td>0.04152</td><td>0.006496</td><td>0.009795</td></tr>
+<tr><td>118</td><td>Zernike Coefficients (Wavelet ())</td><td>0.0001491</td><td>0.02374</td><td>0.00627</td><td>0.005892</td></tr>
+<tr><td>119</td><td>Multiscale Histograms (Chebyshev (Wavelet ()))</td><td>0</td><td>0.01662</td><td>0.005363</td><td>0.004443</td></tr>
+<tr><td>120</td><td>Zernike Coefficients (Chebyshev ())</td><td>0.000136</td><td>0.01564</td><td>0.005156</td><td>0.002593</td></tr>
+<tr><td>121</td><td>Multiscale Histograms (Fourier (Wavelet ()))</td><td>0</td><td>0.02068</td><td>0.004681</td><td>0.006406</td></tr>
+<tr><td>122</td><td>Multiscale Histograms (Chebyshev ())</td><td>0</td><td>0.009717</td><td>0.002722</td><td>0.002756</td></tr>
+<tr><td>123</td><td>Multiscale Histograms (Fourier (Edge ()))</td><td>0</td><td>0.008004</td><td>0.001356</td><td>0.002445</td></tr>
+<tr><td>124</td><td>Multiscale Histograms (Fourier ())</td><td>0</td><td>0.003333</td><td>0.0005556</td><td>0.001269</td></tr>
+</table><br>
+<a href="#" onClick="sigs_used=document.getElementById('IndividualImages_split0'); if (sigs_used.style.display=='none'){ sigs_used.style.display='inline'; } else { sigs_used.style.display='none'; } return false; ">Individual image predictions</a><br>
+<TABLE ID="IndividualImages_split0" border="1" style="display: none;">
+       <tr><th>Image No.</th><th width='100'>Normalization Factor</th><th>CLL</th><th>FL</th><th>MCL</th><th>&nbsp;</th><th width='100'>Actual Class</th><th width='100'>Predicted Class</th><th width='100'>Classification Correctness</th><th>Image</th></tr>
+<tr><td>1</td><td>1.76e-19</td><td><b>0.916</b></td><td>0.014</td><td>0.071</td><td></td><td>CLL</td><td>CLL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./CLL/sj-03-2810_008_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./CLL/sj-03-2810_008_E.tif__1"></A></td></tr>
+<tr><td>2</td><td>8.74e-19</td><td><b>0.993</b></td><td>0.001</td><td>0.006</td><td></td><td>CLL</td><td>CLL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./CLL/sj-03-476_008_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./CLL/sj-03-476_008_E.tif__1"></A></td></tr>
+<tr><td>3</td><td>1.73e-19</td><td><b>0.995</b></td><td>0.001</td><td>0.004</td><td></td><td>CLL</td><td>CLL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./CLL/sj-03-4957_008_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./CLL/sj-03-4957_008_E.tif__1"></A></td></tr>
+<tr><td>4</td><td>2.44e-19</td><td><b>0.920</b></td><td>0.002</td><td>0.077</td><td></td><td>CLL</td><td>CLL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./CLL/sj-03-5521_008_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./CLL/sj-03-5521_008_E.tif__1"></A></td></tr>
+<tr><td>5</td><td>4.2e-18</td><td><b>0.994</b></td><td>0.001</td><td>0.005</td><td></td><td>CLL</td><td>CLL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./CLL/sj-03-852-R2_008_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./CLL/sj-03-852-R2_008_E.tif__1"></A></td></tr>
+<tr><td>6</td><td>6.36e-18</td><td><b>0.884</b></td><td>0.031</td><td>0.085</td><td></td><td>CLL</td><td>CLL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./CLL/sj-05-1396-R3_008_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./CLL/sj-05-1396-R3_008_E.tif__1"></A></td></tr>
+<tr><td>7</td><td>2.81e-19</td><td><b>0.848</b></td><td>0.012</td><td>0.140</td><td></td><td>CLL</td><td>CLL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./CLL/sj-05-3165_008_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./CLL/sj-05-3165_008_E.tif__1"></A></td></tr>
+<tr><td>8</td><td>1.48e-19</td><td><b>0.962</b></td><td>0.024</td><td>0.014</td><td></td><td>CLL</td><td>CLL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./CLL/sj-05-3344_008_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./CLL/sj-05-3344_008_E.tif__1"></A></td></tr>
+<tr><td>9</td><td>9.07e-19</td><td><b>0.993</b></td><td>0.002</td><td>0.005</td><td></td><td>CLL</td><td>CLL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./CLL/sj-05-3874-R2_008_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./CLL/sj-05-3874-R2_008_E.tif__1"></A></td></tr>
+<tr><td>10</td><td>1.68e-18</td><td><b>0.856</b></td><td>0.018</td><td>0.127</td><td></td><td>CLL</td><td>CLL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./CLL/sj-05-5269-R10_008_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./CLL/sj-05-5269-R10_008_E.tif__1"></A></td></tr>
+<tr><td>11</td><td>3.4e-18</td><td>0.037</td><td><b>0.886</b></td><td>0.077</td><td></td><td>FL</td><td>FL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./FL/sj-05-1467-R1_005_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./FL/sj-05-1467-R1_005_E.tif__1"></A></td></tr>
+<tr><td>12</td><td>1.76e-18</td><td>0.009</td><td><b>0.827</b></td><td>0.163</td><td></td><td>FL</td><td>FL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./FL/sj-05-1881-R1_005_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./FL/sj-05-1881-R1_005_E.tif__1"></A></td></tr>
+<tr><td>13</td><td>5.86e-18</td><td>0.005</td><td><b>0.987</b></td><td>0.008</td><td></td><td>FL</td><td>FL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./FL/sj-05-4881-R3_005_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./FL/sj-05-4881-R3_005_E.tif__1"></A></td></tr>
+<tr><td>14</td><td>8.25e-18</td><td>0.001</td><td><b>0.989</b></td><td>0.010</td><td></td><td>FL</td><td>FL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./FL/sj-05-5311-R1_005_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./FL/sj-05-5311-R1_005_E.tif__1"></A></td></tr>
+<tr><td>15</td><td>3.64e-18</td><td>0.002</td><td><b>0.970</b></td><td>0.027</td><td></td><td>FL</td><td>FL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./FL/sj-05-5389-R1_005_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./FL/sj-05-5389-R1_005_E.tif__1"></A></td></tr>
+<tr><td>16</td><td>2.12e-19</td><td>0.010</td><td><b>0.863</b></td><td>0.127</td><td></td><td>FL</td><td>FL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./FL/sj-05-5829_005_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./FL/sj-05-5829_005_E.tif__1"></A></td></tr>
+<tr><td>17</td><td>1.06e-18</td><td>0.015</td><td><b>0.863</b></td><td>0.122</td><td></td><td>FL</td><td>FL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./FL/sj-05-588-R1_005_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./FL/sj-05-588-R1_005_E.tif__1"></A></td></tr>
+<tr><td>18</td><td>8.19e-18</td><td>0.001</td><td><b>0.994</b></td><td>0.004</td><td></td><td>FL</td><td>FL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./FL/sj-05-6124-R3_005_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./FL/sj-05-6124-R3_005_E.tif__1"></A></td></tr>
+<tr><td>19</td><td>2.21e-18</td><td>0.010</td><td><b>0.938</b></td><td>0.052</td><td></td><td>FL</td><td>FL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./FL/sj-05-6124-R4_005_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./FL/sj-05-6124-R4_005_E.tif__1"></A></td></tr>
+<tr><td>20</td><td>9.76e-19</td><td>0.012</td><td><b>0.873</b></td><td>0.115</td><td></td><td>FL</td><td>FL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./FL/sj-05-894-R3_005_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./FL/sj-05-894-R3_005_E.tif__1"></A></td></tr>
+<tr><td>21</td><td>8.82e-19</td><td>0.086</td><td>0.081</td><td><b>0.834</b></td><td></td><td>MCL</td><td>MCL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./MCL/sj-04-3077-R2_004_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./MCL/sj-04-3077-R2_004_E.tif__1"></A></td></tr>
+<tr><td>22</td><td>1.79e-18</td><td>0.007</td><td>0.168</td><td><b>0.825</b></td><td></td><td>MCL</td><td>MCL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./MCL/sj-04-4525-R4_004_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./MCL/sj-04-4525-R4_004_E.tif__1"></A></td></tr>
+<tr><td>23</td><td>1e-17</td><td>0.023</td><td>0.024</td><td><b>0.952</b></td><td></td><td>MCL</td><td>MCL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./MCL/sj-04-4967-R2_004_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./MCL/sj-04-4967-R2_004_E.tif__1"></A></td></tr>
+<tr><td>24</td><td>6.21e-19</td><td>0.152</td><td>0.037</td><td><b>0.812</b></td><td></td><td>MCL</td><td>MCL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./MCL/sj-04-6010-R3_004_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./MCL/sj-04-6010-R3_004_E.tif__1"></A></td></tr>
+<tr><td>25</td><td>2.06e-19</td><td>0.085</td><td>0.067</td><td><b>0.847</b></td><td></td><td>MCL</td><td>MCL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./MCL/sj-05-1374_004_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./MCL/sj-05-1374_004_E.tif__1"></A></td></tr>
+<tr><td>26</td><td>1.05e-18</td><td>0.035</td><td>0.087</td><td><b>0.879</b></td><td></td><td>MCL</td><td>MCL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./MCL/sj-05-3362-R2_004_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./MCL/sj-05-3362-R2_004_E.tif__1"></A></td></tr>
+<tr><td>27</td><td>2.04e-18</td><td>0.044</td><td>0.086</td><td><b>0.870</b></td><td></td><td>MCL</td><td>MCL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./MCL/sj-05-4179-R1_004_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./MCL/sj-05-4179-R1_004_E.tif__1"></A></td></tr>
+<tr><td>28</td><td>3.65e-18</td><td>0.024</td><td>0.098</td><td><b>0.878</b></td><td></td><td>MCL</td><td>MCL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./MCL/sj-05-5326-R1_004_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./MCL/sj-05-5326-R1_004_E.tif__1"></A></td></tr>
+<tr><td>29</td><td>1.43e-17</td><td>0.013</td><td>0.000</td><td><b>0.986</b></td><td></td><td>MCL</td><td>MCL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./MCL/sj-05-768_004_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./MCL/sj-05-768_004_E.tif__1"></A></td></tr>
+<tr><td>30</td><td>3.02e-19</td><td>0.001</td><td>0.007</td><td><b>0.992</b></td><td></td><td>MCL</td><td>MCL</td><td><font color="#00FF00">Correct</font></td><td><A HREF="./MCL/sj-05-901-R1_004_E.tif"><IMG WIDTH=40 HEIGHT=40 SRC="./MCL/sj-05-901-R1_004_E.tif__1"></A></td></tr>
+</table><br><br>
+<br><br><br><br><br><br> 
+
+
+
+
+
+
+
+</CENTER> 
+ </BODY> 
+ </HTML>

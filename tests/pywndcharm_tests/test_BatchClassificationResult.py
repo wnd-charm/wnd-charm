@@ -47,7 +47,7 @@ class TestDiscreteBatchClassificationResult( unittest.TestCase ):
     Test the classification functionality
     """
     
-    def test_TiledFitOnFit( self ):
+    def test_FitOnFit( self ):
         """Uses a curated subset of the IICBU 2008 Lymphoma dataset, preprocessed as follows:
         auto-deconvolved, eosin channel only, tiled 5x6, 3 classes, 10 imgs per class,
         300 samples per class.
@@ -59,24 +59,28 @@ class TestDiscreteBatchClassificationResult( unittest.TestCase ):
         zf = zipfile.ZipFile( zipped_file_path, mode='r' )
         tempdir = mkdtemp()
         zf.extractall( tempdir )
+        zf.extractall( pychrm_test_dir )
 
         try:
             fitfilepath = tempdir + sep + zf.namelist()[0]
-            #fs = FeatureSpace.NewFromFitFile( fitfilepath  )
-            fs = FeatureSpace.NewFromFitFile( fitfilepath, tile_options=(5,6) )
-            #fs.Print( verbose=True )
-            #print "\n\n\n********************\n\n\n"
-            #full_train, full_test = fs.Split( random_state=42, quiet=True )
-            #full_train.Print( verbose=True )
-            #full_test.Print( verbose=True )
+
+
+            # Do fit on fit WITHOUT tiling and compare with fit on fit results
+            # generated with wndchrm 1.60
+            fs = FeatureSpace.NewFromFitFile( fitfilepath  )
             fs.Normalize( quiet=True )
             fw = FisherFeatureWeights.NewFromFeatureSpace( fs ).Threshold()
-            reduced_fs = fs.FeatureReduce( fw.names )
-            #reduced_test = full_test.FeatureReduce( fw.names )
-            #reduced_test.Normalize( reduced_train, quiet=True )
+            reduced_fs = fs.FeatureReduce( fw )
+            no_tile_pychrm_result = DiscreteBatchClassificationResult.New( reduced_fs, reduced_fs, fw )
 
-            batch_result = DiscreteBatchClassificationResult.New( reduced_fs, reduced_fs, fw )
-            #batch_result.Print()
+            # Now do the same with tiling:
+            # reuse the 
+	    fs.tile_rows = 5
+	    fs.tile_cols = 6
+	    fs.num_samples_per_group = 30
+            with_tile_pychrm_result = DiscreteBatchClassificationResult.New( reduced_fs, reduced_fs, fw )
+
+
 
         finally:
             rmtree( tempdir )
@@ -84,7 +88,7 @@ class TestDiscreteBatchClassificationResult( unittest.TestCase ):
     def test_TiledTrainTestSplit( self ):
         """Uses a fake FeatureSpace"""
 
-        from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSpace_Discrete
+        from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
         fs_kwargs = {}
         fs_kwargs['name'] = "DiscreteArtificialFS 10-class"
         fs_kwargs['n_samples'] = 1000
@@ -104,8 +108,8 @@ class TestDiscreteBatchClassificationResult( unittest.TestCase ):
         train_set.Normalize( quiet=True )
         fw = FisherFeatureWeights.NewFromFeatureSpace( train_set ).Threshold()
 
-        reduced_train_set = train_set.FeatureReduce( fw.names )
-        reduced_test_set = test_set.FeatureReduce( fw.names )
+        reduced_train_set = train_set.FeatureReduce( fw )
+        reduced_test_set = test_set.FeatureReduce( fw )
         reduced_test_set.Normalize( reduced_train_set, quiet=True )
 
         batch_result = DiscreteBatchClassificationResult.New(

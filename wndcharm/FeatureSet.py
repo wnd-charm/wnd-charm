@@ -887,7 +887,7 @@ class FeatureVector( object ):
 	# rotations:
 	r'(?:-R_(?P<rot>\d))?',
 	# tiling info:
-	r'(?P<tiling_scheme>-t(?P<num_rows>\d+)(?:x(?P<num_cols>\d+))?_(?P<tile_col_index>\d+)_(?P<tile_row_index>\d+))?',
+	r'(?P<tiling_scheme>-t(?P<tile_num_rows>\d+)(?:x(?P<tile_num_cols>\d+))?_(?P<tile_col_index>\d+)_(?P<tile_row_index>\d+))?',
 	# color features:
 	r'(?P<color>-c)?',
 	# long feature set:
@@ -925,8 +925,8 @@ class FeatureVector( object ):
 		self.time_index = None
 		self.tiling_scheme = None
 		#: If no ROI image subsample, whole image is tile 1 of 1 in this sample group.
-		self.num_rows = 1
-		self.num_cols = 1
+		self.tile_num_rows = 1
+		self.tile_num_cols = 1
 		#: indices count from 0
 		self.tile_row_index = 0
 		self.tile_col_index = 0
@@ -1030,16 +1030,16 @@ class FeatureVector( object ):
 			self.tile_row_index = int( self.tile_row_index )
 		if self.tile_col_index and type( self.tile_col_index ) != int:
 			self.tile_col_index = int( self.tile_col_index )
-		if self.num_rows and type( self.num_rows ) != int:
-			self.num_rows = int( self.num_rows )
-		if self.num_cols and type( self.num_cols ) != int:
-			self.num_cols = int( self.num_cols )
+		if self.tile_num_rows and type( self.tile_num_rows ) != int:
+			self.tile_num_rows = int( self.tile_num_rows )
+		if self.tile_num_cols and type( self.tile_num_cols ) != int:
+			self.tile_num_cols = int( self.tile_num_cols )
 
 		# sequence order:
 		# index 0 = position row 0, col 0
 		# index 1 = position row 0, col 1
 		# index 2 = position row 1, col 0, etc...
-		self.samplesequenceid = self.tile_row_index + ( self.num_cols * self.tile_col_index )
+		self.samplesequenceid = self.tile_row_index + ( self.tile_num_cols * self.tile_col_index )
 
 	#==============================================================
 	def Derive( self, **kwargs ):
@@ -1108,10 +1108,10 @@ class FeatureVector( object ):
 				base += "-S" + str(self.pixel_intensity_stddev)
 		if self.rot is not None:
 			base += "-R_" + str(self.rot)
-		if self.num_rows and self.num_rows != 1:
-			base += "-t" + str(self.num_rows)
-			if self.num_cols and self.num_cols != 1:
-				base +="x" + str(self.num_cols)
+		if self.tile_num_rows and self.tile_num_rows != 1:
+			base += "-t" + str(self.tile_num_rows)
+			if self.tile_num_cols and self.tile_num_cols != 1:
+				base +="x" + str(self.tile_num_cols)
 			if self.tile_row_index is not None and self.tile_col_index is not None:
 				base += "_{0}_{1}".format( self.tile_row_index, self.tile_col_index )
 			else:
@@ -1160,15 +1160,15 @@ class FeatureVector( object ):
 			self.feature_set_version = comp_plan.feature_vec_type
 		else:
 			major, minor = self.feature_set_version.split('.')
-			if minor == 0:
+			if minor == '0':
 				comp_plan = GenerateComputationPlanFromListOfFeatureStrings( self.featurenames_list )
-			elif minor == 1:
+			elif minor == '1':
 				comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSet()
-			elif minor == 2:
+			elif minor == '2':
 				comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSetLong()
-			elif minor == 3:
+			elif minor == '3':
 				comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSetColor()
-			elif minor == 4:
+			elif minor == '4':
 				comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSetColorLong()
 			else:
 				raise ValueError( "Not sure which features you want." )
@@ -1493,7 +1493,7 @@ class FeatureVector( object ):
 			out.write( "0\t{0}\n".format( self.feature_set_version ) )
 			out.write( "{0}\n".format( self.source_filepath ) )
 			for val, name in zip( self.values, self.featurenames_list ):
-				outfile.write( "{0:0.6g} {1}\n".format( val, name ) )
+				out.write( "{0:0.6g} {1}\n".format( val, name ) )
 
 # end definition class FeatureVector
 
@@ -1868,7 +1868,8 @@ class FeatureSpace( object ):
 
 	#==============================================================
 	@classmethod
-	def NewFromFitFile( cls, pathname, discrete=True, quiet=False, global_sampling_options=None, **kwargs):
+	def NewFromFitFile( cls, pathname, discrete=True, quiet=False,
+		    global_sampling_options=None, **kwargs ):
 		"""Helper function which reads in a c-chrm fit file.
 
 		tile_options - an integer N -> NxN tile scheme, or a tuple (N,M) -> NxM tile scheme
@@ -1898,8 +1899,8 @@ class FeatureSpace( object ):
 		line_num = 0
 		sample_count = 0
 
-		new_fs.tile_rows = global_sampling_options.num_rows
-		new_fs.tile_cols = global_sampling_options.num_cols
+		new_fs.tile_rows = global_sampling_options.tile_num_rows
+		new_fs.tile_cols = global_sampling_options.tile_num_cols
 		new_fs.num_samples_per_group = new_fs.tile_rows * new_fs.tile_cols
 		new_fs.global_sampling_options = global_sampling_options
 
@@ -2122,8 +2123,8 @@ class FeatureSpace( object ):
 			print "Creating Training Set from directories of images {0}".format( top_level_dir_path )
 
 		samples = []
-		num_rows = global_sampling_options.num_rows
-		num_cols = global_sampling_options.num_cols
+		tile_num_rows = global_sampling_options.tile_num_rows
+		tile_num_cols = global_sampling_options.tile_num_cols
 
 		from copy import deepcopy
 		from os import walk
@@ -2138,9 +2139,9 @@ class FeatureSpace( object ):
 					if len( filelist ) <= 0:
 						raise ValueError( 'No tiff files in directory {0}'.format( root ) )
 					for _file in filelist:
-						tile_position_index = col_index * num_rows + row_index
-						for col_index in xrange( num_cols ):
-							for row_index in xrange( num_rows ):
+						tile_position_index = col_index * tile_num_rows + row_index
+						for col_index in xrange( tile_num_cols ):
+							for row_index in xrange( tile_num_rows ):
 								fv = deepcopy( global_sampling_options )
 								fv.source_filepath = _file
 								fv.label = "UNKNOWN"
@@ -2161,9 +2162,9 @@ class FeatureSpace( object ):
 					continue
 				class_name = basename( root )
 				for _file in filelist:
-					tile_position_index = col_index * num_rows + row_index
-					for col_index in xrange( num_cols ):
-						for row_index in xrange( num_rows ):
+					tile_position_index = col_index * tile_num_rows + row_index
+					for col_index in xrange( tile_num_cols ):
+						for row_index in xrange( tile_num_rows ):
 							fv = deepcopy( global_sampling_options )
 							fv.source_filepath = _file
 							fv.label = class_name
@@ -2180,7 +2181,7 @@ class FeatureSpace( object ):
 		return cls._NewFromListOfFeatureVectors( samples, name=name,
 		       source_filepath=top_level_dir_path,
 					 num_samples=None,
-		       num_samples_per_group=(num_rows*num_cols),
+		       num_samples_per_group=(tile_num_rows*tile_num_cols),
 					 num_features=global_sampling_options.num_features,
 		       discrete=discrete, quiet=quiet )
 
@@ -2220,9 +2221,9 @@ class FeatureSpace( object ):
 		current_ground_truth = None
 		samples_grouped_by_ground_truth = True
 
-		num_rows = global_sampling_options.num_rows
-		num_cols = global_sampling_options.num_cols
-		num_samples_per_group = num_rows * num_cols
+		tile_num_rows = global_sampling_options.tile_num_rows
+		tile_num_cols = global_sampling_options.tile_num_cols
+		num_samples_per_group = tile_num_rows * tile_num_cols
 
 		# Keeps track of the sample names to help organize like
 		# samples into sample groups
@@ -2302,8 +2303,8 @@ class FeatureSpace( object ):
 				else:
 					base_sample_opts.source_filepath = path_to_sample
 					base_sample_opts.samplegroupid = ReturnSampleGroupID( cols[0] )
-					for col_index in xrange( num_cols ):
-						for row_index in xrange( num_rows ):
+					for col_index in xrange( tile_num_cols ):
+						for row_index in xrange( tile_num_rows ):
 							fv = deepcopy( base_sample_opts )
 							fv.Update( tile_row_index=row_index, tile_col_index=col_index )
 							samples.append( fv )
@@ -2373,8 +2374,8 @@ class FeatureSpace( object ):
 						samples.append( base_sample_opts )
 					else:
 						base_sample_opts.source_filepath = path
-						for col_index in xrange( num_cols ):
-							for row_index in xrange( num_rows ):
+						for col_index in xrange( tile_num_cols ):
+							for row_index in xrange( tile_num_rows ):
 								fv = deepcopy( base_sample_opts )
 								fv.Update( tile_row_index=row_index, tile_col_index=col_index )
 								samples.append( fv )
