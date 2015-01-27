@@ -555,9 +555,8 @@ class FisherFeatureWeights( FeatureWeights ):
 		print "Fisher Feature Weight set {0}:".format( self.name )
 		print "Rank\tValue\tName"
 		print "====\t=====\t===="
-		for i in range( 0, len( self.featurenames_list ) ):
-			#print "{0}\t{1:.5f}\t{2}".format( i+1, self.values[i], self.featurenames_list[i] )
-			print "{0:.6f}\t{1}".format( self.values[i], self.featurenames_list[i] )
+		for i, (val, name) in enumerate( zip( self.values, self.featurenames_list ), start=1 ):
+			print "{0}\t{1:.6f}\t{2}".format( i, val, name )
 		print ""
 
 
@@ -1040,6 +1039,7 @@ class FeatureVector( object ):
 		# index 1 = position row 0, col 1
 		# index 2 = position row 1, col 0, etc...
 		self.samplesequenceid = self.tile_row_index + ( self.tile_num_cols * self.tile_col_index )
+		return self
 
 	#==============================================================
 	def Derive( self, **kwargs ):
@@ -1072,7 +1072,6 @@ class FeatureVector( object ):
 	#==============================================================
 	def __deepcopy__( self, memo ):
 		"""Make a deepcopy of this FeatureVector"""
-
 		return self.Derive()
 
 	#==============================================================
@@ -1243,7 +1242,6 @@ class FeatureVector( object ):
 		# for its own self.featurenames_list
 		return self
 
-
 	#==============================================================
 	def CompatibleFeatureSetVersion( self, version ):
 		"""Note that if either minor version is 0 (i.e not a standard feature vector)
@@ -1332,7 +1330,7 @@ class FeatureVector( object ):
 			return self.Derive( **newdata )
 
 	#==============================================================
-	def FeatureReduce( self, requested_features ):
+	def FeatureReduce( self, requested_features, inplace=False ):
 		"""Returns a new FeatureVector that contains a subset of the data by dropping
 		features (columns), and/or rearranging columns.
 
@@ -1385,6 +1383,8 @@ class FeatureVector( object ):
 			newdata[ 'feature_set_version' ] = \
 					"{0}.0".format( self.feature_set_version.split('.',1)[0] )
 
+		if inplace:
+			return self.Update( **newdata )
 		return self.Derive( **newdata )
 	#================================================================
 	def LoadSigFile( self, sigfile_path=None, quiet=False ):
@@ -1460,16 +1460,14 @@ class FeatureVector( object ):
 
 		if not quiet:
 			print "Loaded features from file {0}".format( path )
+		return self
 
 	#================================================================
 	@classmethod
 	def NewFromSigFile( cls, sigfile_path, image_path=None, quiet=False ):
 		"""@return  - An instantiated FeatureVector class with feature names translated from
 		           the old naming convention, if applicable."""
-		new_fv = cls()
-		new_fv.source_filepath = image_path
-		new_fv.LoadSigFile( sigfile_path, quiet )
-		return new_fv
+		return cls( source_filepath=image_path ).LoadSigFile( sigfile_path, quiet )
 
 	#================================================================
 	def ToSigFile( self, path=None, quiet=False ):
@@ -1689,6 +1687,7 @@ class FeatureSpace( object ):
 			else:
 				raise AttributeError( 'No instance variable named "{0}" in class {1}'.format(
 				  key, self.__class__.__name__ ) )
+		return self
 
 	#==============================================================
 	def __deepcopy__( self, memo ):
@@ -2637,7 +2636,7 @@ class FeatureSpace( object ):
 			return self.Derive( **newdata )
 
 	#==============================================================
-	def FeatureReduce( self, requested_features ):
+	def FeatureReduce( self, requested_features, inplace=False ):
 		"""Returns a new FeatureSpace that contains a subset of the data by dropping
 		features (columns), and/or rearranging columns.
 
@@ -2703,6 +2702,8 @@ class FeatureSpace( object ):
 			newdata[ 'feature_set_version' ] = \
 					"{0}.0".format( self.feature_set_version.split('.',1)[0] )
 
+		if inplace:
+			return self.Update( **newdata )._RebuildViews()
 		return self.Derive( **newdata )
 
 	#==============================================================
@@ -3057,6 +3058,7 @@ class FeatureSpace( object ):
 			test_set.Print()
 		return training_set, test_set
 
+<<<<<<< HEAD
 
 <<<<<<< HEAD
 # END FeatureSet class definition
@@ -3481,6 +3483,8 @@ class FeatureSet_Continuous( FeatureSet ):
 
 # END FeatureSet_Continuous class definition
 =======
+=======
+>>>>>>> Adding return self statements at the end of methods to allow chaining of multiple function calls
 # END FeatureSpace class definition
 >>>>>>> API changes. FeatureSet->FeatureSpace. member names more consistent across objects
 
@@ -3547,11 +3551,10 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 			# FIXME: For now, define equal as marg_probs agreeing within 5%
 			if abs( a-b ) > 0.005:
 				return False
-
-		# This is pretty useless since normalization factors are often in the 10e-20 range
+		# The following is pretty useless since normalization factors are often in the 10e-20
+		# range.
 		#if abs( self.normalization_factor - other.normalization_factor ) > 0.001:
 		#	return False
-
 		return True
 
 	#==============================================================
@@ -3612,7 +3615,6 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 	#==============================================================
 	def __repr__( self ):
 		return str( self )
-
 
 	#==============================================================
 	@classmethod
@@ -3682,7 +3684,6 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 		norm_factor = sum( class_similarities )
 		result.normalization_factor = norm_factor 
 		result.marginal_probabilities = [ x / norm_factor for x in class_similarities ]
-
 		return result
 
 	#=================================================================================
@@ -3731,7 +3732,6 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 			column_header += "act. class\tpred. class\tpred. val."
 			print column_header
 			result.Print( line_item = True )
-
 		return result
 
 #=================================================================================
@@ -3854,12 +3854,11 @@ class BatchClassificationResult( ClassificationResult ):
 		outstr = self.__class__.__name__
 		if self.name is None and self.batch_number is None:
 			return outstr + " id({})".format( id( self ))
-		else:
-			if self.batch_number is not None:
-				outstr += ' batch # {}'.format( self.batch_number )
-			if self.name is not None:
-				outstr += ' "{}"'.format( self.name )
-			return outstr
+		if self.batch_number is not None:
+			outstr += ' batch # {}'.format( self.batch_number )
+		if self.name is not None:
+			outstr += ' "{}"'.format( self.name )
+		return outstr
 	#==============================================================
 	def __repr__( self ):
 		return str(self)
@@ -4069,6 +4068,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 						self.similarity_matrix[ col ][ row ] /= self.similarity_matrix[ row ][ row ]
 
 		self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
+		return self
 
 	#==============================================================
 	@output_railroad_switch
@@ -4415,6 +4415,7 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		"""Calls base class method to run a standard error analysis if ground_truth/
 		predicted vals exist."""
 		super( ContinuousBatchClassificationResult, self ).GenerateStats()
+		return self
 
 	#=====================================================================
 	@output_railroad_switch
@@ -4689,6 +4690,7 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 			self.feature_weight_statistics = sorted( feature_weight_stats, key=lambda a: a[0], reverse=True )
 
 		# Remember, there's no such thing as a confusion matrix for a continuous class
+		return self
 
 	#=====================================================================
 	@output_railroad_switch
@@ -4860,7 +4862,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		self.classification_accuracy = self.figure_of_merit
 
 		#FIXME: Create confusion, similarity, and class probability matrices
-
+		return self
 
 	#=====================================================================
 	@output_railroad_switch
@@ -5027,7 +5029,6 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		exp.GenerateStats()
 		return exp
 
-
 	#=====================================================================
 	@output_railroad_switch
 	def PerSampleStatistics( self ):
@@ -5152,7 +5153,7 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 			self.spearman_coeff, self.spearman_p_value = ( 0, 1 )
 
 		np.seterr (all='raise')
-
+		return self
 
 	#=====================================================================
 	@output_railroad_switch
@@ -5178,7 +5179,6 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 			print outstr.format( count, *fw_stat )
 			if count >= 50:
 					break
-
 
 	#=====================================================================
 	@output_railroad_switch
