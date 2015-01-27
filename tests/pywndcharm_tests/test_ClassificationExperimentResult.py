@@ -32,7 +32,7 @@ else:
 # =====================================================================
 # Continuous
 # =====================================================================
-from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Continuous
+from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Continuous
 from wndcharm.FeatureSet import ContinuousClassificationExperimentResult,\
 				ContinuousFeatureWeights
 
@@ -54,7 +54,7 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 		fs_kwargs['singularity'] = True
 		fs_kwargs['clip'] = True
 
-		fs = CreateArtificialFeatureSet_Continuous( **fs_kwargs )
+		fs = CreateArtificialFeatureSpace_Continuous( **fs_kwargs )
 
 		ss_kwargs = {}
 		ss_kwargs['n_iter'] = 5
@@ -108,7 +108,7 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 		fs_kwargs['singularity'] = True
 		fs_kwargs['clip'] = False
 
-		fs = CreateArtificialFeatureSet_Continuous( **fs_kwargs )
+		fs = CreateArtificialFeatureSpace_Continuous( **fs_kwargs )
 
 		ss_kwargs = {}
 		ss_kwargs['n_iter'] = 5
@@ -166,7 +166,7 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 		fs_kwargs['singularity'] = False
 		fs_kwargs['clip'] = False
 
-		fs = CreateArtificialFeatureSet_Continuous( **fs_kwargs )
+		fs = CreateArtificialFeatureSpace_Continuous( **fs_kwargs )
 
 		ss_kwargs = {}
 		ss_kwargs['name'] = "Continuous PerSampleStatistics ShuffleSplit"
@@ -197,8 +197,8 @@ class TESTINGContinuousClassificationExperimentResult( unittest.TestCase ):
 # =====================================================================
 # Discrete
 # =====================================================================
-from wndcharm.ArtificialFeatureSets import CreateArtificialFeatureSet_Discrete
-from wndcharm.FeatureSet import FeatureSet_Discrete, DiscreteClassificationExperimentResult
+from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
+from wndcharm.FeatureSet import FeatureSpace, DiscreteClassificationExperimentResult
 
 class TESTINGDiscreteClassificationExperimentResult( unittest.TestCase ):
 	"""Test various functions from the DiscreteClassificationExperimentResult class."""
@@ -223,7 +223,7 @@ class TESTINGDiscreteClassificationExperimentResult( unittest.TestCase ):
 		fs_kwargs['interpolatable'] = False
 		fs_kwargs['singularity'] = False
 		fs_kwargs['clip'] = False
-		fs = CreateArtificialFeatureSet_Discrete( **fs_kwargs )
+		fs = CreateArtificialFeatureSpace_Discrete( **fs_kwargs )
 
 		ss_kwargs = {}
 		ss_kwargs['name'] = "Discrete PerSampleStatistics ShuffleSplit No Pred Values"
@@ -252,7 +252,7 @@ class TESTINGDiscreteClassificationExperimentResult( unittest.TestCase ):
 		fs_kwargs['interpolatable'] = True
 		fs_kwargs['singularity'] = False
 		fs_kwargs['clip'] = False
-		fs = CreateArtificialFeatureSet_Discrete( **fs_kwargs )
+		fs = CreateArtificialFeatureSpace_Discrete( **fs_kwargs )
 
 		ss_kwargs = {}
 		ss_kwargs['name'] = "Discrete PerSampleStatistics ShuffleSplit WITH Pred Values"

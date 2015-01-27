@@ -1676,7 +1676,9 @@ class FeatureSpace( object ):
 
 	#==============================================================
 	def Update( self, **kwargs ):
+		"""Replace instance attribute values with the ones passed as kwargs."""
 
+		# FIXME: Should we call self._RebuildViews() at the end every time?
 		self_namespace = vars( self )
 		for key, val in kwargs.iteritems():
 			if key in self_namespace:
@@ -2106,6 +2108,7 @@ class FeatureSpace( object ):
 			self.ground_truths = self._contiguous_ground_truths
 
 		self.data_matrix_is_contiguous = True
+		return self
 
 	#==============================================================
 	@classmethod
@@ -2628,6 +2631,8 @@ class FeatureSpace( object ):
 
 		if inplace:
 			self.Update( **newdata )
+			self._RebuildViews()
+			return self
 		else:
 			return self.Derive( **newdata )
 
@@ -3516,6 +3521,7 @@ class ImageClassificationResult( ClassificationResult ):
 	def Print():
 		raise NotImplementedError
 
+
 #=================================================================================
 class DiscreteImageClassificationResult( ImageClassificationResult ):
 	"""Concrete class that contains the result of a classification for a single image/ROI.
@@ -3535,41 +3541,31 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 		self.ground_truth_class_name = 'UNKNOWN'
 
 	#==============================================================
+	def __eq__( self, other ):
+
+		for a, b in zip( self.marginal_probabilities, other.marginal_probabilities ):
+			# FIXME: For now, define equal as marg_probs agreeing within 5%
+			if abs( a-b ) > 0.005:
+				return False
+
+		# This is pretty useless since normalization factors are often in the 10e-20 range
+		#if abs( self.normalization_factor - other.normalization_factor ) > 0.001:
+		#	return False
+
+		return True
+
+	#==============================================================
+	def __ne__( self, other ):
+		return not self == other
+
+	#==============================================================
 	@output_railroad_switch
 	def Print( self, line_item=False ):
 		"""Output classification line item data, including predicted class and marginal
 		probabilities"""
 		
 		if line_item:
-			# img name:
-			output_str = self.source_filepath if self.source_filepath else ""
-			if self.tile_index is not None:
-				if self.tile_index == 'AVG':
-					output_str += " (AVG)"
-				else:
-					output_str += " ({0}/{1})".format( self.tile_index + 1, self.num_samples_in_group )
-			# normalization factor:
-			if self.normalization_factor is None:
-				# no normalization factor means this is a non-call
-				print output_str + "\t----------------COLLISION----------------"
-				return
-			output_str += "\t{0:0.3g}\t".format( self.normalization_factor )
-
-			# marginal probabilities:
-			output_str += "\t".join(\
-			     [ "{0:0.3f}".format( prob ) for prob in self.marginal_probabilities ] )
-			output_str += "\t"
-			# actual class:
-			if self.ground_truth_class_name:
-				output_str += "{0}\t".format( self.ground_truth_class_name )
-			else:
-				output_str += "*\t"
-			# predicted class:
-			output_str += self.predicted_class_name + "\t"
-			# interpolated value, if applicable
-			if self.predicted_value is not None:
-				output_str += "{0:0.3f}".format( self.predicted_value )
-			print output_str
+			print str(self)
 		else:
 			print "Image:             \t{0}".format( self.source_filepath )
 			print "Normalization Factor:\t{0}".format( self.normalization_factor )
@@ -3580,6 +3576,43 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 			if self.predicted_value is not None:
 				print "Interpolated Value:\t{0}".format( self.predicted_value )
 				#print "Interpolated Value:\t{val=0.3f}".format( val=self.predicted_value )
+
+	#==============================================================
+	def __str__( self ):
+		# img name:
+		output_str = self.source_filepath if self.source_filepath else ""
+		if self.tile_index is not None:
+			if self.tile_index == 'AVG':
+				output_str += " (AVG)"
+			else:
+				output_str += " ({0}/{1})".format( self.tile_index + 1, self.num_samples_in_group )
+		# normalization factor:
+		if self.normalization_factor is None:
+			# no normalization factor means this is a non-call
+			print output_str + "\t--COLLISION--"
+			return
+		output_str += "\t{0:0.3g}\t".format( self.normalization_factor )
+
+		# marginal probabilities:
+		output_str += "\t".join(\
+				 [ "{0:0.3f}".format( prob ) for prob in self.marginal_probabilities ] )
+		output_str += "\t"
+		# actual class:
+		if self.ground_truth_class_name:
+			output_str += "{0}\t".format( self.ground_truth_class_name )
+		else:
+			output_str += "*\t"
+		# predicted class:
+		output_str += self.predicted_class_name + "\t"
+		# interpolated value, if applicable
+		if self.predicted_value is not None:
+			output_str += "{0:0.3f}".format( self.predicted_value )
+		return output_str
+
+	#==============================================================
+	def __repr__( self ):
+		return str( self )
+
 
 	#==============================================================
 	@classmethod
@@ -4288,7 +4321,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 					result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
 				else:
 					marg_probs = np.array( [np.nan] * training_set.num_classes )
-					result.predicted_class_name = "*Collided with every training image*"
+					result.predicted_class_name = "*Collided with every training sample*"
 
 				# interpolated value, if applicable
 				if train_set_interp_coeffs is not None:
@@ -4653,8 +4686,7 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 				                             count, np.std(fwl), np.min(fwl), np.max(fwl), fname ) )
 
 			# Sort on mean values, i.e. index 0 of tuple created above
-			sort_func = lambda A, B: cmp( A[0], B[0] )
-			self.feature_weight_statistics = sorted( feature_weight_stats, sort_func, reverse = True )
+			self.feature_weight_statistics = sorted( feature_weight_stats, key=lambda a: a[0], reverse=True )
 
 		# Remember, there's no such thing as a confusion matrix for a continuous class
 
@@ -4876,6 +4908,8 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 
 		import re
 		row_re = re.compile( r'<tr>(.+?)</tr>' )
+		name_re = re.compile( r'"(.+?)"' )
+		num_re = re.compile( r'(\d*\.?\d+)' )
 
 		# FIXME: This should fail if there isn't some part of the class names that are interpretable
 		# as a number, specifically when it tries to calculate an "interpolated" (predicted) value
@@ -4893,16 +4927,12 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 				ts.num_classes += 1
 				classname = re.search( r'<th>(.+?)</th>', row ).group(1)
 				ts.classnames_list.append( classname )
-				coeff = float( num_re.search( classname ).group(1) )
-				ts.interpolation_coefficients.append( coeff )
+			ts.interpolation_coefficients = CheckIfClassNamesAreInterpolatable( ts.classnames_list )
 			return ts
 
-		name_re = re.compile( r'"(.+?)"' )
-		num_re = re.compile( r'(\d*\.?\d+)' )
-
 		# The following will be determined once the number of classes has been ascertained
-		normalization_col = None
-		mp_col = None
+		normalization_col = 1
+		mp_col = 2
 		ground_truth_col = None
 		predicted_col = None
 		interp_val_col = None # We don't even use this
@@ -4913,8 +4943,10 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		exp = cls()
 		exp.name = path_to_html
 
-		trainingset_definition = False; trainingset_html = ""
-		testset_definition = False; testset_html = ""
+		trainingset_definition = False
+		trainingset_html = ""
+		testset_definition = False
+		testset_html = ""
 
 		insidesplit = False
 		split = None
@@ -4924,30 +4956,25 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 			for line in file:
 				if 'trainset_summary' in line:
 					trainingset_definition = True
-				if trainingset_definition == True:
+				elif trainingset_definition == True:
 					trainingset_html += line.strip()
-				if trainingset_definition and '</table>' in line:
-					trainingset_definition = False
-					ts = _training_set = ParseClassSummaryHTML( trainingset_html )
-					trainingset_html = ""
+					if '</table>' in line:
+						trainingset_definition = False
+						ts = _training_set = ParseClassSummaryHTML( trainingset_html )
+						ground_truth_col = ts.num_classes + 3
+						predicted_col = ts.num_classes + 4
+						interp_val_col = ts.num_classes + 6
+						name_col = ts.num_classes + 7
 
-					normalization_col = 1
-					mp_col = 2
-					ground_truth_col = ts.num_classes + 3
-					predicted_col = ts.num_classes + 4
-					interp_val_col = ts.num_classes + 6
-					name_col = ts.num_classes + 7
-
-				if 'testset_summary' in line:
+				elif 'testset_summary' in line:
 					testset_definition = True
-				if testset_definition == True:
+				elif testset_definition == True:
 					testset_html += line.strip()
-				if testset_definition and '</table>' in line:
-					testset_definition = False
-					_test_set = ParseClassSummaryHTML( testset_html )
-					testset_html = ""
+					if '</table>' in line:
+						testset_definition = False
+						_test_set = ParseClassSummaryHTML( testset_html )
 
-				if line.startswith( '<TABLE ID="IndividualImages_split' ):
+				elif line.startswith( '<TABLE ID="IndividualImages_split' ):
 					# If we haven't seen a test set definition by now, we ain't gonna see one period.
 					if not _test_set:
 						_test_set = _training_set
@@ -4958,7 +4985,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 					split.ground_truth_values = []
 					splitcount += 1
 					split_linecount = 0
-				elif line.startswith( '</table><br><br>' ):
+				elif insidesplit and line.startswith( '</table><br><br>' ):
 					insidesplit = False
 					exp.individual_results.append( split )
 				elif insidesplit:
@@ -4982,15 +5009,18 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 					result.ground_truth_class_name = values[ ground_truth_col ].strip('*')
 					result.name = name_re.search( values[ name_col ] ).groups()[0]
 					result.source_filepath = result.name
-					result.ground_truth_value = float( num_re.search( result.ground_truth_class_name ).group(1) )
-					#result.predicted_value = float( values[ interp_val_col ] )
-					result.predicted_value = \
-					 sum( [ x*y for x,y in zip( result.marginal_probabilities, _training_set.interpolation_coefficients ) ] )
+					if ts.interpolation_coefficients is not None:
+						result.ground_truth_value = \
+					    ts.interpolation_coefficients[ ts.classnames_list.index(result.ground_truth_class_name ) ]
+						#result.predicted_value = float( values[ interp_val_col ] )
+						result.predicted_value = \
+					    sum( [ x*y for x,y in zip( result.marginal_probabilities, _training_set.interpolation_coefficients ) ] )
+						split.predicted_values.append( result.predicted_value )
+						split.ground_truth_values.append( result.ground_truth_value )
 					#result.Print( line_item = True )
 					result.batch_number = splitcount
 					split.individual_results.append(result)
-					split.ground_truth_values.append( result.ground_truth_value )
-					split.predicted_values.append( result.predicted_value )
+
 		exp.training_set = _training_set
 		exp.test_set = _test_set
 

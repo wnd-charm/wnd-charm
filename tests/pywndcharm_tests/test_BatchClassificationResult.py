@@ -40,7 +40,7 @@ wndchrm_test_dir = dirname( pychrm_test_dir ) + sep + 'wndchrm_tests'
 
 from wndcharm.FeatureSet import FeatureSpace, FisherFeatureWeights,\
         DiscreteBatchClassificationResult, ContinuousFeatureWeights,\
-        ContinuousBatchClassificationResult
+        ContinuousBatchClassificationResult, DiscreteClassificationExperimentResult
 
 class TestDiscreteBatchClassificationResult( unittest.TestCase ):
     """
@@ -64,27 +64,54 @@ class TestDiscreteBatchClassificationResult( unittest.TestCase ):
         try:
             fitfilepath = tempdir + sep + zf.namelist()[0]
 
-
             # Do fit on fit WITHOUT tiling and compare with fit on fit results
             # generated with wndchrm 1.60
             fs = FeatureSpace.NewFromFitFile( fitfilepath  )
+            #fs = FeatureSpace.NewFromFitFile( wndchrm_test_dir + sep + 'test-l.fit' )
+            fs.ToFitFile( 'temp.fit' )
             fs.Normalize( quiet=True )
             fw = FisherFeatureWeights.NewFromFeatureSpace( fs ).Threshold()
             reduced_fs = fs.FeatureReduce( fw )
-            no_tile_pychrm_result = DiscreteBatchClassificationResult.New( reduced_fs, reduced_fs, fw )
+            #fw.Print()
+            #reduced_fs.Print(verbose=True)
+            pychrm_res = DiscreteBatchClassificationResult.New( reduced_fs, reduced_fs, fw )
+#
+#            import cProfile as pr
+#            #import profile as pr
+#            import tempfile
+#            import pstats
+#            prof = tempfile.NamedTemporaryFile()
+#            cmd = 'no_tile_pychrm_result = DiscreteBatchClassificationResult.New( reduced_fs, reduced_fs, fw )'
+#            pr.runctx( cmd, globals(), locals(), prof.name)
+#            p = pstats.Stats(prof.name)
+#            p.sort_stats('time').print_stats(20)
+#            prof.close()
+
+            html_path = pychrm_test_dir + sep + 'lymphoma_t5x6_10imgseach_WITHOUT_tiled_samples.html' 
+            wres = DiscreteClassificationExperimentResult.NewFromHTMLReport( html_path )
+            wc_batch_result = wres.individual_results[0] # only 1 split in fit-on-fit
+
+            self.assertSequenceEqual( wc_batch_result.individual_results, pychrm_res.individual_results )
+            #wc_batch_result.Print()
+            #pres.Print()
 
             # Now do the same with tiling:
-            # reuse the 
-	    fs.tile_rows = 5
-	    fs.tile_cols = 6
-	    fs.num_samples_per_group = 30
+            # reuse from before
+	    reduced_fs.tile_rows = 5
+	    reduced_fs.tile_cols = 6
+	    reduced_fs.num_samples_per_group = 30
             with_tile_pychrm_result = DiscreteBatchClassificationResult.New( reduced_fs, reduced_fs, fw )
+            html_path = pychrm_test_dir + sep + 'lymphoma_t5x6_10imgseach_WITH_tiled_samples.html' 
+            with_tile_wndchrm_result = \
+              DiscreteClassificationExperimentResult.NewFromHTMLReport( html_path ).individual_results[0]
 
+            self.assertSequenceEqual( with_tile_pychrm_result.tiled_results, with_tile_wndchrm_result.individual_results )
 
 
         finally:
             rmtree( tempdir )
 
+    @unittest.skip("")
     def test_TiledTrainTestSplit( self ):
         """Uses a fake FeatureSpace"""
 

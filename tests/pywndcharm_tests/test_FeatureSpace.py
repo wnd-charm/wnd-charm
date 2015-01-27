@@ -104,7 +104,7 @@ class TestFeatureSet( unittest.TestCase ):
         try:
             fitfilepath = tempdir + sep + zf.namelist()[0]
             #fs = FeatureSet.NewFromFitFile( fitfilepath  )
-            fs = FeatureSpace.NewFromFitFile( fitfilepath, num_rows=5, num_cols=6 )
+            fs = FeatureSpace.NewFromFitFile( fitfilepath, tile_num_rows=5, tile_num_cols=6 )
             from numpy.random import RandomState
             prng = RandomState(42)
             #fs.Print( verbose=True )
@@ -371,8 +371,8 @@ class TestFeatureSet( unittest.TestCase ):
             kwargs['quiet'] = True
             # sampling opts: -l -t5x6
             kwargs['long'] = True
-            kwargs['num_rows'] = 5
-            kwargs['num_cols'] = 6
+            kwargs['tile_num_rows'] = 5
+            kwargs['tile_num_cols'] = 6
             fs_fof = FeatureSpace.NewFromFileOfFiles( **kwargs )
 
             kwargs['pathname'] = tempdir + sep + 'lymphoma_t5x6_10imgseach.fit'
