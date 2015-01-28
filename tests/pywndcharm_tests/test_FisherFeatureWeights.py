@@ -46,7 +46,7 @@ class TestFisherFeatureWeights( unittest.TestCase ):
 		"""Fisher score calculation"""
 
 		feature_set = FeatureSpace.NewFromFitFile( self.test_fit_path )
-		feature_set.Normalize()
+		feature_set.Normalize( inplace=True )
 		result_weights = FisherFeatureWeights.NewFromFeatureSpace( feature_set )
 
 		# test weights generated from test-l.fit:
@@ -55,17 +55,6 @@ class TestFisherFeatureWeights( unittest.TestCase ):
 
 	 	for target_val, res_val in zip( target_weights.values, result_weights.values ):
 			self.assertAlmostEqual( target_val, res_val, delta=self.epsilon )
-
-	# --------------------------------------------------------------------------
-	def test_Normalize( self ):
-		"""FIXME: THIS TEST BELONGS IN TEST_FEATURESET.PY"""
-
-		from numpy.testing import assert_allclose
-		result_fs = FeatureSpace.NewFromFitFile( self.test_fit_path )
-		result_fs.Normalize()
-		target_fs = FeatureSpace.NewFromFitFile( self.test_normalized_fit_path )
-
-		assert_allclose( result_fs.data_matrix, target_fs.data_matrix, rtol=self.epsilon )
 
 if __name__ == '__main__':
 	unittest.main()

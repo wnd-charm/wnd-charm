@@ -28,7 +28,7 @@ else:
 import re
 import numpy as np
 
-from os.path import sep, dirname, realpath
+from os.path import sep, dirname, realpath, join
 from tempfile import mkdtemp
 from shutil import rmtree
 
@@ -36,14 +36,17 @@ pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pychrm_te
 wndchrm_test_dir = dirname( pychrm_test_dir ) + sep + 'wndchrm_tests'
 
 from wndcharm.FeatureSet import FeatureSpace, FisherFeatureWeights,\
-        DiscreteBatchClassificationResult, ContinuousFeatureWeights,\
-        ContinuousBatchClassificationResult
+        FeatureSpaceClassification, PearsonFeatureWeights,\
+        FeatureSpaceRegression
 
 class TestFeatureSet( unittest.TestCase ):
     """
     The FeatureSet is the workhorse object in WND-CHARM.
     """
     maxDiff = None
+    test_fit_path = join( wndchrm_test_dir,'test-l.fit' )
+    test_normalized_fit_path = join( wndchrm_test_dir, 'test_fit-l-normalized.fit' )
+
     def test_ContinuousFitOnFit( self ):
         from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
@@ -60,9 +63,9 @@ class TestFeatureSet( unittest.TestCase ):
                   path_to_fit, discrete=False )
 
           fs_continuous.Normalize( quiet=True )
-          fw_reduced = ContinuousFeatureWeights.NewFromFeatureSpace( fs_continuous ).Threshold()
+          fw_reduced = PearsonFeatureWeights.NewFromFeatureSpace( fs_continuous ).Threshold()
           fs_reduced = fs_continuous.FeatureReduce( fw_reduced )
-          batch_result = ContinuousBatchClassificationResult.New( 
+          batch_result = FeatureSpaceRegression.NewMultivariateLinear( 
                   fs_reduced, fw_reduced, quiet=True )
 
         finally:
@@ -84,7 +87,7 @@ class TestFeatureSet( unittest.TestCase ):
         reduced_test = full_test.FeatureReduce( reduced_fw )
         reduced_test.Normalize( reduced_train, quiet=True )
 
-        batch_result = DiscreteBatchClassificationResult.New( reduced_train,
+        batch_result = FeatureSpaceClassification.NewWND5( reduced_train,
             reduced_test, reduced_fw, quiet=True )
 
 
@@ -107,16 +110,11 @@ class TestFeatureSet( unittest.TestCase ):
             fs = FeatureSpace.NewFromFitFile( fitfilepath, tile_num_rows=5, tile_num_cols=6 )
             from numpy.random import RandomState
             prng = RandomState(42)
-            #fs.Print( verbose=True )
-            #print "\n\n\n********************\n\n\n"
-            full_train, full_test = fs.Split( random_state=prng, quiet=True )
-            #full_train.Print( verbose=True )
-            #full_test.Print( verbose=True )
-            full_train.Normalize( quiet=True )
-            fw = FisherFeatureWeights.NewFromFeatureSpace( full_train ).Threshold()
-            reduced_train = full_train.FeatureReduce( fw )
-            reduced_test = full_test.FeatureReduce( fw )
-            reduced_test.Normalize( reduced_train, quiet=True )
+            train, test = fs.Split( random_state=prng, quiet=True )
+            train.Normalize( inplace=True, quiet=True )
+            fw = FisherFeatureWeights.NewFromFeatureSpace( train ).Threshold()
+            train.FeatureReduce( fw, inplace=True )
+            test.FeatureReduce( fw, inplace=True ).Normalize( train, inplace=True, quiet=True )
 
         finally:
             rmtree( tempdir )
@@ -134,26 +132,25 @@ class TestFeatureSet( unittest.TestCase ):
         prng = RandomState(42)
         #fs.Print( verbose=True )
         #print "\n\n\n********************\n\n\n"
-        full_train, full_test = fs.Split( random_state=prng, quiet=True )
+        train, test = fs.Split( random_state=prng, quiet=True )
         #full_train.Print( verbose=True )
         #full_test.Print( verbose=True )
 
-        full_train.Normalize( quiet=True )
-        fw = ContinuousFeatureWeights.NewFromFeatureSpace( full_train ).Threshold()
-        reduced_train = full_train.FeatureReduce( fw )
-        reduced_test = full_test.FeatureReduce( fw )
-        reduced_test.Normalize( reduced_train, quiet=True )
+        train.Normalize( inplace=True, quiet=True )
+        fw = PearsonFeatureWeights.NewFromFeatureSpace( train ).Threshold()
+        train.FeatureReduce( fw, inplace=True )
+        test.FeatureReduce( fw, inplace=True ).Normalize( train, inplace=True, quiet=True )
 
     def test_FitOnFitClassification( self ):
 
         fitfile_path = wndchrm_test_dir + sep + 'test-l.fit'
         #fs = FeatureSet.NewFromFitFile( fitfile_path )
         fs = FeatureSpace.NewFromFitFile( fitfile_path )
-        fs.Normalize( quiet=True )
-        reduced_fw = FisherFeatureWeights.NewFromFeatureSpace( fs ).Threshold()
-        reduced_fs = fs.FeatureReduce( reduced_fw )
-        batch_result = DiscreteBatchClassificationResult.New(
-                                       reduced_fs, reduced_fs, reduced_fw, quiet=True )
+        fs.Normalize( inplace=True, quiet=True )
+        fw = FisherFeatureWeights.NewFromFeatureSpace( fs ).Threshold()
+        fs.FeatureReduce( fw, inplace=True )
+        batch_result = FeatureSpaceClassification.NewWND5( fs, fs, fw, quiet=True )
+        # FIXME: compare result to something
 
     @unittest.skip('')
     def test_TileOptions( self ):
@@ -202,7 +199,7 @@ class TestFeatureSet( unittest.TestCase ):
 
         n_classes = 10
         #========================================================
-        # Section 1: LEAVE IN, Untiled Discrete (w/ classes) FeatureSets
+        # Section 1: LEAVE IN, Untiled Discrete (w/ classes) FeatureSpace instances
         fs_discrete = CreateArtificialFeatureSpace_Discrete( n_samples=1000, n_classes=n_classes,
                 num_features_per_signal_type=30, noise_gradient=5, initial_noise_sigma=10,
                 n_samples_per_group=1, interpolatable=True)
@@ -232,7 +229,7 @@ class TestFeatureSet( unittest.TestCase ):
         del B
 
         #========================================================
-        # Section 2: LEAVE OUT, UNTiled Feature sets, Discrete FeatureSets
+        # Section 2: LEAVE OUT, UNTiled Feature sets, Discrete FeatureSpace instances
 
         # check that function barfs when passed an iterable containing anythin other than ints
         UNdesired = [ [val] for val in xrange(50, 950, 100)]
@@ -250,7 +247,7 @@ class TestFeatureSet( unittest.TestCase ):
         del C
 
         #========================================================
-        # Section 3: LEAVE IN, Tiled Feature sets, Discrete FeatureSets
+        # Section 3: LEAVE IN, Tiled Feature sets, Discrete FeatureSpace instances
         num_tiles = 4
         fs_discrete = CreateArtificialFeatureSpace_Discrete( n_samples=1000, n_classes=n_classes,
                 num_features_per_signal_type=30, noise_gradient=5, initial_noise_sigma=10,
@@ -263,7 +260,7 @@ class TestFeatureSet( unittest.TestCase ):
         del D
 
         #========================================================
-        # Section 4: LEAVE OUT, WITH Tiled Feature sets, Discrete FeatureSets
+        # Section 4: LEAVE OUT, WITH Tiled Feature sets, Discrete FeatureSpace instances
 
         # check that function barfs when passed an iterable containing anythin other than ints
         UNdesired = [ [val] for val in xrange(50, 950, 100)]
@@ -287,7 +284,7 @@ class TestFeatureSet( unittest.TestCase ):
         del E
 
         #========================================================
-        # Section 5: LEAVE IN, Untiled Continuous FeatureSets
+        # Section 5: LEAVE IN, Untiled Continuous FeatureSpace instances
         from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Continuous
 
         fs_cont = CreateArtificialFeatureSpace_Continuous( n_samples=1000,
@@ -308,7 +305,7 @@ class TestFeatureSet( unittest.TestCase ):
         del F
 
         #========================================================
-        # Section 6: LEAVE OUT, Untiled Continuous FeatureSets
+        # Section 6: LEAVE OUT, Untiled Continuous FeatureSpace instances
 
         UNdesired = range(50, 950)
         G = fs_cont.SampleReduce( leave_out_samplegroupid_list=UNdesired )
@@ -321,7 +318,7 @@ class TestFeatureSet( unittest.TestCase ):
         del H
 
         #========================================================
-        # Section 7: LEAVE IN, TILED Continuous FeatureSets
+        # Section 7: LEAVE IN, TILED Continuous FeatureSpace instances
 
         fs_cont = CreateArtificialFeatureSpace_Continuous( n_samples=1000,
                 num_features_per_signal_type=30, noise_gradient=5, initial_noise_sigma=10,
@@ -339,7 +336,7 @@ class TestFeatureSet( unittest.TestCase ):
 
 
         #========================================================
-        # Section 8: LEAVE OUT, TILED Continuous FeatureSets
+        # Section 8: LEAVE OUT, TILED Continuous FeatureSpace instances
 
         UNdesired = range(50, 95)
         K = fs_cont.SampleReduce( leave_out_samplegroupid_list=UNdesired )
@@ -405,5 +402,15 @@ class TestFeatureSet( unittest.TestCase ):
         finally:
             rmtree( tempdir )
 
+	# --------------------------------------------------------------------------
+	def test_Normalize( self ):
+		""""""
+
+		from numpy.testing import assert_allclose
+		result_fs = FeatureSpace.NewFromFitFile( self.test_fit_path ).Normalize( inplace=True )
+		target_fs = FeatureSpace.NewFromFitFile( self.test_normalized_fit_path )
+
+		assert_allclose( result_fs.data_matrix, target_fs.data_matrix, rtol=self.epsilon )
+    
 if __name__ == '__main__':
     unittest.main()

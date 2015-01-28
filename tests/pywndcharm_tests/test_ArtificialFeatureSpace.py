@@ -31,8 +31,8 @@ else:
 import re
 import numpy as np
 
-from wndcharm.FeatureSet import FeatureSpace, ContinuousFeatureWeights,\
-        ContinuousBatchClassificationResult
+from wndcharm.FeatureSet import FeatureSpace, PearsonFeatureWeights,\
+        FeatureSpaceRegression
 from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Continuous
 
 
@@ -41,16 +41,16 @@ class TestCreateArtificialFeatureSpace( unittest.TestCase ):
     Test CreateArtificialFeatureSpace function
     """
 
-    def test_VotingFitOnFitNoTiling( self ):
+    def test_MultivariateLinearFitOnFitNoTiling( self ):
 
         fake_continuous = CreateArtificialFeatureSpace_Continuous( n_samples=100,
                 num_features_per_signal_type=5, noise_gradient=5, initial_noise_sigma=10,
                 n_samples_per_group=1 )
  
         fake_continuous.Normalize( quiet=True )
-        reduced_fw = ContinuousFeatureWeights.NewFromFeatureSpace( fake_continuous ).Threshold()
+        reduced_fw = PearsonFeatureWeights.NewFromFeatureSpace( fake_continuous ).Threshold()
         reduced_fs = fake_continuous.FeatureReduce( reduced_fw )
-        batch_result = ContinuousBatchClassificationResult.New(
+        batch_result = FeatureSpaceRegression.NewMultivariateLinear(
                 test_set=reduced_fs, feature_weights=reduced_fw, quiet=True )
 
     def test_LeastSquaresFitOnFitLeaveOneOutNoTiling( self ):
@@ -60,10 +60,10 @@ class TestCreateArtificialFeatureSpace( unittest.TestCase ):
                 n_samples_per_group=1 )
  
         normalized_fs = fake_continuous.Normalize( inplace=False, quiet=True )
-        reduced_fw = ContinuousFeatureWeights.NewFromFeatureSpace( normalized_fs ).Threshold()
+        reduced_fw = PearsonFeatureWeights.NewFromFeatureSpace( normalized_fs ).Threshold()
         reduced_fs = fake_continuous.FeatureReduce( reduced_fw )
 
-        batch_result = ContinuousBatchClassificationResult.NewLeastSquaresRegression(
+        batch_result = FeatureSpaceRegression.NewLeastSquares(
             training_set=reduced_fs, test_set=None, feature_weights=reduced_fw, quiet=True )
 
 if __name__ == '__main__':

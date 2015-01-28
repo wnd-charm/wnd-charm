@@ -39,10 +39,10 @@ pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pychrm_te
 wndchrm_test_dir = dirname( pychrm_test_dir ) + sep + 'wndchrm_tests'
 
 from wndcharm.FeatureSet import FeatureSpace, FisherFeatureWeights,\
-        DiscreteBatchClassificationResult, ContinuousFeatureWeights,\
-        ContinuousBatchClassificationResult, DiscreteClassificationExperimentResult
+        FeatureSpaceClassification, PearsonFeatureWeights,\
+        FeatureSpaceRegression, FeatureSpaceClassificationExperiment
 
-class TestDiscreteBatchClassificationResult( unittest.TestCase ):
+class TestFeatureSpaceClassification( unittest.TestCase ):
     """
     Test the classification functionality
     """
@@ -66,15 +66,14 @@ class TestDiscreteBatchClassificationResult( unittest.TestCase ):
 
             # Do fit on fit WITHOUT tiling and compare with fit on fit results
             # generated with wndchrm 1.60
-            fs = FeatureSpace.NewFromFitFile( fitfilepath  )
+            fs = FeatureSpace.NewFromFitFile( fitfilepath ).Normalize( inplace=True, quiet=True )
             #fs = FeatureSpace.NewFromFitFile( wndchrm_test_dir + sep + 'test-l.fit' )
-            fs.ToFitFile( 'temp.fit' )
-            fs.Normalize( quiet=True )
+            #fs.ToFitFile( 'temp.fit' )
             fw = FisherFeatureWeights.NewFromFeatureSpace( fs ).Threshold()
-            reduced_fs = fs.FeatureReduce( fw )
+            fs.FeatureReduce( fw, inplace=True )
             #fw.Print()
-            #reduced_fs.Print(verbose=True)
-            pychrm_res = DiscreteBatchClassificationResult.New( reduced_fs, reduced_fs, fw )
+            #fs.Print(verbose=True)
+            pychrm_res = FeatureSpaceClassification.NewWND5( fs, fs, fw )
 #
 #            import cProfile as pr
 #            #import profile as pr
@@ -88,25 +87,21 @@ class TestDiscreteBatchClassificationResult( unittest.TestCase ):
 #            prof.close()
 
             html_path = pychrm_test_dir + sep + 'lymphoma_t5x6_10imgseach_WITHOUT_tiled_samples.html' 
-            wres = DiscreteClassificationExperimentResult.NewFromHTMLReport( html_path )
+            wres = FeatureSpaceClassificationExperiment.NewFromHTMLReport( html_path )
             wc_batch_result = wres.individual_results[0] # only 1 split in fit-on-fit
 
             self.assertSequenceEqual( wc_batch_result.individual_results, pychrm_res.individual_results )
             #wc_batch_result.Print()
             #pres.Print()
 
-            # Now do the same with tiling:
-            # reuse from before
-	    reduced_fs.tile_rows = 5
-	    reduced_fs.tile_cols = 6
-	    reduced_fs.num_samples_per_group = 30
-            with_tile_pychrm_result = DiscreteBatchClassificationResult.New( reduced_fs, reduced_fs, fw )
+            # Now do the same with tiling, reusing fs from before:
+	    fs.Update( tile_rows=5, tile_cols=6, num_samples_per_group=30 )
+            with_tile_pychrm_result = FeatureSpaceClassification.NewWND5( fs, fs, fw )
             html_path = pychrm_test_dir + sep + 'lymphoma_t5x6_10imgseach_WITH_tiled_samples.html' 
             with_tile_wndchrm_result = \
-              DiscreteClassificationExperimentResult.NewFromHTMLReport( html_path ).individual_results[0]
+              FeatureSpaceClassificationExperiment.NewFromHTMLReport( html_path ).individual_results[0]
 
             self.assertSequenceEqual( with_tile_pychrm_result.tiled_results, with_tile_wndchrm_result.individual_results )
-
 
         finally:
             rmtree( tempdir )
@@ -131,18 +126,15 @@ class TestDiscreteBatchClassificationResult( unittest.TestCase ):
 
         fs = CreateArtificialFeatureSpace_Discrete( **fs_kwargs )
 
-        train_set, test_set = fs.Split( random_state=False, quiet=True )
-        train_set.Normalize( quiet=True )
+        train, test = fs.Split( random_state=False, quiet=True )
+        train.Normalize( inplace=True, quiet=True )
         fw = FisherFeatureWeights.NewFromFeatureSpace( train_set ).Threshold()
 
-        reduced_train_set = train_set.FeatureReduce( fw )
-        reduced_test_set = test_set.FeatureReduce( fw )
-        reduced_test_set.Normalize( reduced_train_set, quiet=True )
+        train.FeatureReduce( fw, inplace=True )
+        test.FeatureReduce( fw, inplace=True, quiet=True ).Normalize( train, inplace=True, quiet=True )
 
-        batch_result = DiscreteBatchClassificationResult.New(
-                reduced_train_set, reduced_test_set, fw  )
+        batch_result = DiscreteBatchClassificationResult.New( train, test, fw  )
         batch_result.Print()
             
-
 if __name__ == '__main__':
     unittest.main()

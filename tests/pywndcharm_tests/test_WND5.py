@@ -33,7 +33,7 @@ wndchrm_test_dir = join( dirname( pychrm_test_dir ), 'wndchrm_tests' )
 test_dir = wndchrm_test_dir
 
 from wndcharm.FeatureSet import FeatureSpace, FisherFeatureWeights,\
-        DiscreteImageClassificationResult, FeatureVector
+        SingleSampleClassification, FeatureVector
 
 class TestWND5Classification( unittest.TestCase ):
 	"""WND5 Classification"""
@@ -80,7 +80,7 @@ class TestWND5Classification( unittest.TestCase ):
 			weights = all_weights.Threshold( num_feats )
 			feat_set = feature_set.FeatureReduce( weights )
 			sample = test_sample.FeatureReduce( weights )
-			result = DiscreteImageClassificationResult.NewWND5( feat_set, weights, sample )
+			result = SingleSampleClassification.NewWND5( feat_set, weights, sample )
 			result_marg_probs = [ round( val, 3 ) \
 					for val in result.marginal_probabilities ]
 			for target_val, res_val in zip( correct_marg_probs[ num_feats ], result_marg_probs ):

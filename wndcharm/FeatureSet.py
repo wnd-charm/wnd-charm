@@ -314,6 +314,9 @@ class FeatureWeights( object ):
 			self.values = None
 
 	#================================================================
+	def __len__( self ):
+		return len( self.featurenames_list )
+	#================================================================
 	@classmethod
 	def NewFromFile( cls, weights_filepath ):
 		"""Load feature weights from a C++ WND-CHARM-sytle feature weights text file,
@@ -559,11 +562,10 @@ class FisherFeatureWeights( FeatureWeights ):
 			print "{0}\t{1:.6f}\t{2}".format( i, val, name )
 		print ""
 
-
 #############################################################################
-# class definition of ContinuousFeatureWeights
+# class definition of PearsonFeatureWeights
 #############################################################################
-class ContinuousFeatureWeights( FeatureWeights ):
+class PearsonFeatureWeights( FeatureWeights ):
 	"""A concrete class that calculates correlation coefficients as well as 
 	regression parameters for each feature. Features are weighted based on how well
 	they linearly correlate (i.e., high Pearson correlation coefficient) with an experimental 
@@ -574,7 +576,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 	
 	def __init__( self, name=None, size=None ):
 		"""Constructor"""
-		super( ContinuousFeatureWeights, self ).__init__( name=name, size=size )
+		super( PearsonFeatureWeights, self ).__init__( name=name, size=size )
 		if size is not None:
 			self.slopes = [None] * size
 			self.intercepts = [None] * size
@@ -664,7 +666,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 	#================================================================
 	def Threshold( self, num_features_to_be_used=None, _all=False, use_spearman=False,
                  min_corr_coeff=None ):
-		"""Returns a new instance of a ContinuousFeatureWeights class derived from this
+		"""Returns a new instance of a PearsonFeatureWeights class derived from this
 		instance where the number of features has been reduced to only the top n features,
 		where n is specified by the num_features_to_be_used argument.
 
@@ -747,7 +749,7 @@ class ContinuousFeatureWeights( FeatureWeights ):
 
 	#================================================================
 	def Slice( self, start_index, stop_index ):
-		"""Return a new instance of ContinuousFeatureWeights populated with a
+		"""Return a new instance of PearsonFeatureWeights populated with a
 		chunk of middle-ranked features specified by arguments start_index and stop_index."""
 		
 		min_index = None
@@ -772,8 +774,8 @@ class ContinuousFeatureWeights( FeatureWeights ):
 		    self.slopes, self.intercepts, self.pearson_stderrs, self.pearson_p_values, \
 		    self.spearman_coeffs, self.spearman_p_values )
 
-		use_these_feature_weights = \
-				list( itertools.islice( raw_featureweights, min_index, max_index ) )
+		from itertools import islice
+		use_these_feature_weights = list( islice( raw_featureweights, min_index, max_index ) )
 		
 		new_weights.featurenames_list, abs_pearson_coeffs, new_weights.pearson_coeffs, new_weights.slopes, \
 		    new_weights.intercepts, new_weights.pearson_stderrs, new_weights.pearson_p_values,\
@@ -1555,8 +1557,6 @@ class FeatureSpace( object ):
 		#: The minor version must match also if it is one of the standard feature vectors (i.e. non-0)
 		self.feature_set_version = feature_set_version
 
-		#: A string keep track of all the options (-l -S###, -t etc)
-		#: FIXME: expand to have all options kept track of individually
 		self.feature_options = None
 		self.tile_rows = None
 		self.tile_cols = None
@@ -2707,7 +2707,8 @@ class FeatureSpace( object ):
 		return self.Derive( **newdata )
 
 	#==============================================================
-	def SampleReduce( self, leave_in_samplegroupid_list=None, leave_out_samplegroupid_list=None ):
+	def SampleReduce( self, leave_in_samplegroupid_list=None, leave_out_samplegroupid_list=None,
+		inplace=False):
 		"""Returns a new FeatureSpace that contains a subset of the data by dropping
 		samples (rows), and/or rearranging rows.
 
@@ -2869,25 +2870,11 @@ class FeatureSpace( object ):
 		newdata[ '_contiguous_samplesequenceid_list' ] = _contiguous_samplesequenceid_list
 		newdata[ '_contiguous_ground_truths' ] = _contiguous_ground_truths
 		newdata[ '_contiguous_samplegroupid_list' ] = _contiguous_samplegroupid_list
+
+		if inplace:
+			return self.Update( **newdata )
 		return self.Derive( **newdata )
 
-	#==============================================================
-	def RemoveClass( self, class_index ):
-		"""Virtual method."""
-		raise NotImplementedError()
-
-	#==============================================================
-	def ScrambleGroundTruths( self ):
-		"""Virtual method. Produce an instant negative control training set"""
-		raise NotImplementedError()
-	#==============================================================
-	def NewFromSQLite( self ):
-		"""Virtual method."""
-		raise NotImplementedError()
-	#==============================================================
-	def NewFromHDF5( self ):
-		"""Virtual method."""
-		raise NotImplementedError()
 	#==============================================================
 	def Split( self, train_size=None, test_size=None, random_state=True,
 					balanced_classes=True, quiet=False ):
@@ -3047,17 +3034,18 @@ class FeatureSpace( object ):
 			if not any( test_groups ):
 				training_set_only = True
 
-		training_set = self.SampleReduce( train_groups )
+		training_set = self.SampleReduce( train_groups, inplace=False )
 		if not quiet:
 			training_set.Print()
 		if training_set_only:
 			return training_set
 
-		test_set = self.SampleReduce( test_groups )
+		test_set = self.SampleReduce( test_groups, inplace=False )
 		if not quiet:
 			test_set.Print()
 		return training_set, test_set
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 
 <<<<<<< HEAD
@@ -3504,36 +3492,44 @@ class ClassificationResult( object ):
 	def GenerateHTML( self ):
 		"""Virtual method"""
 		raise NotImplementedError
+=======
+	#==============================================================
+	def RemoveClass( self, class_index ):
+		"""For a future relase."""
+		raise NotImplementedError()
+	#==============================================================
+	def ScrambleGroundTruths( self ):
+		"""For a future release. Produce an instant negative control training set"""
+		raise NotImplementedError()
+>>>>>>> API simplification/name changes; all unittests pass
 
+# END FeatureSpace class definition
 
 #=================================================================================
-class ImageClassificationResult( ClassificationResult ):
-	"""Abstract base class that is meant to contain the information from a single
-	classification of a single image/ROI."""
+class SingleSamplePrediction( object ):
+	"""Base class to contain prediction results for a single image/ROI (a.k.a "sample"),
+	which includes predicted class, marginal probabilities, etc."""
 
 	def __init__( self ):
+		"""Constructor"""
+
 		self.name = None
 		self.source_filepath = None
 		self.ground_truth_value = None
 		self.predicted_value = None
 		self.batch_number = None
 
-		#: For the future: a member to indicate the position of the ROI within an image
+		#: Indicates the position of the ROI within an image
 		self.tile_index = None
 
-	@output_railroad_switch
-	def Print():
-		raise NotImplementedError
-
-
 #=================================================================================
-class DiscreteImageClassificationResult( ImageClassificationResult ):
-	"""Concrete class that contains the result of a classification for a single image/ROI.
+class SingleSampleClassification( SingleSamplePrediction ):
+	"""Classification result for a single image/ROI (a.k.a "sample"),
 	which includes predicted class, marginal probabilities, etc."""
 
 	def __init__( self ):
 		"""Constructor"""
-		super( DiscreteImageClassificationResult, self ).__init__()
+		super( SingleSampleClassification, self ).__init__()
 
 		self.marginal_probabilities = []
 		self.normalization_factor = None
@@ -3621,17 +3617,16 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 	def _WND5( cls, trainingset, testimg, feature_weights ):
 		"""
 		Don't call this function directly, use the wrapper functions 
-		DiscreteBatchClassificationResult.New()  (for test sets) or
-		DiscreteImageClassificationResult.NewWND5() (for single images)
+		FeatureSpaceClassification.New() (for FeatureSets) or
+		SingleSampleClassification.NewWND5() (for single images/ROIs).
 		Both of these functions have dummyproofing.
 
-		If you're using this function, your training set data is not continuous
-		for N images and M features:
+		For N images and M features:
 			trainingset is list of length L of N x M numpy matrices
 			testtile is a 1 x M list of feature values
 		NOTE: the trainingset and test image must have the same number of features!!!
 		AND: the features must be in the same order!!
-		Returns an instance of the class DiscreteImageClassificationResult
+		Returns an instance of the class SingleSampleClassification
 		"""
 
 		#print "classifying..."
@@ -3690,7 +3685,7 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 	@classmethod
 	def NewWND5( cls, training_set, feature_weights, test_samp, quiet = False ):
 		"""@brief: A wrapper function for _ClassifyOneImageWND5 that does dummyproofing
-		@return: An instance of a DiscreteBatchClassificationResult"""
+		@return: An instance of a FeatureSpaceClassification"""
 
 		if not isinstance( training_set, FeatureSpace ):
 			raise ValueError( 'First argument to NewWND5 must be of type "FeatureSpace", you gave a {0}'.format( type( training_set ).__name__ ) )
@@ -3735,15 +3730,13 @@ class DiscreteImageClassificationResult( ImageClassificationResult ):
 		return result
 
 #=================================================================================
-class ContinuousImageClassificationResult( ImageClassificationResult ):
-	"""Concrete class that contains the result of a classification for a single image/ROI.
-	The primary result is a predicted value for the given image based on the regression
-	parameters obtained when generating a continuous classifier."""
+class SingleSampleRegression( SingleSamplePrediction ):
+	"""Predicted value result of a regression of a single image/ROI (a.k.a. "sample")."""
 
 	#==============================================================
 	def __init__( self ):
 		"""Constructor"""
-		super( ContinuousImageClassificationResult, self ).__init__()
+		super( SingleSampleRegression, self ).__init__()
 
 	#==============================================================
 	@output_railroad_switch
@@ -3769,12 +3762,12 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 
 	#==============================================================
 	@classmethod
-	def _LinearRegression( cls, one_image_features, feature_weights ):
+	def _MultivariateLinear( cls, one_image_features, feature_weights ):
 		"""Produce a predicted value for a single image based on the regression parameters
-		contained in the ContinuousFeatureWeights argument "feature_weights".
+		contained in the PearsonFeatureWeights argument "feature_weights".
 		
 		Don't call this function directly, but instead use the member function
-		New() on the ContinuousBatchClassificationResult class which has dummyproofing."""
+		New() on the FeatureSpaceRegression class which has dummyproofing."""
 
 		per_feature_predicted_vals = []
 
@@ -3796,11 +3789,11 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 
 	#==============================================================
 	@classmethod
-	def _LeastSquaresRegression( cls, one_image_features, training_set ):
+	def _LeastSquares( cls, one_image_features, training_set ):
 		"""Produce a predicted value for a single image based on numpy.linalg.lstsq().
 		
 		Don't call this function directly, but instead use the member function
-		NewLeastSquaresRegression() on the ContinuousBatchClassificationResult class
+		NewLeastSquares() on the FeatureSpaceRegression class
 		which has dummyproofing and performs the necessary matrix augmentation."""
 
 		from numpy.linalg import lstsq
@@ -3813,18 +3806,17 @@ class ContinuousImageClassificationResult( ImageClassificationResult ):
 		return result
 
 #=================================================================================
-class BatchClassificationResult( ClassificationResult ):
-	"""An abstract base class which serves as container for individual 
-	ImageClassificationResult instances.
+class FeatureSpacePrediction( object ):
+	"""Base class container for individual SingleSamplePrediction instances.
+	Use for generating predicted values for a FeatureSpace all at once.
 	
-	The equivalent concept to a BatchClassificationResult in the C++ implementation
-	of WND-CHARM is the split, i.e., command line arg of -n10 would generate 10 
-	train/test splits."""
+	The equivalent concept in the C++ implementation is the "split,"
+	i.e., command line arg of -n10 would generate 10 train/test splits."""
 
 	#==============================================================
 	def __init__( self, training_set=None, test_set=None, feature_weights=None, name=None,
 		batch_number=None ):
-		"""BatchClassificationResult constructor"""
+		"""FeatureSpacePrediction constructor"""
 
 		self.training_set = training_set
 		self.test_set = test_set
@@ -3869,13 +3861,8 @@ class BatchClassificationResult( ClassificationResult ):
 
 	#==============================================================
 	def GenerateStats( self ):
-		"""Base method that's called by daughter classes.
-		
-		If this BatchClassificationResult contains ImageClassificationResults that
-		has known ground truth as well as predicted values, this method will calculate
-		statistics describing how well predicted values correlate with ground truth.
-
-		Requires scipy.stats package to be installed"""
+		"""Base method; Calculates statistics describing how well predicted values
+		in self.individual_results correlate with their ground truth values."""
 		#FIXME: Calculate p-value of our standard error figure of merit.
 
 		if len( self.individual_results ) == 0:
@@ -3916,15 +3903,8 @@ class BatchClassificationResult( ClassificationResult ):
 
 	#==============================================================
 	def NewNFold( self, num_folds=5, *args, **kwargs ):
-		"""Base method that's called by daughter classes.
-		
-		If this BatchClassificationResult contains ImageClassificationResults that
-		has known ground truth as well as predicted values, this method will calculate
-		statistics describing how well predicted values correlate with ground truth.
-
-		Requires scipy.stats package to be installed"""
-		raise NotImplementedError
-
+		"""Base method, implemented in daughter classes."""
+		raise NotImplementedError()
 
 	#==============================================================
 	def RankOrderSort( self ):
@@ -3945,28 +3925,17 @@ class BatchClassificationResult( ClassificationResult ):
 		value_pairs = zip( self.ground_truth_values, self.predicted_values )
 
 		# sort by ground_truth value first, predicted value second
-		sort_func = lambda A, B: cmp( A[0], B[0] ) if A[0] != B[0] else cmp( A[1], B[1] ) 
-
-		sorted_pairs = sorted( value_pairs, sort_func )
+		sorted_pairs = sorted( sorted( value_pairs, key=lambda x: x[0] ), key=lambda x: x[1] )
 		
 		# we want lists, not tuples!
 		self.ground_truth_values, self.predicted_values =\
-			[ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_pairs ) ]	
-
-	#==============================================================
-	def PickleMe( self ):
-		"""Not Implemented"""
-		raise NotImplementedError
-	def NewFromPickleFile( self ):
-		"""Not Implemented"""
-		raise NotImplementedError
-
+			[ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_pairs ) ]
 
 #=================================================================================
-class DiscreteBatchClassificationResult( BatchClassificationResult ):
-	"""Concrete class that is a container for DiscreteImageClassificationResult instances.
-	Use this class to run classification experiments and to generate statistics on their results.
-	For discrete (Fisher) classifiers, the figure_of_merit is classification accuracy."""
+class FeatureSpaceClassification( FeatureSpacePrediction ):
+	"""Container for SingleSampleClassification instances.
+	Use for classifying all samples in a FeatureSpace in one sitting.
+	Member "figure_of_merit" is classification accuracy."""
 
 	#: batch_count class attribute
 	batch_count = 0
@@ -3976,7 +3945,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		"""Possible kwargs, with defaults:
 		training_set=None, test_set=None, feature_weights=None, name=None, batch_number=None"""
 
-		super( DiscreteBatchClassificationResult, self ).__init__( *args, **kwargs )
+		super( FeatureSpaceClassification, self ).__init__( *args, **kwargs )
 
 		self.num_correct_classifications = None
 		self.classification_accuracy = None
@@ -3994,7 +3963,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 		# Run a standard error analysis if ground_truth/predicted vals exist (call base method ):
 		# This also sets self.num_classifications
-		super( DiscreteBatchClassificationResult, self ).GenerateStats()
+		super( FeatureSpaceClassification, self ).GenerateStats()
 
 		num_classes = self.training_set.num_classes
 
@@ -4098,7 +4067,6 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 			print "Pearson Coefficient: {0:0.4f}".format( self.pearson_coeff )
 		if self.spearman_coeff is not None:
 			print "Spearman Coefficient: {0:0.4f}".format( self.spearman_coeff )
-
 		print ""
 
 		# Remember: iterate over the sorted list of class names, not the keys in the dict,
@@ -4222,18 +4190,16 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 			for col in range( self.test_set.num_classes ):
 				line += '{0:0.4f}\t'.format( output_matrix[ row, col ] )
 			print line
-		#print ""
-
 
 	#==============================================================
 	@classmethod
 	@output_railroad_switch
-	def New( cls, training_set, test_set, feature_weights, batch_number=None,
+	def NewWND5( cls, training_set, test_set, feature_weights, batch_number=None,
 					batch_name=None, quiet=False, norm_factor_threshold=None):
 		"""The equivalent of the "wndcharm classify" command in the command line implementation
 		of WND-CHARM. Input a training set, a test set, and feature weights, and returns a
-		new instance of a DiscreteBatchClassificationResult, with self.individual_results
-		filled with a new instances of DiscreteImageClassificationResult.
+		new instance of a FeatureSpaceClassification, with self.individual_results
+		filled with a new instances of SingleSampleClassification.
 
 		FIXME: What happens when the ground truth is not known? Currently they would all be shoved
 		into class 1, might not be a big deal since class name should be something
@@ -4281,8 +4247,8 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 		# Give myself a number so that it looks good when I print out results
 		if not batch_number:
-			batch_number = DiscreteBatchClassificationResult.batch_count
-			DiscreteBatchClassificationResult.batch_count += 1
+			batch_number = FeatureSpaceClassification.batch_count
+			FeatureSpaceClassification.batch_count += 1
 		batch_result.batch_number = batch_number
 
 		# Will there be a numeric predicted value associated with this classification?
@@ -4306,7 +4272,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 
 			for test_image_index in range( num_class_imgs ):
 				one_image_features = test_set.data_list[ test_class_index ][ test_image_index,: ]
-				result = DiscreteImageClassificationResult._WND5( training_set, one_image_features, feature_weights.values )
+				result = SingleSampleClassification._WND5( training_set, one_image_features, feature_weights.values )
 				
 				if norm_factor_threshold and (result.normalization_factor > norm_factor_threshold):
 					continue
@@ -4347,7 +4313,7 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 				if test_set.num_samples_per_group > 1:
 					tile_results_in_this_sample_group.append( result )
 					if len( tile_results_in_this_sample_group ) >= test_set.num_samples_per_group:
-						aggregated_result = DiscreteImageClassificationResult()
+						aggregated_result = SingleSampleClassification()
 						# Use the last result from above
 						aggregated_result.source_filepath = result.source_filepath
 						aggregated_result.tile_index = 'AVG'
@@ -4394,11 +4360,10 @@ class DiscreteBatchClassificationResult( BatchClassificationResult ):
 		return batch_result
 
 #=================================================================================
-class ContinuousBatchClassificationResult( BatchClassificationResult ):
-	"""Concrete class that is a container for ContinuousImageClassificationResult instances.
-	Use this class to run classification experiments and to generate statistics on their results.
-	For continuous (Pearson) classifiers, the figure_of_merit is the standard error between
-	predicted and ground truth."""
+class FeatureSpaceRegression( FeatureSpacePrediction ):
+	"""Container for SingleSampleRegression instances.
+	Use for regressing all samples in a FeatureSpace in one sitting.
+	Member "figure_of_merit" represents standard error between predicted and ground truth."""
 
 	#: batch_count class attribute
 	batch_count = 0
@@ -4407,21 +4372,21 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		"""Possible kwargs, with defaults:
 		training_set=None, test_set=None, feature_weights=None, name=None, batch_number=None"""
 
-		super( ContinuousBatchClassificationResult, self ).__init__( *args, **kwargs )
+		super( FeatureSpaceRegression, self ).__init__( *args, **kwargs )
 		self.predicted_values = []
 
 	#=====================================================================
 	def GenerateStats( self ):
 		"""Calls base class method to run a standard error analysis if ground_truth/
 		predicted vals exist."""
-		super( ContinuousBatchClassificationResult, self ).GenerateStats()
+		super( FeatureSpaceRegression, self ).GenerateStats()
 		return self
 
 	#=====================================================================
 	@output_railroad_switch
 	def Print( self ):
 		"""Calculates and outputs batch-level statistics based on the
-		ContinuousImageClassificationResults contained in self.individualresults."""
+		SingleSampleRegressions contained in self.individualresults."""
 		if self.figure_of_merit == None:
 			self.GenerateStats()
 
@@ -4434,14 +4399,14 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 
 	#=====================================================================
 	@classmethod
-	def New( cls, test_set, feature_weights, quiet=False, batch_number=None, batch_name=None):
-		"""Uses Pearson-coefficient weighted Regression-Voting classifier."""
+	def NewMultivariateLinear( cls, test_set, feature_weights, quiet=False, batch_number=None, batch_name=None):
+		"""Uses Pearson-coefficient weighted Multivatiate Linear classifier."""
 
 		# type checking
 		if not isinstance( test_set, FeatureSpace ):
 			raise ValueError( 'First argument to New must be of type "FeatureSpace", you gave a {0}'.format( type( test_set ).__name__ ) )	
-		if not isinstance( feature_weights, ContinuousFeatureWeights ):
-			raise ValueError( 'Second argument to New must be of type "ContinuousFeatureWeights", you gave a {0}'.format( type( feature_weights ).__name__ ) )
+		if not isinstance( feature_weights, PearsonFeatureWeights ):
+			raise ValueError( 'Second argument to New must be of type "PearsonFeatureWeights", you gave a {0}'.format( type( feature_weights ).__name__ ) )
 
 		# feature comparison
 		if test_set.featurenames_list != feature_weights.featurenames_list:
@@ -4450,11 +4415,9 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		# say what we're gonna do
 		if not quiet:
 			out_str = 'Classifying test set "{0}" ({1} images, {2} features)\n\tagainst training set "{3}" ({4} images)'
-			print out_str.format( test_set.name, \
-			                      test_set.num_samples, \
-			                      len( test_set.featurenames_list ), \
-			                      feature_weights.associated_training_set.name, \
-			                      feature_weights.associated_training_set.num_samples )
+			print out_str.format( test_set.name, test_set.num_samples, \
+			  len( test_set.featurenames_list ), feature_weights.associated_training_set.name, \
+			  feature_weights.associated_training_set.num_samples )
 
 		if not quiet:
 			column_header = "image\tground truth\tpred. val."
@@ -4468,7 +4431,7 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 
 		for test_image_index in range( test_set.num_samples ):
 			one_image_features = test_set.data_matrix[ test_image_index,: ]
-			result = ContinuousImageClassificationResult._LinearRegression( one_image_features, feature_weights )
+			result = SingleSampleRegression._MultivariateLinear( one_image_features, feature_weights )
 			result.batch_number = batch_number
 			result.name = batch_name
 			result.source_filepath = test_set.samplenames_list[ test_image_index ]
@@ -4484,7 +4447,7 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 
 	#=====================================================================
 	@classmethod
-	def NewLeastSquaresRegression( cls, training_set, test_set, feature_weights,
+	def NewLeastSquares( cls, training_set, test_set, feature_weights,
 					leave_one_out=False, quiet=False, batch_number=None, batch_name=None):
 		"""Uses Linear Least Squares Regression classifier in a feature space filtered/weighed
 		by Pearson coefficients.
@@ -4498,12 +4461,12 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		# Type checking
 		# First arg must be a FeatureSpace
 		if not isinstance( training_set, FeatureSpace ):
-			raise ValueError( 'First argument to NewLeastSquaresRegression must be of type "FeatureSpace", you gave a {0}'.format( type( test_set ).__name__ ) )
+			raise ValueError( 'First argument to NewLeastSquares must be of type "FeatureSpace", you gave a {0}'.format( type( test_set ).__name__ ) )
 		# Second arg must be a FeatureSpace or a None
 		if (not isinstance( test_set, FeatureSpace )) and (test_set is not None):
-			raise ValueError( 'Second argument to NewLeastSquaresRegression must be of type "FeatureSpace" or None, you gave a {0}'.format( type( test_set ).__name__ ) )
-		if not isinstance( feature_weights, ContinuousFeatureWeights ):
-			raise ValueError( 'Third argument to New must be of type "ContinuousFeatureWeights", you gave a {0}'.format( type( feature_weights ).__name__ ) )
+			raise ValueError( 'Second argument to NewLeastSquares must be of type "FeatureSpace" or None, you gave a {0}'.format( type( test_set ).__name__ ) )
+		if not isinstance( feature_weights, PearsonFeatureWeights ):
+			raise ValueError( 'Third argument to New must be of type "PearsonFeatureWeights", you gave a {0}'.format( type( feature_weights ).__name__ ) )
 
 		# If there's both a training_set and a test_set, they both have to have the same features
 		if training_set and test_set:
@@ -4580,7 +4543,7 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 				intermediate_train_set = augmented_train_set.SampleReduce(\
 						leave_out_samplegroupid_list = sample_group_id,)
 			one_image_features = augmented_test_set.data_matrix[ test_image_index,: ]
-			result = ContinuousImageClassificationResult._LeastSquaresRegression( \
+			result = SingleSampleRegression._LeastSquares( \
 			               one_image_features, intermediate_train_set )
 			result.batch_number = batch_number
 			result.name = batch_name
@@ -4599,18 +4562,16 @@ class ContinuousBatchClassificationResult( BatchClassificationResult ):
 		return batch_result
 
 #============================================================================
-class ClassificationExperimentResult( BatchClassificationResult ):
-	"""Abstract base class which serves as a container for BatchClassificationResult instances
-	and their associated statistics.
-	
-	N.B. This is a container for batches, not for individual results, i.e.,
-	the list self.individual_results contains instances of type BatchClassificationResult."""
+class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
+	"""Base class container for FeatureSpacePrediction instances,
+	i.e., when classifying/regressing a FeatureSpace multiple times, as in train/test splits.
+	Methods here aggregate results and calculate statistics across splits."""
 
 	def __init__( self, *args, **kwargs ):
 		"""Possible kwargs, with defaults:
 		training_set=None, test_set=None, feature_weights=None, name=None, batch_number=None"""
 
-		super( ClassificationExperimentResult, self ).__init__( *args, **kwargs )
+		super( FeatureSpacePredictionExperiment, self ).__init__( *args, **kwargs )
 
 		#: A dictionary where the name is the key, and the value is a list of individual results
 		self.accumulated_individual_results = None
@@ -4640,7 +4601,7 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 		# Simple result aggregation.
 		# Calls GenerateStats() on the individual batches if the 
 		# ground truth->predicted value pairs haven't been scraped
-		# from the batch's list of individual ImageClassificationResults.
+		# from the batch's list of individual ImageClassifications.
 		from itertools import chain
 
 		lists_of_ground_truths = []
@@ -4800,22 +4761,23 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 				  FisherFeatureWeights.NewFromFeatureSpace( train_set ).Threshold( num_features )
 			else:	
 				weights = \
-				  ContinuousFeatureWeights.NewFromFeatureSpace( train_set ).Threshold( num_features )
+				  PearsonFeatureWeights.NewFromFeatureSpace( train_set ).Threshold( num_features )
 
-			weights.Print()
+			if not quiet:
+				weights.Print()
 			reduced_train_set = train_set.FeatureReduce( weights )
 			reduced_test_set = test_set.FeatureReduce( weights )
 			reduced_test_set.Normalize( reduced_train_set, quiet=quiet )
 
 			if feature_set.discrete:
-				batch_result = DiscreteBatchClassificationResult.New( reduced_train_set, \
+				batch_result = FeatureSpaceClassification.NewWND5( reduced_train_set, \
 		         reduced_test_set, weights, batch_number=split_index, quiet=quiet )
 			else:
-				if classifier == 'voting':
-					batch_result = ContinuousBatchClassificationResult.New(
+				if classifier == 'linear':
+					batch_result = FeatureSpaceRegression.NewMultivariateLinear(
 							reduced_train_set, weights, batch_number=split_index, quiet=quiet )
 				else: # default classifier == 'lstsq':
-					batch_result = ContinuousBatchClassificationResult.NewLeastSquaresRegression(
+					batch_result = FeatureSpaceRegression.NewLeastSquares(
 						reduced_train_set, reduced_test_set, weights, batch_number=split_index, quiet=quiet )
 
 			experiment.individual_results.append( batch_result )
@@ -4823,18 +4785,22 @@ class ClassificationExperimentResult( BatchClassificationResult ):
 		return experiment
 
 #============================================================================
-class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
-	"""Concrete class which serves as a container for DiscreteBatchClassificationResults
-	and their associated statistics. The information contained here comprises everything
-	that would appear in a HTML file generated by the C++ implementation of WND-CHARM.
+class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
+	"""Container for FeatureSpaceClassifications instances,
+	i.e., when classifying a FeatureSpace multiple times, as in train/test splits.
+	Methods here aggregate results and calculate statistics across splits.
 
-	In this subclass, the figure of merit is self.classification_accuracy"""
+	The information contained here comprises everything that would appear in an
+	HTML file generated by the C++ implementation of WND-CHARM.
+
+	Member "self.figure_of_merit" represents the mean classification accuracy across
+	all FeatureSpaceClassification instances in "self.individual_results"."""
 
 	def __init__( self, *args, **kwargs ):
 		"""Possible kwargs, with defaults:
 		training_set=None, test_set=None, feature_weights=None, name=None, batch_number=None"""
 
-		super( DiscreteClassificationExperimentResult, self ).__init__( *args, **kwargs )
+		super( FeatureSpaceClassificationExperiment, self ).__init__( *args, **kwargs )
 
 		self.num_correct_classifications = None
 
@@ -4848,7 +4814,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 		average class probability matrices from constituent batches."""
 
 		# Base class does feature weight analysis, ground truth-pred. value aggregation
-		super( DiscreteClassificationExperimentResult, self ).GenerateStats()
+		super( FeatureSpaceClassificationExperiment, self ).GenerateStats()
 		
 		self.num_classifications = 0
 		self.num_correct_classifications = 0
@@ -4981,8 +4947,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 					if not _test_set:
 						_test_set = _training_set
 					insidesplit = True
-					split = DiscreteBatchClassificationResult( 
-					                                   training_set=_training_set, test_set=_test_set )
+					split = FeatureSpaceClassification( training_set=_training_set, test_set=_test_set )
 					split.predicted_values = []
 					split.ground_truth_values = []
 					splitcount += 1
@@ -5001,7 +4966,7 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 						continue
 					noends = line.strip( '<trd/>\n' ) # take the tr and td tags off front end
 					values = noends.split( '</td><td>' )
-					result = DiscreteImageClassificationResult()
+					result = SingleSampleClassification()
 
 					result.normalization_factor = float( values[ normalization_col ] )
 					result.marginal_probabilities = \
@@ -5032,9 +4997,9 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 	#=====================================================================
 	@output_railroad_switch
 	def PerSampleStatistics( self ):
-		"""This function is meant to elucidate the amount of variability of classifications 
-		across batches. ImageClassificationResult imformation is aggregated for each individual
-		image/ROI encountered, and statistics are generated for each image/ROI and printed out."""
+		"""Characterizes variability of regressed predicted values across batches.
+		SingleSamplePrediction info is aggregated for each individual sample,
+		statistics calculated and printed out."""
 
 		if self.individual_results == 0:
 			raise ValueError( 'No batch results to analyze' )
@@ -5101,23 +5066,20 @@ class DiscreteClassificationExperimentResult( ClassificationExperimentResult ):
 			marg_probs = [ "{0:0.3f}".format( num ) for num in self.individual_stats[ samplename ][2] ]
 			print outstr.format( self.individual_stats[ samplename ][0], self.individual_stats[ samplename ][1], mp_delim.join( marg_probs ) )
 
-
 		# If 2 or 3 class problem, plot individuals in marginal probability space
-
-
-
-# END class definition for DiscreteClassificationExperimentResult
+# END class definition for FeatureSpaceClassificationExperiment
 
 #============================================================================
-class ContinuousClassificationExperimentResult( ClassificationExperimentResult ):
-	"""Concrete class which serves as a container for ContinuousBatchClassificationResult instances
-	and their associated statistics. The information contained here comprises everything
-	that would appear in a HTML file generated by the C++ implementation of WND-CHARM.
+class FeatureSpaceRegressionExperiment( FeatureSpacePredictionExperiment ):
+	"""Container for FeatureSpaceRegression instances,
+	i.e., when regressing a FeatureSpace multiple times, as in train/test splits.
+	Methods here aggregate results and calculate statistics across splits.
 
-	In this subclass, the figure of merit is the average standard error arcoss batches."""
+	Member "self.figure_of_merit" represents the mean Standard Error across
+	FeatureSpaceRegression instances in "self.individual_results"."""
 
 	def __init__( self, *args, **kwargs):
-		super( ContinuousClassificationExperimentResult, self ).__init__( *args, **kwargs )
+		super( FeatureSpaceRegressionExperiment, self ).__init__( *args, **kwargs )
 
 	#=====================================================================
 	def GenerateStats( self ):
@@ -5127,7 +5089,7 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 		Requires scipy.stats package to be installed"""
 
 		# Base class does feature weight analysis, ground truth-pred. value aggregation
-		super( ContinuousClassificationExperimentResult, self ).GenerateStats()
+		super( FeatureSpaceRegressionExperiment, self ).GenerateStats()
 	
 		gt = np.array( self.ground_truth_values )
 		pv = np.array( self.predicted_values )
@@ -5183,9 +5145,9 @@ class ContinuousClassificationExperimentResult( ClassificationExperimentResult )
 	#=====================================================================
 	@output_railroad_switch
 	def PerSampleStatistics( self ):
-		"""This function is meant to elucidate the amount of variability of classifications
-		across batches. ImageClassificationResult imformation is aggregated for each individual
-		image/ROI encountered, and statistics are generated for each image/ROI and printed out."""
+		"""Characterizes variability of classifications across batches.
+		SingleSamplePrediction info is aggregated for each individual sample,
+		statistics calculated and printed out."""
 
 		if self.individual_results == 0:
 			raise ValueError( 'No batch results to analyze' )
@@ -5258,11 +5220,11 @@ class BaseGraph( object ):
 #============================================================================
 class PredictedValuesGraph( BaseGraph ):
 	"""This is a concrete class that can produce two types of graphs that are produced
-	from ImageClassificationResult data stored in a BatchClassificationResult."""
+	from SingleSamplePrediction data stored in a FeatureSpacePrediction."""
 
 	#=================================================================
 	def __init__( self, result, name=None ):
-		"""Constructor sorts ground truth values contained in BatchClassificationResult
+		"""Constructor sorts ground truth values contained in FeatureSpacePredictionResult
 		and loads them into self.grouped_coords"""
 
 		self.batch_result = result
@@ -5298,7 +5260,7 @@ class PredictedValuesGraph( BaseGraph ):
 		"""Helper function to facilitate the fast generation of graphs from C++-generated
 		HTML Report files."""
 
-		exp = DiscreteClassificationExperimentResult.NewFromHTMLReport( filepath )
+		exp = FeatureSpaceClassificationExperiment.NewFromHTMLReport( filepath )
 		exp.GenerateStats()
 		exp.PredictedValueAnalysis()
 		newgraphobj = cls( exp )
@@ -5404,7 +5366,7 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 		import time
 		timings = []
 	
-		experiment = DiscreteClassificationExperimentResult( training_set, training_set, feature_weights)
+		experiment = FeatureSpaceClassificationExperiment( training_set, training_set, feature_weights)
 		for number_of_features_to_use in range( 1, max_num_features + 1 ):
 
 			reduced_ts = None
@@ -5419,7 +5381,7 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 				reduced_ts = training_set.FeatureReduce( reduced_fw )
 				sig.Normalize( reduced_ts )
 		
-				result = DiscreteImageClassificationResult.NewWND5( reduced_ts, reduced_fw, sig )
+				result = SingleSampleClassificationResult.NewWND5( reduced_ts, reduced_fw, sig )
 				result.Print()
 				# FIXME: save intermediates just in case of interruption or parallization
 				# result.PickleMe()
@@ -5429,7 +5391,7 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
 			timings.append( min( three_timings ) )
 
 			# now, do a fit-on-fit test to measure classification accuracy
-			batch_result = DiscreteBatchClassificationResult.New( reduced_ts, reduced_ts, reduced_fw )
+			batch_result = FeatureSpaceClassificationResult.New( reduced_ts, reduced_ts, reduced_fw )
 			batch_result.Print()
 			experiment.individual_results.append( batch_result )
 
@@ -5473,8 +5435,8 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
 
 	def __init__( self, training_set, feature_weights, chart_title=None, min_num_features=1, max_num_features=None, step=5, y_min=None, y_max=None, quiet=False):
 
-		ls_experiment = ContinuousClassificationExperimentResult( training_set, training_set, feature_weights, name="Least Squares Regression Method")
-		voting_experiment = ContinuousClassificationExperimentResult( training_set, training_set, feature_weights, name="Voting Method")
+		ls_experiment = FeatureSpaceRegressionExperiment( training_set, training_set, feature_weights, name="Least Squares Regression Method")
+		voting_experiment = FeatureSpaceRegressionExperiment( training_set, training_set, feature_weights, name="Voting Method")
 		if max_num_features is None:
 			max_num_features = len( feature_weights )
 
@@ -5486,14 +5448,14 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
 			if not quiet:
 				reduced_fw.Print()
 
-			ls_batch_result = ContinuousBatchClassificationResult.NewLeastSquaresRegression( reduced_ts, None, reduced_fw, batch_number=number_of_features_to_use, quiet=my_quiet )
+			ls_batch_result = FeatureSpaceRegressionResult.NewLeastSquares( reduced_ts, None, reduced_fw, batch_number=number_of_features_to_use, quiet=my_quiet )
 			if not quiet:
 				ls_batch_result.Print()
 			ls_experiment.individual_results.append( ls_batch_result )
 
-			voting_batch_result = ContinuousBatchClassificationResult.New( reduced_ts, reduced_fw, batch_number=number_of_features_to_use )
-                        if not quiet:
-			    voting_batch_result.Print()
+			voting_batch_result = FeatureSpaceRegressionResult.NewMultivariateLinear( reduced_ts, reduced_fw, batch_number=number_of_features_to_use )
+			if not quiet:
+				voting_batch_result.Print()
 			voting_experiment.individual_results.append( voting_batch_result )
 
 		import matplotlib
