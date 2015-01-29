@@ -1,7 +1,7 @@
-""" module for Pychrm intermediates.
+"""
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                                                
- Copyright (C) 2012 National Institutes of Health 
+ Copyright (C) 2015 National Institutes of Health 
 
     This library is free software; you can redistribute it and/or              
     modify it under the terms of the GNU Lesser General Public                 
@@ -20,8 +20,9 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                                                
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- Written by:  Christopher Coletta <christopher.coletta [at] nih [dot] gov>
+ Written by:  Christopher Coletta (github.com/colettace)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"""
+
 
 # wndcharm.py has the definitions of all the SWIG-wrapped primitive C++ WND_CHARM objects.
 import wndcharm

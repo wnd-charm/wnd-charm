@@ -29,42 +29,38 @@ if sys.version_info < (2, 7):
 else:
     import unittest
 
-import numpy as np
+from os.path import dirname, realpath, join
+
+pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pywndchrm_tests
+wndchrm_test_dir = join( dirname( pychrm_test_dir ), 'wndchrm_tests' )
+test_dir = wndchrm_test_dir
 
 from wndcharm.FeatureSpace import FeatureSpace
-from wndcharm.FeatureWeights import PearsonFeatureWeights
-from wndcharm.FeatureSpacePrediction import FeatureSpaceRegression
-from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Continuous
+from wndcharm.FeatureWeights import FisherFeatureWeights
 
-class TestCreateArtificialFeatureSpace( unittest.TestCase ):
-    """
-    Test CreateArtificialFeatureSpace function
-    """
+class TestFisherFeatureWeights( unittest.TestCase ):
+	"""Fisher score calculation"""
 
-    def test_MultivariateLinearFitOnFitNoTiling( self ):
+	epsilon = 0.00001
 
-        fake_continuous = CreateArtificialFeatureSpace_Continuous( n_samples=100,
-                num_features_per_signal_type=5, noise_gradient=5, initial_noise_sigma=10,
-                n_samples_per_group=1 )
- 
-        fake_continuous.Normalize( quiet=True )
-        reduced_fw = PearsonFeatureWeights.NewFromFeatureSpace( fake_continuous ).Threshold()
-        reduced_fs = fake_continuous.FeatureReduce( reduced_fw )
-        batch_result = FeatureSpaceRegression.NewMultivariateLinear(
-                test_set=reduced_fs, feature_weights=reduced_fw, quiet=True )
+	test_fit_path = join( test_dir,'test-l.fit' )
+	test_normalized_fit_path = join( test_dir, 'test_fit-l-normalized.fit' )
+	test_feat_weight_path = join( test_dir,'test_fit-l.weights' )
+	
+	# --------------------------------------------------------------------------
+	def test_NewFromFeatureSet( self ):
+		"""Fisher score calculation"""
 
-    def test_LeastSquaresFitOnFitLeaveOneOutNoTiling( self ):
+		feature_set = FeatureSpace.NewFromFitFile( self.test_fit_path )
+		feature_set.Normalize( inplace=True )
+		result_weights = FisherFeatureWeights.NewFromFeatureSpace( feature_set )
 
-        fake_continuous = CreateArtificialFeatureSpace_Continuous( n_samples=100,
-                num_features_per_signal_type=5, noise_gradient=5, initial_noise_sigma=10,
-                n_samples_per_group=1 )
- 
-        normalized_fs = fake_continuous.Normalize( inplace=False, quiet=True )
-        reduced_fw = PearsonFeatureWeights.NewFromFeatureSpace( normalized_fs ).Threshold()
-        reduced_fs = fake_continuous.FeatureReduce( reduced_fw )
+		# test weights generated from test-l.fit:
+		# wndchrm classify -l -f1.0 -vtest_fit-l.weights test-l.fit test-l.fit 
+		target_weights = FisherFeatureWeights.NewFromFile( self.test_feat_weight_path )
 
-        batch_result = FeatureSpaceRegression.NewLeastSquares(
-            training_set=reduced_fs, test_set=None, feature_weights=reduced_fw, quiet=True )
+	 	for target_val, res_val in zip( target_weights.values, result_weights.values ):
+			self.assertAlmostEqual( target_val, res_val, delta=self.epsilon )
 
 if __name__ == '__main__':
-    unittest.main()
+	unittest.main()
