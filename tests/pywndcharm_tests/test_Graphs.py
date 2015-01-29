@@ -38,10 +38,12 @@ import numpy as np
 pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pychrm_tests
 wndchrm_test_dir = dirname( pychrm_test_dir ) + sep + 'wndchrm_tests'
 
-from wndcharm.FeatureSet import FeatureSpace, FisherFeatureWeights,\
-        FeatureSpaceClassification, PredictedValuesGraph, FeatureSpaceClassificationExperiment
+from wndcharm.FeatureSpace import FeatureSpace
+from wndcharm.FeatureWeights import FisherFeatureWeights
+from wndcharm.FeatureSpacePrediction import FeatureSpaceClassification
 from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
-
+from wndcharm.FeatureSpacePredictionExperiment import FeatureSpaceClassificationExperiment
+from wndcharm.visualization import PredictedValuesGraph
 try:
     import matplotlib
     HasMatplotlib = True

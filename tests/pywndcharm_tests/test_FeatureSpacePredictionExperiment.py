@@ -33,8 +33,8 @@ else:
 # Continuous
 # =====================================================================
 from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Continuous
-from wndcharm.FeatureSet import FeatureSpaceRegressionExperiment,\
-        PearsonFeatureWeights
+from wndcharm.FeatureSpacePredictionExperiment import FeatureSpaceRegressionExperiment
+from wndcharm.FeatureWeights import PearsonFeatureWeights
 
 class TESTINGFeatureSpaceRegressionExperiment( unittest.TestCase ):
   """Test various functions from the FeatureSpaceRegressionExperiment class."""
@@ -198,7 +198,7 @@ class TESTINGFeatureSpaceRegressionExperiment( unittest.TestCase ):
 # Discrete
 # =====================================================================
 from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
-from wndcharm.FeatureSet import FeatureSpace, FeatureSpaceClassificationExperiment
+from wndcharm.FeatureSpacePredictionExperiment import FeatureSpaceClassificationExperiment
 
 class TESTINGFeatureSpaceClassificationExperiment( unittest.TestCase ):
   """Test various functions from the DiscreteClassificationExperimentResult class."""

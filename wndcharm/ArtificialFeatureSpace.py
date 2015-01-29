@@ -44,7 +44,7 @@ singularity_signals = {
 'tangent2'             : lambda x: -5 * np.tan( np.pi * (x / 50 - 0.5 ) ),
 }
 
-from .FeatureSet import FeatureSpace
+from .FeatureSpace import FeatureSpace
 
 def CreateArtificialFeatureSpace_Continuous( name="ContinuousArtificialFS", n_samples=100,
     num_features_per_signal_type=25, noise_gradient=10, initial_noise_sigma=10,

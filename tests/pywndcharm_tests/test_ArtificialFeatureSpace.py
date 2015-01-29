@@ -28,13 +28,12 @@ if sys.version_info < (2, 7):
 else:
     import unittest
 
-import re
 import numpy as np
 
-from wndcharm.FeatureSet import FeatureSpace, PearsonFeatureWeights,\
-        FeatureSpaceRegression
+from wndcharm.FeatureSpace import FeatureSpace
+from wndcharm.FeatureWeights import PearsonFeatureWeights
+from wndcharm.FeatureSpacePrediction import FeatureSpaceRegression
 from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Continuous
-
 
 class TestCreateArtificialFeatureSpace( unittest.TestCase ):
     """

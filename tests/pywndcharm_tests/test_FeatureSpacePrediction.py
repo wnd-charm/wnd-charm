@@ -38,9 +38,10 @@ from shutil import rmtree
 pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pychrm_tests
 wndchrm_test_dir = dirname( pychrm_test_dir ) + sep + 'wndchrm_tests'
 
-from wndcharm.FeatureSet import FeatureSpace, FisherFeatureWeights,\
-        FeatureSpaceClassification, PearsonFeatureWeights,\
-        FeatureSpaceRegression, FeatureSpaceClassificationExperiment
+from wndcharm.FeatureSpace import FeatureSpace
+from wndcharm.FeatureWeights import FisherFeatureWeights, PearsonFeatureWeights
+from wndcharm.FeatureSpacePrediction import FeatureSpaceClassification, FeatureSpaceRegression
+from wndcharm.FeatureSpacePredictionExperiment import FeatureSpaceClassificationExperiment
 
 class TestFeatureSpaceClassification( unittest.TestCase ):
     """
@@ -59,7 +60,6 @@ class TestFeatureSpaceClassification( unittest.TestCase ):
         zf = zipfile.ZipFile( zipped_file_path, mode='r' )
         tempdir = mkdtemp()
         zf.extractall( tempdir )
-        zf.extractall( pychrm_test_dir )
 
         try:
             fitfilepath = tempdir + sep + zf.namelist()[0]

@@ -30,7 +30,8 @@ pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pywndchrm
 wndchrm_test_dir = join( dirname( pychrm_test_dir ), 'wndchrm_tests' )
 test_dir = wndchrm_test_dir
 
-from wndcharm.FeatureSet import FeatureSpace, FisherFeatureWeights
+from wndcharm.FeatureSpace import FeatureSpace
+from wndcharm.FeatureWeights import FisherFeatureWeights
 
 class TestFisherFeatureWeights( unittest.TestCase ):
 	"""Fisher score calculation"""

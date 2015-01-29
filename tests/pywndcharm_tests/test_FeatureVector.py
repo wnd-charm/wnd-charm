@@ -26,7 +26,7 @@ if sys.version_info < (2, 7):
 else:
     import unittest
 
-from wndcharm.FeatureSet import FeatureVector
+from wndcharm.FeatureVector import FeatureVector
 
 from os.path import dirname, realpath, join
 

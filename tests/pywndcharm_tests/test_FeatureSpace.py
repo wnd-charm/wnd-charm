@@ -35,8 +35,9 @@ from shutil import rmtree
 pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pychrm_tests
 wndchrm_test_dir = dirname( pychrm_test_dir ) + sep + 'wndchrm_tests'
 
-from wndcharm.FeatureSet import FeatureSpace, FisherFeatureWeights,\
-        FeatureSpaceClassification, PearsonFeatureWeights,\
+from wndcharm.FeatureSpace import FeatureSpace
+from wndcharm.FeatureWeights import FisherFeatureWeights, PearsonFeatureWeights
+from wndcharm.FeatureSpacePrediction import FeatureSpaceClassification, \
         FeatureSpaceRegression
 
 class TestFeatureSet( unittest.TestCase ):
