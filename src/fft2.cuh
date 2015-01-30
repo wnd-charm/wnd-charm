@@ -26,29 +26,14 @@
 /*      Pratik Bari                                                              */
 /*      pratik.bari@einfochips.com                                               */
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+#ifndef _FFT_CUDA_
+#define _FFT_CUDA_
 
 #include <cuda.h>
 #include <cufft.h>
-#include <math.h>
 #include <stdio.h>
 #include "cmatrix.h"
-#include "ImageTransforms.h"
-
-#include <iostream>
-#include <string>
-#include <iomanip>
-#include <fstream>
-#include <sstream>
-#include <time.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <sys/types.h> // for dev_t, ino_t
-#include <fcntl.h>     // for O_RDONLY
-
-#include <stdlib.h>
-#include <string.h>
-#include <tiffio.h>
-
 
 void free_fft( double *, cufftDoubleComplex *);
 extern "C" void gpu_fft2 (ImageMatrix *, const ImageMatrix &);
+#endif

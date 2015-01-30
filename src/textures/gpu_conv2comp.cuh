@@ -26,6 +26,8 @@
 /*      Pratik Bari                                                              */
 /*      pratik.bari@einfochips.com                                               */
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+#ifndef _CONVCOMP_CUDA_
+#define _CONVCOMP_CUDA_
 
 #include <iostream>
 #include <stdio.h>
@@ -42,3 +44,4 @@ void generate_vect(int *, int, int);
 int min_dim(int, int);
 void free_func_conv2comp(int *, int *);
 extern "C" void gpu_conv2comp(double *, double *, double *, int, int, int, int);
+#endif

@@ -26,6 +26,8 @@
 /*      Pratik Bari                                                              */
 /*      pratik.bari@einfochips.com                                               */
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+#ifndef _CONVOLVE_CUDA_
+#define _CONVOLVE_CUDA_
 
 #include<cuda.h>
 #include<stdio.h>
@@ -39,3 +41,4 @@ __global__ void gpu_convolve_inner_kernel(double *, double *, double *, unsigned
 						unsigned long, unsigned long, unsigned long);
 __global__ void gpu_convolve_kernel(double *, double *, double *, unsigned long, unsigned long,
 						unsigned long, unsigned long);
+#endif
