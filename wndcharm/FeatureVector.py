@@ -177,17 +177,17 @@ class FeatureVector( object ):
         else:
             major, minor = [ int( val ) for val in self.feature_set_version.split('.') ]
 
-        if self.num_features == None:
-            if self.featurenames_list:
-                self.num_features = len( self.featurenames_list )
+        # reset number of features
+        if self.featurenames_list:
+            self.num_features = len( self.featurenames_list )
+        else:
+            if major == 1:
+                num_feats_dict = feature_vector_minor_version_from_num_features_v1
             else:
-                if major == 1:
-                    num_feats_dict = feature_vector_minor_version_from_num_features_v1
-                else:
-                    num_feats_dict = feature_vector_minor_version_from_num_features
-                for num_feats, version in num_feats_dict.iteritems():
-                    if version == minor:
-                        self.num_features = num_feats
+                num_feats_dict = feature_vector_minor_version_from_num_features
+            for num_feats, version in num_feats_dict.iteritems():
+                if version == minor:
+                    self.num_features = num_feats
 
         # When reading in sampling opts from the path, they get pulled out as strings
         # instead of ints:
@@ -564,16 +564,8 @@ class FeatureVector( object ):
         with open( path ) as infile:
             lines = infile.read().splitlines()
 
-        import re
-        # First line is metadata
-        self.class_id, self.feature_set_version = \
-                re.match( '^(\S+)\s*(\S+)?$' , lines[0] ).group( 1, 2 )
-        if self.feature_set_version is None:
-            self.feature_set_version = "1.0"
-
-        # 2nd line is path to original tiff file, just skip
-
-        # Process rest of lines
+        # First line is metadata, 2nd line is path to original tiff file (skip that).
+        # Process features first, then deal with metadata
         values, names = zip( *[ line.split( None, 1 ) for line in lines[2:] ] )
 
         # np.fromstring is a 3x PIG:
@@ -581,23 +573,25 @@ class FeatureVector( object ):
         # 10 loops, best of 3: 38.3 ms per loop
         # %timeit out = np.fromstring( " ".join( thing ), sep=" " )
         # 10 loops, best of 3: 98.1 ms per loop
-
         self.values = np.array( [ float( val ) for val in values ] )
+
+        # Now that we know howmany values there are, deal with metadata.
+        import re
+        self.class_id, self.feature_set_version = \
+                re.match( '^(\S+)\s*(\S+)?$' , lines[0] ).group( 1, 2 )
+        if self.feature_set_version is None:
+            # Cleanup for legacy edge case:
+            # Set the minor version to the vector type based on # of features
+            # The minor versions should always specify vector types, but for
+            # version 1 vectors, the version is not written to the file.
+            self.feature_set_version = "1." + str(
+                feature_vector_minor_version_from_num_features_v1.get( len( self.values ),0 ) )
 
         # We would know by know if there was a sigfile processing error,
         # e.g., file doesn't exist.
         # Safe to set this member now if not already set
         if not self.auxiliary_feature_storage:
             self.auxiliary_feature_storage = path
-
-        # Subtract path so that path part doesn't become part of name
-        from os.path import basename
-        # Pull sampling options from filename
-        path_removed = basename( path )
-        self.name = path_removed
-        result = self.sig_filename_parser.search( path_removed )
-        if result:
-            self.Update( **result.groupdict() )
 
         # This is really slow:
         #for i, name in enumerate( names ):
@@ -615,13 +609,14 @@ class FeatureVector( object ):
         # -CEC 20150104
         self.featurenames_list = list( names )
 
-        # Cleanup for legacy edge case:
-        # Set the minor version to the vector type based on # of features
-        # The minor versions should always specify vector types, but for version 1 vectors,
-        # the version is not written to the file, so it gets read as 0.
-        if( self.feature_set_version == "1.0" ):
-            self.version = "1." + str(
-                feature_vector_minor_version_from_num_features_v1.get( len( self.values ),0 ) )
+        # Subtract path so that path part doesn't become part of name
+        from os.path import basename
+        # Pull sampling options from filename
+        path_removed = basename( path )
+        self.name = path_removed
+        result = self.sig_filename_parser.search( path_removed )
+        if result:
+            self.Update( **result.groupdict() )
 
         if not quiet:
             print "Loaded features from file {0}".format( path )

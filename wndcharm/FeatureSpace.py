@@ -551,7 +551,12 @@ class FeatureSpace( object ):
         return new_fs
 
     #==============================================================
-    def ToFitFile( self, path ):
+    def ToFitFile( self, path=None ):
+
+        # FIXME: only works for discrete right now
+        if path == None:
+            path = self.name + '.fit'
+
         """Writes features to ASCII text file which can be read by classic wnd-charm."""
         fit = open( path, 'w' )
 
@@ -567,35 +572,44 @@ class FeatureSpace( object ):
         # The line after the block of feature names is blank
         fit.write('\n')
         # Then all the Class labels
-        for label in self.classnames_list:
+
+        # C++ WNDCHARM only likes to read classes if their class labes are in sort order
+
+        if self.discrete:
+            class_index_order = \
+            [ self.classnames_list.index( name ) for name in sorted( self.classnames_list ) ]
+
+        for index in class_index_order:
+            label = self.classnames_list[ index ]
             fit.write( label + '\n' )
 
         # In the fit file format, a sample's class membership is denoted by the final int
         # at the end of the line of features. A class index of 0 implies it belongs
         # to the UNKNOWN CLASS so in practical terms, fit file indexing starts at 1.
-        if self.interpolation_coefficients is None and self.classnames_list is None:
-            # For classless data, assign all samples to the UNKNOWN CLASS.
-            class_indices = [0] * self.num_samples
-        else:
-            if self.interpolation_coefficients:
-                ground_truth_class_vals = self.interpolation_coefficients
-            else:
-                ground_truth_class_vals = self.classnames_list
+#        class_indices = [0] * self.num_samples
+#            if self.interpolation_coefficients:
+#                ground_truth_class_vals = self.interpolation_coefficients
+#            else:
+#                ground_truth_class_vals = self.classnames_list
+#
+#            class_indices = [None] * self.num_samples
+#            for i in xrange( self.num_samples ):
+#                try:
+#                    val = str( 1 + ground_truth_class_vals.index( self._contiguous_ground_truths[i] ) )
+#                except ValueError:
+#                    val = str( 0 )
+#                class_indices[i] = val
 
-            class_indices = [None] * self.num_samples
-            for i in xrange( self.num_samples ):
-                try:
-                    val = str( 1 + ground_truth_class_vals.index( self._contiguous_ground_truths[i] ) )
-                except ValueError:
-                    val = str( 0 )
-                class_indices[i] = val
 
         # Finally, alternating lines of features and paths to sample original file (tif or sig)
-        for i, sample_name in enumerate( self._contiguous_samplenames_list ):
-            self.data_matrix[i].tofile( fit, sep=' ', format='%g' )
-            # add class index of sample to end of features line
-            fit.write( ' ' + class_indices[i] + '\n' )
-            fit.write( sample_name + '\n' )
+        for class_count, class_index in enumerate( class_index_order, start=1 ):
+            class_features = self.data_list[ class_index ]
+            class_sample_names = self.samplenames_list[ class_index ]
+            for i, sample_name in enumerate( class_sample_names ):
+                class_features[ i ].tofile( fit, sep=' ', format='%g' )
+                # add class index of sample to end of features line
+                fit.write( ' ' + str(class_count) + '\n' )
+                fit.write( sample_name + '\n' )
 
         fit.close()
 
@@ -784,6 +798,9 @@ class FeatureSpace( object ):
         # specified via relative path.
 
         for line_num, line in enumerate( fof ):
+            # Allow user to comment out lines in file list:
+            if line.startswith('#'):
+                continue
             cols = line.strip().split('\t', 2)
 
             if samples_grouped_by_ground_truth:
