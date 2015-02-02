@@ -446,6 +446,12 @@ gpu_mb_zernike2D (const ImageMatrix &Im, double order, double rad, double *zvalu
 		return -1;
 	}
 
+	if(checkCudaErrors(cudaFree(d_data))!= cudaSuccess)
+	{
+		free_gpu_mb_zernike2D(H);
+		return -1;
+	}
+
 	if(checkCudaErrors(cudaFree(d_H1))!= cudaSuccess)
 	{
 		free_gpu_mb_zernike2D(H);
