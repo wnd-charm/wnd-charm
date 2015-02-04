@@ -394,7 +394,7 @@ int findCudaDevice(int device_id )
 		{
 			if(checkCudaErrors(cudaGetDeviceProperties(&properties, device_id)) == cudaSuccess)
 			{
-				if (properties.major > 3 || (properties.major == 3 && properties.minor >= 5))
+				if (properties.major > 3 || (properties.major == 3 && properties.minor >= 0))
 				{
 					device = device_id;
 					std::cout << "Running on GPU " << device_id << " (" << properties.name << ")" << std::endl;
@@ -402,7 +402,7 @@ int findCudaDevice(int device_id )
 				else
 				{
 					std::cout << "compute capability of " << device_id << "GPU " << properties.major << "." << properties.name << properties.minor<< std::endl;
-					std::cerr << "Application requires GPU devices with compute SM 3.5 or higher.  Exiting..." << std::endl;
+					std::cerr << "Application requires GPU devices with compute SM 3.0 or higher.  Exiting..." << std::endl;
 					return -1;
 				}
 			}
@@ -411,26 +411,27 @@ int findCudaDevice(int device_id )
 		{
 			for (int i = 0 ; i < device_count ; ++i)
 			{
-				cudaDeviceProp properties;
 				if(checkCudaErrors(cudaGetDeviceProperties(&properties, i)) == cudaSuccess)
 				{
-					if (properties.major > 3 || (properties.major == 3 && properties.minor >= 5))
+					if (properties.major > 3 || (properties.major == 3 && properties.minor >= 0))
 					{
 						device = i;
 						std::cout << "Running on GPU " << i << " (" << properties.name << ")" << std::endl;
 						break;
 					}
-					else
-						return -1;
 				}
 			}
 			if (device == -1)
 			{
-				std::cerr << "Application requires GPU devices with compute SM 3.5 or higher.  Exiting..." << std::endl;
+				std::cerr << "Application requires GPU devices with compute SM 3.0 or higher.  Exiting..." << std::endl;
 				return -1;
 			}
 		}
-		cudaSetDevice(device);
+		if(checkCudaErrors(cudaSetDevice(device)) != cudaSuccess)
+                {
+			std::cerr << "Unable to set device" << std::endl;
+			return -1;
+                }
 		return 0;
 	}
         return -1;
