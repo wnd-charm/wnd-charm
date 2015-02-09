@@ -54,17 +54,17 @@ class TestWND5Classification( unittest.TestCase ):
         test_tif_path = join( test_dir,'t1_s01_c05_ij.tif' )
 
         # Here are the correct values that Python API needs to return:
-        # wndchrm classify -l -f1.0 test-l.fit t1_s01_c05_ij.tif 
-        # t1_s01_c05_ij.tif    2.09e-27    0.047    0.953    *    4cell    3.906
-        # wndchrm classify -l -f0.14765 test-l.fit t1_s01_c05_ij.tif
-        # t1_s01_c05_ij.tif    4.29e-27    0.039    0.961    *    4cell    3.923
-        # wndchrm classify -l -f0.0685 test-l.fit t1_s01_c05_ij.tif
-        # t1_s01_c05_ij.tif    9.05e-27    0.032    0.968    *    4cell    3.936
+        # wndchrm classify -l -f0.75 test-l.fit t1_s01_c05_ij.tif 
+        # t1_s01_c05_ij.tif    1.6e-27    0.083    0.917    *    4cell    3.835
+        # wndchrm classify -l test-l.fit t1_s01_c05_ij.tif
+        # t1_s01_c05_ij.tif    3.19e-27    0.076    0.924    *    4cell    3.848
+        # wndchrm classify -l -f0.05 test-l.fit t1_s01_c05_ij.tif
+        # t1_s01_c05_ij.tif    1.06e-26    0.066    0.934    *    4cell    3.869
 
         correct_marg_probs = {}
-        correct_marg_probs[2321] = [0.047, 0.953]
-        correct_marg_probs[431] = [0.039, 0.961]
-        correct_marg_probs[200] = [0.032, 0.968]
+        correct_marg_probs[2189] = [0.083, 0.917]
+        correct_marg_probs[438] = [0.076, 0.924]
+        correct_marg_probs[146] = [0.066, 0.934]
 
         # Load the original files once and only once for all this class's tests
         feature_set = FeatureSpace.NewFromFitFile( test_fit_path )
@@ -89,9 +89,8 @@ class TestWND5Classification( unittest.TestCase ):
             for target_val, res_val in zip( correct_marg_probs[ num_feats ], result_marg_probs ):
                 self.assertAlmostEqual( target_val, res_val, delta=epsilon )
 
-        Check( 2321 )
-        Check( 431 )
-        Check( 200 )
+        for num_feats in correct_marg_probs:
+            Check( num_feats )
 
 if __name__ == '__main__':
     unittest.main()
