@@ -15635,27 +15635,26 @@ fi
 #--------------------------------------------------------------------
 # initialize array index
 
-#N="0"
 
 # Setup default CUDA paths
 CUDA_INSTALL_PATH="/usr/local/cuda"
 CUDA_SDK_INSTALL_PATH="/usr/local/cuda"
 
 # Check: enable CUDA?
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to use CUDA library" >&5
-$as_echo_n "checking whether to use CUDA library... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking Wheather to use disable-CUDA ? " >&5
+$as_echo_n "checking Wheather to use disable-CUDA ? ... " >&6; }
 # Check whether --enable-cuda was given.
 if test "${enable_cuda+set}" = set; then :
-  enableval=$enable_cuda; cudaval="yes"
+  enableval=$enable_cuda; cudaDisableval="yes"
 else
-  cudaval="no"
+  cudaDisableval="no"
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $cudaval" >&5
-$as_echo "$cudaval" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $cudaDisableval" >&5
+$as_echo "$cudaDisableval" >&6; }
 
 # check to see if CUDA been disabled
-if test "$cudaval" == "yes"; then
+if test "$cudaDisableval" == "yes"; then
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Not using CUDA!" >&5
 $as_echo "$as_me: WARNING: Not using CUDA!" >&2;}
 fi
@@ -15679,12 +15678,30 @@ fi
 
 
 # Setup nvcc flags
-if test  "$cudaval" = "no"; then
+if test  "$cudaDisableval" = "no"; then
+#--------------------------------------------------------------
+# Check For CUDA Toolkit
+#--------------------------------------------------------------
+    if test -e "$CUDA_INSTALL_PATH/bin/nvcc" ; then
+	echo "Checking for CUDA :  cuda available"
+    else
+	as_fn_error $? "Failed to find CUDA compiler" "$LINENO" 5
+    fi
     cuda_enable=true;
     NVCCFLAGS="$NVCCFLAGS"
     CUDA_CFLAGS="$CUDA_CFLAGS"
     CUDA_CFLAGS="$CUDA_CFLAGS -I$CUDA_INSTALL_PATH/include"
-    CUDA_LDFLAGS="-L$CUDA_INSTALL_PATH/lib64"
+
+	if test -e "$CUDA_INSTALL_PATH/lib64/" ; then
+		echo 64 bit lib CUDA
+		CUDA_LDFLAGS="-L$CUDA_INSTALL_PATH/lib64"
+	elif test -e "$CUDA_INSTALL_PATH/lib64/" ; then
+		echo 32 bit lib CUDA
+		CUDA_LDFLAGS="-L$CUDA_INSTALL_PATH/lib"
+	else
+		as_fn_error $? "Failed to find CUDA compiler" "$LINENO" 5
+	fi
+
     CUDA_LIBS="-lcuda -lcudart -lcufft -lcublas"
     NVCCFLAGS="$NVCCFLAGS $CUDA_CFLAGS $CUDA_LDFLAGS $CUDA_LIBS"
     NVCC="nvcc"
@@ -15693,9 +15710,8 @@ if test  "$cudaval" = "no"; then
 
 $as_echo "#define _CUDA 1" >>confdefs.h
 
-#    eval "ARRAY${N}='-D_CUDA'"
-#    N=`expr $N + 1`
 fi
+
 
 #--------------------------------------------------------------------
 

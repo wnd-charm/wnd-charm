@@ -25,22 +25,21 @@ AC_PROG_MAKE_SET
 #--------------------------------------------------------------------
 # initialize array index
 
-#N="0"
 
 # Setup default CUDA paths
 CUDA_INSTALL_PATH="/usr/local/cuda"
 CUDA_SDK_INSTALL_PATH="/usr/local/cuda"
 
 # Check: enable CUDA?
-AC_MSG_CHECKING([whether to use CUDA library])
+AC_MSG_CHECKING([Wheather to use disable-CUDA ? ])
 AC_ARG_ENABLE(cuda,
     [AS_HELP_STRING(--disable-cuda,disable CUDA support)],
-    cudaval="yes",
-    cudaval="no")
-AC_MSG_RESULT([$cudaval])
+    cudaDisableval="yes",
+    cudaDisableval="no")
+AC_MSG_RESULT([$cudaDisableval])
 
 # check to see if CUDA been disabled
-if test "$cudaval" == "yes"; then
+if test "$cudaDisableval" == "yes"; then
 	AC_MSG_WARN([Not using CUDA!])
 fi
 
@@ -59,21 +58,38 @@ AC_ARG_WITH([cuda-sdk],
    [with_cuda_sdk=auto])
 
 # Setup nvcc flags
-if test  "$cudaval" = "no"; then
+if test  "$cudaDisableval" = "no"; then
+#--------------------------------------------------------------
+# Check For CUDA Toolkit
+#--------------------------------------------------------------
+    if test -e "$CUDA_INSTALL_PATH/bin/nvcc" ; then
+	echo "Checking for CUDA :  cuda available"
+    else
+	AC_MSG_ERROR(Failed to find CUDA compiler)
+    fi
     cuda_enable=true;
     NVCCFLAGS="$NVCCFLAGS"
     CUDA_CFLAGS="$CUDA_CFLAGS"
     CUDA_CFLAGS="$CUDA_CFLAGS -I$CUDA_INSTALL_PATH/include"
-    CUDA_LDFLAGS="-L$CUDA_INSTALL_PATH/lib64"
+
+	if test -e "$CUDA_INSTALL_PATH/lib64/" ; then
+		echo 64 bit lib CUDA
+		CUDA_LDFLAGS="-L$CUDA_INSTALL_PATH/lib64"
+	elif test -e "$CUDA_INSTALL_PATH/lib/" ; then
+		echo 32 bit lib CUDA
+		CUDA_LDFLAGS="-L$CUDA_INSTALL_PATH/lib"
+	else
+		AC_MSG_ERROR(Failed to find CUDA libraries )
+	fi
+
     CUDA_LIBS="-lcuda -lcudart -lcufft -lcublas"
     NVCCFLAGS="$NVCCFLAGS $CUDA_CFLAGS $CUDA_LDFLAGS $CUDA_LIBS"
     NVCC="nvcc"
     AC_SUBST(NVCC)
     AC_SUBST(NVCCFLAGS)
     AC_DEFINE([_CUDA],[1],[Defined if CUDA should be used])
-#    eval "ARRAY${N}='-D_CUDA'"
-#    N=`expr $N + 1`
 fi
+
 
 #--------------------------------------------------------------------
 
