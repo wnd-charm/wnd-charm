@@ -92,7 +92,8 @@ GPU_source = \
   textures/haralick/f14_maxcorr_gpu.cu \
   textures/tamura_kernel.cu \
   textures/tamura_cuda.h \
-  textures/zernike/zernike_kernel.cu
+  textures/zernike/zernike_kernel.cu \
+  statistics/CombFirst4Moments_gpu.cu
 
 libchrm_a_CXXFLAGS = -Wall
 
@@ -115,7 +116,7 @@ CXXFLAGS += -DGPU
 wndchrm_LDADD+=$(NVCCFLAGS)
 EXTRA_wndchrm_DEPENDENCIES = common.o transforms/chebyshev_kernel.o textures/gpu_conv2comp.o
 EXTRA_wndchrm_DEPENDENCIES += gpu_convolve.o statistics/FeatureStatistics_kernel.o fft2.o textures/haralick/f14_maxcorr_gpu.o
-EXTRA_wndchrm_DEPENDENCIES += textures/tamura.o textures/zernike/zernike_kernel.o
+EXTRA_wndchrm_DEPENDENCIES += textures/tamura.o textures/zernike/zernike_kernel.o statistics/CombFirst4Moments_gpu.o
 
 .cu.o:
 	$(NVCC) $(NVCC_INCLUDES) $(DEFAULT_INCLUDES) $(INCLUDES) $(NVCCFLAGS) -c -o $@ $<
