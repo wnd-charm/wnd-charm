@@ -32,9 +32,16 @@
 #define CombFirst4MomentsH
 //---------------------------------------------------------------------------
 
+#define NUMB 1024
+#define NUMT 1024
+
 #include "cmatrix.h"
 
 int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec);
+extern "C"
+int CombFirst4Moments2D_gpu(const ImageMatrix &Im, std::vector<double> &vec);
 void vd_Comb4Moments(std::vector<double> &in);
+extern "C"
+void vd_Comb4Moments_gpu(std::vector<double> &in);
 
 #endif
