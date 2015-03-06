@@ -46,6 +46,10 @@ class SingleSamplePrediction( object ):
         #: Indicates the position of the ROI within an image
         self.tile_index = None
 
+    #==============================================================
+    def __repr__( self ):
+        return str( self )
+
 #=================================================================================
 class SingleSampleClassification( SingleSamplePrediction ):
     """Classification result for a single image/ROI (a.k.a "sample"),
@@ -88,53 +92,61 @@ class SingleSampleClassification( SingleSamplePrediction ):
         probabilities"""
         
         if line_item:
-            print str(self)
-        else:
-            print "Image:             \t{0}".format( self.source_filepath )
-            print "Normalization Factor:\t{0}".format( self.normalization_factor )
-            print "Marg. Probabilities:\t" + "\t".join(\
-                    [ "{val:0.3f}".format( val=prob ) for prob in self.marginal_probabilities ] )
-            print "Ground truth class:\t {0}".format( self.ground_truth_class_name ) 
-            print "Predicted class:\t {0}".format( self.predicted_class_name ) 
+            # img name:
+            outstr = self.source_filepath if self.source_filepath else ""
+            if self.tile_index is not None:
+                if self.tile_index == 'AVG':
+                    outstr += " (AVG)"
+                else:
+                    outstr += " ({0}/{1})".format( self.tile_index + 1, self.num_samples_in_group )
+            # normalization factor:
+            if self.normalization_factor is None:
+                # no normalization factor means this is a non-call
+                print outstr + "\t--COLLISION--"
+                return
+            outstr += "\t{0:0.3g}\t".format( self.normalization_factor )
+
+            # marginal probabilities:
+            outstr += "\t".join(\
+                     [ "{0:0.3f}".format( prob ) for prob in self.marginal_probabilities ] )
+            outstr += "\t"
+            # actual class:
+            if self.ground_truth_class_name:
+                outstr += "{0}\t".format( self.ground_truth_class_name )
+            else:
+                outstr += "*\t"
+            # predicted class:
+            outstr += self.predicted_class_name + "\t"
+            # interpolated value, if applicable
             if self.predicted_value is not None:
-                print "Interpolated Value:\t{0}".format( self.predicted_value )
-                #print "Interpolated Value:\t{val=0.3f}".format( val=self.predicted_value )
+                outstr += "{0:0.3f}".format( self.predicted_value )
+            print outstr
+        else:
+            print str(self)
 
     #==============================================================
     def __str__( self ):
-        # img name:
-        output_str = self.source_filepath if self.source_filepath else ""
-        if self.tile_index is not None:
-            if self.tile_index == 'AVG':
-                output_str += " (AVG)"
-            else:
-                output_str += " ({0}/{1})".format( self.tile_index + 1, self.num_samples_in_group )
-        # normalization factor:
-        if self.normalization_factor is None:
-            # no normalization factor means this is a non-call
-            print output_str + "\t--COLLISION--"
-            return
-        output_str += "\t{0:0.3g}\t".format( self.normalization_factor )
+    
+        outstr = '<' + self.__class__.__name__
 
-        # marginal probabilities:
-        output_str += "\t".join(\
-                 [ "{0:0.3f}".format( prob ) for prob in self.marginal_probabilities ] )
-        output_str += "\t"
-        # actual class:
-        if self.ground_truth_class_name:
-            output_str += "{0}\t".format( self.ground_truth_class_name )
+        if self.name:
+            samp_name = self.name
+        elif self.source_filepath:
+            samp_name = self.source_filepath
         else:
-            output_str += "*\t"
-        # predicted class:
-        output_str += self.predicted_class_name + "\t"
-        # interpolated value, if applicable
-        if self.predicted_value is not None:
-            output_str += "{0:0.3f}".format( self.predicted_value )
-        return output_str
+            samp_name = ""
 
-    #==============================================================
-    def __repr__( self ):
-        return str( self )
+        if len( samp_name ) > 25:
+            samp_name = '...' + samp_name[ -25: ]
+
+        outstr += ' "' + samp_name + '"'
+        if self.predicted_class_name:
+            outstr += ' pred="' + self.predicted_class_name + '"'
+        if self.ground_truth_class_name:
+            outstr += ' act="' + self.ground_truth_class_name + '"'
+        if self.predicted_value is not None:
+            outstr += " interp={0.2f}".format( self.predicted_value )
+        return outstr + '>'
 
     #==============================================================
     @classmethod
@@ -240,7 +252,7 @@ class SingleSampleClassification( SingleSamplePrediction ):
         marg_probs = np.array( result.marginal_probabilities )
         result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
         # interpolated value, if applicable
-        if len (training_set.interpolation_coefficients) == len (marg_probs):
+        if len( training_set.interpolation_coefficients ) == len( marg_probs ):
             interp_val = np.sum( marg_probs * training_set.interpolation_coefficients )
             result.predicted_value = interp_val
 
@@ -250,7 +262,7 @@ class SingleSampleClassification( SingleSamplePrediction ):
              "".join( [ "p(" + class_name + ")\t" for class_name in training_set.classnames_list ] )
             column_header += "act. class\tpred. class\tpred. val."
             print column_header
-            result.Print( line_item = True )
+            result.Print( line_item=True )
         return result
 
 #=================================================================================
@@ -280,9 +292,28 @@ class SingleSampleRegression( SingleSamplePrediction ):
             output_str += str( self.predicted_value )
             print output_str
         else:
-            print "Image:             \t{0}".format( self.source_filepath )
-            print "Ground truth class:\t {0}".format( self.ground_truth_value ) 
-            print "Predicted class:\t {0}".format( self.predicted_value ) 
+            str( self )
+
+    #==============================================================
+    def __str__( self ):
+        outstr = '<' + self.__class__.__name__
+
+        if self.name:
+            samp_name = self.name
+        elif self.source_filepath:
+            samp_name = self.source_filepath
+        else:
+            samp_name = ""
+
+        if len( samp_name ) > 25:
+            samp_name = '...' + samp_name[ -25: ]
+
+        outstr += ' "' + samp_name + '"'
+        if self.predicted_value is not None:
+            outstr += " interp={0.2f}".format( self.predicted_value )
+        if self.ground_truth_class_name:
+            outstr += ' act="' + self.ground_truth_val + '"'
+        return outstr + '>'
 
     #==============================================================
     @classmethod

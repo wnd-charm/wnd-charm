@@ -50,6 +50,12 @@ class FeatureSpacePrediction( object ):
             self.name = training_set.name
         self.individual_results = []
         self.tiled_results = None
+
+        # Give myself a number so that it looks good when I print out results
+        if not batch_number:
+            batch_number = self.__class__.obj_count
+            self.__class__.obj_count += 1
+
         self.batch_number = batch_number
 
         self.num_classifications = 0
@@ -58,26 +64,17 @@ class FeatureSpacePrediction( object ):
         self.predicted_values = None
         self.ground_truth_values = None
 
+        #: If there was randomness associated with generating results
+        #: set use_error_bars = True to calculate confidence intervals for
+        #: resulting figures of merit
+        self.use_error_bars = None
+
         # This stuff is for correllation analysis
         self.pearson_coeff = None
         self.pearson_p_value = None
         self.pearson_std_err = None
         self.spearman_coeff = None
         self.spearman_p_value = None
-
-    #==============================================================    
-    def __str__( self ):
-        outstr = self.__class__.__name__
-        if self.name is None and self.batch_number is None:
-            return outstr + " id({})".format( id( self ))
-        if self.batch_number is not None:
-            outstr += ' batch # {}'.format( self.batch_number )
-        if self.name is not None:
-            outstr += ' "{}"'.format( self.name )
-        return outstr
-    #==============================================================
-    def __repr__( self ):
-        return str(self)
 
     #==============================================================
     def __len__( self ):
@@ -161,8 +158,8 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
     Use for classifying all samples in a FeatureSpace in one sitting.
     Member "figure_of_merit" is classification accuracy."""
 
-    #: batch_count class attribute
-    batch_count = 0
+    #: obj_count class attribute
+    obj_count = 0
 
     #==============================================================
     def __init__( self, *args, **kwargs ):
@@ -181,67 +178,73 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
         self.similarity_matrix = None
         self.average_class_probability_matrix = None
 
+    #==============================================================    
+    def __str__( self ):
+        outstr = '<' + self.__class__.__name__
+        if self.batch_number is not None:
+            outstr += ' #' + str( self.batch_number )
+        if self.individual_results:
+            outstr += ' n=' + str( len( self.individual_results ) )
+        if self.num_correct_classifications:
+            outstr += ' n_corr=' + str( self.num_correct_classifications )
+        if self.figure_of_merit is not None:
+            outstr += ' acc={0:0.2f}%'.format( self.figure_of_merit * 100 )
+        return outstr + '>'
+    #==============================================================
+    def __repr__( self ):
+        return str(self)
+
     #==============================================================
     def GenerateStats( self ):
         """Fills out the confusion matrix, similarity matrix, and class probability matrix."""
 
-        # Run a standard error analysis if ground_truth/predicted vals exist (call base method ):
+        # Run a standard error analysis if ground_truth/predicted vals exist (call base method):
         # This also sets self.num_classifications
         super( FeatureSpaceClassification, self ).GenerateStats()
 
         num_classes = self.training_set.num_classes
 
-        # initialize the matrices
+        # Initialize the matrices:
 
         # Remember! Dicts are not guaranteed to maintain key order but lists are
         # When cycling through the matrix, iterate over the lists, and not the keys of the dict
         from collections import defaultdict # introduced Python 2.5
 
-        self.confusion_matrix = {}
-        self.average_class_probability_matrix = {}
-
-        # initialize the rows
-        # Does the test set have ground truth?
-        if self.test_set.classnames_list:
-            for test_set_class_name in self.test_set.classnames_list:
-                self.confusion_matrix[ test_set_class_name ] = defaultdict(int) 
-                self.average_class_probability_matrix[ test_set_class_name ] = defaultdict(float)
-        else:
-            self.confusion_matrix[ "UNKNOWN" ] = defaultdict( int )
-            self.average_class_probability_matrix[ "UNKNOWN" ] = defaultdict( float )
+        # These are dicts of dicts in the form:
+        # self.confusion_matrix[ <Ground Truth Class> ][ <Predicted Class> ] == count
+        self.confusion_matrix = defaultdict( lambda: defaultdict( int ) )
+        self.average_class_probability_matrix = defaultdict( lambda: defaultdict( float ) )
 
         self.num_correct_classifications = 0
 
         self.num_classifications_per_class = defaultdict( int )
         self.num_correct_classifications_per_class = defaultdict( int )
 
-        if self.tiled_results:
-            classification_results = self.tiled_results
-        else:
-            classification_results = self.individual_results
+        classification_results = self.tiled_results if self.tiled_results else self.individual_results
 
         for indiv_result in classification_results:
-            self.num_classifications_per_class[ indiv_result.ground_truth_class_name ] += 1
+            gt_class = indiv_result.ground_truth_class_name
+            if gt_class == None:
+                gt_class = "UNKNOWN"
+            pred_class = indiv_result.predicted_class_name
 
-            if indiv_result.ground_truth_class_name == indiv_result.predicted_class_name:
+            self.num_classifications_per_class[ gt_class ] += 1
+
+            if gt_class == pred_class:
                 self.num_correct_classifications += 1
-                self.num_correct_classifications_per_class[ indiv_result.ground_truth_class_name ] += 1
-
-            test_set_class = indiv_result.ground_truth_class_name
-            if test_set_class == None: test_set_class = "UNKNOWN"
+                self.num_correct_classifications_per_class[ gt_class ] += 1
             
-            self.confusion_matrix[ test_set_class ][ indiv_result.predicted_class_name ] += 1
+            self.confusion_matrix[ gt_class ][ pred_class ] += 1
 
             # FIXME: is there any possibility that the order of the values in the marginal
             # probability array don't correspond with the order of the training set classes?
-            index = 0
-            for training_set_class_name in self.training_set.classnames_list:
-                if indiv_result.marginal_probabilities:
-                    val = indiv_result.marginal_probabilities[ index ]
-                    self.average_class_probability_matrix[ test_set_class ][ training_set_class_name ] += val
-                    index += 1
+            if indiv_result.marginal_probabilities is not None:
+                mp = zip( self.training_set.classnames_list, indiv_result.marginal_probabilities )
+                for putative_class, marg_prob in mp:
+                    self.average_class_probability_matrix[ gt_class ][ putative_class ] += marg_prob
 
-        # Do the averaging for the similarity and avg prob matrices.
+        # Finalize the Average Class Probability Matrix by dividing each marginal probability
+        # sum by the number of marginal probabilities:
         for row in self.test_set.classnames_list:
             for col in self.training_set.classnames_list:
                 self.average_class_probability_matrix[ row ][ col ] /= \
@@ -255,12 +258,14 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
             from copy import deepcopy
             self.similarity_matrix = deepcopy( self.average_class_probability_matrix )
             for row in self.test_set.classnames_list:
+                denom = self.similarity_matrix[ row ][ row ]
                 for col in self.training_set.classnames_list:
                     if self.similarity_matrix[ row ][ row ]:
-                        self.similarity_matrix[ row ][ col ] /= self.similarity_matrix[ row ][ row ]
-                        self.similarity_matrix[ col ][ row ] /= self.similarity_matrix[ row ][ row ]
+                        self.similarity_matrix[ row ][ col ] /= denom
+                        self.similarity_matrix[ col ][ row ] /= denom
 
         self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
+        self.figure_of_merit = self.classification_accuracy
         return self
 
     #==============================================================
@@ -270,21 +275,52 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
         classification accuracy, confusion matrix, similarity matrix, and average class 
         probability matrix."""
 
-        if self.classification_accuracy == None:
+        if self.figure_of_merit == None:
             self.GenerateStats()
 
-        if self.tiled_results:
-            classification_results = self.tiled_results
-        else:
-            classification_results = self.individual_results
+        classification_results = self.tiled_results if self.tiled_results else self.individual_results
 
-        print "==========================================="
-        print "Batch summary:"
+        print '='*50
+        s = self.__class__.__name__
         if self.name:
-            print "Name: ", self.name
-        print "Total number of classifications: {0}".format( len( classification_results ) )
-        print "Total number of CORRECT classifications: {0}".format( self.num_correct_classifications )
-        print "Total classification accuracy: {0:0.4f}".format( self.classification_accuracy )
+            s += ' "' + self.name + '"'
+        s += " (" + str( len( classification_results ) ) + " classifications)"
+        print s
+
+        acc = self.classification_accuracy
+        n = self.num_classifications
+        n_correct = self.num_correct_classifications
+
+        if not self.use_error_bars:
+            print "{0}/{1} correct = {2:0.2f}%".format( n_correct, n, acc * 100 )
+        else:
+            # Using either normal approximation of binomial distribution or the Wilson score interval
+            # to calculate standard error of the mean, depending on the situation.
+            # For more info, see http://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval
+            # The confidence interval is S.E.M. * quantile for your chosen accuracy
+            # The quantile for 95% accuracy is ~ 1.96.
+            z_score = 1.95996;
+
+            from math import sqrt
+
+            # This is a rule of thumb test to check whecther sample size is large enough
+            # to use normal approximation of binomial distribution:
+            if ((n * acc) > 5) and ((n * (1 - acc)) > 5):
+                use_wilson = False
+                std_error_of_mean = sqrt( acc * (1-acc) / n )
+                conf_interval = z_score * std_error_of_mean
+            else:
+                use_wilson = True
+                conf_interval = z_score * sqrt( acc * (1-acc) / n + z_score * z_score / (4 * n * n) ) / \
+                    ( 1 + z_score * z_score / n )
+                acc = (acc + z_score * z_score / (2 * n) ) / ( 1 + z_score * z_score / n )
+
+            print "{0}/{1} correct = {2:0.2f} +/- {3:0.2f}%".format(
+                    n_correct, n, acc * 100, conf_interval * 100 )
+            print "Intervals based on 95% confidence using {0} method.".format(
+                "Wilson Score" if use_wilson else "Normal Approximation" )
+
+
         if self.figure_of_merit is not None:
             print "Standard Error: {0:0.4f}".format( self.figure_of_merit )
         if self.pearson_coeff is not None:
@@ -381,7 +417,6 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
                         output_matrix[ row, col ] = 0
                     else:
                         output_matrix[ row, col ] = np.sum( np.square( source_matrix[row]-source_matrix[col] ) )
-
         else:
             if self.similarity_matrix == None:
                 self.GenerateStats()
@@ -418,8 +453,8 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
     #==============================================================
     @classmethod
     @output_railroad_switch
-    def NewWND5( cls, training_set, test_set, feature_weights, batch_number=None,
-                    batch_name=None, quiet=False, norm_factor_threshold=None):
+    def NewWND5( cls, training_set, test_set, feature_weights, name=None, batch_number=None,
+                quiet=False, norm_factor_threshold=None, error_bars=False ):
         """The equivalent of the "wndcharm classify" command in the command line implementation
         of WND-CHARM. Input a training set, a test set, and feature weights, and returns a
         new instance of a FeatureSpaceClassification, with self.individual_results
@@ -444,14 +479,15 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
         if test_set.featurenames_list != training_set.featurenames_list:
             raise ValueError( "Can't classify, features in test set don't match features in training set. Try translating feature names from old style to new, or performing a FeatureReduce()" )
 
-        np.seterr (under='ignore')
+        np.seterr( under='ignore' )
 
         train_set_len = len( training_set.featurenames_list )
         test_set_len = len( test_set.featurenames_list )
         feature_weights_len = len( feature_weights.featurenames_list )
 
         # instantiate myself
-        batch_result = cls( training_set, test_set, feature_weights, batch_name )
+        batch_result = cls( training_set, test_set, feature_weights, name, batch_number )
+        batch_result.use_error_bars = error_bars
 
         # Are the samples to be classified tiled?
         if test_set.num_samples_per_group > 1:
@@ -468,12 +504,6 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
                 "".join( [ "p(" + class_name + ")\t" for class_name in training_set.classnames_list ] )
             column_header += "act. class\tpred. class\tpred. val."
             print column_header
-
-        # Give myself a number so that it looks good when I print out results
-        if not batch_number:
-            batch_number = FeatureSpaceClassification.batch_count
-            FeatureSpaceClassification.batch_count += 1
-        batch_result.batch_number = batch_number
 
         # Will there be a numeric predicted value associated with this classification?
         train_set_interp_coeffs = None
@@ -503,7 +533,7 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
                 result.source_filepath = test_set.samplenames_list[ test_class_index ][ test_image_index ]
                 result.ground_truth_class_name = test_set.classnames_list[ test_class_index ]
                 result.batch_number = batch_number
-                result.name = batch_name
+                result.name = name
                 if result.marginal_probabilities:
                     # Sometimes the result comes back with a non-call, like when the sample image
                     # collides with every test image
@@ -578,9 +608,7 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
                         # now reset for the next sample group
                         tile_results_in_this_sample_group = []
                         tile_count = 0
-
         np.seterr (all='raise')
-
         return batch_result
 
 #=================================================================================
@@ -589,8 +617,8 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
     Use for regressing all samples in a FeatureSpace in one sitting.
     Member "figure_of_merit" represents standard error between predicted and ground truth."""
 
-    #: batch_count class attribute
-    batch_count = 0
+    #: obj_count class attribute
+    obj_count = 0
 
     def __init__( self, *args, **kwargs ):
         """Possible kwargs, with defaults:
@@ -598,6 +626,20 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
 
         super( FeatureSpaceRegression, self ).__init__( *args, **kwargs )
         self.predicted_values = []
+
+    #==============================================================    
+    def __str__( self ):
+        outstr = '<' + self.__class__.__name__
+        if self.batch_number is not None:
+            outstr += ' #' + str( self.batch_number )
+        if self.individual_results:
+            outstr += ' n=' + str( len( self.individual_results ) )
+        if self.figure_of_merit is not None:
+            outstr += ' R={0:0.2f}'.format( self.figure_of_merit )
+        return outstr + '>'
+    #==============================================================
+    def __repr__( self ):
+        return str(self)
 
     #=====================================================================
     def GenerateStats( self ):
@@ -623,7 +665,8 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
 
     #=====================================================================
     @classmethod
-    def NewMultivariateLinear( cls, test_set, feature_weights, quiet=False, batch_number=None, batch_name=None):
+    def NewMultivariateLinear( cls, test_set, feature_weights, name=None, batch_number=None,
+            quiet=False ):
         """Uses Pearson-coefficient weighted Multivatiate Linear classifier."""
 
         # type checking
@@ -647,8 +690,8 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
             column_header = "image\tground truth\tpred. val."
             print column_header
 
-        batch_result = cls( feature_weights.associated_training_set, test_set, feature_weights )
-        batch_result.name = batch_name
+        batch_result = cls( feature_weights.associated_training_set, test_set, feature_weights,
+                name, batch_number )
 
         if test_set.ground_truths is not None and len( test_set.ground_truths ) != 0:
             batch_result.ground_truth_values = test_set.ground_truths
@@ -656,8 +699,8 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
         for test_image_index in range( test_set.num_samples ):
             one_image_features = test_set.data_matrix[ test_image_index,: ]
             result = SingleSampleRegression._MultivariateLinear( one_image_features, feature_weights )
-            result.batch_number = batch_number
-            result.name = batch_name
+            result.batch_number = batch_result.batch_number
+            result.name = name
             result.source_filepath = test_set.samplenames_list[ test_image_index ]
             result.ground_truth_value = test_set.ground_truths[ test_image_index ]
             batch_result.predicted_values.append( result.predicted_value )
@@ -671,8 +714,8 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
 
     #=====================================================================
     @classmethod
-    def NewLeastSquares( cls, training_set, test_set, feature_weights,
-                    leave_one_out=False, quiet=False, batch_number=None, batch_name=None):
+    def NewLeastSquares( cls, training_set, test_set, feature_weights, name=None,
+            batch_number=None, leave_one_out=False, quiet=False ):
         """Uses Linear Least Squares Regression classifier in a feature space filtered/weighed
         by Pearson coefficients.
         
@@ -754,8 +797,7 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
         if not quiet:
             print "image\tground truth\tpred. val."
 
-        batch_result = cls( training_set, test_set, feature_weights )
-        batch_result.name = batch_name
+        batch_result = cls( training_set, test_set, feature_weights, name, batch_number )
 
         if augmented_test_set.ground_truths is not None and len( augmented_test_set.ground_truths ) != 0:
             batch_result.ground_truth_values = augmented_test_set.ground_truths
@@ -769,8 +811,8 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
             one_image_features = augmented_test_set.data_matrix[ test_image_index,: ]
             result = SingleSampleRegression._LeastSquares( \
                            one_image_features, intermediate_train_set )
-            result.batch_number = batch_number
-            result.name = batch_name
+            result.batch_number = batch_result.batch_number
+            result.name = name
             result.source_filepath = augmented_test_set.samplenames_list[ test_image_index ]
             result.ground_truth_value = augmented_test_set.ground_truths[ test_image_index ]
             batch_result.predicted_values.append( result.predicted_value )

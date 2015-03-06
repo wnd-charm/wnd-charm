@@ -54,13 +54,11 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
 
     #=====================================================================
     def GenerateStats( self ):
-        """Only partially implemented.
-        
-        Completed functionality:
-        1. Simple aggregation of ground truth->predicted value pairs across splits.
-           Use the function PerSampleStatistics() to average results for specific
+        """Aggregation of ground truth->predicted value pairs for all samples across splits.
+        Aggregate feature weight statistics.
+
+        Use the function PerSampleStatistics() to average results for specific
              images across splits.
-        2. Calculation of aggregated feature weight statistics
 
         Considerations for future implementation.
         1. The test set may or may not have ground truth (discrete and continuous)
@@ -78,7 +76,7 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
         lists_of_ground_truths = []
         lists_of_predicted_values = []
 
-        self.figure_of_merit = 0
+        # remember:  
         for batch_result in self.individual_results:
             self.num_classifications += len( batch_result.individual_results )
             if batch_result.figure_of_merit == None:
@@ -99,7 +97,7 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
             if not batch_result.feature_weights:
                 continue
             weight_names_and_values = zip( batch_result.feature_weights.featurenames_list, 
-                                                            batch_result.feature_weights.values)
+                                                        batch_result.feature_weights.values)
             for name, weight in weight_names_and_values:
                 if not name in feature_weight_lists:
                     feature_weight_lists[ name ] = []
@@ -107,7 +105,8 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
 
         if feature_weight_lists is not {}:
             for feature_name in feature_weight_lists:
-                feature_weight_lists[ feature_name ] = np.array( feature_weight_lists[ feature_name ] )
+                feature_weight_lists[ feature_name ] = \
+                        np.array( feature_weight_lists[ feature_name ] )
 
             feature_weight_stats = []
             for fname in feature_weight_lists:
@@ -116,12 +115,10 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
                 fwl_w_zeros = np.zeros( len( self.individual_results ) )
                 fwl_w_zeros[0:count] = fwl
                 feature_weight_stats.append( ( np.mean( fwl_w_zeros ),
-                                             count, np.std(fwl), np.min(fwl), np.max(fwl), fname ) )
+                                count, np.std(fwl), np.min(fwl), np.max(fwl), fname ) )
 
             # Sort on mean values, i.e. index 0 of tuple created above
             self.feature_weight_statistics = sorted( feature_weight_stats, key=lambda a: a[0], reverse=True )
-
-        # Remember, there's no such thing as a confusion matrix for a continuous class
         return self
 
     #=====================================================================
@@ -182,19 +179,19 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
 
     #=====================================================================
     @classmethod
-    def NewShuffleSplit( cls, feature_set, n_iter=5, name=None, features_size=0.15,
+    def NewShuffleSplit( cls, feature_space, n_iter=5, name=None, features_size=0.15,
                            train_size=None, test_size=None, random_state=True, classifier=None,
                            quiet=False):
         """args train_size, test_size, and random_state are all passed through to Split()
         feature_size if a float is feature usage fraction, if in is top n features."""
 
-        experiment = cls( training_set=feature_set, test_set=feature_set, name=name )
+        experiment = cls( training_set=feature_space, test_set=feature_space, name=name )
         if isinstance( features_size, float ):
             if features_size < 0 or features_size > 1.0:
                 raise ValueError('Arg "features_size" must be on interval [0,1] if a float.')
-            num_features = int( round( features_size * feature_set.num_features ) )
+            num_features = int( round( features_size * feature_space.num_features ) )
         elif isinstance( features_size, int ):
-            if features_size < 0 or features_size > feature_set.num_features:
+            if features_size < 0 or features_size > feature_space.num_features:
                 raise ValueError( 'must specify num_features or feature_usage_fraction in kwargs')
             num_features = features_size
         else:
@@ -219,15 +216,17 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
                 randint = partial( random_state.randint, low=0, high=maxint )
             else:
                 raise ValueError( "arg random_state must be an int, instance of numpy.random.RandomState, or True")
+            experiment.use_error_bars = True
         else:
             randint = lambda: None # samples split the same way all iterations - not recommended!
+            experiment.use_error_bars = False
 
         for split_index in range( n_iter ):
-            train_set, test_set = feature_set.Split(
+            train_set, test_set = feature_space.Split(
                 train_size, test_size, random_state=randint(), quiet=quiet )
             train_set.Normalize( quiet=quiet )
             
-            if feature_set.discrete:
+            if feature_space.discrete:
                 weights = \
                   FisherFeatureWeights.NewFromFeatureSpace( train_set ).Threshold( num_features )
             else:    
@@ -240,9 +239,10 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
             reduced_test_set = test_set.FeatureReduce( weights )
             reduced_test_set.Normalize( reduced_train_set, quiet=quiet )
 
-            if feature_set.discrete:
+            if feature_space.discrete:
                 batch_result = FeatureSpaceClassification.NewWND5( reduced_train_set, \
-                 reduced_test_set, weights, batch_number=split_index, quiet=quiet )
+                 reduced_test_set, weights, batch_number=split_index, quiet=quiet,\
+                 error_bars=experiment.use_error_bars )
             else:
                 if classifier == 'linear':
                     batch_result = FeatureSpaceRegression.NewMultivariateLinear(
@@ -267,6 +267,8 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
     Member "self.figure_of_merit" represents the mean classification accuracy across
     all FeatureSpaceClassification instances in "self.individual_results"."""
 
+    obj_count = 0
+
     def __init__( self, *args, **kwargs ):
         """Possible kwargs, with defaults:
         training_set=None, test_set=None, feature_weights=None, name=None, batch_number=None"""
@@ -274,59 +276,203 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
         super( FeatureSpaceClassificationExperiment, self ).__init__( *args, **kwargs )
 
         self.num_correct_classifications = None
+        self.classification_accuracy = None
+
+        self.num_classifications_per_class = None
+        self.num_correct_classifications_per_class = None
 
         self.confusion_matrix = None
         self.average_similarity_matrix = None
         self.average_class_probability_matrix = None
 
+    #==============================================================    
+    def __str__( self ):
+        outstr = '<' + self.__class__.__name__
+        if self.batch_number is not None:
+            outstr += ' #' + str( self.batch_number )
+        if self.name:
+            outstr += ' "' + self.name + '"'
+        if self.individual_results:
+            outstr += ' n_splits=' + str( len( self.individual_results ) )
+        if self.num_correct_classifications:
+            outstr += ' n_calls=' + str( self.num_classifications )
+        if self.num_correct_classifications:
+            outstr += ' n_corr=' + str( self.num_correct_classifications )
+        if self.classification_accuracy is not None:
+            outstr += ' acc={0:0.2f}%'.format( self.classification_accuracy * 100 )
+        return outstr + '>'
+    #==============================================================
+    def __repr__( self ):
+        return str(self)
     #=====================================================================
     def GenerateStats( self ):
-        """Not fully implemented yet. Need to implement generation of confusion, similarity, and
-        average class probability matrices from constituent batches."""
+        """Generate confusion, similarity, average class probability matrices
+        from constituent iterations."""
 
         # Base class does feature weight analysis, ground truth-pred. value aggregation
         super( FeatureSpaceClassificationExperiment, self ).GenerateStats()
         
-        self.num_classifications = 0
+        # Initialize the matrices:
+
+        # Remember! Dicts are not guaranteed to maintain key order but lists are
+        # When cycling through the matrix, iterate over the lists
+        # and not the keys of the dict.
+        from collections import defaultdict # introduced Python 2.5
+
+        # These are dicts of dicts in the form:
+        # self.confusion_matrix[ <Ground Truth Class> ][ <Predicted Class> ] == count
+        self.confusion_matrix = defaultdict( lambda: defaultdict( int ) )
+        self.average_class_probability_matrix = defaultdict( lambda: defaultdict( float ) )
+
         self.num_correct_classifications = 0
+
+        self.num_classifications_per_class = defaultdict( int )
+        self.num_correct_classifications_per_class = defaultdict( int )
+
+        self.num_classifications = 0
         for batch_result in self.individual_results:
-            for indiv_result in batch_result.individual_results:
-                self.num_classifications += 1
-                if indiv_result.ground_truth_class_name == indiv_result.predicted_class_name:
-                    self.num_correct_classifications += 1
+            if batch_result.figure_of_merit == None:
+                batch_result.GenerateStats()
+            self.num_classifications += len( batch_result )
+
+            for gt_class, gt_dict in batch_result.confusion_matrix.iteritems():
+                for pred_class, count in gt_dict.iteritems():
+                    self.confusion_matrix[ gt_class ][ pred_class ] += count
+                    self.num_classifications_per_class[ gt_class ] += count
+                    if gt_class == pred_class:
+                        self.num_correct_classifications += count
+                        self.num_correct_classifications_per_class[ gt_class ] += count
+
+                    self.average_class_probability_matrix[ gt_class ][ pred_class ] += \
+                      batch_result.average_class_probability_matrix[ gt_class ][ pred_class ]
+
+        # Finalize the Average Class Probability Matrix by dividing each marginal probability
+        # sum by the number of batches:
+        # FIXME: This assumes there were an equal number of classifications in each batch
+        for row in self.test_set.classnames_list:
+            for col in self.training_set.classnames_list:
+                self.average_class_probability_matrix[ row ][ col ] /= \
+                        len( self.individual_results )
+
+        # The similarity matrix is just the average class probability matrix
+        # normalized to have 1's in the diagonal.
+        # Doesn't make sense to do this unless the matrix is square
+        # if row labels == column labels:
+        if self.test_set.classnames_list == self.training_set.classnames_list:
+            from copy import deepcopy
+            self.similarity_matrix = deepcopy( self.average_class_probability_matrix )
+            for row in self.test_set.classnames_list:
+                denom = self.similarity_matrix[ row ][ row ]
+                for col in self.training_set.classnames_list:
+                    if self.similarity_matrix[ row ][ row ]:
+                        self.similarity_matrix[ row ][ col ] /= denom
+                        self.similarity_matrix[ col ][ row ] /= denom
 
         self.figure_of_merit = float( self.num_correct_classifications) / float( self.num_classifications )
         self.classification_accuracy = self.figure_of_merit
 
-        #FIXME: Create confusion, similarity, and class probability matrices
         return self
 
     #=====================================================================
     @output_railroad_switch
-    def Print( self ):
+    def Print( self, display=None ):
         """Generate and output statistics across all batches, as well as the figures of merit
         for each individual batch."""
         
+        if not display:
+            display = 50
         if self.figure_of_merit == None:
             self.GenerateStats()
 
-        print "==========================================="
-        print "Experiment name: {0}".format( self.name )
-        print "Summary:"
-        print "Number of batches: {0}".format( len( self.individual_results ) )
-        print "Total number of classifications: {0}".format( self.num_classifications )
-        print "Total number of CORRECT classifications: {0}".format( self.num_correct_classifications )
-        print "Total classification accuracy: {0:0.4f}\n".format( self.classification_accuracy )
+        print '='*50
+        s = self.__class__.__name__
+        if self.name:
+            s += ' "' + self.name + '"'
+        s += " (" + str( len( self.individual_results ) ) + " iterations)"
+        print s
 
-        print "Batch Accuracies:"
-        print "#\tAcc.\tName"
-        print "------------------------------------"
+        acc = self.classification_accuracy
+        n = self.num_classifications
+        n_correct = self.num_correct_classifications
 
-        for batch_result in sorted( self.individual_results, key=lambda X: X.classification_accuracy, reverse=True ):
-            if batch_result.figure_of_merit == None:
-                batch_result.GenerateStats()
-            print "{0}\t{1:0.4f}\t{2}".format( batch_result.batch_number,
-                              batch_result.classification_accuracy, batch_result.name )
+        if not self.use_error_bars:
+            print "{0}/{1} correct = {2:0.2f}%".format( n_correct, n, acc * 100 )
+        else:
+            # Using either normal approximation of binomial distribution or the Wilson score interval
+            # to calculate standard error of the mean, depending on the situation.
+            # For more info, see http://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval
+            # The confidence interval is S.E.M. * quantile for your chosen accuracy
+            # The quantile for 95% accuracy is ~ 1.96.
+            z = 1.95996
+            z2 = 3.84144 # z^2
+
+            from math import sqrt
+
+            # This is a rule of thumb test to check whecther sample size is large enough
+            # to use normal approximation of binomial distribution:
+            if ((n * acc) > 5) and ((n * (1 - acc)) > 5):
+                use_wilson = False
+                std_error_of_mean = sqrt( acc * (1-acc) / n )
+                conf_interval = z * std_error_of_mean
+                print "{0}/{1} correct = {2:0.2f} +/- {3:0.2f}% w/ 95% conf. (normal approx. interval)".format(
+                    n_correct, n, acc * 100, conf_interval * 100 )
+            else:
+                # This term goes to 1 as number of classifications gets large:
+                coeff = 1 / (1+(z2/n))
+                raw_acc = acc
+                # Wilson accuracy modifies the raw accuracy for low n:
+                acc = coeff * (raw_acc + z2/(2*n))
+                conf_interval = coeff * z * sqrt( (raw_acc*(1-raw_acc)/n) + (z2/(4*n**2)) )
+
+                outstr = "{0}/{1} correct = {2:0.1f}% raw accuracy".format(
+                    n_correct, n, raw_acc * 100, conf_interval * 100 )
+                outstr += " ({0:0.2f} +/- {1:0.2f}% w/ 95% conf. (Wilson score interval))".format(
+                        acc * 100, conf_interval * 100)
+                print outstr
+
+        # Remember: iterate over the sorted list of class names, not the keys in the dict,
+        # because the dict keys aren't guaranteed to be ordered, nor is test_set.classnames_list.
+        # Also remember: there may be different numbers of classes in train and test set
+        # or they may be named differently.
+
+        train_set_class_names = sorted( self.training_set.classnames_list )
+        test_set_class_names = sorted( self.test_set.classnames_list )
+
+        column_headers = "\t".join( train_set_class_names )
+        column_headers += "\n"
+        column_headers += "\t".join( [ '-'*len(name) for name in train_set_class_names ] )
+
+        print "Confusion Matrix:"
+        print column_headers
+
+        # See how the row labels are test set class names
+        # and the column labels are training set class names?
+
+        for row_name in test_set_class_names:
+            line = ""
+            for col_name in train_set_class_names:
+                line += '{0}\t'.format( self.confusion_matrix[ row_name ][ col_name ] )
+            print line
+        print ""
+
+        if self.similarity_matrix:
+            print "Similarity Matrix:"
+            print column_headers
+            for row_name in test_set_class_names:
+                line = ""
+                for col_name in train_set_class_names:
+                    line += '{0:0.4f}\t'.format( self.similarity_matrix[ row_name ][ col_name ] )
+                print line
+            print ""
+
+        print "Average Class Probability Matrix:"
+        print column_headers
+        for row_name in test_set_class_names:
+            line = ""
+            for col_name in train_set_class_names:
+                line += '{0:0.4f}\t'.format( self.average_class_probability_matrix[ row_name ][ col_name ] )
+            print line
+        print ""
 
         outstr = "{0}\t{1:0.3f}\t{2:>3}\t{3:0.3f}\t{4:0.3f}\t{5:0.3f}\t{6}"
         print "Feature Weight Analysis (top 50 features):"
@@ -334,8 +480,8 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
         print "----\t----\t-----\t------\t---\t---\t----"
         for count, fw_stat in enumerate( self.feature_weight_statistics, 1 ):
             print outstr.format( count, *fw_stat )
-            if count >= 50:
-                    break
+            if count >= display:
+                break
 
     #=====================================================================
     @classmethod
@@ -511,7 +657,7 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
             self.individual_stats[filename] = ( len(vals), float( vals.count( gt_class ) ) / len(vals), mp_avgs, gt_class )
 
         print "==========================================="
-        print 'Experiment name: "{0}"'.format( self.name ) + ' Individual results\n'
+        print '{0} "{1}" per-sample statistics\n'.format( self.__class__.__name__, self.name )
 
         mp_delim = "  "
         discrlineoutstr = "\tsplit {split_num:02d}: pred: {pred_class}\tact: {actual_class}\tnorm factor: {norm_factor:0.3g},\tmarg probs: ( {norm_dists} )"
@@ -549,9 +695,25 @@ class FeatureSpaceRegressionExperiment( FeatureSpacePredictionExperiment ):
     Member "self.figure_of_merit" represents the mean Standard Error across
     FeatureSpaceRegression instances in "self.individual_results"."""
 
+    obj_count = 0
+
     def __init__( self, *args, **kwargs):
         super( FeatureSpaceRegressionExperiment, self ).__init__( *args, **kwargs )
-
+    #==============================================================    
+    def __str__( self ):
+        outstr = '<' + self.__class__.__name__
+        if self.batch_number is not None:
+            outstr += ' #' + str( self.batch_number )
+        if self.name:
+            outstr += ' "' + self.name + '"'
+        if self.individual_results:
+            outstr += ' n=' + str( len( self.individual_results ) )
+        if self.figure_of_merit is not None:
+            outstr += ' R={0:0.2f}'.format( self.figure_of_merit )
+        return outstr + '>'
+    #==============================================================
+    def __repr__( self ):
+        return str(self)
     #=====================================================================
     def GenerateStats( self ):
         """Calculates statistics describing how well predicted values
@@ -595,12 +757,11 @@ class FeatureSpaceRegressionExperiment( FeatureSpacePredictionExperiment ):
         if self.figure_of_merit == None:
             self.GenerateStats()
 
-        print "==========================================="
-        print "Experiment name: {0}".format( self.name )
-        print "Summary:"
-        print "Number of batches: {0}".format( len( self.individual_results ) )
-        print "Total number of classifications: {0}".format( self.num_classifications )
-        print "Total standard error: {0}".format( self.figure_of_merit )
+        print "\n==========================================="
+        print '{0} "{1}"'.format( self.__class__.__name__, self.name )
+        print 'Num iterations ("splits"): {0}'.format( len( self.individual_results ) )
+        print "Total num classifications: {0}".format( self.num_classifications )
+        print "Standard error: {0}".format( self.figure_of_merit )
         print "Pearson corellation coefficient: {0}".format( self.pearson_coeff )
         print "Pearson p-value: {0}".format( self.pearson_p_value )        
 
@@ -611,7 +772,7 @@ class FeatureSpaceRegressionExperiment( FeatureSpacePredictionExperiment ):
         for count, fw_stat in enumerate( self.feature_weight_statistics, 1 ):
             print outstr.format( count, *fw_stat )
             if count >= 50:
-                    break
+                break
 
     #=====================================================================
     @output_railroad_switch
@@ -641,10 +802,10 @@ class FeatureSpaceRegressionExperiment( FeatureSpacePredictionExperiment ):
             self.ground_truth_values.append( self.accumulated_individual_results[filename][0].ground_truth_value )
             self.predicted_values.append( np.mean(vals) )
             self.individual_stats[filename] = ( len(vals), np.min(vals), np.mean(vals), \
-                                                                                            np.max(vals), np.std(vals) ) 
+                np.max(vals), np.std(vals) ) 
 
         print "==========================================="
-        print 'Experiment name: "{0}"'.format( self.name ) + ' Individual results\n'
+        print '{0} "{1}" per-sample statistics\n'.format( self.__class__.__name__, self.name )
         mp = "  "
         contlineoutstr = "\tsplit {split_num:02d} '{batch_name}': actual: {actual_class}. Predicted val: {pred_val:0.3f}"
         outstr = "\t---> Tested {0} times, low {1:0.3f}, mean {2:0.3f}, high {3:0.3f}, std dev {4:0.3f}"
