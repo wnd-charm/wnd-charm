@@ -193,14 +193,19 @@ class SampleImageTiles (object):
                 image_iter.current_x, image_iter.current_y, sample.width, sample.height)
     """
 
-    def __init__( self, image_in, x, y, is_fixed = False):
-        if isinstance (image_in, str):
-            if not os.path.exists( image_in ):
+    downsample = 0
+    mean = 0
+    stddev = 0
+    def __init__( self, image_in, x, y, is_fixed=False ):
+
+        from os.path import exists
+        if isinstance( image_in, str ):
+            if not exists( image_in ):
                 raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( image_in ) )
             self.image = wndcharm.ImageMatrix()
             if 1 != self.image.OpenImage( image_in, 0, None, 0, 0 ):
                 raise ValueError( 'Could not build an ImageMatrix from {0}, check the file.'.format( image_in ) )
-        elif isinstance (image_in, wndcharm.ImageMatrix):
+        elif isinstance( image_in, wndcharm.ImageMatrix ):
             self.image = image_in
         else:
             raise ValueError("image parameter 'image_in' is not a string or a wndcharm.ImageMatrix")
@@ -224,60 +229,21 @@ class SampleImageTiles (object):
         max_x = self.image.width
         max_y = self.image.height
         original = self.image
-        current_y = 0
-        self.current_y = current_y
-        while current_y + height <= max_y:
-            current_x = 0
-            self.current_x = current_x
-            while current_x + width <= max_x:
-                yield wndcharm.ImageMatrix (original, current_x, current_y, current_x+width-1, current_y+height-1,0,0)
-                current_x = current_x + width
-                self.current_x = current_x
-            current_y = current_y + height
-            self.current_y = current_y
-
-
-
-
-#############################################################################
-# class definition of FeatureGroup
-# N.B.: Now implemented in C++ with the FeatureGroup class (originally in FeatureNames.h/.cpp)
-#############################################################################
-# 
-#     A FeatureGroup is composed of: 1. A list of transforms to apply
-#     sequentially to an input image/ROI/pixel plane, and 2. The algorithm to apply to
-#     that transformed pixel plane which produces the image descriptor values.
-#
-#     The member "algorithm" is a reference to the SWIG-wrapped C++ class FeatureAlgorithm.
-#     The member "transform_list" is a list of references to the SWIG-wrapped C++ class
-#     FeatureTransform.
-#     The member "name" is a string representation of the algorithm and transform list,
-#     following the convention "AlgorithmName ([Transform A ([Transform B (])])."""
-#   e.g.: "Tamura Textures (Wavelet (Edge ()))"
-#   These FeatureGroup names are keys to a static cache of FeatureGroups.
-#
-#================================================================
-def GenerateComputationPlanFromListOfFeatureStrings( feature_list ):
-    """Takes list of feature strings and chops off bin number at the first space on right, e.g.,
-    "feature alg (transform()) [bin]" ... Returns a FeatureComputationPlan
-
-    @return work_order - a FeatureComputationPlan
-    """
-    feature_plan = wndcharm.FeatureComputationPlan ('custom')
-
-    feature_groups = set()
-    for feature in feature_list:
-        split_line = feature.rsplit( " ", 1 )
-        # add to set to ensure uniqueness
-        if split_line[0] not in feature_groups:
-            feature_plan.add( split_line[0] )
-            feature_groups.add( split_line[0] )
-    feature_plan.finalize()
-
-    return feature_plan
-
-
-#================================================================
+        self.current_row = 0
+        self.current_y = 0
+        while self.current_y + height <= max_y:
+            self.current_col = 0
+            self.current_x = 0
+            while self.current_x + width <= max_x:
+                new_px_plane = wndcharm.ImageMatrix()
+                bb = ( self.current_x, self.current_y,
+                        self.current_x + width - 1, self.current_y + height - 1 )
+                original.submatrix( new_px_plane, *bb ) # no retval
+                yield new_px_plane
+                self.current_x += width
+                self.current_col += 1
+            self.current_y += height
+            self.current_row += 1
 
 initialize_module()
 

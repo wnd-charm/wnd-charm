@@ -31,7 +31,9 @@ else:
 
 from wndcharm.FeatureVector import FeatureVector
 
-from os.path import dirname, realpath, join
+from os.path import dirname, sep, realpath, join, abspath, splitext, basename
+from tempfile import mkdtemp
+from shutil import rmtree
 
 pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pywndchrm_tests
 wndchrm_test_dir = join( dirname( pychrm_test_dir ), 'wndchrm_tests' )
@@ -158,6 +160,7 @@ class TestFeatureCalculation( unittest.TestCase ):
         # FIXME: Actually do some checking of the profile results
 
     # --------------------------------------------------------------------------
+    @unittest.skip('')
     def test_LargeFeatureSetGrayscale( self ):
         """Large feature set, grayscale image"""
         reference_sample = FeatureVector.NewFromSigFile( self.sig_file_path,
@@ -176,6 +179,134 @@ class TestFeatureCalculation( unittest.TestCase ):
         # compare strings.
 
         self.compare( target_sample.values, reference_sample.values )
+
+
+from wndcharm.FeatureSpace import FeatureSpace
+from wndcharm.FeatureWeights import FisherFeatureWeights
+from wndcharm.FeatureVector import FeatureVector, GenerateComputationPlanFromListOfFeatureStrings
+from wndcharm.SingleSamplePrediction import SingleSampleClassification
+from wndcharm.FeatureSpacePrediction import FeatureSpaceClassification
+from wndcharm.utils import SampleImageTiles
+
+from sys import exit
+from PIL import Image
+import numpy as np
+
+class TestSampleImageTiles( unittest.TestCase ):
+
+    def test_HeatMap_w_FeatureComputationPlan( self ):
+        """Classification results using SampleImageTiles method and FOF should be the same.
+        """
+
+        # chris@NIA-LG-01778617 ~/src/wnd-charm/tests/pywndcharm_tests
+        # $ tiffinfo lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E.tif
+        # TIFF Directory at offset 0x18ea9c (1632924)
+        #   Image Width: 1388 Image Length: 1040
+        #   Bits/Sample: 8
+        #   Compression Scheme: LZW
+        #   Photometric Interpretation: min-is-black
+        #   Samples/Pixel: 1
+        #   Rows/Strip: 5
+        #   Planar Configuration: single image plane
+
+        # 5x6 tiling scheme => tile dims 208 x 231.33 each
+        scan_x = 231
+        scan_y = 208
+
+        num_features = 200
+
+        # Inflate the zipped test fit into a temp file
+        import zipfile
+        zipped_file_path = pychrm_test_dir + sep + 'lymphoma_t5x6_10imgseach.fit.zip'
+        zf = zipfile.ZipFile( zipped_file_path, mode='r' )
+        tempdir = mkdtemp()
+        zf.extractall( tempdir )
+
+        # !!!!! Remove this:
+        zf.extractall( pychrm_test_dir )
+        fitfilepath = pychrm_test_dir + sep + 'lymphoma_t5x6_10imgseach.fit'
+
+        input_image_path = pychrm_test_dir + sep + "lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E.tif"
+
+        try:
+            fitfilepath = tempdir + sep + zf.namelist()[0]
+            #fs = FeatureSpace.NewFromFitFile( fitfilepath, tile_num_rows=5, tile_num_cols=6 )
+            fs = FeatureSpace.NewFromFitFile( fitfilepath ).Normalize( inplace=True, quiet=True )
+            fw = FisherFeatureWeights.NewFromFeatureSpace( fs ).Threshold( num_features )
+            fs.FeatureReduce( fw, inplace=True )
+
+            comp_plan = GenerateComputationPlanFromListOfFeatureStrings( fw.featurenames_list )
+
+            # create the tile image iterator
+            image_iter = SampleImageTiles( input_image_path, scan_x, scan_y, True)
+            print "Number of samples = " + str( image_iter.samples )
+
+            # For heatmap, create a list of zero'd out, image-sized, 2-D byte numpys
+            masks = []
+            for i in range( fs.num_classes ):
+                masks.append( np.zeros (shape=(image_iter.image.height,image_iter.image.width), dtype='uint8') )
+
+            # iterate over the image, classifying each tile
+            for i, sample in enumerate( image_iter.sample() ):
+                #try:
+                    kwargs = {}
+                    kwargs[ 'name' ] = input_image_path
+                    kwargs[ 'source_filepath' ] = sample
+                    kwargs[ 'feature_computation_plan' ] = comp_plan
+                    kwargs[ 'tile_num_cols' ] = image_iter.tiles_x
+                    kwargs[ 'tile_num_rows' ] = image_iter.tiles_y
+                    kwargs[ 'tiling_scheme' ] = '{0}x{1}'.format( image_iter.tiles_x, image_iter.tiles_y )
+                    kwargs[ 'tile_col_index' ] = image_iter.current_col
+                    kwargs[ 'tile_row_index' ] = image_iter.current_row
+                    # if these are set, then the code will try to take a ROI of a ROI:
+                    #kwargs[ 'x' ] = image_iter.current_x
+                    #kwargs[ 'y' ] = image_iter.current_y
+                    #kwargs[ 'w' ] = image_iter.tile_width
+                    #kwargs[ 'h' ] = image_iter.tile_height
+
+                    samp_feats = FeatureVector( **kwargs ).GenerateFeatures( write_to_disk=True )
+                    samp_feats.Normalize( reference_features=fs, inplace=True )
+
+                    result = SingleSampleClassification.NewWND5( fs, fw, samp_feats )
+
+                    for i in xrange( fs.num_classes ):
+                        mask_val = int( result.marginal_probabilities[i] * 255.0 )
+                        # Write the mask value into the mask array
+                        masks[i][ image_iter.current_y : image_iter.current_y + image_iter.tile_height,
+                            image_iter.current_x : image_iter.current_x + image_iter.tile_width ] = mask_val
+                        print "{0} ({1},{2}) {3}: {4}".format (
+                            i, image_iter.current_x, image_iter.current_y, fs.classnames_list[i], mask_val )
+#                except:
+#                    x_y_str = "{0}_{1}".format( image_iter.current_x, image_iter.current_y )
+#
+#                    tif_path = join( abspath( dirname( input_image_path ) ), splitext( basename( input_image_path ))[0] + "_" + x_y_str + ".tiff")
+#                    print "Could not classify sample at ({0},{1}), saving tiff file {2}".format (
+#                        image_iter.current_x, image_iter.current_y, tif_path )
+#
+#                    sample.SaveTiff( tif_path )
+#                    for i in xrange( len( samp_feats.values ) ):
+#                        val = samp_feats.values[i]
+#                        if np.isinf( val ):
+#                            print samp_feats.featurenames_list[i] + " is INF"
+#                        elif np.isnan( val ):
+#                            print test_image_signatures.names[i] + " is NAN"
+#                    self.fail()
+            
+            # Create tiff files from the mask arrays
+            #mask_dir = abspath( dirname( input_filename ) )
+            # print "mask tiff files will be saved in '{0}{1}'".format(mask_dir, sep)
+
+            mask_dir = pychrm_test_dir
+
+            for i in range( fs.num_classes ):
+                class_name = fs.classnames_list[i]
+                mask_path = join( mask_dir, splitext( basename( image_path ) )[0] + "_" + class_name + ".tiff" )
+                print 'creating tiff file mask for class {0}: {1}'.format( class_name, basename( mask_path ) )
+                # Make a PIL image out of the numpy and save it as a tiff.
+                Image.fromarray( masks[i] ).save( mask_path )
+
+        finally:
+            rmtree( tempdir )
 
 
 if __name__ == '__main__':

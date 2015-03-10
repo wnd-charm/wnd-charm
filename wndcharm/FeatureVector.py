@@ -30,6 +30,25 @@ from . import feature_vector_major_version
 from . import feature_vector_minor_version_from_num_features
 from .utils import normalize_by_columns
 
+#================================================================
+def GenerateComputationPlanFromListOfFeatureStrings( feature_list ):
+    """Takes list of feature strings and chops off bin number at the first space on right, e.g.,
+    "feature alg (transform()) [bin]" ... Returns a FeatureComputationPlan
+
+    @return work_order - a FeatureComputationPlan
+    """
+    feature_plan = wndcharm.FeatureComputationPlan ('custom')
+
+    feature_groups = set()
+    for feature in feature_list:
+        split_line = feature.rsplit( " ", 1 )
+        # add to set to ensure uniqueness
+        if split_line[0] not in feature_groups:
+            feature_plan.add( split_line[0] )
+            feature_groups.add( split_line[0] )
+    feature_plan.finalize()
+
+    return feature_plan
 
 #############################################################################
 # class definition of FeatureVector
@@ -122,9 +141,27 @@ class FeatureVector( object ):
         self.Update( **kwargs )
 
     #==============================================================
+    def __str__( self ):
+        outstr = '<' + self.__class__.__name__
+        if self.name is not None:
+            if len(self.name) > 30:
+                name = '...' + self.name[-30:]
+            else:
+                name = self.name
+            outstr += ' "' + name + '"'
+        if self.label is not None:
+            outstr += ' label="' + self.label + '"'
+        if self.samplegroupid is not None:
+            outstr += ' grp=' + str( self.samplegroupid )
+        if self.samplesequenceid is not None:
+            outstr += ' seq=' + str( self.samplesequenceid )
+        if self.fs_col is not None:
+            outstr += ' fs_col=' + str( self.fs_col )
+        return outstr + '>'
+
+    #==============================================================
     def __repr__( self ):
-        return '"{0}" ({1}) grp {2}, idx {3}, col {4}'.format( self.name, self.label,
-                self.samplegroupid, self.samplesequenceid, self.fs_col )
+        return str(self)
 
     #==============================================================
     def Update( self, force=False, **kwargs ):
@@ -144,6 +181,17 @@ class FeatureVector( object ):
                     raise AttributeError( 'No instance variable named "{0}" in class {1}'.format(
                         key, self.__class__.__name__ ) )
 
+        def ReturnNumFeaturesBasedOnMinorFeatureVectorVersion( minor_fvv ):
+            if major == 1:
+                num_feats_dict = feature_vector_minor_version_from_num_features_v1
+            else:
+                num_feats_dict = feature_vector_minor_version_from_num_features
+
+            for num_feats, version in num_feats_dict.iteritems():
+                if version == minor_fvv:
+                    return num_feats
+            return None
+
         # FIXME: feature_set_version refers to WND-CHARM specific feature set specifications.
         # Want to be able to handle other feature sets from other labs in the future.
         if self.feature_set_version == None:
@@ -156,8 +204,14 @@ class FeatureVector( object ):
             # Minor version 0 refers to user-defined combination of features.
 
             # Check to see if there is a user-defined set of features for this feature vector:
-            if self.featurenames_list:
-                if len( self.featurenames_list ) not in feature_vector_minor_version_from_num_features:
+            if self.feature_computation_plan or self.featurenames_list:
+                # set num_features
+                if self.feature_computation_plan:
+                    self.num_features = self.feature_computation_plan.n_features
+                else:
+                    self.num_features = len( self.featurenames_list )
+
+                if self.num_features not in feature_vector_minor_version_from_num_features:
                     minor = 0
                 else:
                     # FIXME: If features are out of order, should have a minor version of 0
@@ -173,21 +227,11 @@ class FeatureVector( object ):
                         minor = 2
                     else:
                         minor = 4
+                self.num_features = ReturnNumFeaturesBasedOnMinorFeatureVectorVersion( minor )
             self.feature_set_version = '{0}.{1}'.format( major, minor )
         else:
             major, minor = [ int( val ) for val in self.feature_set_version.split('.') ]
-
-        # reset number of features
-        if self.featurenames_list:
-            self.num_features = len( self.featurenames_list )
-        else:
-            if major == 1:
-                num_feats_dict = feature_vector_minor_version_from_num_features_v1
-            else:
-                num_feats_dict = feature_vector_minor_version_from_num_features
-            for num_feats, version in num_feats_dict.iteritems():
-                if version == minor:
-                    self.num_features = num_feats
+            self.num_features = ReturnNumFeaturesBasedOnMinorFeatureVectorVersion( minor )
 
         # When reading in sampling opts from the path, they get pulled out as strings
         # instead of ints:
@@ -250,8 +294,12 @@ class FeatureVector( object ):
         if self.basename:
             base = self.basename
         elif self.source_filepath:
+            if isinstance( self.source_filepath, wndcharm.ImageMatrix ):
+                the_path = self.source_filepath.source
+            else:
+                the_path = self.source_filepath
             from os.path import splitext
-            base, ext = splitext( self.source_filepath )
+            base, ext = splitext( the_path )
         elif self.name:
             base = self.name
             self.basename = base
@@ -289,9 +337,11 @@ class FeatureVector( object ):
         return base + '.sig'
 
     #================================================================
-    def GenerateFeatures( self, write_sig_files_to_disk=True, quiet=True ):
-        """@brief Loads precalculated sigs, or calculates new ones, based on which instance
+    def GenerateFeatures( self, write_to_disk=True, quiet=True ):
+        """@brief Loads precalculated features, or calculates new ones, based on which instance
         attributes have been set, and what their values are.
+
+        write_to_disk (bool) - save features to text file which by convention has extension ".sig"
         
         Returns self for convenience."""
 
@@ -347,22 +397,22 @@ class FeatureVector( object ):
         if self.rot is not None:
             raise NotImplementedError( "FIXME: Implement rotations." )
 
-        self_namespace = vars( self )
-        bb_members = 'x', 'y', 'w', 'h',
-        bb_vals = tuple( [ self_namespace[ var ] for var in bb_members ] )
-        if all( [ val is not None for val in bb_vals ] ):
-            bb = wndcharm.rect( *bb_vals )
+        if self.x is not None and self.y is not None and self.w is not None and self.h is not None:
+            bb = wndcharm.rect()
+            bb.x = self.x
+            bb.y = self.y
+            bb.w = self.w
+            bb.h = self.h
         else:
             bb = None
 
         if self.pixel_intensity_mean:
             mean = self.pixel_intensity_mean
-        else:
-            mean = 0
-
-        if self.pixel_intensity_stddev:
+            # stddev arg only used in ImageMatrix::OpenImage() if mean is set
             stddev = self.pixel_intensity_stddev
         else:
+            # setting mean = 0 is flag to not use mean in ImageMatrix::OpenImage()
+            mean = 0
             stddev = 0
 
         if isinstance( self.source_filepath, str ):
@@ -371,8 +421,14 @@ class FeatureVector( object ):
                 raise ValueError( 'Could not build an ImageMatrix from {0}, check the path.'.\
                     format( self.source_filepath ) )
         elif isinstance( self.source_filepath, wndcharm.ImageMatrix ):
-            the_tiff = self.source_filepath
-            raise NotImplementedError( "FIXME: Still haven't implemented downsample, bounding box, pixel intensity mean and stddev for an already open instance of ImageMatrix." )
+            if self.downsample or mean:
+                raise NotImplementedError( 'still need to implement modifying open pixel plane with downsample, mean or stddev' )
+            if not bb:
+                the_tiff = self.source_filepath
+            else:
+                the_tiff = wndcharm.ImageMatrix()
+                # bb only used when calling OpenImage
+                self.source_filepath.submatrix( the_tiff, self.x, self.y, self.w, self.h ) # no retval
         else:
             raise ValueError("image parameter 'image_path_or_mat' is not a string or a wndcharm.ImageMatrix")
 
@@ -440,7 +496,7 @@ class FeatureVector( object ):
         return True
 
     #==============================================================
-    def Normalize( self, input_feat_container=None, inplace=True, quiet=False ):
+    def Normalize( self, reference_features=None, inplace=True, quiet=False ):
         """By convention, the range of feature values in the WND-CHARM algorithm are
         normalized on the interval [0,100]. Normalizing is useful in making the variation 
         of features human readable. Normalized samples are only comprable if they've been 
@@ -453,38 +509,38 @@ class FeatureVector( object ):
 
         newdata = {}
 
-        if not input_feat_container:
+        if not reference_features:
             # Specific to FeatureVector implementation:
             # Doesn't make sense to Normalize a 1-D FeatureVector against itself
             # The FeatureSpace implementation of this function has stuff in this block
             err = "Can't normalize {0} \"{1}\" against itself (Normalize() called with blank arg)."
             raise ValueError( err.format( self.__class__.__name__, self.name ) )
         else:
-            # Recalculate my feature space according to maxima/minima in input_feat_container
-            if input_feat_container.featurenames_list != self.featurenames_list:
+            # Recalculate my feature space according to maxima/minima in reference_features
+            if reference_features.featurenames_list != self.featurenames_list:
                 err_str = "Can't normalize {0} \"{1}\" against {2} \"{3}\": Features don't match.".format(
                   self.__class__.__name__, self.name,
-                    input_feat_container.__class__.__name__, input_feat_container.name )
+                    reference_features.__class__.__name__, reference_features.name )
                 raise ValueError( err_str )
-            if not self.CompatibleFeatureSetVersion( input_feat_container ):
+            if not self.CompatibleFeatureSetVersion( reference_features ):
                 err_str = 'Incompatible feature versions: "{0}" ({1}) and "{2}" ({3})'
                 raise ValueError( err_str.format( self.name, self.feature_set_version,
-                    input_feat_container.name, input_feat_container.feature_set_version ) )
+                    reference_features.name, reference_features.feature_set_version ) )
 
             if not quiet:
                 # Specific to FeatureVector implementation:
                 # no num_samples member:
                 print 'Normalizing {0} "{1}" ({2} features) against {3} "{4}"'.format(
                     self.__class__.__name__, self.name, len( self.featurenames_list),
-                    input_feat_container.__class__.__name__, input_feat_container.name )
+                    reference_features.__class__.__name__, reference_features.name )
 
             # Need to make sure there are feature minima/maxima to normalize against:
-            if not input_feat_container.normalized_against:
-                input_feat_container.Normalize( quiet=quiet )
+            if not reference_features.normalized_against:
+                reference_features.Normalize( quiet=quiet )
 
-            mins = input_feat_container.feature_minima
-            maxs = input_feat_container.feature_maxima
-            newdata['normalized_against'] = input_feat_container
+            mins = reference_features.feature_minima
+            maxs = reference_features.feature_maxima
+            newdata['normalized_against'] = reference_features
 
         newdata['values'] = np.copy( self.values )
         newdata['feature_minima'], newdata['feature_maxima'] = \
@@ -547,10 +603,10 @@ class FeatureVector( object ):
         if self.feature_set_version is not None and num_features != self.num_features:
             newdata[ 'feature_set_version' ] = \
                     "{0}.0".format( self.feature_set_version.split('.',1)[0] )
-
         if inplace:
             return self.Update( **newdata )
         return self.Derive( **newdata )
+
     #================================================================
     def LoadSigFile( self, sigfile_path=None, quiet=False ):
 
