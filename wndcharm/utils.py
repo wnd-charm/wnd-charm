@@ -238,7 +238,7 @@ class SampleImageTiles (object):
                 new_px_plane = wndcharm.ImageMatrix()
                 bb = ( self.current_x, self.current_y,
                         self.current_x + width - 1, self.current_y + height - 1 )
-                original.submatrix( new_px_plane, *bb ) # no retval
+                new_px_plane.submatrix( original, *bb ) # no retval
                 yield new_px_plane
                 self.current_x += width
                 self.current_col += 1

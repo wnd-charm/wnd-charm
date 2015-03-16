@@ -735,11 +735,10 @@ class FeatureSpace( object ):
         [ fv.GenerateFeatures( write_sig_files_to_disk, quiet ) for fv in samples ]
 
         name = basename( top_level_dir_path )
-        return cls._NewFromListOfFeatureVectors( samples, name=name,
-               source_filepath=top_level_dir_path,
-                     num_samples=None,
+        return cls.NewFromListOfFeatureVectors( samples, name=name,
+               source_filepath=top_level_dir_path, num_samples=None,
                num_samples_per_group=(tile_num_rows*tile_num_cols),
-                     num_features=global_sampling_options.num_features,
+               num_features=global_sampling_options.num_features,
                discrete=discrete, quiet=quiet )
 
     #==============================================================
@@ -982,20 +981,17 @@ class FeatureSpace( object ):
 
         assert num_features > 0
 
-        return cls._NewFromListOfFeatureVectors( samples, name=file_name, source_filepath=pathname,
+        return cls.NewFromListOfFeatureVectors( samples, name=file_name, source_filepath=pathname,
                num_samples=len(samp_name_to_samp_group_id_dict)*num_samples_per_group,
                num_samples_per_group=num_samples_per_group, num_features=num_features,
                feature_set_version=feature_set_version, discrete=discrete, quiet=quiet )
 
     #==============================================================
     @classmethod
-    def _NewFromListOfFeatureVectors( cls, feature_vectors_list, name, source_filepath=None,
-      num_samples=None, num_samples_per_group=1, num_features=None, feature_set_version=None,
-      discrete=True, quiet=True ):
-        """Input is list of FeatureVectors WHOSE FEATURES HAVE ALREADY BEEN CALCULATED.
-
-        The arguments to this method call are intentionally very similar to the args of
-        FeatureSpace.__init__()"""
+    def NewFromListOfFeatureVectors( cls, feature_vectors_list, num_samples, num_features,
+        name=None, source_filepath=None, num_samples_per_group=1, feature_set_version=None,
+        discrete=True, quiet=True ):
+        """Input is list of FeatureVectors WHOSE FEATURES HAVE ALREADY BEEN CALCULATED."""
 
         new_fs = cls( name, source_filepath, num_samples, num_samples_per_group,
                      num_features, discrete, feature_set_version )

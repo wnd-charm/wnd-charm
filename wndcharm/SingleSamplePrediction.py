@@ -24,6 +24,7 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"""
 
 import numpy as np
+import wndcharm # for ImageMatrix
 from .utils import output_railroad_switch
 from .FeatureVector import FeatureVector
 from .FeatureWeights import FeatureWeights
@@ -248,11 +249,18 @@ class SingleSampleClassification( SingleSamplePrediction ):
 
         result = cls._WND5( training_set, test_samp.values, feature_weights.values )
 
-        result.source_filepath = test_samp.source_filepath
+        if isinstance( test_samp.source_filepath, wndcharm.ImageMatrix ) and \
+                test_samp.source_filepath.source:
+            result.source_filepath = test_samp.source_filepath.source
+        else:
+            result.source_filepath = test_samp.name
+
         marg_probs = np.array( result.marginal_probabilities )
         result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
         # interpolated value, if applicable
-        if len( training_set.interpolation_coefficients ) == len( marg_probs ):
+
+        if training_set.interpolation_coefficients is not None and \
+                len( training_set.interpolation_coefficients ) == len( marg_probs ):
             interp_val = np.sum( marg_probs * training_set.interpolation_coefficients )
             result.predicted_value = interp_val
 

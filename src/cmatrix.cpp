@@ -382,7 +382,7 @@ void ImageMatrix::copy(const ImageMatrix &copy) {
 	// Do this stuff last - potentially virtual method calls.
 	copyData (copy);
 }
-
+/* copies pixel vals FROM input arg "matrix" specified by ROI params into this */
 void ImageMatrix::submatrix (const ImageMatrix &matrix, const unsigned int x1, const unsigned int y1, const unsigned int x2, const unsigned int y2) {
 	unsigned int x0, y0;
 

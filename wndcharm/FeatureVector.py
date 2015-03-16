@@ -30,25 +30,34 @@ from . import feature_vector_major_version
 from . import feature_vector_minor_version_from_num_features
 from .utils import normalize_by_columns
 
+class WrongFeatureSetVersionError( Exception ):
+    pass
+
+class IncompleteFeatureSetError( Exception ):
+    pass
+
 #================================================================
-def GenerateComputationPlanFromListOfFeatureStrings( feature_list ):
-    """Takes list of feature strings and chops off bin number at the first space on right, e.g.,
-    "feature alg (transform()) [bin]" ... Returns a FeatureComputationPlan
+class PyFeatureComputationPlan( wndcharm.FeatureComputationPlan ):
+    """Contains a cache to save memory, as there may be tens of thousands of samples
+    and therefore the same number of of redundant instances of the same computation plan."""
 
-    @return work_order - a FeatureComputationPlan
-    """
-    feature_plan = wndcharm.FeatureComputationPlan ('custom')
+    plan_cache = {}
 
-    feature_groups = set()
-    for feature in feature_list:
-        split_line = feature.rsplit( " ", 1 )
-        # add to set to ensure uniqueness
-        if split_line[0] not in feature_groups:
-            feature_plan.add( split_line[0] )
-            feature_groups.add( split_line[0] )
-    feature_plan.finalize()
+    def __new__( cls, feature_list, name='custom' ):
+        """Takes list of feature strings and chops off bin number at the first
+        space on right, e.g., "feature alg (transform()) [bin]" """
 
-    return feature_plan
+        feature_groups = frozenset( [ feat.rsplit(" ",1)[0] for feat in feature_list ] )
+
+        if feature_groups in cls.plan_cache:
+            return cls.plan_cache[ feature_groups ]
+
+        self = super( PyFeatureComputationPlan, cls ).__new__( cls, name )
+        import pdb; pdb.set_trace()
+        [ self.add( family ) for family in feature_groups ]
+
+        cls.plan_cache[ feature_groups ] = self
+        return self
 
 #############################################################################
 # class definition of FeatureVector
@@ -139,6 +148,13 @@ class FeatureVector( object ):
         self.feature_computation_plan = None
 
         self.Update( **kwargs )
+    #==============================================================
+    def __len__( self ):
+        try:
+            length = len( self.featurenames_list )
+        except:
+            length = 0
+        return length
 
     #==============================================================
     def __str__( self ):
@@ -153,6 +169,8 @@ class FeatureVector( object ):
             outstr += ' label="' + self.label + '"'
         if self.samplegroupid is not None:
             outstr += ' grp=' + str( self.samplegroupid )
+        if self.featurenames_list is not None:
+            outstr += ' n_features=' + str( len( self ) )
         if self.samplesequenceid is not None:
             outstr += ' seq=' + str( self.samplesequenceid )
         if self.fs_col is not None:
@@ -206,10 +224,10 @@ class FeatureVector( object ):
             # Check to see if there is a user-defined set of features for this feature vector:
             if self.feature_computation_plan or self.featurenames_list:
                 # set num_features
-                if self.feature_computation_plan:
-                    self.num_features = self.feature_computation_plan.n_features
-                else:
+                if self.featurenames_list:
                     self.num_features = len( self.featurenames_list )
+                else:
+                    self.num_features = self.feature_computation_plan.n_features
 
                 if self.num_features not in feature_vector_minor_version_from_num_features:
                     minor = 0
@@ -289,30 +307,30 @@ class FeatureVector( object ):
         """The C implementation of wndchrm placed feature metadata
         in the filename in a specific order, recreated here."""
 
+        from os.path import splitext
+
         # FIXME: sigpaths for FeatureVectors with different channels
         # may have sig file names that will collide/overwrite each other.
         if self.basename:
             base = self.basename
+        elif isinstance( self.source_filepath, wndcharm.ImageMatrix ) and \
+                self.source_filepath.source:
+            base, ext = splitext( self.source_filepath.source )
+            self.basename = base
         elif self.source_filepath:
-            if isinstance( self.source_filepath, wndcharm.ImageMatrix ):
-                the_path = self.source_filepath.source
-            else:
-                the_path = self.source_filepath
-            from os.path import splitext
-            base, ext = splitext( the_path )
+            base, ext = splitext( self.source_filepath )
+            self.basename = base
         elif self.name:
-            base = self.name
+            # ext may be nothing, that's ok
+            base, ext = splitext( self.name )
             self.basename = base
         else:
             raise ValueError( 'Need for "basename" or "source_filepath" or "name" attribute in FeatureVector object to be set to generate sig filepath.')
 
         self_namespace = vars(self)
-        # ROI:
-        roi_params = 'x', 'y', 'w', 'h',
-        bb = [self_namespace[key] for key in roi_params]
-
-        if all( [ val is not None for val in bb ] ):
-            base += "-B{0}_{1}_{2}_{3}".format( *bb )
+        
+        if self.x is not None and self.y is not None and self.w is not None and self.h is not None:
+            base += "-B{0}_{1}_{2}_{3}".format( self.x, self.y, self.w, self.h )
         if self.downsample:
             base += "-d" + str(self.downsample)
         if self.pixel_intensity_mean is not None:
@@ -356,7 +374,7 @@ class FeatureVector( object ):
             return self
 
         # Make sure Feature Vector version string is correct, etc:
-        self.Update()
+        #self.Update()
 
         try:
             self.LoadSigFile( quiet=quiet )
@@ -365,6 +383,13 @@ class FeatureVector( object ):
             # incomplete, or calculated with different options, e.g., -S1441
             return self
         except IOError:
+            # File doesn't exist
+            pass
+        except WrongFeatureSetVersionError:
+            # File has different feature version than desired
+            pass
+        except IncompleteFeatureSetError:
+            # LoadSigFile should create a PyFeatureComputationPlan
             pass
 
         # All hope is lost, calculate features.
@@ -372,11 +397,17 @@ class FeatureVector( object ):
         # Use user-assigned feature computation plan, if provided:
         if self.feature_computation_plan != None:
             comp_plan = self.feature_computation_plan
-            self.feature_set_version = comp_plan.feature_vec_type
+
+            # I Commented the following out because the computation plan may only reflect
+            # the subset of features that haven't been calculated yet:
+            # comp_plan.feature_vec_type seems to only contain the minor version
+            # i.e., number after the '.'. Assume major version is the latest.
+            #self.feature_set_version = '{0}.{1}'.format( 
+            #        feature_vector_major_version, comp_plan.feature_vec_type )
         else:
             major, minor = self.feature_set_version.split('.')
             if minor == '0':
-                comp_plan = GenerateComputationPlanFromListOfFeatureStrings( self.featurenames_list )
+                comp_plan = PyFeatureComputationPlan( self.featurenames_list )
             elif minor == '1':
                 comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSet()
             elif minor == '2':
@@ -426,9 +457,11 @@ class FeatureVector( object ):
             if not bb:
                 the_tiff = self.source_filepath
             else:
+                # API calls for copying desired pixels into empty ImageMatrix instance:
+                # the_tiff is garbage collected on return
                 the_tiff = wndcharm.ImageMatrix()
                 # bb only used when calling OpenImage
-                self.source_filepath.submatrix( the_tiff, self.x, self.y, self.w, self.h ) # no retval
+                the_tiff.submatrix( self.source_filepath, self.x, self.y, self.w, self.h ) # no retval
         else:
             raise ValueError("image parameter 'image_path_or_mat' is not a string or a wndcharm.ImageMatrix")
 
@@ -449,12 +482,23 @@ class FeatureVector( object ):
         # Feature computation may give more features than are asked for by user, or out of order.
         if self.featurenames_list:
             if self.featurenames_list != comp_names:
-                self.values = [ comp_vals[ comp_names.index( name ) ] for name in self.featurenames_list ]
+                if self.temp_names:
+                    # If we're here, we've already loaded some but not all of the features
+                    # we need. Take what we've already loaded and slap it at the end 
+                    # of what was calculated.  Doesn't matter if some of the features are
+                    # redundant, because the .index() method returns the first item it finds.
+                    # FIXME: if there is overlap between what was loaded and what was 
+                    # calculated, check to see that they match.
+                    comp_names.extend( self.temp_names )
+                    comp_vals.extend( self.temp_vals )
+                    del self.temp_names
+                    del self.temp_values
+                self.values = np.array( [ comp_vals[ comp_names.index( name ) ] for name in self.featurenames_list ] )
         else:
             self.featurenames_list = comp_names
             self.values = comp_vals
 
-        if write_sig_files_to_disk:
+        if write_to_disk:
             self.ToSigFile( quiet=quiet )
 
         # Feature names need to be modified for their sampling options.
@@ -568,7 +612,7 @@ class FeatureVector( object ):
             # assume it's already a list then
             pass
 
-        # Check that self's faturelist contains all the features in requested_features
+        # Check that self's featurelist contains all the features in requested_features
         selfs_features = set( self.featurenames_list )
         their_features = set( requested_features )
         if not their_features <= selfs_features:
@@ -578,7 +622,7 @@ class FeatureVector( object ):
             err_str += "{0}/{1} features that were requested in the feature reduction list.".format(\
                     len( missing_features_from_req ), len( requested_features ) )
             err_str += "\nDid you forget to convert the feature names into their modern counterparts?"
-            raise ValueError( err_str )
+            raise IncompleteFeatureSetError( err_str )
 
         # The implementation of FeatureReduce here is similar to FeatureSpace.FeatureReduce
         # Here is where the implementations diverge"
@@ -609,70 +653,126 @@ class FeatureVector( object ):
 
     #================================================================
     def LoadSigFile( self, sigfile_path=None, quiet=False ):
+        """Load computed features from a sig file.
+
+        Desired features indicated by strings currently in self.featurenames_list.
+        Desired feature set version indicated self.feature_set_version.
+
+        Compare what got loaded from file with desired."""
+
+        import re
 
         if sigfile_path:
             path = sigfile_path
+            update_sampling_opts = True
         elif self.auxiliary_feature_storage:
             path = self.auxiliary_feature_storage
+            update_sampling_opts = True
         else:
             path = self.GenerateSigFilepath()
+            update_sampling_opts = False
 
         with open( path ) as infile:
-            lines = infile.read().splitlines()
 
-        # First line is metadata, 2nd line is path to original tiff file (skip that).
-        # Process features first, then deal with metadata
-        values, names = zip( *[ line.split( None, 1 ) for line in lines[2:] ] )
+            # First, check to see feature set versions match:
+            firstline = infile.readline()
+            m = re.match( '^(\S+)\s*(\S+)?$', firstline )
+            if not m:
+                # Deprecate old-style naming support anyway, those features are pretty buggy
+                # -CEC 20150104
+                raise ValueError( "Can't read a WND-CHARM feature set version from file {0}. File my be corrupted or calculated by an unsupported version of WND-CHARM. Recalculate features and try again.".format( path ) )
+                #input_major = 1
+                # For ANCIENT sig files, with features calculated YEARS ago
+                # Cleanup for legacy edge case:
+                # Set the minor version to the vector type based on # of features
+                # The minor versions should always specify vector types, but for
+                # version 1 vectors, the version is not written to the file.
+                #self.feature_set_version = "1." + str(
+                #feature_vector_minor_version_from_num_features_v1.get( len( self.values ),0 ) )
+                # This is really slow:
+                #for i, name in enumerate( names ):
+                #retval = wndcharm.FeatureNames.getFeatureInfoByName( name )
+                #if retval:
+                #    self.featurenames_list[i] = retval.name
+                #else:
+                # self.featurenames_list[i] = name
+                # Use pure Python for old-style name translation
+                #from wndcharm import FeatureNameMap
+                #self.featurenames_list = FeatureNameMap.TranslateToNewStyle( featurenames_list )
+            else:
+                class_id, input_fs_version = m.group( 1, 2 )
+                input_fs_major_ver, input_fs_minor_ver = input_fs_version.split('.')
+            if self.feature_set_version:
+                desired_fs_major_ver, desired_fs_minor_ver = self.feature_set_version.split('.')
+                if desired_fs_major_ver != input_fs_major_ver:
+                    errstr = 'Desired feature set version "{0}" different from "{1}" in file {2}'
+                    raise WrongFeatureSetVersionError(
+                            errstr.format( desired_fs_major_ver, input_fs_major_ver, path ) )
 
-        # np.fromstring is a 3x PIG:
+            # 2nd line is path to original tiff file, which may be nonsense
+            # if sig file was moved post-feature calculation.
+            orig_source_tiff_path = infile.readline()
+            if self.source_filepath is None:
+                from os.path import exists
+                # FIXME: Maybe try a few directories?
+                if exists( orig_source_tiff_path ):
+                    self.source_filepath = orig_source_tiff_path
+
+            # Load data into local variables:
+            values, names = \
+                zip( *[ line.split( None, 1 ) for line in infile.read().splitlines() ] )
+
+        # Re: converting read-in text to numpy array of floats, np.fromstring is a 3x PIG:
         # %timeit out = np.array( [ float(val) for val in thing ] )
         # 10 loops, best of 3: 38.3 ms per loop
         # %timeit out = np.fromstring( " ".join( thing ), sep=" " )
         # 10 loops, best of 3: 98.1 ms per loop
-        self.values = np.array( [ float( val ) for val in values ] )
 
-        # Now that we know howmany values there are, deal with metadata.
-        import re
-        self.class_id, self.feature_set_version = \
-                re.match( '^(\S+)\s*(\S+)?$' , lines[0] ).group( 1, 2 )
-        if self.feature_set_version is None:
-            # Cleanup for legacy edge case:
-            # Set the minor version to the vector type based on # of features
-            # The minor versions should always specify vector types, but for
-            # version 1 vectors, the version is not written to the file.
-            self.feature_set_version = "1." + str(
-                feature_vector_minor_version_from_num_features_v1.get( len( self.values ),0 ) )
-
-        # We would know by know if there was a sigfile processing error,
+        # By now we would know by know if there was a sigfile processing error,
         # e.g., file doesn't exist.
         # Safe to set this member now if not already set
         if not self.auxiliary_feature_storage:
             self.auxiliary_feature_storage = path
 
-        # This is really slow:
-        #for i, name in enumerate( names ):
-            #retval = wndcharm.FeatureNames.getFeatureInfoByName( name )
-            #if retval:
-            #    self.featurenames_list[i] = retval.name
-            #else:
-            # self.featurenames_list[i] = name
+        # Check to see that the sig file contains all of the desired features:
+        if self.featurenames_list:
+            if self.featurenames_list == names:
+                # Perfect! Do nothing.
+                pass
+            else:
+                features_we_want = set( self.featurenames_list )
+                features_we_have = set( names )
+                if not features_we_want <= features_we_have:
+                    # Need to calculate more features
+                    missing_features = features_we_have - features_we_want
+                    # create a feature computation plan based on missing features only:
+                    self.feature_computation_plan = PyFeatureComputationPlan( missing_features )
+                    # temporarily store loaded features in temp members to be used by 
+                    # self.GenerateFeatures to create the final feature vector.
+                    self.temp_names = names
+                    self.temp_values = [ float( val ) for val in values ]
+                    raise IncompleteFeatureSetError
+                else:
+                    # If you get to here, we loaded MORE features than asked for,
+                    # or the features are out of desired order, or both.
+                    values = [ values[ names.index( name ) ] for name in self.featurenames_list ]
+        else:
+            # User didn't indicate what features they wanted.
+            # It's a pretty dangerous assumption to make that the user just "got 
+            # what they wanted" by loading the file, but danger is my ... middle name ;-)
+            self.featurenames_list = list( names )
 
-        # Use pure Python for old-style name translation
-        #from wndcharm import FeatureNameMap
-        #self.featurenames_list = FeatureNameMap.TranslateToNewStyle( featurenames_list )
-
-        # Deprecate old-style naming support anyway, those features are pretty buggy
-        # -CEC 20150104
-        self.featurenames_list = list( names )
+        self.values = np.array( [ float( val ) for val in values ] )
 
         # Subtract path so that path part doesn't become part of name
         from os.path import basename
         # Pull sampling options from filename
         path_removed = basename( path )
         self.name = path_removed
-        result = self.sig_filename_parser.search( path_removed )
-        if result:
-            self.Update( **result.groupdict() )
+        if update_sampling_opts:
+            result = self.sig_filename_parser.search( path_removed )
+            if result:
+                self.Update( **result.groupdict() )
 
         if not quiet:
             print "Loaded features from file {0}".format( path )
@@ -693,14 +793,16 @@ class FeatureVector( object ):
         wherever you want. Otherwise, it's named according to convention and placed 
         next to the image file in its directory."""
         from os.path import exists
-        if not path:
-            path = self.GenerateSigFilepath()
+        if path:
+            self.auxiliary_feature_storage = path
+        elif not self.auxiliary_feature_storage:
+            path = self.auxiliary_feature_storage = self.GenerateSigFilepath()
         if not quiet:
             if exists( path ):
                 print "Overwriting {0}".format( path )
             else:
                 print 'Writing signature file "{0}"'.format( path )
-        self.auxiliary_feature_storage = path
+        
         with open( path, "w" ) as out:
             # FIXME: line 1 contains class membership and version
             # Just hardcode the class membership for now.
