@@ -36,28 +36,57 @@ class WrongFeatureSetVersionError( Exception ):
 class IncompleteFeatureSetError( Exception ):
     pass
 
-#================================================================
-class PyFeatureComputationPlan( wndcharm.FeatureComputationPlan ):
-    """Contains a cache to save memory, as there may be tens of thousands of samples
-    and therefore the same number of of redundant instances of the same computation plan."""
+# Couldn't get this "Python singleton inherited from swig-wrapped C++ object" to work:
+#*** NotImplementedError: Wrong number or type of arguments for overloaded function 'FeatureComputationPlan_add'.
+#  Possible C/C++ prototypes are:
+#    FeatureComputationPlan::add(std::string const &)
+#    FeatureComputationPlan::add(FeatureGroup const *)
+# "self" below was of type "<wndcharm.FeatureVector.PyFeatureComputationPlan;  >"
+# when what was required was a SWIG proxy object to translate native python strings
+# into std::string
+# "<wndcharm.wndcharm.FeatureComputationPlan; proxy of <Swig Object of type 'FeatureComputationPlan *' at 0x111263cf0> >"
+##================================================================
+#class PyFeatureComputationPlan( wndcharm.FeatureComputationPlan ):
+#    """Contains a cache to save memory, as there may be tens of thousands of samples
+#    and therefore the same number of of redundant instances of the same computation plan."""
+#
+#    plan_cache = {}
+#
+#    def __new__( cls, feature_list, name='custom' ):
+#        """Takes list of feature strings and chops off bin number at the first
+#        space on right, e.g., "feature alg (transform()) [bin]" """
+#
+#        feature_groups = frozenset( [ feat.rsplit(" ",1)[0] for feat in feature_list ] )
+#
+#        if feature_groups in cls.plan_cache:
+#            return cls.plan_cache[ feature_groups ]
+#
+#        self = super( PyFeatureComputationPlan, cls ).__new__( cls, name )
+#        [ self.add( family ) for family in feature_groups ]
+#
+#        cls.plan_cache[ feature_groups ] = self
+#        return self
 
-    plan_cache = {}
+# instead implement with a global dict to serve as feature plan cache
 
-    def __new__( cls, feature_list, name='custom' ):
-        """Takes list of feature strings and chops off bin number at the first
-        space on right, e.g., "feature alg (transform()) [bin]" """
+plan_cache = {}
 
-        feature_groups = frozenset( [ feat.rsplit(" ",1)[0] for feat in feature_list ] )
+def GenerateFeatureComputationPlan( feature_list, name='custom' ):
+    """Takes list of feature strings and chops off bin number at the first
+    space on right, e.g., "feature alg (transform()) [bin]" """
 
-        if feature_groups in cls.plan_cache:
-            return cls.plan_cache[ feature_groups ]
+    global plan_cache
+    feature_groups = frozenset( [ feat.rsplit(" ",1)[0] for feat in feature_list ] )
 
-        self = super( PyFeatureComputationPlan, cls ).__new__( cls, name )
-        import pdb; pdb.set_trace()
-        [ self.add( family ) for family in feature_groups ]
+    if feature_groups in plan_cache:
+        return plan_cache[ feature_groups ]
 
-        cls.plan_cache[ feature_groups ] = self
-        return self
+    obj = wndcharm.FeatureComputationPlan( name )
+    [ obj.add( family ) for family in feature_groups ]
+
+    plan_cache[ feature_groups ] = obj
+    return obj
+
 
 #############################################################################
 # class definition of FeatureVector
@@ -266,7 +295,7 @@ class FeatureVector( object ):
         # index 0 = position row 0, col 0
         # index 1 = position row 0, col 1
         # index 2 = position row 1, col 0, etc...
-        self.samplesequenceid = self.tile_row_index + ( self.tile_num_cols * self.tile_col_index )
+        self.samplesequenceid = (self.tile_row_index * self.tile_num_cols) + self.tile_col_index
         return self
 
     #==============================================================
@@ -376,6 +405,7 @@ class FeatureVector( object ):
         # Make sure Feature Vector version string is correct, etc:
         #self.Update()
 
+        partial_load = False
         try:
             self.LoadSigFile( quiet=quiet )
             # FIXME: Here's where you'd calculate a small subset of features
@@ -389,7 +419,8 @@ class FeatureVector( object ):
             # File has different feature version than desired
             pass
         except IncompleteFeatureSetError:
-            # LoadSigFile should create a PyFeatureComputationPlan
+            # LoadSigFile should create a FeatureComputationPlan
+            partial_load = True
             pass
 
         # All hope is lost, calculate features.
@@ -407,7 +438,7 @@ class FeatureVector( object ):
         else:
             major, minor = self.feature_set_version.split('.')
             if minor == '0':
-                comp_plan = PyFeatureComputationPlan( self.featurenames_list )
+                comp_plan = GenerateFeatureComputationPlan( self.featurenames_list )
             elif minor == '1':
                 comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSet()
             elif minor == '2':
@@ -482,7 +513,7 @@ class FeatureVector( object ):
         # Feature computation may give more features than are asked for by user, or out of order.
         if self.featurenames_list:
             if self.featurenames_list != comp_names:
-                if self.temp_names:
+                if partial_load:
                     # If we're here, we've already loaded some but not all of the features
                     # we need. Take what we've already loaded and slap it at the end 
                     # of what was calculated.  Doesn't matter if some of the features are
@@ -490,7 +521,7 @@ class FeatureVector( object ):
                     # FIXME: if there is overlap between what was loaded and what was 
                     # calculated, check to see that they match.
                     comp_names.extend( self.temp_names )
-                    comp_vals.extend( self.temp_vals )
+                    comp_vals.extend( self.temp_values )
                     del self.temp_names
                     del self.temp_values
                 self.values = np.array( [ comp_vals[ comp_names.index( name ) ] for name in self.featurenames_list ] )
@@ -498,6 +529,7 @@ class FeatureVector( object ):
             self.featurenames_list = comp_names
             self.values = comp_vals
 
+        # FIXME: write to disk BEFORE feature reduce
         if write_to_disk:
             self.ToSigFile( quiet=quiet )
 
@@ -744,9 +776,9 @@ class FeatureVector( object ):
                 features_we_have = set( names )
                 if not features_we_want <= features_we_have:
                     # Need to calculate more features
-                    missing_features = features_we_have - features_we_want
+                    missing_features = features_we_want - features_we_have
                     # create a feature computation plan based on missing features only:
-                    self.feature_computation_plan = PyFeatureComputationPlan( missing_features )
+                    self.feature_computation_plan = GenerateFeatureComputationPlan( missing_features )
                     # temporarily store loaded features in temp members to be used by 
                     # self.GenerateFeatures to create the final feature vector.
                     self.temp_names = names
@@ -795,8 +827,11 @@ class FeatureVector( object ):
         from os.path import exists
         if path:
             self.auxiliary_feature_storage = path
-        elif not self.auxiliary_feature_storage:
+        elif self.auxiliary_feature_storage is not None:
+            path = self.auxiliary_feature_storage
+        else:
             path = self.auxiliary_feature_storage = self.GenerateSigFilepath()
+
         if not quiet:
             if exists( path ):
                 print "Overwriting {0}".format( path )

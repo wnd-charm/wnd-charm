@@ -42,7 +42,7 @@ except ImportError:
 
 
 # The numbers *must* be consistent with what's defined in wndchrm C-codebase.
-feature_vector_major_version = 2
+feature_vector_major_version = 3
 # Feature vector lengths in current version
 # #define NUM_LC_FEATURES  4059
 # #define NUM_L_FEATURES   2919

@@ -31,6 +31,8 @@ from .FeatureVector import FeatureVector
 def CheckIfClassNamesAreInterpolatable( classnames_list ):
     """N.B., this method takes only the first number it finds in the class label."""
 
+    if not classnames_list:
+        return None
     import re
     p = re.compile( r'(-?\d*\.?\d+)' )
     interp_coeffs = []
@@ -153,7 +155,7 @@ class FeatureSpace( object ):
         self.interpolation_coefficients = None
         #: Number of samples in each class
         self.classsizes_list = None
-
+        self.num_classes = None
 
         # FEATURE METADATA DATA MEMBERS
         # -------------------------------------------
@@ -1006,8 +1008,24 @@ class FeatureSpace( object ):
         # LEFT boundary, i.e. what is column 0 - 1's right most boundary (exclusive):
         feature_set_col_offset[-1] = 0
 
-        # Sort list of FeatureVectors by column so we can fill in data_matrix from left to right.
-        for fv in sorted( feature_vectors_list, key=lambda fv: fv.fs_col ):
+        # Count the number of feature set columns we have to know whether to
+        # add the "channel" string token inside the inner parentheses of the feature names
+        num_fs_columns = len( set( [ fv.fs_col for fv in feature_vectors_list ] ) )
+
+        # Sort list of FeatureVectors by column so we can fill in then new data_matrix
+        # and featurenames_list from left to right.
+
+        sorted_by_fs_cols = sorted( feature_vectors_list, key=lambda fv: fv.fs_col )
+
+        # Be consistent with kludge solution in NewFromFileOfFiles() re: setting a
+        # FeatureSpace.feature_set_version ... let self.feature_set_version be
+        # the same as the FeatureVector from the right-most feature set column, i.e.,
+        # column with highest index.
+
+        if new_fs.feature_set_version is None:
+            new_fs.feature_set_version = sorted_by_fs_cols[-1].feature_set_version
+
+        for fv in sorted_by_fs_cols:
             if fv.values is None:
                 raise ValueError( "Calls to this method require features to have already been calculated." )
 
@@ -1015,12 +1033,17 @@ class FeatureSpace( object ):
             col_right_boundary_index = col_left_boundary_index + fv.num_features
             row_index = (fv.samplegroupid * num_samples_per_group) + fv.samplesequenceid
 
+            #print "row", row_index, "left", col_left_boundary_index, "right", col_right_boundary_index
+
             # Fill in column metadata if we've not seen a feature vector for this col before
             if fv.fs_col not in feature_set_col_offset:
                 feature_set_col_offset[ fv.fs_col ] = col_right_boundary_index
-                new_fs.featurenames_list[ col_left_boundary_index : col_right_boundary_index ] = \
+                if num_fs_columns > 1:
+                    new_fs.featurenames_list[ col_left_boundary_index : col_right_boundary_index ] = \
                   [ name.replace( '()', '({0})'.format( fv.fs_col ) ) for name in fv.featurenames_list ]
-
+                else:
+                    new_fs.featurenames_list[ col_left_boundary_index : col_right_boundary_index ] = \
+                        fv.featurenames_list
             # Fill in row metadata with FeatureVector data from column 0 only
             if fv.fs_col == 0: # (fs_col member must be > 0 and cannot be None)
                 new_fs._contiguous_samplenames_list[ row_index ] = fv.name
@@ -1042,6 +1065,9 @@ class FeatureSpace( object ):
             seen = set()
             seen_add = seen.add
             new_fs.classnames_list = [ x for x in ground_truths if not (x in seen or seen_add(x) ) ]
+            # The ground truths could all be None's
+            if new_fs.classnames_list == [None]:
+                new_fs.classnames_list = ["UNKNOWN"]
             new_fs.interpolation_coefficients = \
                 CheckIfClassNamesAreInterpolatable( new_fs.classnames_list )
             new_fs.num_classes = len( new_fs.classnames_list )
@@ -1133,7 +1159,7 @@ class FeatureSpace( object ):
         return self.data_matrix
 
     #==============================================================
-    def Normalize( self, input_feat_container=None, inplace=True, quiet=False ):
+    def Normalize( self, reference_features=None, inplace=True, quiet=False ):
         """By convention, the range of feature values in the WND-CHARM algorithm are
         normalized on the interval [0,100]. Normalizing is useful in making the variation 
         of features human readable. Normalized samples are only comprable if they've been 
@@ -1146,7 +1172,7 @@ class FeatureSpace( object ):
 
         newdata = {}
 
-        if not input_feat_container:
+        if not reference_features:
             # Recalculate my feature space using my own maxima/minima
             if not quiet:
                 print 'Normalizing {0} "{1}" ({2} images) against self'.format(
@@ -1155,28 +1181,28 @@ class FeatureSpace( object ):
             maxs = None
             newdata['normalized_against'] = 'self'
         else:
-            # Recalculate my feature space according to maxima/minima in input_feat_container
-            if input_feat_container.featurenames_list != self.featurenames_list:
+            # Recalculate my feature space according to maxima/minima in reference_features
+            if reference_features.featurenames_list != self.featurenames_list:
                 err_str = "Can't normalize {0} \"{1}\" against {2} \"{3}\": Features don't match.".format(
                   self.__class__.__name__, self.name,
-                    input_feat_container.__class__.__name__, input_feat_container.name )
+                    reference_features.__class__.__name__, reference_features.name )
                 raise ValueError( err_str )
-            if not self.CompatibleFeatureSetVersion( input_feat_container ):
+            if not self.CompatibleFeatureSetVersion( reference_features ):
                 err_str = 'Incompatible feature versions: "{0}" ({1}) and "{2}" ({3})'
                 raise ValueError( err_str.format( self.name, self.feature_set_version,
-                    input_feat_container.name, input_feat_container.feature_set_version ) )
+                    reference_features.name, reference_features.feature_set_version ) )
             
             if not quiet:
                 print 'Normalizing "{0}" ({1} samples) against "{2}" ({3} samples)'.format(
-                    self.name, self.num_samples, input_feat_container.name, input_feat_container.num_samples )
+                    self.name, self.num_samples, reference_features.name, reference_features.num_samples )
 
             # Need to make sure there are feature minima/maxima to normalize against:
-            if not input_feat_container.normalized_against:
-                input_feat_container.Normalize( quiet=quiet )
+            if not reference_features.normalized_against:
+                reference_features.Normalize( quiet=quiet )
 
-            mins = input_feat_container.feature_minima
-            maxs = input_feat_container.feature_maxima
-            newdata['normalized_against'] = input_feat_container
+            mins = reference_features.feature_minima
+            maxs = reference_features.feature_maxima
+            newdata['normalized_against'] = reference_features
 
         newdata['data_matrix'] = np.copy( self.ContiguousDataMatrix() )
         newdata['feature_minima'], newdata['feature_maxima'] = \
