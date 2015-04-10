@@ -9,14 +9,17 @@ This package contains two implementations both of which use common image transfo
 This research was supported entirely by the Intramural Research Program of the National Institutes of Health, National Institute on Aging, Ilya Goldberg, Investigator. Address: Laboratory of Genetics/NIA/NIH, 251 Bayview Blvd., Suite 100, Baltimore, MD, 21224, USA
 
 ----
-A full description of the wndchrm utility can be found at:
+####A full description of the wndchrm utility can be found at:
 
 [Shamir L, Orlov N, Eckley DM, Macura T, Johnston J, Goldberg IG. Wndchrm - an open source utility for biological image analysis](http://www.scfbm.org/content/3/1/13). BMC Source Code for Biology and Medicine. 3: 13, 2008. [PDF download](http://ome.grc.nia.nih.gov/wnd-charm/BMC-wndchrm-utility.pdf)
 
-The wndchrm utility is an implementation of the WND-CHARM algorithm described here:
+####The wndchrm utility is an implementation of the WND-CHARM algorithm described here:
 
 [Orlov N, Shamir L, Macura T, Johnston J, Eckley DM, Goldberg IG. WND-CHARM: Multi-purpose image classification using compound image transforms](http://ome.grc.nia.nih.gov/wnd-charm/PRL_2008.pdf). Pattern Recognition Letters. 29(11): 1684-93, 2008.
 
+####A review of techniques used in pattern-recognition/machine learning as applied to image analysis is here:
+
+[Shamir L, Delaney JD, Orlov N, Eckley DM, Goldberg IG. Pattern Recognition Software and Techniques for Biological Image Analysis](http://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1000974). PLoS Computational Biology. 6(11): e1000974, 2010
 
 ## Current Release
 
