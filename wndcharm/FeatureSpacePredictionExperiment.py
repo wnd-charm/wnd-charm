@@ -82,7 +82,7 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
             if batch_result.figure_of_merit == None:
                 batch_result.GenerateStats()
             if batch_result.ground_truth_values:
-                lists_of_ground_truths.append( batch_result.ground_truth_values )
+                lists_of_ground_truths.append( batch_result.groundtruthvalue_list )
             if batch_result.predicted_values:
                 lists_of_predicted_values.append( batch_result.predicted_values )
 

@@ -27,7 +27,6 @@ import numpy as np
 from .utils import output_railroad_switch, normalize_by_columns
 from .FeatureVector import FeatureVector
 
-
 def CheckIfClassNamesAreInterpolatable( classnames_list ):
     """N.B., this method takes only the first number it finds in the class label."""
 
@@ -144,9 +143,13 @@ class FeatureSpace( object ):
         self._contiguous_samplesequenceid_list = None
         self.samplesequenceid_list = None
 
-        #: A list of floats with is the "target" vector for regression, interpolation, etc.
-        self._contiguous_ground_truths = None
-        self.ground_truths = None
+        #: A list of floats which is the "target" vector for regression, interpolation, etc.
+        self._contiguous_groundtruthvalue_list = None
+        self.groundtruthvalue_list = None
+
+        #: A list of strings which is the label for each sample
+        self._contiguous_groundtruthlabel_list = None
+        self.groundtruthlabel_list = None
 
         # List data members for discrete data whose len() is the number of classes
         #: List of strings which are the class names
@@ -185,7 +188,7 @@ class FeatureSpace( object ):
             self._contiguous_samplenames_list = [None] * self.num_samples
             self._contiguous_samplegroupid_list = [None] * self.num_samples
             self._contiguous_samplesequenceid_list = [None] * self.num_samples
-            self._contiguous_ground_truths = [None] * self.num_samples
+            self._contiguous_groundtruthvalue_list = [None] * self.num_samples
 
         if self.num_features:
             self.featurenames_list = [None] * self.num_features
@@ -201,7 +204,7 @@ class FeatureSpace( object ):
 
         # Don't bother copying these "view" members which are rebuilt by self._RebuildViews()
         convenience_view_members = [ 'data_list', 'samplenames_list', 'samplegroupid_list',\
-            'samplesequenceid_list', 'ground_truths' ]
+            'samplesequenceid_list', 'groundtruthvalue_list', 'groundtruthlabel_list' ]
 
         # Are all keys in kwargs valid instance attribute names?
         invalid_kwargs = set( kwargs.keys() ) - set( self_namespace.keys() )
@@ -266,13 +269,13 @@ class FeatureSpace( object ):
         if verbose: # verbose implies print info for each sample
             if self.num_samples_per_group == 1:
                 sample_metadata = \
-                  zip( self._contiguous_samplenames_list, self._contiguous_ground_truths )
+                  zip( self._contiguous_samplenames_list, self._contiguous_groundtruthvalue_list )
                 header_str = "SAMP NAME\tGROUND TRUTH\n==============================================================="
                 format_str = "{0}\t{1}"
             else:
                 sample_metadata = zip( self._contiguous_samplenames_list, 
                             self._contiguous_samplegroupid_list, self._contiguous_samplesequenceid_list,
-                            self._contiguous_ground_truths )
+                            self._contiguous_groundtruthvalue_list )
                 header_str = "SAMP NAME\tGROUP INDEX\tTILE INDEX\tGROUND TRUTH\n===================================================================="
                 format_str = "{0}\t{1:03d}\t{2:02d}\t{3}"
 
@@ -287,12 +290,17 @@ class FeatureSpace( object ):
         source data, number and composition of image classes, number of features, etc."""
 
         outstr = '<' +str( self.__class__.__name__ ) + ' '
-        outstr += '"{0}"'.format( self.name ) + ' '
-        outstr += 'n_features=' + str( self.num_features ) + ' '
-        outstr += 'n_total_samples=' + str( self.num_samples )
+        if self.name is not None:
+            outstr += '"{0}"'.format( self.name ) + ' '
+        if self.num_features is not None:
+            outstr += 'n_features=' + str( self.num_features ) + ' '
+        if self.num_samples is not None:
+            outstr += 'n_total_samples=' + str( self.num_samples )
         if self.discrete:
-            outstr += ' n_classes=' + str( self.num_classes ) + ' '
-            outstr += 'samples_per_class=(' + ', '.join( [ '"{0}": {1}'.format( name, quant ) \
+            if self.num_classes is not None:
+                outstr += ' n_classes=' + str( self.num_classes ) + ' '
+            if self.classnames_list is not None and self.classsizes_list is not None:
+                outstr += 'samples_per_class=(' + ', '.join( [ '"{0}": {1}'.format( name, quant ) \
                             for name, quant in zip( self.classnames_list, self.classsizes_list ) ] ) + ')'
         outstr += '>'
         return outstr
@@ -524,12 +532,13 @@ class FeatureSpace( object ):
         if _retval:
             # Numeric ground truth/target vector
             new_fs.interpolation_coefficients = _retval
-            new_fs._contiguous_ground_truths = [ _retval[ class_index ] \
+            new_fs._contiguous_groundtruthvalue_list = [ _retval[ class_index ] \
                 for class_index in xrange( num_classes ) \
                   for i in xrange( new_fs.classsizes_list[ class_index ] ) ]
         else:
             # Just a string label ground truth
-            new_fs._contiguous_ground_truths = [ new_fs.classnames_list[ class_index ] \
+            new_fs._contiguous_groundtruthvalue_list = None
+            new_fs._contiguous_groundtruthlabel_list = [ new_fs.classnames_list[ class_index ] \
               for class_index in xrange( num_classes ) \
                 for i in xrange( new_fs.classsizes_list[ class_index ] ) ]
 
@@ -597,7 +606,7 @@ class FeatureSpace( object ):
 #            class_indices = [None] * self.num_samples
 #            for i in xrange( self.num_samples ):
 #                try:
-#                    val = str( 1 + ground_truth_class_vals.index( self._contiguous_ground_truths[i] ) )
+#                    val = str( 1 + ground_truth_class_vals.index( self._contiguous_groundtruthvalue_list[i] ) )
 #                except ValueError:
 #                    val = str( 0 )
 #                class_indices[i] = val
@@ -632,12 +641,16 @@ class FeatureSpace( object ):
             raise ValueError( errmsg )
 
         if self.discrete == True:
+            # Remember, for class-based classification problems, we construct per-class
+            # views into the contiguous feature space/metadata that results in lists of lists
             self.data_list = [None] * self.num_classes
             self.samplenames_list = [None] * self.num_classes
             self.samplegroupid_list = [None] * self.num_classes
             self.samplesequenceid_list = [None] * self.num_classes
-            if self._contiguous_ground_truths:
-                self.ground_truths = [None] * self.num_classes
+            if self._contiguous_groundtruthvalue_list:
+                self.groundtruthvalues_list = [None] * self.num_classes
+            if self._contiguous_groundtruthlabel_list:
+                self.groundtruthlabels_list = [None] * self.num_classes
 
             class_bndry_index = 0
             for class_index in xrange( self.num_classes ):
@@ -650,9 +663,12 @@ class FeatureSpace( object ):
                     self._contiguous_samplegroupid_list[ class_bndry_index : class_bndry_index + n_class_samples ]
                 self.samplesequenceid_list[ class_index ] = \
                     self._contiguous_samplesequenceid_list[ class_bndry_index : class_bndry_index + n_class_samples ]
-                if self._contiguous_ground_truths:
-                    self.ground_truths[ class_index ] = \
-                        self._contiguous_ground_truths[ class_bndry_index : class_bndry_index + n_class_samples ]
+                if self._contiguous_groundtruthvalue_list:
+                    self.groundtruthvalue_list[ class_index ] = \
+                        self._contiguous_groundtruthvalue_list[ class_bndry_index : class_bndry_index + n_class_samples ]
+                if self._contiguous_groundtruthlabel_list:
+                    self.groundtruthlabel_list[ class_index ] = \
+                        self._contiguous_groundtruthlabel_list[ class_bndry_index : class_bndry_index + n_class_samples ]
 
                 class_bndry_index += n_class_samples
 
@@ -661,7 +677,8 @@ class FeatureSpace( object ):
             self.samplenames_list = self._contiguous_samplenames_list
             self.samplegroupid_list = self._contiguous_samplegroupid_list 
             self.samplesequenceid_list = self._contiguous_samplesequenceid_list
-            self.ground_truths = self._contiguous_ground_truths
+            self.groundtruthvalue_list = self._contiguous_groundtruthvalues_list
+            self.groundtruthlabel_list = self._contiguous_groundtruthlabel_list
 
         self.data_matrix_is_contiguous = True
         return self
@@ -714,7 +731,7 @@ class FeatureSpace( object ):
                 # If we're here, we're down in one of the sub directories
                 # This class's name will be "subdir" in /path/to/topleveldir/subdir
                 filelist = [ join( root, _file ) for _file in files \
-                                                    if _file.endswith(('.tif','.tiff','.TIF','.TIFF')) ]
+                                        if _file.endswith(('.tif','.tiff','.TIF','.TIFF')) ]
                 if len( filelist ) <= 0:
                     # Maybe the user hid them?
                     #raise ValueError( 'No tiff files in directory {0}'.format( root ) )
@@ -999,6 +1016,8 @@ class FeatureSpace( object ):
                      num_features, discrete, feature_set_version )
 
         new_fs.Print()
+        import pdb; pdb.set_trace()
+        # dying on interp coefficients
 
         # For compound samples, e.g., multichannel, need to know the column offsets.
         # key: col index, value: index in data_matrix demarking rightmost feature for this column
@@ -1049,34 +1068,28 @@ class FeatureSpace( object ):
                 new_fs._contiguous_samplenames_list[ row_index ] = fv.name
                 new_fs._contiguous_samplegroupid_list[ row_index ] = fv.samplegroupid
                 new_fs._contiguous_samplesequenceid_list[ row_index ] = fv.samplesequenceid
-                if discrete:
-                    new_fs._contiguous_ground_truths[ row_index ] = fv.label
-                else:
-                    new_fs._contiguous_ground_truths[ row_index ] = fv.ground_truth
+                new_fs._contiguous_groundtruthlabel_list[ row_index ] = fv.label
+                new_fs._contiguous_groundtruthvalue_list[ row_index ] = fv.ground_truth
 
             new_fs.data_matrix[ row_index, col_left_boundary_index : col_right_boundary_index ] = \
               fv.values
-
-        # alias:
-        ground_truths = new_fs._contiguous_ground_truths
 
         if discrete:
             # Uniquify the sample group list, maintaining order of input sample group list.
             seen = set()
             seen_add = seen.add
-            new_fs.classnames_list = [ x for x in ground_truths if not (x in seen or seen_add(x) ) ]
-            # The ground truths could all be None's
+            new_fs.classnames_list = \
+                [ x for x in new_fs._contiguous_groundtruthlabel_list if not (x in seen or seen_add(x) ) ]
+            # The labels could all be None's
             if new_fs.classnames_list == [None]:
                 new_fs.classnames_list = ["UNKNOWN"]
             new_fs.interpolation_coefficients = \
                 CheckIfClassNamesAreInterpolatable( new_fs.classnames_list )
             new_fs.num_classes = len( new_fs.classnames_list )
             new_fs.classsizes_list = \
-              [ ground_truths.count( label ) for label in new_fs.classnames_list ]
-
-        if not discrete or new_fs.interpolation_coefficients is not None:
-            new_fs._contiguous_ground_truths = [ float( val ) for val in ground_truths ]
-
+              [ new_fs._contiguous_groundtruthlabel_list.count( label ) \
+                  for label in new_fs.classnames_list ]
+   
         new_fs._RebuildViews()
 
         if not quiet:
@@ -1096,7 +1109,8 @@ class FeatureSpace( object ):
             self._contiguous_samplenames_list = self.samplenames_list
             self._contiguous_samplegroupid_list = self.samplegroupid_list
             self._contiguous_samplesequenceid_list = self.samplesequenceid_list
-            self._contiguous_ground_truths = self.ground_truths
+            self._contiguous_groundtruthvalue_list = self.groundtruthvalue_list
+            self._contiguous_groundtruthlabel_list = self.groundtruthlabel_list
             return self.data_matrix
 
         # If its already contiguous, or there are no data_lists, just return it
@@ -1137,7 +1151,7 @@ class FeatureSpace( object ):
         self._contiguous_samplenames_list = [ None ] * self.num_samples
         self._contiguous_samplegroupid_list = [ None ] * self.num_samples
         self._contiguous_samplesequenceid_list = [ None ] * self.num_samples
-        self._contiguous_ground_truths = [ None ] * self.num_samples
+        self._contiguous_groundtruthvalue_list = [ None ] * self.num_samples
 
         # We need to start copying at the first non-view class mat to the end.
         for class_index in range (copy_class, len (self.data_list)):
@@ -1151,8 +1165,10 @@ class FeatureSpace( object ):
                                                          self.samplegroupid_list[class_index]
             self._contiguous_samplesequenceid_list[copy_row : copy_row + nrows] = \
                                                          self.samplesequenceid_list[class_index]
-            self._contiguous_ground_truths[copy_row : copy_row + nrows] = \
-                                                         self.ground_truths[class_index]
+            self._contiguous_groundtruthvalue_list[copy_row : copy_row + nrows] = \
+                                                         self.groundtruthvalue_list[class_index]
+            self._contiguous_groundtruthlabel_list[copy_row : copy_row + nrows] = \
+                                                         self.groundtruthlabel_list[class_index]
             copy_row += nrows
 
         self.data_matrix_is_contiguous = True
@@ -1390,7 +1406,8 @@ class FeatureSpace( object ):
         _contiguous_samplegroupid_list = [None] * total_num_samples
         _contiguous_samplenames_list = [None] * total_num_samples
         _contiguous_samplesequenceid_list = [None] * total_num_samples
-        _contiguous_ground_truths = [None] * total_num_samples
+        _contiguous_groundtruthvalue_list = [None] * total_num_samples
+        _contiguous_groundtruthlabel_list = [None] * total_num_samples
 
         j = 0
         if self.discrete:
@@ -1439,14 +1456,17 @@ class FeatureSpace( object ):
                self._contiguous_samplenames_list[ original_index : original_index +  self.num_samples_per_group]
             _contiguous_samplesequenceid_list[ i : i + self.num_samples_per_group ] = \
                self._contiguous_samplesequenceid_list[ original_index : original_index +  self.num_samples_per_group]
-            _contiguous_ground_truths[ i : i + self.num_samples_per_group ] = \
-               self._contiguous_ground_truths[ original_index : original_index +  self.num_samples_per_group ]
+            _contiguous_groundtruthvalue_list[ i : i + self.num_samples_per_group ] = \
+               self._contiguous_groundtruthvalue_list[ original_index : original_index +  self.num_samples_per_group ]
+            _contiguous_groundtruthlabel_list[ i : i + self.num_samples_per_group ] = \
+               self._contiguous_groundtruthlabel_list[ original_index : original_index +  self.num_samples_per_group ]
 
         newdata[ 'data_matrix' ] = data_matrix
         newdata[ '_contiguous_samplenames_list' ] = _contiguous_samplenames_list
-        newdata[ '_contiguous_samplesequenceid_list' ] = _contiguous_samplesequenceid_list
-        newdata[ '_contiguous_ground_truths' ] = _contiguous_ground_truths
         newdata[ '_contiguous_samplegroupid_list' ] = _contiguous_samplegroupid_list
+        newdata[ '_contiguous_samplesequenceid_list' ] = _contiguous_samplesequenceid_list
+        newdata[ '_contiguous_groundtruthvalue_list' ] = _contiguous_groundtruthvalue_list
+        newdata[ '_contiguous_groundtruthlabel_list' ] = _contiguous_groundtruthvalue_list
 
         if inplace:
             return self.Update( **newdata )._RebuildViews()
@@ -1563,7 +1583,7 @@ class FeatureSpace( object ):
                 raise ValueError( 'Invalid input: train_size={0}'.format( test_size ) )
 
             if( n_samplegroups_in_training_set + n_samplegroups_in_test_set ) > num_samplegroups:
-                    raise ValueError( 'User input specified train/test feature set membership contain more samples than are available.' )
+                    raise ValueError( 'User input specified train/test feature set membership contain more samples than are availabel.' )
 
             if random_state:
                 shuffle( unique_samplegroup_ids )

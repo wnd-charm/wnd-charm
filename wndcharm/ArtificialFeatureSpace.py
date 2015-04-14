@@ -144,7 +144,7 @@ def CreateArtificialFeatureSpace_Continuous( name="ContinuousArtificialFS", n_sa
     # The function call np.mgrid() requires for the value indicating the number of steps
     # to be imaginary, for some inexplicable reason.
     step = complex(0, n_samples)
-    new_fs._contiguous_ground_truths = list( np.mgrid[ lbound : ubound : step ] )
+    new_fs._contiguous_groundtruthvalue_list = list( np.mgrid[ lbound : ubound : step ] )
 
     # Generate artificial feature names
     # N.B. The feature generation signals are sorted in alphanum order!
@@ -177,10 +177,10 @@ def CreateArtificialFeatureSpace_Continuous( name="ContinuousArtificialFS", n_sa
     # Create features across all classes at the same time
     feat_count = 0
     # N.B. The features are in sort order!
-    ground_truths = np.array( new_fs._contiguous_ground_truths )
+    groundtruthvalue_list = np.array( new_fs._contiguous_groundtruthvalue_list )
     for func_name in sorted( signals.keys() ):
       f = signals[ func_name ]
-      raw_feature_values = clip( f( ground_truths ) )
+      raw_feature_values = clip( f( groundtruthvalue_list ) )
       for feat_index in xrange( num_features_per_signal_type ):
         # Add noise proportional to the feature index
         noise_vector = normal( 0, initial_noise_sigma + feat_index * noise_gradient, n_samples )
@@ -302,7 +302,6 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
     new_fs.featurenames_list = [ "{0}{1:04d}".format(fname, i)\
                                     for fname in sorted( signals.keys() ) \
                                     for i in xrange( num_features_per_signal_type ) ]
-
     if n_samples_per_group >= 1:
       group_index = 0
 
@@ -335,10 +334,10 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
     # Create features across all classes at the same time
     feat_count = 0
     # N.B. The features are in sort order!
-    ground_truths = np.array( new_fs.interpolation_coefficients )
+    groundtruthvalue_list = np.array( new_fs.interpolation_coefficients )
     for func_name in sorted( signals.keys() ):
       f = signals[ func_name ]
-      raw_class_feature_values = clip( f( ground_truths ) )
+      raw_class_feature_values = clip( f( groundtruthvalue_list ) )
       raw_feature_values = np.empty( n_samples, )
       for i, val in enumerate( raw_class_feature_values ):
         raw_feature_values[ i * n_samples_per_class: (i+1) * n_samples_per_class].fill( val )
@@ -351,15 +350,16 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
 
     np.seterr( **old_settings )
 
+    # discrete data always gets labels and sometimes gets values
+    new_fs._contiguous_groundtruthlabel_list = [ new_fs.classnames_list[i] \
+        for i in xrange( n_classes ) \
+            for j in xrange( n_samples_per_class ) ]
+
     if not interpolatable:
       # delete the coefficients if user asks for a pure classification problem feat. set.
       new_fs.interpolation_coefficients = None
-      # Use class labels instead of class values
-      new_fs._contiguous_ground_truths = [ new_fs.classnames_list[i] \
-          for i in xrange( n_classes ) \
-            for j in xrange( n_samples_per_class ) ]
     else:
-      new_fs._contiguous_ground_truths = [ new_fs.interpolation_coefficients[i] \
+      new_fs._contiguous_groundtruthvalue_list = [ new_fs.interpolation_coefficients[i] \
         for i in xrange( n_classes ) for j in range( n_samples_per_class ) ]
 
     new_fs._RebuildViews()

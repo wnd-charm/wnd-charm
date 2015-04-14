@@ -61,8 +61,8 @@ class FeatureSpacePrediction( object ):
         self.num_classifications = 0
 
         self.figure_of_merit = None
-        self.predicted_values = None
-        self.ground_truth_values = None
+        self.predictedvalue_list = None
+        self.groundtruthvalue_list = None
 
         #: If there was randomness associated with generating results
         #: set use_error_bars = True to calculate confidence intervals for
@@ -91,11 +91,11 @@ class FeatureSpacePrediction( object ):
 
         self.num_classifications = len( self.individual_results )
 
-        if self.ground_truth_values and self.predicted_values and \
-                len( self.ground_truth_values ) == len( self.predicted_values ):
+        if self.groundtruthvalue_list and self.predictedvalue_list and \
+                len( self.groundtruthvalue_list ) == len( self.predictedvalue_list ):
 
-            gt = np.array( self.ground_truth_values )
-            pv = np.array( self.predicted_values )
+            gt = np.array( self.groundtruthvalue_list )
+            pv = np.array( self.predictedvalue_list )
 
             diffs = gt - pv
             diffs = np.square( diffs )
@@ -111,11 +111,11 @@ class FeatureSpacePrediction( object ):
                 # For now, ignore "FloatingPointError: 'underflow encountered in stdtr'"
                 np.seterr (under='ignore')
                 slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
-                         linregress( self.ground_truth_values, self.predicted_values )
+                         linregress( self.groundtruthvalue_list, self.predictedvalue_list )
 
                 try:
                     self.spearman_coeff, self.spearman_p_value =\
-                   spearmanr( self.ground_truth_values, self.predicted_values )
+                   spearmanr( self.groundtruthvalue_list, self.predictedvalue_list )
                 except FloatingPointError:
                     # to avoid: "FloatingPointError: invalid value encountered in true_divide"
                     self.spearman_coeff, self.spearman_p_value = ( 0, 1 )
@@ -132,24 +132,24 @@ class FeatureSpacePrediction( object ):
         """Rank-order sorts ground truth/predicted value data points for purposes of 
         being graphed."""
 
-        if not self.ground_truth_values or not self.predicted_values:
+        if not self.groundtruthvalue_list or not self.predictedvalue_list:
             self.GenerateStats()
 
         # Check again:
-        if not self.ground_truth_values:
-            raise ValueError( "Can't rank-order sort: no ground truth sample values" )
+        if not self.groundtruthvalue_list:
+            raise ValueError( "Can't rank-order sort: no numeric ground truth values for predicted results." )
         if not self.predicted_values:
             # FIXME: this might be wrong, since the member predicted_values may contain a
             # non-graphable label string
             raise ValueError( "Can't rank-order sort: no sample predicted values" )
 
-        value_pairs = zip( self.ground_truth_values, self.predicted_values )
+        value_pairs = zip( self.groundtruthvalue_list, self.predictedvalue_list )
 
         # sort by ground_truth value first, predicted value second
         sorted_pairs = sorted( sorted( value_pairs, key=lambda x: x[0] ), key=lambda x: x[1] )
         
         # we want lists, not tuples!
-        self.ground_truth_values, self.predicted_values =\
+        self.groundtruthvalue_list, self.predictedvalue_list =\
             [ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_pairs ) ]
 
 #=================================================================================
@@ -693,8 +693,9 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
         batch_result = cls( feature_weights.associated_training_set, test_set, feature_weights,
                 name, batch_number )
 
-        if test_set.ground_truths is not None and len( test_set.ground_truths ) != 0:
-            batch_result.ground_truth_values = test_set.ground_truths
+        if test_set.groundtruthvalue_list is not None and \
+                len( test_set.groundtruthvalue_list ) != 0:
+            batch_result.groundtruthvalue_list = test_set.groundtruthvalue_list
 
         for test_image_index in range( test_set.num_samples ):
             one_image_features = test_set.data_matrix[ test_image_index,: ]
@@ -702,7 +703,7 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
             result.batch_number = batch_result.batch_number
             result.name = name
             result.source_filepath = test_set.samplenames_list[ test_image_index ]
-            result.ground_truth_value = test_set.ground_truths[ test_image_index ]
+            result.ground_truth_value = test_set.groundtruthvalue_list[ test_image_index ]
             batch_result.predicted_values.append( result.predicted_value )
 
             if not quiet:
@@ -799,8 +800,9 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
 
         batch_result = cls( training_set, test_set, feature_weights, name, batch_number )
 
-        if augmented_test_set.ground_truths is not None and len( augmented_test_set.ground_truths ) != 0:
-            batch_result.ground_truth_values = augmented_test_set.ground_truths
+        if augmented_test_set.groundtruthvalue_list is not None and \
+                len( augmented_test_set.groundtruthvalue_list ) != 0:
+            batch_result.groundtruthvalue_list = augmented_test_set.groundtruthvalue_list
 
         intermediate_train_set = augmented_train_set
         for test_image_index in range( augmented_test_set.num_samples ):
@@ -814,7 +816,7 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
             result.batch_number = batch_result.batch_number
             result.name = name
             result.source_filepath = augmented_test_set.samplenames_list[ test_image_index ]
-            result.ground_truth_value = augmented_test_set.ground_truths[ test_image_index ]
+            result.ground_truth_value = augmented_test_set.groundtruthvalue_list[ test_image_index ]
             batch_result.predicted_values.append( result.predicted_value )
 
             if not quiet:

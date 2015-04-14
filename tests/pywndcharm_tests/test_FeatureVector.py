@@ -196,6 +196,7 @@ class TestFeatureCalculation( unittest.TestCase ):
         from shutil import copy
         
         try:
+            # copy the tiff to the tempdir so the .sig files end up there too
             copy( orig_img_filepath, tempdir )
             input_img_path = tempdir + sep + img_filename
 
@@ -271,9 +272,16 @@ class TestSampleImageTiles( unittest.TestCase ):
         zf.extractall( tempdir )
         fitfilepath = tempdir + sep + zf.namelist()[0]
 
-        input_image_path = pychrm_test_dir + sep + "lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E.tif"
+        img_filename = "lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E.tif"
+        orig_img_filepath = pychrm_test_dir + sep + img_filename
 
+        from shutil import copy
+        
         try:
+            # copy the tiff to the tempdir so the .sig files end up there too
+            copy( orig_img_filepath, tempdir )
+            input_img_path = tempdir + sep + img_filename
+
             #fs = FeatureSpace.NewFromFitFile( fitfilepath, tile_num_rows=5, tile_num_cols=6 )
             fs = FeatureSpace.NewFromFitFile( fitfilepath ).Normalize( inplace=True, quiet=True )
             fw = FisherFeatureWeights.NewFromFeatureSpace( fs ).Threshold()
@@ -284,7 +292,7 @@ class TestSampleImageTiles( unittest.TestCase ):
             comp_plan = GenerateFeatureComputationPlan( fw.featurenames_list )
 
             # create the tile image iterator
-            image_iter = SampleImageTiles( input_image_path, scan_x, scan_y, True)
+            image_iter = SampleImageTiles( input_img_path, scan_x, scan_y, True)
             print "Number of samples = " + str( image_iter.samples )
 
             base, ext = splitext( input_image_path )

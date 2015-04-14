@@ -104,7 +104,7 @@ class TestFeatureSet( unittest.TestCase ):
 
         # Inflate the zipped test fit into a temp file
         import zipfile
-        zipped_file_path = pychrm_test_dir + sep + 'lymphoma_t5x6_10imgseach.fit.zip'
+        zipped_file_path = pychrm_test_dir + sep + 'lymphoma_iicbu2008_subset_eosin_t5x6_v3.2features.fit.zip'
         zf = zipfile.ZipFile( zipped_file_path, mode='r' )
         tempdir = mkdtemp()
         zf.extractall( tempdir )
@@ -358,13 +358,14 @@ class TestFeatureSet( unittest.TestCase ):
 
         # Inflate the zipped test fit into a temp file
         import zipfile
+        
         zipped_file_path = pychrm_test_dir + sep + 'lymphoma_t5x6_10imgseach_SIGFILES.zip'
         zf1 = zipfile.ZipFile( zipped_file_path, mode='r' )
         tempdir = mkdtemp()
         zf1.extractall( tempdir )
 
         # for comparison:
-        zf2 = zipfile.ZipFile( pychrm_test_dir + sep + 'lymphoma_t5x6_10imgseach.fit.zip', mode='r')
+        zf2 = zipfile.ZipFile( pychrm_test_dir + sep + 'lymphoma_iicbu2008_subset_eosin_t5x6_v3.2features.fit.zip', mode='r')
         zf2.extractall( tempdir )
 
         try:
