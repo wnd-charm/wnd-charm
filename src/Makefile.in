@@ -83,6 +83,14 @@ host_triplet = @host@
 DIST_COMMON = $(srcdir)/Eigen/sources.am $(srcdir)/Makefile.in \
 	$(srcdir)/Makefile.am $(top_srcdir)/depcomp $(noinst_HEADERS)
 bin_PROGRAMS = wndchrm$(EXEEXT)
+
+# Check if CUDA enable
+# If enable add GPU sources to libchrm_a_SOURCES
+# Add Extra dependancies.
+# Ad autotools dont support CUDA have to add LDADD Manually
+@CUDA_ENABLE_TRUE@am__append_1 = $(GPU_source)
+@CUDA_ENABLE_TRUE@am__append_2 = -DGPU
+@CUDA_ENABLE_TRUE@am__append_3 = $(NVCCFLAGS)
 subdir = src
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
@@ -103,7 +111,60 @@ am__v_AR_0 = @echo "  AR      " $@;
 am__v_AR_1 = 
 libchrm_a_AR = $(AR) $(ARFLAGS)
 libchrm_a_LIBADD =
+am__libchrm_a_SOURCES_DIST = unordered_map_dfn.h FeatureAlgorithms.cpp \
+	FeatureAlgorithms.h FeatureNames.cpp FeatureNames.h \
+	ImageTransforms.cpp ImageTransforms.h OldFeatureNamesFileStr.h \
+	Tasks.cpp Tasks.h cmatrix.cpp cmatrix.h colors/FuzzyCalc.cpp \
+	colors/FuzzyCalc.h gsl/specfunc.cpp gsl/specfunc.h \
+	statistics/CombFirst4Moments.cpp \
+	statistics/CombFirst4Moments.h \
+	statistics/FeatureStatistics.cpp \
+	statistics/FeatureStatistics.h statistics/Moments.h \
+	textures/gabor.cpp textures/gabor.h \
+	textures/haralick/CVIPtexture.cpp \
+	textures/haralick/CVIPtexture.h textures/haralick/haralick.cpp \
+	textures/haralick/haralick.h textures/tamura.cpp \
+	textures/tamura.h textures/zernike/zernike.cpp \
+	textures/zernike/zernike.h transforms/ChebyshevFourier.cpp \
+	transforms/ChebyshevFourier.h transforms/chebyshev.cpp \
+	transforms/chebyshev.h transforms/fft/bcb_fftw3/fftw3.h \
+	transforms/fft/fftw3.h transforms/radon.cpp transforms/radon.h \
+	transforms/wavelet/Common.cpp transforms/wavelet/Common.h \
+	transforms/wavelet/DataGrid.h \
+	transforms/wavelet/DataGrid2D.cpp \
+	transforms/wavelet/DataGrid2D.h \
+	transforms/wavelet/DataGrid3D.cpp \
+	transforms/wavelet/DataGrid3D.h transforms/wavelet/Filter.cpp \
+	transforms/wavelet/Filter.h transforms/wavelet/FilterSet.cpp \
+	transforms/wavelet/FilterSet.h transforms/wavelet/Symlet5.cpp \
+	transforms/wavelet/Symlet5.h transforms/wavelet/Wavelet.cpp \
+	transforms/wavelet/Wavelet.h \
+	transforms/wavelet/WaveletHigh.cpp \
+	transforms/wavelet/WaveletHigh.h \
+	transforms/wavelet/WaveletLow.cpp \
+	transforms/wavelet/WaveletLow.h \
+	transforms/wavelet/WaveletMedium.cpp \
+	transforms/wavelet/WaveletMedium.h \
+	transforms/wavelet/convolution.cpp \
+	transforms/wavelet/convolution.h transforms/wavelet/wt.cpp \
+	transforms/wavelet/wt.h wndchrm_src/TrainingSet.cpp \
+	wndchrm_src/TrainingSet.h wndchrm_src/WORMfile.cpp \
+	wndchrm_src/WORMfile.h wndchrm_src/signatures.cpp \
+	wndchrm_src/signatures.h wndchrm_error.cpp wndchrm_error.h \
+	common.cu transforms/chebyshev_kernel.cu \
+	textures/gpu_conv2comp.cu textures/gpu_conv2comp.cuh \
+	gpu_convolve.cu gpu_convolve.cuh \
+	statistics/FeatureStatistics_kernel.cu fft2.cu fft2.cuh \
+	textures/haralick/f14_maxcorr_gpu.cu textures/tamura_kernel.cu \
+	textures/tamura_cuda.h textures/zernike/zernike_kernel.cu
 am__dirstamp = $(am__leading_dot)dirstamp
+am__objects_1 = common.$(OBJEXT) transforms/chebyshev_kernel.$(OBJEXT) \
+	textures/gpu_conv2comp.$(OBJEXT) gpu_convolve.$(OBJEXT) \
+	statistics/FeatureStatistics_kernel.$(OBJEXT) fft2.$(OBJEXT) \
+	textures/haralick/f14_maxcorr_gpu.$(OBJEXT) \
+	textures/tamura_kernel.$(OBJEXT) \
+	textures/zernike/zernike_kernel.$(OBJEXT)
+@CUDA_ENABLE_TRUE@am__objects_2 = $(am__objects_1)
 am_libchrm_a_OBJECTS = libchrm_a-FeatureAlgorithms.$(OBJEXT) \
 	libchrm_a-FeatureNames.$(OBJEXT) \
 	libchrm_a-ImageTransforms.$(OBJEXT) libchrm_a-Tasks.$(OBJEXT) \
@@ -135,13 +196,15 @@ am_libchrm_a_OBJECTS = libchrm_a-FeatureAlgorithms.$(OBJEXT) \
 	wndchrm_src/libchrm_a-TrainingSet.$(OBJEXT) \
 	wndchrm_src/libchrm_a-WORMfile.$(OBJEXT) \
 	wndchrm_src/libchrm_a-signatures.$(OBJEXT) \
-	libchrm_a-wndchrm_error.$(OBJEXT)
+	libchrm_a-wndchrm_error.$(OBJEXT) $(am__objects_2)
 libchrm_a_OBJECTS = $(am_libchrm_a_OBJECTS)
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_wndchrm_OBJECTS = wndchrm_src/wndchrm.$(OBJEXT)
 wndchrm_OBJECTS = $(am_wndchrm_OBJECTS)
-wndchrm_DEPENDENCIES = libchrm.a
+am__DEPENDENCIES_1 =
+@CUDA_ENABLE_TRUE@am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
+wndchrm_DEPENDENCIES = libchrm.a $(am__DEPENDENCIES_2)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -199,7 +262,7 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(libchrm_a_SOURCES) $(wndchrm_SOURCES)
-DIST_SOURCES = $(libchrm_a_SOURCES) $(wndchrm_SOURCES)
+DIST_SOURCES = $(am__libchrm_a_SOURCES_DIST) $(wndchrm_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -242,7 +305,7 @@ CPPFLAGS = @CPPFLAGS@
 CXX = @CXX@
 CXXCPP = @CXXCPP@
 CXXDEPMODE = @CXXDEPMODE@
-CXXFLAGS = @CXXFLAGS@
+CXXFLAGS = @CXXFLAGS@ $(am__append_2)
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
@@ -272,6 +335,8 @@ MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
 NMEDIT = @NMEDIT@
+NVCC = @NVCC@
+NVCCFLAGS = @NVCCFLAGS@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
 OTOOL = @OTOOL@
@@ -646,90 +711,80 @@ noinst_HEADERS = Eigen/Array \
     Eigen/UmfPackSupport
 
 
-# echo "noinst_HEADERS = $(find Eigen  -not -path '*.svn/*'  -type f | perl -n -e 'chomp;s/^\.\///;push (@foo,$_); END{print join(" \\\n    ",@foo)}')" > Eigen/sources.am 
+# echo "noinst_HEADERS = $(find Eigen  -not -path '*.svn/*'  -type f | perl -n -e 'chomp;s/^\.\///;push (@foo,$_); END{print join(" \\\n    ",@foo)}')" > Eigen/sources.am
 AM_CPPFLAGS = -fPIC
 noinst_LIBRARIES = libchrm.a
-libchrm_a_SOURCES = \
-  unordered_map_dfn.h \
-  FeatureAlgorithms.cpp \
-  FeatureAlgorithms.h \
-  FeatureNames.cpp \
-  FeatureNames.h \
-  ImageTransforms.cpp \
-  ImageTransforms.h \
-  OldFeatureNamesFileStr.h \
-  Tasks.cpp \
-  Tasks.h \
-  cmatrix.cpp \
-  cmatrix.h \
-  colors/FuzzyCalc.cpp \
-  colors/FuzzyCalc.h \
-  gsl/specfunc.cpp \
-  gsl/specfunc.h \
-  statistics/CombFirst4Moments.cpp \
-  statistics/CombFirst4Moments.h \
-  statistics/FeatureStatistics.cpp \
-  statistics/FeatureStatistics.h \
-  statistics/Moments.h \
-  textures/gabor.cpp \
-  textures/gabor.h \
-  textures/haralick/CVIPtexture.cpp \
-  textures/haralick/CVIPtexture.h \
-  textures/haralick/haralick.cpp \
-  textures/haralick/haralick.h \
-  textures/tamura.cpp \
-  textures/tamura.h \
-  textures/zernike/zernike.cpp \
-  textures/zernike/zernike.h \
-  transforms/ChebyshevFourier.cpp \
-  transforms/ChebyshevFourier.h \
-  transforms/chebyshev.cpp \
-  transforms/chebyshev.h \
-  transforms/fft/bcb_fftw3/fftw3.h \
-  transforms/fft/fftw3.h \
-  transforms/radon.cpp \
-  transforms/radon.h \
-  transforms/wavelet/Common.cpp \
-  transforms/wavelet/Common.h \
-  transforms/wavelet/DataGrid.h \
-  transforms/wavelet/DataGrid2D.cpp \
-  transforms/wavelet/DataGrid2D.h \
-  transforms/wavelet/DataGrid3D.cpp \
-  transforms/wavelet/DataGrid3D.h \
-  transforms/wavelet/Filter.cpp \
-  transforms/wavelet/Filter.h \
-  transforms/wavelet/FilterSet.cpp \
-  transforms/wavelet/FilterSet.h \
-  transforms/wavelet/Symlet5.cpp \
-  transforms/wavelet/Symlet5.h \
-  transforms/wavelet/Wavelet.cpp \
-  transforms/wavelet/Wavelet.h \
-  transforms/wavelet/WaveletHigh.cpp \
-  transforms/wavelet/WaveletHigh.h \
-  transforms/wavelet/WaveletLow.cpp \
-  transforms/wavelet/WaveletLow.h \
-  transforms/wavelet/WaveletMedium.cpp \
-  transforms/wavelet/WaveletMedium.h \
-  transforms/wavelet/convolution.cpp \
-  transforms/wavelet/convolution.h \
-  transforms/wavelet/wt.cpp \
-  transforms/wavelet/wt.h \
-  wndchrm_src/TrainingSet.cpp \
-  wndchrm_src/TrainingSet.h \
-  wndchrm_src/WORMfile.cpp \
-  wndchrm_src/WORMfile.h \
-  wndchrm_src/signatures.cpp \
-  wndchrm_src/signatures.h \
-  wndchrm_error.cpp \
-  wndchrm_error.h
+libchrm_a_SOURCES = unordered_map_dfn.h FeatureAlgorithms.cpp \
+	FeatureAlgorithms.h FeatureNames.cpp FeatureNames.h \
+	ImageTransforms.cpp ImageTransforms.h OldFeatureNamesFileStr.h \
+	Tasks.cpp Tasks.h cmatrix.cpp cmatrix.h colors/FuzzyCalc.cpp \
+	colors/FuzzyCalc.h gsl/specfunc.cpp gsl/specfunc.h \
+	statistics/CombFirst4Moments.cpp \
+	statistics/CombFirst4Moments.h \
+	statistics/FeatureStatistics.cpp \
+	statistics/FeatureStatistics.h statistics/Moments.h \
+	textures/gabor.cpp textures/gabor.h \
+	textures/haralick/CVIPtexture.cpp \
+	textures/haralick/CVIPtexture.h textures/haralick/haralick.cpp \
+	textures/haralick/haralick.h textures/tamura.cpp \
+	textures/tamura.h textures/zernike/zernike.cpp \
+	textures/zernike/zernike.h transforms/ChebyshevFourier.cpp \
+	transforms/ChebyshevFourier.h transforms/chebyshev.cpp \
+	transforms/chebyshev.h transforms/fft/bcb_fftw3/fftw3.h \
+	transforms/fft/fftw3.h transforms/radon.cpp transforms/radon.h \
+	transforms/wavelet/Common.cpp transforms/wavelet/Common.h \
+	transforms/wavelet/DataGrid.h \
+	transforms/wavelet/DataGrid2D.cpp \
+	transforms/wavelet/DataGrid2D.h \
+	transforms/wavelet/DataGrid3D.cpp \
+	transforms/wavelet/DataGrid3D.h transforms/wavelet/Filter.cpp \
+	transforms/wavelet/Filter.h transforms/wavelet/FilterSet.cpp \
+	transforms/wavelet/FilterSet.h transforms/wavelet/Symlet5.cpp \
+	transforms/wavelet/Symlet5.h transforms/wavelet/Wavelet.cpp \
+	transforms/wavelet/Wavelet.h \
+	transforms/wavelet/WaveletHigh.cpp \
+	transforms/wavelet/WaveletHigh.h \
+	transforms/wavelet/WaveletLow.cpp \
+	transforms/wavelet/WaveletLow.h \
+	transforms/wavelet/WaveletMedium.cpp \
+	transforms/wavelet/WaveletMedium.h \
+	transforms/wavelet/convolution.cpp \
+	transforms/wavelet/convolution.h transforms/wavelet/wt.cpp \
+	transforms/wavelet/wt.h wndchrm_src/TrainingSet.cpp \
+	wndchrm_src/TrainingSet.h wndchrm_src/WORMfile.cpp \
+	wndchrm_src/WORMfile.h wndchrm_src/signatures.cpp \
+	wndchrm_src/signatures.h wndchrm_error.cpp wndchrm_error.h \
+	$(am__append_1)
+GPU_source = \
+  common.cu \
+  transforms/chebyshev_kernel.cu \
+  textures/gpu_conv2comp.cu \
+  textures/gpu_conv2comp.cuh \
+  gpu_convolve.cu \
+  gpu_convolve.cuh \
+  statistics/FeatureStatistics_kernel.cu \
+  fft2.cu \
+  fft2.cuh \
+  textures/haralick/f14_maxcorr_gpu.cu \
+  textures/tamura_kernel.cu \
+  textures/tamura_cuda.h \
+  textures/zernike/zernike_kernel.cu
 
 libchrm_a_CXXFLAGS = -Wall
 wndchrm_SOURCES = wndchrm_src/wndchrm.cpp
-wndchrm_LDADD = libchrm.a -lm -ltiff -L. -lchrm -lfftw3
+wndchrm_LDADD = libchrm.a -lm -ltiff -L. -lchrm -lfftw3 \
+	$(am__append_3)
+@CUDA_ENABLE_TRUE@EXTRA_wndchrm_DEPENDENCIES = common.o \
+@CUDA_ENABLE_TRUE@	transforms/chebyshev_kernel.o \
+@CUDA_ENABLE_TRUE@	textures/gpu_conv2comp.o gpu_convolve.o \
+@CUDA_ENABLE_TRUE@	statistics/FeatureStatistics_kernel.o fft2.o \
+@CUDA_ENABLE_TRUE@	textures/haralick/f14_maxcorr_gpu.o \
+@CUDA_ENABLE_TRUE@	textures/tamura.o \
+@CUDA_ENABLE_TRUE@	textures/zernike/zernike_kernel.o
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .cpp .lo .o .obj
+.SUFFIXES: .cpp .cu .lo .o .obj
 $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(srcdir)/Eigen/sources.am $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -892,6 +947,21 @@ wndchrm_src/libchrm_a-WORMfile.$(OBJEXT): wndchrm_src/$(am__dirstamp) \
 wndchrm_src/libchrm_a-signatures.$(OBJEXT):  \
 	wndchrm_src/$(am__dirstamp) \
 	wndchrm_src/$(DEPDIR)/$(am__dirstamp)
+transforms/chebyshev_kernel.$(OBJEXT): transforms/$(am__dirstamp) \
+	transforms/$(DEPDIR)/$(am__dirstamp)
+textures/gpu_conv2comp.$(OBJEXT): textures/$(am__dirstamp) \
+	textures/$(DEPDIR)/$(am__dirstamp)
+statistics/FeatureStatistics_kernel.$(OBJEXT):  \
+	statistics/$(am__dirstamp) \
+	statistics/$(DEPDIR)/$(am__dirstamp)
+textures/haralick/f14_maxcorr_gpu.$(OBJEXT):  \
+	textures/haralick/$(am__dirstamp) \
+	textures/haralick/$(DEPDIR)/$(am__dirstamp)
+textures/tamura_kernel.$(OBJEXT): textures/$(am__dirstamp) \
+	textures/$(DEPDIR)/$(am__dirstamp)
+textures/zernike/zernike_kernel.$(OBJEXT):  \
+	textures/zernike/$(am__dirstamp) \
+	textures/zernike/$(DEPDIR)/$(am__dirstamp)
 
 libchrm.a: $(libchrm_a_OBJECTS) $(libchrm_a_DEPENDENCIES) $(EXTRA_libchrm_a_DEPENDENCIES) 
 	$(AM_V_at)-rm -f libchrm.a
@@ -949,9 +1019,9 @@ clean-binPROGRAMS:
 wndchrm_src/wndchrm.$(OBJEXT): wndchrm_src/$(am__dirstamp) \
 	wndchrm_src/$(DEPDIR)/$(am__dirstamp)
 
-wndchrm$(EXEEXT): $(wndchrm_OBJECTS) $(wndchrm_DEPENDENCIES) $(EXTRA_wndchrm_DEPENDENCIES) 
-	@rm -f wndchrm$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(wndchrm_OBJECTS) $(wndchrm_LDADD) $(LIBS)
+@CUDA_ENABLE_FALSE@wndchrm$(EXEEXT): $(wndchrm_OBJECTS) $(wndchrm_DEPENDENCIES) $(EXTRA_wndchrm_DEPENDENCIES)
+@CUDA_ENABLE_FALSE@	@rm -f wndchrm$(EXEEXT)
+@CUDA_ENABLE_FALSE@	$(AM_V_CXXLD)$(CXXLINK) $(wndchrm_OBJECTS) $(wndchrm_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -1720,6 +1790,15 @@ uninstall-am: uninstall-binPROGRAMS
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
 	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS
 
+
+@CUDA_ENABLE_TRUE@.cu.o:
+@CUDA_ENABLE_TRUE@	$(NVCC) $(NVCC_INCLUDES) $(DEFAULT_INCLUDES) $(INCLUDES) $(NVCCFLAGS) -c -o $@ $<
+
+@CUDA_ENABLE_TRUE@wndchrm$(EXEEXT): $(wndchrm_OBJECTS) $(wndchrm_DEPENDENCIES) $(EXTRA_wndchrm_DEPENDENCIES)
+@CUDA_ENABLE_TRUE@	@rm -f wndchrm$(EXEEXT)
+@CUDA_ENABLE_TRUE@	$(NVCC) $(NVCC_FLAGS) $(EXTRA_wndchrm_DEPENDENCIES) $(wndchrm_OBJECTS) $(wndchrm_LDADD) $(LIBS) -o $@
+
+#END GPU
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

@@ -278,7 +278,7 @@ public:
 	void MultiScaleHistogram(double *out) const;
 	//   double AverageEdge();
 	void EdgeTransform(const ImageMatrix &matrix_IN);                           // gradient binarized using otsu threshold
-	double fft2 (const ImageMatrix &matrix_IN);
+	double fft2 (const ImageMatrix &matrix_IN, const ImageMatrix &matrix_OUT);
 	void ChebyshevTransform (const ImageMatrix &matrix_IN, unsigned int N);
 	void ChebyshevFourierTransform2D (double *coeff) const;
 	void Symlet5Transform (const ImageMatrix &matrix_IN);
@@ -309,4 +309,12 @@ private:
 	};
 };
 
+#ifdef GPU
+extern "C" void Chebyshev2D_gpu(const ImageMatrix &Im, double *out, unsigned int N);
+extern "C" void gpu_convolve(double *, double *, unsigned long, unsigned long, unsigned long, unsigned long, double *);
+extern "C" int FeatureCentroid_gpu(const ImageMatrix &Im, double *sum_areas, double *sum_dists, unsigned long *object_area, double *centroid_dists,
+                                unsigned long *count, double *centroid_x, double *centroid_y);
+extern "C" void gpu_fft2(ImageMatrix *,const ImageMatrix&);
+extern "C" int gpu_mb_zernike2D (const ImageMatrix &Im, double order, double rad, double *zvalues, long *output_size );
+#endif
 #endif

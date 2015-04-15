@@ -1,11 +1,9 @@
+/*     gpu_conv2comp.cuh                                                         */
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 /*                                                                               */
-/*    Copyright (C) 2003 Open Microscopy Environment                             */
-/*         Massachusetts Institue of Technology,                                 */
-/*         National Institutes of Health,                                        */
-/*         University of Dundee                                                  */
+/* Copyright (C) 2015                                                            */
 /*                                                                               */
-/*                                                                               */
+/*       <eInfochips Ltd.>                                                       */
 /*                                                                               */
 /*    This library is free software; you can redistribute it and/or              */
 /*    modify it under the terms of the GNU Lesser General Public                 */
@@ -24,24 +22,26 @@
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 /*                                                                               */
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/* Written by:  Lior Shamir <shamirl [at] mail [dot] nih [dot] gov>              */
+/* Written by:                                                                   */
+/*      Pratik Bari                                                              */
+/*      pratik.bari@einfochips.com                                               */
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+#ifndef _CONVCOMP_CUDA_
+#define _CONVCOMP_CUDA_
 
+#include <iostream>
+#include <stdio.h>
+#include <cuda.h>
 
-#ifndef CombFirst4MomentsH
-#define CombFirst4MomentsH
-//---------------------------------------------------------------------------
-
-#define NUMB 1024
 #define NUMT 1024
+#define NUMB 1024
 
-#include "cmatrix.h"
 
-int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec);
-extern "C"
-int CombFirst4Moments2D_gpu(const ImageMatrix &Im, std::vector<double> &vec);
-void vd_Comb4Moments(std::vector<double> &in);
-extern "C"
-void vd_Comb4Moments_gpu(std::vector<double> &in);
 
+__device__ void compute_conv(int, int, double2 *, double *, double2 *, int *, int *, int, int, int, int, int, int);
+__global__ void kernel_conv(double2 *, double *, double2 *, int *, int *, int, int, int, int, int, int);
+void generate_vect(int *, int, int);
+int min_dim(int, int);
+void free_func_conv2comp(int *, int *);
+extern "C" void gpu_conv2comp(double *, double *, double *, int, int, int, int);
 #endif

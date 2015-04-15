@@ -1,4 +1,4 @@
-# echo "noinst_HEADERS = $(find Eigen  -not -path '*.svn/*'  -type f | perl -n -e 'chomp;s/^\.\///;push (@foo,$_); END{print join(" \\\n    ",@foo)}')" > Eigen/sources.am 
+# echo "noinst_HEADERS = $(find Eigen  -not -path '*.svn/*'  -type f | perl -n -e 'chomp;s/^\.\///;push (@foo,$_); END{print join(" \\\n    ",@foo)}')" > Eigen/sources.am
 include Eigen/sources.am
 
 AM_CPPFLAGS = -fPIC
@@ -79,6 +79,22 @@ libchrm_a_SOURCES = \
   wndchrm_error.cpp \
   wndchrm_error.h
 
+GPU_source = \
+  common.cu \
+  transforms/chebyshev_kernel.cu \
+  textures/gpu_conv2comp.cu \
+  textures/gpu_conv2comp.cuh \
+  gpu_convolve.cu \
+  gpu_convolve.cuh \
+  statistics/FeatureStatistics_kernel.cu \
+  fft2.cu \
+  fft2.cuh \
+  textures/haralick/f14_maxcorr_gpu.cu \
+  textures/tamura_kernel.cu \
+  textures/tamura_cuda.h \
+  textures/zernike/zernike_kernel.cu \
+  statistics/CombFirst4Moments_gpu.cu
+
 libchrm_a_CXXFLAGS = -Wall
 
 bin_PROGRAMS=wndchrm
@@ -87,3 +103,27 @@ wndchrm_SOURCES = wndchrm_src/wndchrm.cpp
 
 wndchrm_LDADD = libchrm.a -lm -ltiff -L. -lchrm -lfftw3
 
+# Check if CUDA enable
+# If enable add GPU sources to libchrm_a_SOURCES
+# Add Extra dependancies.
+# Ad autotools dont support CUDA have to add LDADD Manually
+
+if CUDA_ENABLE
+
+libchrm_a_SOURCES += $(GPU_source)
+CXXFLAGS += -DGPU
+
+wndchrm_LDADD+=$(NVCCFLAGS)
+EXTRA_wndchrm_DEPENDENCIES = common.o transforms/chebyshev_kernel.o textures/gpu_conv2comp.o
+EXTRA_wndchrm_DEPENDENCIES += gpu_convolve.o statistics/FeatureStatistics_kernel.o fft2.o textures/haralick/f14_maxcorr_gpu.o
+EXTRA_wndchrm_DEPENDENCIES += textures/tamura.o textures/zernike/zernike_kernel.o statistics/CombFirst4Moments_gpu.o
+
+.cu.o:
+	$(NVCC) $(NVCC_INCLUDES) $(DEFAULT_INCLUDES) $(INCLUDES) $(NVCCFLAGS) -c -o $@ $<
+
+wndchrm$(EXEEXT): $(wndchrm_OBJECTS) $(wndchrm_DEPENDENCIES) $(EXTRA_wndchrm_DEPENDENCIES)
+	@rm -f wndchrm$(EXEEXT)
+	$(NVCC) $(NVCC_FLAGS) $(EXTRA_wndchrm_DEPENDENCIES) $(wndchrm_OBJECTS) $(wndchrm_LDADD) $(LIBS) -o $@
+endif
+
+#END GPU

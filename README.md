@@ -3,7 +3,15 @@ WND-CHARM is a multi-purpose image classifier that can be applied to a wide vari
 
 This package contains two implementations both of which use common image transform and feature extraction code:
 
-* A command-line program `wndchrm` (without the a) written in C++ that streamlines the WND-CHARM algorithm workflow. It reads images and their class membership from a directory hierarchy or text file, and outputs classifier statistics to an HTML report or STDOUT. To build from distribution tarball, use `./configure && make`. To build from a cloned repository use `./build.sh`. 
+* A command-line program `wndchrm` (without the a) written in C++ that streamlines the WND-CHARM algorithm workflow. It reads images and their class membership from a directory hierarchy or text file, and outputs classifier statistics to an HTML report or STDOUT.
+To build from distribution tarball,
+  1. For CPU build (without cuda )
+        ./configure --disable-cuda
+        make
+  2. For CPU and Nvidia GPU build (with cuda)
+        ./configure
+        make
+ To build from a cloned repository use `./build.sh`.
 * A Python library `wndcharm` that provides an API to do many of the same things as wndchrm while providing the flexibility of a scripting language to perform low manipulation and visualization of pixel intensities, generated features and classification results. To build, use `python setup.py build`.
 
 This research was supported entirely by the Intramural Research Program of the National Institutes of Health, National Institute on Aging, Ilya Goldberg, Investigator. Address: Laboratory of Genetics/NIA/NIH, 251 Bayview Blvd., Suite 100, Baltimore, MD, 21224, USA
@@ -28,6 +36,21 @@ The current release of the wndchrm command-line utility is  version 1.52, availa
 ## Supported Platforms
 
 WND-CHARM should compile and run on any POSIX-compliant operating system. It has been tested on Linux (Ubuntu 12.04 w/ GCC 4.6, CentOS 6.3 w/ GCC 4.4) and Mac OS X (<=10.7 w/ GCC 4.2, with experimental support for 10.9 Mavericks w/ `clang` compiler).
+
+## GPU Supported Platform
+
+WND-CHARM GPU application is tested on Nvidia Tesla K20c having following system configuration
+GPU :-
+        Number of processor cores: 2496
+        Processor core clock: 706 MHz
+GPU Memory :-
+        Memory clock: 2.6 GHz
+        Memory bandwidth: 208 GB/sec
+        size : 5GB
+CPU (server) Info :-
+        Quad core Intel(R) Xeon(R) CPU E5-2609 v2 @ 2.50GHz
+        Memory : 16 GB
+        OS : ubuntu 14.04, 64 bit
 
 ## Dependencies
 
@@ -61,9 +84,19 @@ The WND-CHARM Python API additionally requires the Python development package, S
     * Ubuntu/Debian: `sudo apt-get install python-numpy python-scipy python-matplotlib`
     * Pip: `pip install numpy scipy matplotlib argparse`
 
+#### WND-CHARM Nvidia GPU additional dependencies
+* cuda toolkit
+    Download the Cuda toolkit of version 6.5 and above for respective OS from https://developer.nvidia.com/cuda-downloads.
+    Install toolkit package.
+
 ## Recommended Hardware
 
 2 GB RAM (per core), 10 GB HD space, 2 GHZ CPU. Please be aware that this utility is very computationally intensive. Multiple instances of wndchrm can work concurrently on the same dataset on multi-core/multi-processor CPUs. Simply use the same command line to launch as many instances of wndchrm as there are CPU cores available.
+
+## Recommended Hardware for GPU
+
+Nvidia GPU with compute capability 3.0 and above.
+GPU device memory should be 1GB to run single instance of WND-CHARM application.
 
 ## Test Images
 

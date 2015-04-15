@@ -20,6 +20,79 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 
+#--------------------------------------------------------------------
+# Check For CUDA Support
+#--------------------------------------------------------------------
+# initialize array index
+
+
+# Setup default CUDA paths
+CUDA_INSTALL_PATH="/usr/local/cuda"
+CUDA_SDK_INSTALL_PATH="/usr/local/cuda"
+
+# Check: enable CUDA?
+AC_MSG_CHECKING([Wheather to use disable-CUDA ? ])
+AC_ARG_ENABLE(cuda,
+    [AS_HELP_STRING(--disable-cuda,disable CUDA support)],
+    cudaDisableval="yes",
+    cudaDisableval="no")
+AC_MSG_RESULT([$cudaDisableval])
+
+# check to see if CUDA been disabled
+if test "$cudaDisableval" == "yes"; then
+	AC_MSG_WARN([Not using CUDA!])
+fi
+
+# Setup custom CUDA paths
+AC_ARG_WITH([cuda],
+   [AS_HELP_STRING(
+        [--with-cuda=PATH],
+        [prefix where CUDA is installed @<:@default=auto@:>@])],
+   [CUDA_INSTALL_PATH=$withval],
+   [with_cuda=auto])
+AC_ARG_WITH([cuda-sdk],
+   [AS_HELP_STRING(
+        [--with-cuda-sdk=PATH],
+        [prefix where CUDA SDK is installed @<:@default=auto@:>@])],
+   [CUDA_SDK_INSTALL_PATH=$withval],
+   [with_cuda_sdk=auto])
+
+# Setup nvcc flags
+if test  "$cudaDisableval" = "no"; then
+#--------------------------------------------------------------
+# Check For CUDA Toolkit
+#--------------------------------------------------------------
+    if test -e "$CUDA_INSTALL_PATH/bin/nvcc" ; then
+	echo "Checking for CUDA :  cuda available"
+    else
+	AC_MSG_ERROR(Failed to find CUDA compiler)
+    fi
+    cuda_enable=true;
+    NVCCFLAGS="$NVCCFLAGS"
+    CUDA_CFLAGS="$CUDA_CFLAGS"
+    CUDA_CFLAGS="$CUDA_CFLAGS -I$CUDA_INSTALL_PATH/include"
+
+	if test -e "$CUDA_INSTALL_PATH/lib64/" ; then
+		echo 64 bit lib CUDA
+		CUDA_LDFLAGS="-L$CUDA_INSTALL_PATH/lib64"
+	elif test -e "$CUDA_INSTALL_PATH/lib/" ; then
+		echo 32 bit lib CUDA
+		CUDA_LDFLAGS="-L$CUDA_INSTALL_PATH/lib"
+	else
+		AC_MSG_ERROR(Failed to find CUDA libraries )
+	fi
+
+    CUDA_LIBS="-lcuda -lcudart -lcufft -lcublas"
+    NVCCFLAGS="$NVCCFLAGS $CUDA_CFLAGS $CUDA_LDFLAGS $CUDA_LIBS"
+    NVCC="nvcc"
+    AC_SUBST(NVCC)
+    AC_SUBST(NVCCFLAGS)
+    AC_DEFINE([_CUDA],[1],[Defined if CUDA should be used])
+fi
+
+
+#--------------------------------------------------------------------
+
 #AC_PROG_CXX sets CXX to g++ if it cannot find a working C++ compiler 
 #thus, we test here whether $CXX is actually working  
 AC_LANG_PUSH(C++) 
@@ -155,5 +228,8 @@ AC_ARG_ENABLE(class-prob-tsv,
  [ AC_DEFINE(AVG_CLASS_PROB_TSV,,[Define optional output. ]) 
  ])
 
+
+#Set Variable for check CUDA support in Makefile.am
+AM_CONDITIONAL(CUDA_ENABLE, test x$cuda_enable = xtrue)
 AC_CONFIG_FILES([Makefile src/Makefile])
 AC_OUTPUT

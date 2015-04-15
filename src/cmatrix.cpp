@@ -812,6 +812,31 @@ void ImageMatrix::convolve(const pixDataMat &filter) {
 	temp.finish();
 	readOnlyPixels copy_pix_plane = temp.ReadablePixels();
 	writeablePixels pix_plane = WriteablePixels();
+
+#ifdef GPU
+
+	double *h_filter = NULL, *h_pix_img = NULL, *h_temp = NULL;
+
+	h_temp = (double *)malloc(sizeof(double) * width * height);
+	if(h_temp == NULL) {
+		printf("Error in malloc : h_pix_img \n");
+	}
+
+	h_pix_img = (double *)copy_pix_plane.data();
+	h_filter =  (double *)&filter(0,0);
+
+	gpu_convolve(h_pix_img, h_filter, height, width, filter.rows(), filter.cols(), h_temp);
+
+	for(y=0; y<height; y++) {
+		for(x=0; x<width; x++) {
+			pix_plane(y,x) = stats.add(h_temp[y * width + x]);
+		}
+	}
+
+//Free malloc mem
+	free(h_temp);
+
+#else
 	for (x = 0; x < width; ++x) {
 		for (y = 0; y < height; ++y) {
 			tmp=0.0;
@@ -829,6 +854,7 @@ void ImageMatrix::convolve(const pixDataMat &filter) {
 			pix_plane (y,x) = stats.add(tmp);
 		}
 	}
+#endif
 }
 
 /* find the basic color statistics
@@ -1004,7 +1030,11 @@ void ImageMatrix::histogram(double *bins,unsigned short nbins, bool imhist, cons
 
 /* fft 2 dimensional transform */
 // http://www.fftw.org/doc/
-double ImageMatrix::fft2 (const ImageMatrix &matrix_IN) {
+double ImageMatrix::fft2 (const ImageMatrix &matrix_IN, const ImageMatrix &matrix_OUT) {
+#ifdef GPU
+	gpu_fft2(this, matrix_IN);
+
+#else
 	fftw_plan p;
 	unsigned int half_height = matrix_IN.height/2+1;
 
@@ -1083,6 +1113,7 @@ double ImageMatrix::fft2 (const ImageMatrix &matrix_IN) {
 // 	fftw_free(in);
 // 	fftw_free(out);
 
+#endif
 	return(0);
 }
 
@@ -1096,7 +1127,14 @@ void ImageMatrix::ChebyshevTransform(const ImageMatrix &matrix_IN, unsigned int 
 	if (N<2)
 		N = MIN( width, height );
 	out=new double[height*N];
+#if GPU_DEBUG
+	printf("Calling Chebyshev2D with out dimension height = %d, width(N) = %d\n", height, N);
+#endif
+#ifdef GPU
+	Chebyshev2D_gpu(matrix_IN, out,N);
+#else
 	Chebyshev2D(matrix_IN, out,N);
+#endif
 	width=N;
 	height = MIN( height, N );   /* prevent error */
 
@@ -1535,6 +1573,7 @@ void ImageMatrix::FeatureStatistics(unsigned long *count, long *Euler, double *c
 	ImageMatrix BWImage;
 	unsigned long *object_areas;
 	double *centroid_dists, sum_dist, hist_scale;
+	int result;
 
 	BWImage.OtsuBinaryMaskTransform(*this);
 	BWImage.centroid(centroid_x,centroid_y);
@@ -1546,6 +1585,12 @@ void ImageMatrix::FeatureStatistics(unsigned long *count, long *Euler, double *c
 	sum_dists = 0;
 	object_areas = new unsigned long[*count];
 	centroid_dists = new double[*count];
+#ifdef GPU
+	result = FeatureCentroid_gpu(BWImage, &sum_areas, &sum_dists, object_areas, centroid_dists, count, centroid_x, centroid_y);
+	if(result == -1){
+		exit(EXIT_FAILURE);
+	}
+#else
 	for (object_index = 0; object_index < *count; object_index++) {
 		double x_centroid,y_centroid;
 		object_areas[object_index] = FeatureCentroid(BWImage, object_index+1, &x_centroid, &y_centroid);
@@ -1553,7 +1598,7 @@ void ImageMatrix::FeatureStatistics(unsigned long *count, long *Euler, double *c
 		sum_areas += object_areas[object_index];
 		sum_dists += centroid_dists[object_index];
 	}
-
+#endif
 	// compute area statistics
 	qsort(object_areas,*count,sizeof(unsigned long),compare_ulongs);
 	*AreaMin=object_areas[0];
@@ -1654,8 +1699,24 @@ void ImageMatrix::TamuraTexture2D(double *vec) const {
    zvalue -array of double- a pre-allocated array of double of a suficient size
                             (the actual size is returned by "output_size))
    output_size -* long- the number of enteries in the array "zvalues" (normally 72)
+
 */
+
 void ImageMatrix::zernike2D(double *zvalues, long *output_size) const {
-	mb_zernike2D(*this, 0, 0, zvalues, output_size);
+
+#ifdef GPU
+	int result;
+
+//  call to gpu function
+	result = gpu_mb_zernike2D (*this, 0, 0, zvalues, output_size);
+
+	if(result == -1){
+
+		exit(EXIT_FAILURE);
+	}
+
+#else
+		mb_zernike2D(*this, 0, 0, zvalues, output_size);
+#endif
 }
 

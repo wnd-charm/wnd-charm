@@ -635,8 +635,12 @@ ac_includes_default="\
 ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
+CUDA_ENABLE_FALSE
+CUDA_ENABLE_TRUE
 POW_LIB
 LIBOBJS
+NVCCFLAGS
+NVCC
 CXXCPP
 am__fastdepCXX_FALSE
 am__fastdepCXX_TRUE
@@ -773,6 +777,9 @@ enable_fast_install
 enable_dependency_tracking
 with_gnu_ld
 enable_libtool_lock
+enable_cuda
+with_cuda
+with_cuda_sdk
 enable_class_prob_tsv
 '
       ac_precious_vars='build_alias
@@ -1418,6 +1425,7 @@ Optional Features:
   --disable-dependency-tracking
                           speeds up one-time build
   --disable-libtool-lock  avoid locking (might break parallel builds)
+  --disable-cuda          disable CUDA support
   --enable-class-prob-tsv   When creating a report, output a tsv\
   containing the Average Class Probability Matrix data for the purpose \
   of computing Morphological Divergence Scores
@@ -1428,6 +1436,8 @@ Optional Packages:
   --with-pic              try to use only PIC/non-PIC objects [default=use
                           both]
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
+  --with-cuda=PATH        prefix where CUDA is installed [default=auto]
+  --with-cuda-sdk=PATH    prefix where CUDA SDK is installed [default=auto]
 
 Some influential environment variables:
   PYTHON      the Python interpreter
@@ -15620,6 +15630,91 @@ $as_echo "no" >&6; }
 fi
 
 
+#--------------------------------------------------------------------
+# Check For CUDA Support
+#--------------------------------------------------------------------
+# initialize array index
+
+
+# Setup default CUDA paths
+CUDA_INSTALL_PATH="/usr/local/cuda"
+CUDA_SDK_INSTALL_PATH="/usr/local/cuda"
+
+# Check: enable CUDA?
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking Wheather to use disable-CUDA ? " >&5
+$as_echo_n "checking Wheather to use disable-CUDA ? ... " >&6; }
+# Check whether --enable-cuda was given.
+if test "${enable_cuda+set}" = set; then :
+  enableval=$enable_cuda; cudaDisableval="yes"
+else
+  cudaDisableval="no"
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $cudaDisableval" >&5
+$as_echo "$cudaDisableval" >&6; }
+
+# check to see if CUDA been disabled
+if test "$cudaDisableval" == "yes"; then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Not using CUDA!" >&5
+$as_echo "$as_me: WARNING: Not using CUDA!" >&2;}
+fi
+
+# Setup custom CUDA paths
+
+# Check whether --with-cuda was given.
+if test "${with_cuda+set}" = set; then :
+  withval=$with_cuda; CUDA_INSTALL_PATH=$withval
+else
+  with_cuda=auto
+fi
+
+
+# Check whether --with-cuda-sdk was given.
+if test "${with_cuda_sdk+set}" = set; then :
+  withval=$with_cuda_sdk; CUDA_SDK_INSTALL_PATH=$withval
+else
+  with_cuda_sdk=auto
+fi
+
+
+# Setup nvcc flags
+if test  "$cudaDisableval" = "no"; then
+#--------------------------------------------------------------
+# Check For CUDA Toolkit
+#--------------------------------------------------------------
+    if test -e "$CUDA_INSTALL_PATH/bin/nvcc" ; then
+	echo "Checking for CUDA :  cuda available"
+    else
+	as_fn_error $? "Failed to find CUDA compiler" "$LINENO" 5
+    fi
+    cuda_enable=true;
+    NVCCFLAGS="$NVCCFLAGS"
+    CUDA_CFLAGS="$CUDA_CFLAGS"
+    CUDA_CFLAGS="$CUDA_CFLAGS -I$CUDA_INSTALL_PATH/include"
+
+	if test -e "$CUDA_INSTALL_PATH/lib64/" ; then
+		echo 64 bit lib CUDA
+		CUDA_LDFLAGS="-L$CUDA_INSTALL_PATH/lib64"
+	elif test -e "$CUDA_INSTALL_PATH/lib64/" ; then
+		echo 32 bit lib CUDA
+		CUDA_LDFLAGS="-L$CUDA_INSTALL_PATH/lib"
+	else
+		as_fn_error $? "Failed to find CUDA compiler" "$LINENO" 5
+	fi
+
+    CUDA_LIBS="-lcuda -lcudart -lcufft -lcublas"
+    NVCCFLAGS="$NVCCFLAGS $CUDA_CFLAGS $CUDA_LDFLAGS $CUDA_LIBS"
+    NVCC="nvcc"
+
+
+
+$as_echo "#define _CUDA 1" >>confdefs.h
+
+fi
+
+
+#--------------------------------------------------------------------
+
 #AC_PROG_CXX sets CXX to g++ if it cannot find a working C++ compiler
 #thus, we test here whether $CXX is actually working
 ac_ext=cpp
@@ -16730,6 +16825,16 @@ $as_echo "#define AVG_CLASS_PROB_TSV /**/" >>confdefs.h
 fi
 
 
+
+#Set Variable for check CUDA support in Makefile.am
+ if test x$cuda_enable = xtrue; then
+  CUDA_ENABLE_TRUE=
+  CUDA_ENABLE_FALSE='#'
+else
+  CUDA_ENABLE_TRUE='#'
+  CUDA_ENABLE_FALSE=
+fi
+
 ac_config_files="$ac_config_files Makefile src/Makefile"
 
 cat >confcache <<\_ACEOF
@@ -16871,6 +16976,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${CUDA_ENABLE_TRUE}" && test -z "${CUDA_ENABLE_FALSE}"; then
+  as_fn_error $? "conditional \"CUDA_ENABLE\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 

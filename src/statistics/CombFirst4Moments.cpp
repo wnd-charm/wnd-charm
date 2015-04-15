@@ -27,11 +27,12 @@
 /* Written by:  Lior Shamir <shamirl [at] mail [dot] nih [dot] gov>              */
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-
+#include <stdio.h>
 #include <math.h>
 #include <cfloat> // DBL_MAX
 #include "CombFirst4Moments.h"
 #include "Moments.h"
+#include <iostream>
 
 #define N_COMB_SAMPLES 20
 
@@ -40,15 +41,15 @@
 // double round (double x) {
 //   return x < 0 ? floor(x) : ceil(x);
 // }
-// 
 
 //---------------------------------------------------------------------------
 
-int matr4moments_to_hist(double matr4moments[4][N_COMB_SAMPLES], std::vector<double> &vec, int vec_start) {
+int matr4moments_to_hist(double matr4moments[4][N_COMB_SAMPLES], std::vector<double> &vec, int vec_start){
 	unsigned long a, b, vec_index, bin_index, nbins = 3;
 	double bins[3];
 	vec_index=vec_start;
-	for (a = 0; a < 4; a++) {
+
+	for (a = 0; a < 4; a++){
 		double h_min = INF, h_max = -INF, h_scale;
 		// find min and max (for the bins)
 		for (b = 0; b < N_COMB_SAMPLES; b++) {
@@ -66,7 +67,7 @@ int matr4moments_to_hist(double matr4moments[4][N_COMB_SAMPLES], std::vector<dou
 			bin_index = (unsigned long)(( (matr4moments[a][b] - h_min)*h_scale));
 			if (bin_index >= nbins) bin_index = nbins-1;
 			bins[bin_index] += 1.0;
-		}	   
+		}
 		/* add the bins to the vector */
 		for (bin_index = 0; bin_index < nbins; bin_index++)
 			vec[vec_index++] = bins[bin_index];
@@ -75,7 +76,16 @@ int matr4moments_to_hist(double matr4moments[4][N_COMB_SAMPLES], std::vector<dou
 }
 
 //---------------------------------------------------------------------------
-int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec) {
+int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec){
+
+#ifdef GPU
+	int vec_count=0;
+	vec_count = CombFirst4Moments2D_gpu(Im,vec);
+	if(vec_count == -1)
+		exit(0);
+	else
+		return(vec_count);
+#else
 	double **I,**J,**J1,z4[4]={0,0,0,0},z[4];
 	double matr4moments[4][N_COMB_SAMPLES];
 	long m,n,n2,m2;
@@ -85,7 +95,14 @@ int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec) {
 	readOnlyPixels pix_plane = Im.ReadablePixels();
 	double step,m_pos;
 	Moments4 tmpMoments;
-	for (a = 0; a < 4; a++)    /* initialize */
+
+#ifdef DISPLAY_TIME
+        clock_t start_cpu,stop_cpu;
+        double time_cpu;
+        start_cpu=clock();
+#endif
+
+	for (a = 0; a < 4; a++)	/* initialize */
 		for (matr4moments_index = 0; matr4moments_index < N_COMB_SAMPLES; matr4moments_index++)
 			matr4moments[a][matr4moments_index] = 0;
 
@@ -151,7 +168,7 @@ int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec) {
 				if (fabs(I[x][y] + ii - J1[x][y]) < 1)
 					tmpMoments.add (pix_plane(y,x));
 			}
-        }
+		}
 
 		tmpMoments.momentVector(z);
 		for (a = 0; a < 4; a++) matr4moments[a][matr4moments_index] = z[a];
@@ -163,7 +180,7 @@ int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec) {
 	matr4moments_index = 0;
 	step = (double)m / 10.0;
 	if (step < 1.0) step = 1.0;
-	for (m_pos = 1.0 - m; m_pos <= m; m_pos += step) {
+	for (m_pos = 1.0 - m; m_pos <= m; m_pos += step){
 		ii = round (m_pos);
 		for (a = 0; a < 4; a++) matr4moments[a][matr4moments_index]=z4[a];
 
@@ -185,7 +202,7 @@ int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec) {
 	matr4moments_index = 0;
 	step = (double)m / 10.0;
 	if (step < 1.0) step = 1.0;
-	for (m_pos = 1.0 - m; m_pos <= m; m_pos += step) {
+	for (m_pos = 1.0 - m; m_pos <= m; m_pos += step){
 		ii = round (m_pos);
 		for (a = 0; a < 4; a++) matr4moments[a][matr4moments_index] = z4[a];
 
@@ -195,13 +212,19 @@ int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec) {
 				if (fabs(I[x][y] + ii - m2) < 1)
 					tmpMoments.add (pix_plane(y,x));
 			}
-        }
+		}
 
 		tmpMoments.momentVector(z);
 		for (a = 0; a < 4; a++) matr4moments[a][matr4moments_index] = z[a];
 		matr4moments_index++;
 	}
 	vec_count=matr4moments_to_hist(matr4moments,vec,vec_count);
+
+#ifdef DISPLAY_TIME
+        stop_cpu=clock();
+        time_cpu=(double)(stop_cpu-start_cpu)/CLOCKS_PER_SEC*1000;
+	std::cout<<"Time to Moments 4(CPU):"<<time_cpu<<std::endl;
+#endif
 
 	/* free the memory used by the function */
 	for (a=0;a<n;a++) {
@@ -214,9 +237,8 @@ int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec) {
 	delete [] J1;
 
 	return(vec_count);
+#endif
 }
-
-
 
 void vd_Comb4Moments(std::vector<double> &in) {
 

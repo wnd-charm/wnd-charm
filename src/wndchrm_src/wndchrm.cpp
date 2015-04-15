@@ -52,6 +52,11 @@
 extern int verbosity;
 
 #include <sys/time.h>
+
+#ifdef GPU
+ int findCudaDevice(int);
+#endif
+
 void randomize() {
 	timeval t1;
 	gettimeofday(&t1, NULL);
@@ -954,6 +959,19 @@ int main(int argc, char *argv[])
 	 /* run */
 	randomize();   /* random numbers are used for selecting random samples for testing and training */
 	setup_featureset (&featureset);
+#ifdef GPU
+       int ret = 0;
+/*  findcudaDevice(devId) where devId :-
+     -1 :- will search availble device with compute capabilty 3.0 and above
+     0 and above :- will check whether speified device is having compute capabilty 3.0 and above
+*/
+       ret = findCudaDevice(-1);
+       if(ret == -1)
+       {
+           printf("Cuda error  in findCudaDevice\n");
+           exit(EXIT_FAILURE);
+       }
+#endif
 	if (arg_index<argc) {
 		int res;
 		dataset_path=argv[arg_index++];

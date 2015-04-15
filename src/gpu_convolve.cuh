@@ -1,11 +1,9 @@
+/*	gpu_convolve.cuh                                                         */
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 /*                                                                               */
-/*    Copyright (C) 2003 Open Microscopy Environment                             */
-/*         Massachusetts Institue of Technology,                                 */
-/*         National Institutes of Health,                                        */
-/*         University of Dundee                                                  */
+/* Copyright (C) 2015                                                            */
 /*                                                                               */
-/*                                                                               */
+/*       <eInfochips Ltd.>                                                       */
 /*                                                                               */
 /*    This library is free software; you can redistribute it and/or              */
 /*    modify it under the terms of the GNU Lesser General Public                 */
@@ -24,24 +22,23 @@
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 /*                                                                               */
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/* Written by:  Lior Shamir <shamirl [at] mail [dot] nih [dot] gov>              */
+/* Written by:                                                                   */
+/*      Pratik Bari                                                              */
+/*      pratik.bari@einfochips.com                                               */
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+#ifndef _CONVOLVE_CUDA_
+#define _CONVOLVE_CUDA_
 
-
-#ifndef CombFirst4MomentsH
-#define CombFirst4MomentsH
-//---------------------------------------------------------------------------
+#include<cuda.h>
+#include<stdio.h>
 
 #define NUMB 1024
 #define NUMT 1024
 
-#include "cmatrix.h"
-
-int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec);
-extern "C"
-int CombFirst4Moments2D_gpu(const ImageMatrix &Im, std::vector<double> &vec);
-void vd_Comb4Moments(std::vector<double> &in);
-extern "C"
-void vd_Comb4Moments_gpu(std::vector<double> &in);
-
+void free_func_convolve();
+__device__ double atomicAdd_double(double*, double);
+__global__ void gpu_convolve_inner_kernel(double *, double *, double *, unsigned long, unsigned long, unsigned long,
+						unsigned long, unsigned long, unsigned long);
+__global__ void gpu_convolve_kernel(double *, double *, double *, unsigned long, unsigned long,
+						unsigned long, unsigned long);
 #endif

@@ -1,11 +1,9 @@
+/* tamura_cuda.h                                                         */
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 /*                                                                               */
-/*    Copyright (C) 2003 Open Microscopy Environment                             */
-/*         Massachusetts Institue of Technology,                                 */
-/*         National Institutes of Health,                                        */
-/*         University of Dundee                                                  */
+/* Copyright (C) 2015                                                            */
 /*                                                                               */
-/*                                                                               */
+/*       eInfochips Limited                                                      */
 /*                                                                               */
 /*    This library is free software; you can redistribute it and/or              */
 /*    modify it under the terms of the GNU Lesser General Public                 */
@@ -24,24 +22,17 @@
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 /*                                                                               */
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/* Written by:  Lior Shamir <shamirl [at] mail [dot] nih [dot] gov>              */
+/* Written by:                                                                   */
+/*      Rutika Ubale                                                             */
+/*      rutika.ubale@einfochips.com                                              */
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
+#ifndef tamura_cudaH
+#define tamura_cudaH
 
-#ifndef CombFirst4MomentsH
-#define CombFirst4MomentsH
-//---------------------------------------------------------------------------
+#include<stdio.h>
 
-#define NUMB 1024
-#define NUMT 1024
-
-#include "cmatrix.h"
-
-int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec);
-extern "C"
-int CombFirst4Moments2D_gpu(const ImageMatrix &Im, std::vector<double> &vec);
-void vd_Comb4Moments(std::vector<double> &in);
-extern "C"
-void vd_Comb4Moments_gpu(std::vector<double> &in);
-
+void tamura_free();
+int GPU_process_pix(double * laufendeSumme_hostPtr,double *Ak_pix_plane_host[],double *Ekh_pix_plane_host[],double *Ekv_pix_plane_host[],
+     int yDim,int xDim,int sizeK);
 #endif
