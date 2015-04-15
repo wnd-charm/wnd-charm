@@ -46,14 +46,14 @@ class FeatureWeights( object ):
         self.name = name
         self.associated_training_set = None
         if size is not None:
-            self.featurenames_list = [None] * size
+            self.feature_names = [None] * size
             self.values = [None] * size
         else:
-            self.featurenames_list = None
+            self.feature_names = None
             self.values = None
     #================================================================
     def __len__( self ):
-        return len( self.featurenames_list )
+        return len( self.feature_names )
 
     #================================================================
     def __str__( self ):
@@ -121,15 +121,15 @@ class FisherFeatureWeights( FeatureWeights ):
               zip( *[ line.strip().split( None, 1 ) for line in weights_file.read().splitlines() ] )
 
         weights.values = [ float( val ) for val in raw_vals ]
-        weights.featurenames_list = [None] * len( raw_names )
+        weights.feature_names = [None] * len( raw_names )
 
         for i, name_raw_str in enumerate( raw_names ):
             # getFeatureInfoByName does some checking, returns a None if it can't parse it
             retval = wndcharm.FeatureNames.getFeatureInfoByName( name_raw_str )
             if retval:
-                weights.featurenames_list[i] = retval.name
+                weights.feature_names[i] = retval.name
             else:
-                weights.featurenames_list[i] = name_raw_str
+                weights.feature_names[i] = name_raw_str
 
         return weights
 
@@ -172,10 +172,10 @@ class FisherFeatureWeights( FeatureWeights ):
 
         # 2D matrix shape N * F
         intra_class_means = np.empty(
-            ( training_set.num_classes, len( training_set.featurenames_list ) ) )
+            ( training_set.num_classes, len( training_set.feature_names ) ) )
         # 2D matrix shape N * F
         intra_class_variances = np.empty(
-            ( training_set.num_classes, len( training_set.featurenames_list ) ) )
+            ( training_set.num_classes, len( training_set.feature_names ) ) )
 
         class_index = 0
         for class_feature_matrix in training_set.data_list:
@@ -201,7 +201,7 @@ class FisherFeatureWeights( FeatureWeights ):
         np.seterr(**oldsettings)
 
         new_fw = cls()
-        new_fw.featurenames_list = training_set.featurenames_list[:]
+        new_fw.feature_names = training_set.feature_names[:]
         # the filled(0) method of the masked array sets all nan and infs to 0
         new_fw.values = feature_weights_m.filled(0).tolist()
         new_fw.associated_training_set = training_set
@@ -214,9 +214,9 @@ class FisherFeatureWeights( FeatureWeights ):
         FisherFeatureWeights without those features."""
 
         new_weights = FisherFeatureWeights()
-        scores = zip( self.featurenames_list, self.values )
+        scores = zip( self.feature_names, self.values )
         nonzero_scores = [ (name, weight) for name, weight in scores if weight != 0 ]
-        new_weights.featurenames_list, new_weights.values = zip( *nonzero_scores )
+        new_weights.feature_names, new_weights.values = zip( *nonzero_scores )
         return new_weights
 
     #================================================================
@@ -237,7 +237,7 @@ class FisherFeatureWeights( FeatureWeights ):
                                   format( len( self.values ), num_features_to_be_used ) )
 
         new_weights = self.__class__()
-        raw_featureweights = zip( self.values, self.featurenames_list )
+        raw_featureweights = zip( self.values, self.feature_names )
         # raw_featureweights is now a list of tuples := [ (value1, name1), (value2, name2), ... ]
 
         sorted_featureweights = sorted( raw_featureweights, key=lambda a: a[0], reverse = True )
@@ -261,7 +261,7 @@ class FisherFeatureWeights( FeatureWeights ):
                         raise ValueError( err_msg )
 
         # we want lists, not tuples!
-        new_weights.values, new_weights.featurenames_list =\
+        new_weights.values, new_weights.feature_names =\
           [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
 
         new_weights.associated_training_set = self.associated_training_set
@@ -287,13 +287,13 @@ class FisherFeatureWeights( FeatureWeights ):
             raise ValueError( 'Cannot slice, check your start and stop indices.' )
 
         new_weights = self.__class__()
-        raw_featureweights = zip( self.featurenames_list, self.values )
+        raw_featureweights = zip( self.feature_names, self.values )
 
         use_these_feature_weights = \
                 list( itertools.islice( raw_featureweights, min_index, max_index ) )
 
         # we want lists, not tuples!
-        new_weights.featurenames_list, new_weights.values =\
+        new_weights.feature_names, new_weights.values =\
           [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
 
         new_weights.associated_training_set = self.associated_training_set
@@ -308,10 +308,10 @@ class FisherFeatureWeights( FeatureWeights ):
 
         if display != None:
             from itertools import islice
-            features = islice( zip( self.values, self.featurenames_list ), display )
+            features = islice( zip( self.values, self.feature_names ), display )
             remainder = len( self ) - display
         else:
-            features = zip( self.values, self.featurenames_list )
+            features = zip( self.values, self.feature_names )
             remainder = None
 
         s = self.__class__.__name__
@@ -388,9 +388,9 @@ class PearsonFeatureWeights( FeatureWeights ):
         r_val_squared_sum = 0
         #r_val_cubed_sum = 0
 
-        ground_truths = np.array( [ float(val) for val in training_set.ground_truths ] )
+        ground_truths = np.array( [ float(val) for val in training_set.ground_truth_values ] )
 
-        new_fw.featurenames_list = training_set.featurenames_list[:]
+        new_fw.feature_names = training_set.feature_names[:]
 
         for feature_index in range( training_set.num_features ):
 
@@ -451,7 +451,7 @@ class PearsonFeatureWeights( FeatureWeights ):
 
         new_weights = self.__class__()
         if self.name:
-            if num_features_to_be_used == len( self.featurenames_list ):
+            if num_features_to_be_used == len( self.feature_names ):
                 new_weights.name = self.name + " (rank-ordered)"
             else:
                 new_weights.name = self.name + " (top {0} features)".format( num_features_to_be_used )
@@ -461,7 +461,7 @@ class PearsonFeatureWeights( FeatureWeights ):
         else:
             abs_corr_coeffs = [ abs( val ) for val in self.pearson_coeffs ]
 
-        raw_featureweights = zip( abs_corr_coeffs, self.featurenames_list, self.pearson_coeffs, \
+        raw_featureweights = zip( abs_corr_coeffs, self.feature_names, self.pearson_coeffs, \
             self.slopes, self.intercepts, self.pearson_stderrs, self.pearson_p_values, \
             self.spearman_coeffs, self.spearman_p_values )
 
@@ -498,7 +498,7 @@ class PearsonFeatureWeights( FeatureWeights ):
                             raise ValueError( err_msg )
 
         # we want lists, not tuples!
-        abs_corr_coeffs, new_weights.featurenames_list, new_weights.pearson_coeffs, new_weights.slopes, \
+        abs_corr_coeffs, new_weights.feature_names, new_weights.pearson_coeffs, new_weights.slopes, \
             new_weights.intercepts, new_weights.pearson_stderrs, new_weights.pearson_p_values,\
             new_weights.spearman_coeffs, new_weights. spearman_p_values =\
               [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
@@ -535,14 +535,14 @@ class PearsonFeatureWeights( FeatureWeights ):
             new_weights.name = self.name + " (sliced {0}-{1})".format( min_index, max_index )
 
         abs_val_pearson_coeffs = [ abs( val ) for val in self.pearson_coeffs ]
-        raw_featureweights = zip( self.featurenames_list, abs_val_pearson_coeffs, self.pearson_coeffs, \
+        raw_featureweights = zip( self.feature_names, abs_val_pearson_coeffs, self.pearson_coeffs, \
             self.slopes, self.intercepts, self.pearson_stderrs, self.pearson_p_values, \
             self.spearman_coeffs, self.spearman_p_values )
 
         from itertools import islice
         use_these_feature_weights = list( islice( raw_featureweights, min_index, max_index ) )
  
-        new_weights.featurenames_list, abs_pearson_coeffs, new_weights.pearson_coeffs, new_weights.slopes, \
+        new_weights.feature_names, abs_pearson_coeffs, new_weights.pearson_coeffs, new_weights.slopes, \
             new_weights.intercepts, new_weights.pearson_stderrs, new_weights.pearson_p_values,\
             new_weights.spearman_coeffs, new_weights. spearman_p_values =\
               [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
@@ -594,10 +594,10 @@ class PearsonFeatureWeights( FeatureWeights ):
             line_item += "{0:2.4f}\t".format( self.pearson_p_values[i] )
             line_item += "{0:2.4f}\t".format( self.spearman_coeffs[i] )
             line_item += "{0:2.4f}\t".format( self.spearman_p_values[i] )
-            if len( self.featurenames_list[i] ) < 50:
-                line_item += self.featurenames_list[i]
+            if len( self.feature_names[i] ) < 50:
+                line_item += self.feature_names[i]
             else:
-                line_item += self.featurenames_list[i][:50] + '... (truncated)'
+                line_item += self.feature_names[i][:50] + '... (truncated)'
             print line_item
         if remainder:
             print "<output truncated by user, {0} more feature weights>".format( remainder )

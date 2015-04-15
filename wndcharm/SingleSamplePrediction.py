@@ -233,14 +233,14 @@ class SingleSampleClassification( SingleSamplePrediction ):
         if not isinstance( test_samp, FeatureVector ):
             raise ValueError( 'Third argument to NewWND5 must be of type "FeatureVector", you gave a {0}'.format( type( test_samp ).__name__ ) )
 
-        train_set_len = len( training_set.featurenames_list )
-        test_set_len = len( test_samp.featurenames_list )
-        feature_weights_len = len( feature_weights.featurenames_list )
+        train_set_len = len( training_set.feature_names )
+        test_set_len = len( test_samp.feature_names )
+        feature_weights_len = len( feature_weights.feature_names )
 
-        if test_samp.featurenames_list != feature_weights.featurenames_list:
+        if test_samp.feature_names != feature_weights.feature_names:
             raise ValueError("Can't classify, features in signature don't match features in weights." )
 
-        if test_samp.featurenames_list != training_set.featurenames_list:
+        if test_samp.feature_names != training_set.feature_names:
             raise ValueError("Can't classify, features in signature don't match features in training_set." )
 
         if not quiet:
@@ -256,7 +256,7 @@ class SingleSampleClassification( SingleSamplePrediction ):
             result.source_filepath = test_samp.name
 
         marg_probs = np.array( result.marginal_probabilities )
-        result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
+        result.predicted_class_name = training_set.class_names[ marg_probs.argmax() ]
         # interpolated value, if applicable
 
         if training_set.interpolation_coefficients is not None and \
@@ -267,7 +267,7 @@ class SingleSampleClassification( SingleSamplePrediction ):
         if not quiet:
             column_header = "image\tnorm. fact.\t"
             column_header +=\
-             "".join( [ "p(" + class_name + ")\t" for class_name in training_set.classnames_list ] )
+             "".join( [ "p(" + class_name + ")\t" for class_name in training_set.class_names ] )
             column_header += "act. class\tpred. class\tpred. val."
             print column_header
             result.Print( line_item=True )
@@ -362,7 +362,7 @@ class SingleSampleRegression( SingleSamplePrediction ):
         from numpy.linalg import lstsq
         from numpy import dot
 
-        A = lstsq( training_set.data_matrix, np.array( training_set.ground_truths ) )[0]
+        A = lstsq( training_set.data_matrix, np.array( training_set.ground_truth_values ) )[0]
         
         result = cls()
         result.predicted_value = dot( one_image_features, A )

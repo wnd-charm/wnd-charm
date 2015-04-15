@@ -61,8 +61,8 @@ class FeatureSpacePrediction( object ):
         self.num_classifications = 0
 
         self.figure_of_merit = None
-        self.predictedvalue_list = None
-        self.groundtruthvalue_list = None
+        self.predicted_values = None
+        self.ground_truth_values = None
 
         #: If there was randomness associated with generating results
         #: set use_error_bars = True to calculate confidence intervals for
@@ -91,11 +91,11 @@ class FeatureSpacePrediction( object ):
 
         self.num_classifications = len( self.individual_results )
 
-        if self.groundtruthvalue_list and self.predictedvalue_list and \
-                len( self.groundtruthvalue_list ) == len( self.predictedvalue_list ):
+        if self.ground_truth_values and self.predicted_values and \
+                len( self.ground_truth_values ) == len( self.predicted_values ):
 
-            gt = np.array( self.groundtruthvalue_list )
-            pv = np.array( self.predictedvalue_list )
+            gt = np.array( self.ground_truth_values )
+            pv = np.array( self.predicted_values )
 
             diffs = gt - pv
             diffs = np.square( diffs )
@@ -111,11 +111,11 @@ class FeatureSpacePrediction( object ):
                 # For now, ignore "FloatingPointError: 'underflow encountered in stdtr'"
                 np.seterr (under='ignore')
                 slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
-                         linregress( self.groundtruthvalue_list, self.predictedvalue_list )
+                         linregress( self.ground_truth_values, self.predicted_values )
 
                 try:
                     self.spearman_coeff, self.spearman_p_value =\
-                   spearmanr( self.groundtruthvalue_list, self.predictedvalue_list )
+                   spearmanr( self.ground_truth_values, self.predicted_values )
                 except FloatingPointError:
                     # to avoid: "FloatingPointError: invalid value encountered in true_divide"
                     self.spearman_coeff, self.spearman_p_value = ( 0, 1 )
@@ -132,24 +132,24 @@ class FeatureSpacePrediction( object ):
         """Rank-order sorts ground truth/predicted value data points for purposes of 
         being graphed."""
 
-        if not self.groundtruthvalue_list or not self.predictedvalue_list:
+        if not self.ground_truth_values or not self.predicted_values:
             self.GenerateStats()
 
         # Check again:
-        if not self.groundtruthvalue_list:
+        if not self.ground_truth_values:
             raise ValueError( "Can't rank-order sort: no numeric ground truth values for predicted results." )
         if not self.predicted_values:
             # FIXME: this might be wrong, since the member predicted_values may contain a
             # non-graphable label string
             raise ValueError( "Can't rank-order sort: no sample predicted values" )
 
-        value_pairs = zip( self.groundtruthvalue_list, self.predictedvalue_list )
+        value_pairs = zip( self.ground_truth_values, self.predicted_values )
 
         # sort by ground_truth value first, predicted value second
         sorted_pairs = sorted( sorted( value_pairs, key=lambda x: x[0] ), key=lambda x: x[1] )
         
         # we want lists, not tuples!
-        self.groundtruthvalue_list, self.predictedvalue_list =\
+        self.ground_truth_values, self.predicted_values =\
             [ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_pairs ) ]
 
 #=================================================================================
@@ -239,14 +239,14 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
             # FIXME: is there any possibility that the order of the values in the marginal
             # probability array don't correspond with the order of the training set classes?
             if indiv_result.marginal_probabilities is not None:
-                mp = zip( self.training_set.classnames_list, indiv_result.marginal_probabilities )
+                mp = zip( self.training_set.class_names, indiv_result.marginal_probabilities )
                 for putative_class, marg_prob in mp:
                     self.average_class_probability_matrix[ gt_class ][ putative_class ] += marg_prob
 
         # Finalize the Average Class Probability Matrix by dividing each marginal probability
         # sum by the number of marginal probabilities:
-        for row in self.test_set.classnames_list:
-            for col in self.training_set.classnames_list:
+        for row in self.test_set.class_names:
+            for col in self.training_set.class_names:
                 self.average_class_probability_matrix[ row ][ col ] /= \
                    self.num_classifications_per_class[ row ]
 
@@ -254,12 +254,12 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
         # normalized to have 1's in the diagonal.
         # Doesn't make sense to do this unless the matrix is square
         # if row labels == column labels:
-        if self.test_set.classnames_list == self.training_set.classnames_list:
+        if self.test_set.class_names == self.training_set.class_names:
             from copy import deepcopy
             self.similarity_matrix = deepcopy( self.average_class_probability_matrix )
-            for row in self.test_set.classnames_list:
+            for row in self.test_set.class_names:
                 denom = self.similarity_matrix[ row ][ row ]
-                for col in self.training_set.classnames_list:
+                for col in self.training_set.class_names:
                     if self.similarity_matrix[ row ][ row ]:
                         self.similarity_matrix[ row ][ col ] /= denom
                         self.similarity_matrix[ col ][ row ] /= denom
@@ -330,12 +330,12 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
         print ""
 
         # Remember: iterate over the sorted list of class names, not the keys in the dict,
-        # because the dict keys aren't guaranteed to be ordered, nor is test_set.classnames_list.
+        # because the dict keys aren't guaranteed to be ordered, nor is test_set.class_names.
         # Also remember: there may be different numbers of classes in train and test set
         # or they may be named differently.
 
-        train_set_class_names = sorted( self.training_set.classnames_list )
-        test_set_class_names = sorted( self.test_set.classnames_list )
+        train_set_class_names = sorted( self.training_set.class_names )
+        test_set_class_names = sorted( self.test_set.class_names )
 
         column_headers = "\t".join( train_set_class_names )
         column_headers += "\n"
@@ -390,9 +390,9 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
         # distances will be derived
         source_matrix = np.empty( (self.test_set.num_classes, self.test_set.num_classes) ) #initialize
         row_index = 0
-        for row in self.test_set.classnames_list:
+        for row in self.test_set.class_names:
             col_index = 0
-            for col in self.training_set.classnames_list:
+            for col in self.training_set.class_names:
                 source_matrix[ row_index ][ col_index ] = self.average_class_probability_matrix[row][col]
                 col_index += 1
             row_index += 1
@@ -400,11 +400,11 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
         output_matrix = {}
 
         # initialize the rows
-        for test_set_class_name in self.test_set.classnames_list:
+        for test_set_class_name in self.test_set.class_names:
             output_matrix[ test_set_class_name ] = {}
         # now the columns:
-        for training_set_class_name in self.training_set.classnames_list:
-            for test_set_class_name in self.test_set.classnames_list:
+        for training_set_class_name in self.training_set.class_names:
+            for test_set_class_name in self.test_set.class_names:
                 output_matrix[ test_set_class_name ][ training_set_class_name ] = 0
 
         if method == 'mps':
@@ -438,14 +438,14 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
                 raise ValueError( "Distance matrix method {0} not recognized. Valid options are ".format(\
                                                     method ) + "'max', 'mean', 'top', 'bottom', 'mps'" )
 
-        #column_headers = "\t".join( self.test_set.classnames_list )
+        #column_headers = "\t".join( self.test_set.class_names )
         #column_headers += "\n"
-        #column_headers += "\t".join( [ '-'*len(name) for name in self.test_set.classnames_list ] )
+        #column_headers += "\t".join( [ '-'*len(name) for name in self.test_set.class_names ] )
         #print "Distance Matrix (method = '{0}'):".format( method )
         #print column_headers
         print self.test_set.num_classes
         for row in range( self.test_set.num_classes ):
-            line = "{0}\t".format( self.test_set.classnames_list[ row ] )
+            line = "{0}\t".format( self.test_set.class_names[ row ] )
             for col in range( self.test_set.num_classes ):
                 line += '{0:0.4f}\t'.format( output_matrix[ row, col ] )
             print line
@@ -474,16 +474,16 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
             raise ValueError( 'Third argument to New must be of type "FeatureWeights" or derived class, you gave a {0}'.format( type( feature_weights ).__name__ ) )
     
         # feature comparison
-        if test_set.featurenames_list != feature_weights.featurenames_list:
+        if test_set.feature_names != feature_weights.feature_names:
             raise ValueError( "Can't classify, features in test set don't match features in weights. Try translating feature names from old style to new, or performing a FeatureReduce()" )
-        if test_set.featurenames_list != training_set.featurenames_list:
+        if test_set.feature_names != training_set.feature_names:
             raise ValueError( "Can't classify, features in test set don't match features in training set. Try translating feature names from old style to new, or performing a FeatureReduce()" )
 
         np.seterr( under='ignore' )
 
-        train_set_len = len( training_set.featurenames_list )
-        test_set_len = len( test_set.featurenames_list )
-        feature_weights_len = len( feature_weights.featurenames_list )
+        train_set_len = len( training_set.feature_names )
+        test_set_len = len( test_set.feature_names )
+        feature_weights_len = len( feature_weights.feature_names )
 
         # instantiate myself
         batch_result = cls( training_set, test_set, feature_weights, name, batch_number )
@@ -501,7 +501,7 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
                 print "Performing tiled classification."
             column_header = "image\tnorm. fact.\t"
             column_header +=\
-                "".join( [ "p(" + class_name + ")\t" for class_name in training_set.classnames_list ] )
+                "".join( [ "p(" + class_name + ")\t" for class_name in training_set.class_names ] )
             column_header += "act. class\tpred. class\tpred. val."
             print column_header
 
@@ -530,15 +530,15 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
                 
                 if norm_factor_threshold and (result.normalization_factor > norm_factor_threshold):
                     continue
-                result.source_filepath = test_set.samplenames_list[ test_class_index ][ test_image_index ]
-                result.ground_truth_class_name = test_set.classnames_list[ test_class_index ]
+                result.source_filepath = test_set.sample_names[ test_class_index ][ test_image_index ]
+                result.ground_truth_class_name = test_set.class_names[ test_class_index ]
                 result.batch_number = batch_number
                 result.name = name
                 if result.marginal_probabilities:
                     # Sometimes the result comes back with a non-call, like when the sample image
                     # collides with every test image
                     marg_probs = np.array( result.marginal_probabilities )
-                    result.predicted_class_name = training_set.classnames_list[ marg_probs.argmax() ]
+                    result.predicted_class_name = training_set.class_names[ marg_probs.argmax() ]
                 else:
                     marg_probs = np.array( [np.nan] * training_set.num_classes )
                     result.predicted_class_name = "*Collided with every training sample*"
@@ -590,7 +590,7 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
                             marg_probs = [ sum( l ) / float( len( l ) ) for l in marg_prob_lists ]
                             aggregated_result.marginal_probabilities = marg_probs
                             np_marg_probs = np.array( marg_probs )
-                            aggregated_result.predicted_class_name = training_set.classnames_list[ np_marg_probs.argmax() ]
+                            aggregated_result.predicted_class_name = training_set.class_names[ np_marg_probs.argmax() ]
                             aggregated_result.normalization_factor = sum(norm_factor_list)/float(len(norm_factor_list))
 
                             # interpolated value, if applicable
@@ -676,14 +676,14 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
             raise ValueError( 'Second argument to New must be of type "PearsonFeatureWeights", you gave a {0}'.format( type( feature_weights ).__name__ ) )
 
         # feature comparison
-        if test_set.featurenames_list != feature_weights.featurenames_list:
+        if test_set.feature_names != feature_weights.feature_names:
             raise ValueError("Can't classify, features don't match. Try a FeatureReduce()" )
 
         # say what we're gonna do
         if not quiet:
             out_str = 'Classifying test set "{0}" ({1} images, {2} features)\n\tagainst training set "{3}" ({4} images)'
             print out_str.format( test_set.name, test_set.num_samples, \
-              len( test_set.featurenames_list ), feature_weights.associated_training_set.name, \
+              len( test_set.feature_names ), feature_weights.associated_training_set.name, \
               feature_weights.associated_training_set.num_samples )
 
         if not quiet:
@@ -693,17 +693,17 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
         batch_result = cls( feature_weights.associated_training_set, test_set, feature_weights,
                 name, batch_number )
 
-        if test_set.groundtruthvalue_list is not None and \
-                len( test_set.groundtruthvalue_list ) != 0:
-            batch_result.groundtruthvalue_list = test_set.groundtruthvalue_list
+        if test_set.ground_truth_values is not None and \
+                len( test_set.ground_truth_values ) != 0:
+            batch_result.ground_truth_values = test_set.ground_truth_values
 
         for test_image_index in range( test_set.num_samples ):
             one_image_features = test_set.data_matrix[ test_image_index,: ]
             result = SingleSampleRegression._MultivariateLinear( one_image_features, feature_weights )
             result.batch_number = batch_result.batch_number
             result.name = name
-            result.source_filepath = test_set.samplenames_list[ test_image_index ]
-            result.ground_truth_value = test_set.groundtruthvalue_list[ test_image_index ]
+            result.source_filepath = test_set.sample_names[ test_image_index ]
+            result.ground_truth_value = test_set.ground_truth_values[ test_image_index ]
             batch_result.predicted_values.append( result.predicted_value )
 
             if not quiet:
@@ -738,10 +738,10 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
 
         # If there's both a training_set and a test_set, they both have to have the same features
         if training_set and test_set:
-            if training_set.featurenames_list != training_set.featurenames_list:
+            if training_set.feature_names != training_set.feature_names:
                 raise ValueError("Can't classify, features don't match. Try a FeatureReduce()" )
         # Check feature_weights
-        if training_set.featurenames_list != feature_weights.featurenames_list:
+        if training_set.feature_names != feature_weights.feature_names:
             raise ValueError("Can't classify, features don't match. Try a FeatureReduce()" )
 
         # Least squares regression requires a featres matrix augmented with ones
@@ -766,7 +766,7 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
         if not quiet:
             if cross_validation:
                 out_str = 'Cross validation of training set "{0}" ({1} images, {2} features)'.format(
-                      training_set.name, training_set.num_samples, len( training_set.featurenames_list ) )
+                      training_set.name, training_set.num_samples, len( training_set.feature_names ) )
 
                 out_str += "\nWITH"
                 if not leave_one_out:
@@ -775,7 +775,7 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
             
             else:
                 out_str = 'Classifying test set "{0}" ({1} images, {2} features)'.format(
-                      test_set.name, test_set.num_samples, len( test_set.featurenames_list ) )
+                      test_set.name, test_set.num_samples, len( test_set.feature_names ) )
                 out_str += '\n\tagainst training set "{0}" ({1} images)'.format(
                             training_set.name, training_set.num_samples )
             print out_str
@@ -800,23 +800,23 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
 
         batch_result = cls( training_set, test_set, feature_weights, name, batch_number )
 
-        if augmented_test_set.groundtruthvalue_list is not None and \
-                len( augmented_test_set.groundtruthvalue_list ) != 0:
-            batch_result.groundtruthvalue_list = augmented_test_set.groundtruthvalue_list
+        if augmented_test_set.ground_truth_values is not None and \
+                len( augmented_test_set.ground_truth_values ) != 0:
+            batch_result.ground_truth_values = augmented_test_set.ground_truth_values
 
         intermediate_train_set = augmented_train_set
         for test_image_index in range( augmented_test_set.num_samples ):
             if leave_one_out:
-                sample_group_id = augmented_train_set.samplegroupid_list[ test_image_index ]
+                sample_group_id = augmented_train_set.sample_group_ids[ test_image_index ]
                 intermediate_train_set = augmented_train_set.SampleReduce(\
-                        leave_out_samplegroupid_list = sample_group_id,)
+                        leave_out_sample_group_ids = sample_group_id,)
             one_image_features = augmented_test_set.data_matrix[ test_image_index,: ]
             result = SingleSampleRegression._LeastSquares( \
                            one_image_features, intermediate_train_set )
             result.batch_number = batch_result.batch_number
             result.name = name
-            result.source_filepath = augmented_test_set.samplenames_list[ test_image_index ]
-            result.ground_truth_value = augmented_test_set.groundtruthvalue_list[ test_image_index ]
+            result.source_filepath = augmented_test_set.sample_names[ test_image_index ]
+            result.ground_truth_value = augmented_test_set.ground_truth_values[ test_image_index ]
             batch_result.predicted_values.append( result.predicted_value )
 
             if not quiet:

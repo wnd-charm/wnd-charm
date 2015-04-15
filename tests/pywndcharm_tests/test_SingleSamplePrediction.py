@@ -68,13 +68,13 @@ class TestWND5Classification( unittest.TestCase ):
 
         # Load the original files once and only once for all this class's tests
         feature_set = FeatureSpace.NewFromFitFile( test_fit_path )
-        fs1 = feature_set.featurenames_list
+        fs1 = feature_set.feature_names
         feature_set.Normalize()
-        fs2 = feature_set.featurenames_list
+        fs2 = feature_set.feature_names
         self.assertSequenceEqual( fs1, fs2 )
 
         test_sample = FeatureVector.NewFromSigFile( test_sig_path, test_tif_path )
-        self.assertSequenceEqual( feature_set.featurenames_list, test_sample.featurenames_list )
+        self.assertSequenceEqual( feature_set.feature_names, test_sample.feature_names )
         test_sample.Normalize( feature_set )
 
         all_weights = FisherFeatureWeights.NewFromFile( test_feat_wght_path )

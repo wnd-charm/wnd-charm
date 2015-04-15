@@ -81,7 +81,7 @@ def CreateArtificialFeatureSpace_Continuous( name="ContinuousArtificialFS", n_sa
 
     The number of features contained in the feature set will be a multiple of the number of
     signals contained in the dict "signals" (len(signals) == 12 at the time of writing, so
-    len( new_fs.featurenames_list ) == 12, 24, 36, etc ).
+    len( new_fs.feature_names ) == 12, 24, 36, etc ).
 
     The more features the user asks for via the argument "num_features_per_signal_type",
     the more each successive feature generated using that signal will have a greater degree of
@@ -144,19 +144,19 @@ def CreateArtificialFeatureSpace_Continuous( name="ContinuousArtificialFS", n_sa
     # The function call np.mgrid() requires for the value indicating the number of steps
     # to be imaginary, for some inexplicable reason.
     step = complex(0, n_samples)
-    new_fs._contiguous_groundtruthvalue_list = list( np.mgrid[ lbound : ubound : step ] )
+    new_fs._contiguous_ground_truth_values = list( np.mgrid[ lbound : ubound : step ] )
 
     # Generate artificial feature names
     # N.B. The feature generation signals are sorted in alphanum order!
-    new_fs.featurenames_list = [ "{0}{1:04d}".format(fname, i)\
+    new_fs.feature_names = [ "{0}{1:04d}".format(fname, i)\
                                     for fname in sorted( signals.keys() ) \
                                     for i in xrange( num_features_per_signal_type ) ]
     # Creating sample metadata
     if n_samples_per_group == 1:
-      new_fs._contiguous_samplenames_list = [ "FakeContinuousSample{0:03d}".format( i )\
+      new_fs._contiguous_sample_names = [ "FakeContinuousSample{0:03d}".format( i )\
                                              for i in xrange( n_samples ) ]
-      new_fs._contiguous_samplegroupid_list = range( n_samples ) # not xrange
-      new_fs._contiguous_samplesequenceid_list =  [1] * n_samples
+      new_fs._contiguous_sample_group_ids = range( n_samples ) # not xrange
+      new_fs._contiguous_sample_sequence_ids =  [1] * n_samples
     else:
       # Format: FakeContinuousSample_i<sample index>_g<group>_t<tile#>
       temp1 = [ "FakeContinuousSample_i{0:03d}".format( i ) for i in xrange( n_samples ) ]
@@ -164,11 +164,11 @@ def CreateArtificialFeatureSpace_Continuous( name="ContinuousArtificialFS", n_sa
       temp2 = [ "_g{0:03d}_t{1:02d}".format( samplegroup_index, tile_index ) \
         for samplegroup_index in xrange( n_samplegroups ) \
           for tile_index in xrange( n_samples_per_group ) ]
-      new_fs._contiguous_samplenames_list = [ a + b for a, b in zip( temp1, temp2 ) ]
-      new_fs._contiguous_samplegroupid_list = \
+      new_fs._contiguous_sample_names = [ a + b for a, b in zip( temp1, temp2 ) ]
+      new_fs._contiguous_sample_group_ids = \
           [ samplegroup_index for samplegroup_index in xrange( n_samplegroups ) \
           for tile_index in xrange( n_samples_per_group ) ]
-      new_fs._contiguous_samplesequenceid_list = \
+      new_fs._contiguous_sample_sequence_ids = \
           [ tile_index for samplegroup_index in xrange( n_samplegroups ) \
           for tile_index in xrange( n_samples_per_group ) ]
 
@@ -177,10 +177,10 @@ def CreateArtificialFeatureSpace_Continuous( name="ContinuousArtificialFS", n_sa
     # Create features across all classes at the same time
     feat_count = 0
     # N.B. The features are in sort order!
-    groundtruthvalue_list = np.array( new_fs._contiguous_groundtruthvalue_list )
+    ground_truth_values = np.array( new_fs._contiguous_ground_truth_values )
     for func_name in sorted( signals.keys() ):
       f = signals[ func_name ]
-      raw_feature_values = clip( f( groundtruthvalue_list ) )
+      raw_feature_values = clip( f( ground_truth_values ) )
       for feat_index in xrange( num_features_per_signal_type ):
         # Add noise proportional to the feature index
         noise_vector = normal( 0, initial_noise_sigma + feat_index * noise_gradient, n_samples )
@@ -203,7 +203,7 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
 
     The number of features contained in the feature set will be a multiple of the number of
     signals contained in the dict "signals" (len(signals) == 12 at the time of writing, so
-    len( new_fs.featurenames_list ) == 12, 24, 36, etc ).
+    len( new_fs.feature_names ) == 12, 24, 36, etc ).
 
     The more features the user asks for via the argument "num_features_per_signal_type",
     the more each successive feature generated using that signal will have a greater degree of
@@ -278,7 +278,7 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
       feature_set_version='-1.0')
 
     new_fs.num_classes = n_classes
-    new_fs.classsizes_list = [ n_samples_per_class for i in xrange( n_classes ) ]
+    new_fs.class_sizes = [ n_samples_per_class for i in xrange( n_classes ) ]
  
     # The function call np.mgrid() requires for the value indicating the number of steps
     # to be imaginary, for some inexplicable reason.
@@ -289,17 +289,17 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
     # chosen to create the artificial features behave "interestingly."
     new_fs.interpolation_coefficients = list( np.mgrid[ lbound : ubound : step ] )
 
-    new_fs.classnames_list = []
+    new_fs.class_names = []
     for val in new_fs.interpolation_coefficients:
       # Try to use integers for each individual class name
       if float(int(val)) == val:
-        new_fs.classnames_list.append( "FakeClass{0:02d}".format( int(val) ) )
+        new_fs.class_names.append( "FakeClass{0:02d}".format( int(val) ) )
       else:
-        new_fs.classnames_list.append( "FakeClass{0:.02f}".format( val )  )
+        new_fs.class_names.append( "FakeClass{0:.02f}".format( val )  )
 
     # Generate artificial feature names
     # N.B. The feature generation signals are sorted in alphanum order!
-    new_fs.featurenames_list = [ "{0}{1:04d}".format(fname, i)\
+    new_fs.feature_names = [ "{0}{1:04d}".format(fname, i)\
                                     for fname in sorted( signals.keys() ) \
                                     for i in xrange( num_features_per_signal_type ) ]
     if n_samples_per_group >= 1:
@@ -308,24 +308,24 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
     # Creating sample metadata
     if n_samples_per_group == 1:
       # Format: <class name>_<sample index within class>
-      new_fs._contiguous_samplenames_list = \
+      new_fs._contiguous_sample_names = \
         [ "{0}_{1:03d}".format( class_name, i ) \
-             for class_name in new_fs.classnames_list for i in xrange( n_samples_per_class ) ]
-      new_fs._contiguous_samplegroupid_list = range( n_samples ) # not xrange
-      new_fs._contiguous_samplesequenceid_list =  [1] * n_samples
+             for class_name in new_fs.class_names for i in xrange( n_samples_per_class ) ]
+      new_fs._contiguous_sample_group_ids = range( n_samples ) # not xrange
+      new_fs._contiguous_sample_sequence_ids =  [1] * n_samples
     else:
       # Format: <class name>_i<sample index within class>_g<group>_t<tile#>
       temp1 = [ "{0}_i{1:03d}".format( class_name, i ) \
-        for class_name in new_fs.classnames_list for i in xrange( n_samples_per_class ) ]
+        for class_name in new_fs.class_names for i in xrange( n_samples_per_class ) ]
       n_samplegroups = n_samples / n_samples_per_group
       temp2 = [ "_g{0:03d}_t{1:02d}".format( samplegroup_index, tile_index ) \
         for samplegroup_index in xrange( n_samplegroups ) \
           for tile_index in xrange( n_samples_per_group ) ]
-      new_fs._contiguous_samplenames_list = [ a + b for a, b in zip( temp1, temp2 ) ]
-      new_fs._contiguous_samplegroupid_list = \
+      new_fs._contiguous_sample_names = [ a + b for a, b in zip( temp1, temp2 ) ]
+      new_fs._contiguous_sample_group_ids = \
           [ samplegroup_index for samplegroup_index in xrange( n_samplegroups ) \
           for tile_index in xrange( n_samples_per_group ) ]
-      new_fs._contiguous_samplesequenceid_list = \
+      new_fs._contiguous_sample_sequence_ids = \
           [ tile_index for samplegroup_index in xrange( n_samplegroups ) \
           for tile_index in xrange( n_samples_per_group ) ]
 
@@ -334,10 +334,10 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
     # Create features across all classes at the same time
     feat_count = 0
     # N.B. The features are in sort order!
-    groundtruthvalue_list = np.array( new_fs.interpolation_coefficients )
+    ground_truth_values = np.array( new_fs.interpolation_coefficients )
     for func_name in sorted( signals.keys() ):
       f = signals[ func_name ]
-      raw_class_feature_values = clip( f( groundtruthvalue_list ) )
+      raw_class_feature_values = clip( f( ground_truth_values ) )
       raw_feature_values = np.empty( n_samples, )
       for i, val in enumerate( raw_class_feature_values ):
         raw_feature_values[ i * n_samples_per_class: (i+1) * n_samples_per_class].fill( val )
@@ -351,7 +351,7 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
     np.seterr( **old_settings )
 
     # discrete data always gets labels and sometimes gets values
-    new_fs._contiguous_groundtruthlabel_list = [ new_fs.classnames_list[i] \
+    new_fs._contiguous_ground_truth_labels = [ new_fs.class_names[i] \
         for i in xrange( n_classes ) \
             for j in xrange( n_samples_per_class ) ]
 
@@ -359,7 +359,7 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
       # delete the coefficients if user asks for a pure classification problem feat. set.
       new_fs.interpolation_coefficients = None
     else:
-      new_fs._contiguous_groundtruthvalue_list = [ new_fs.interpolation_coefficients[i] \
+      new_fs._contiguous_ground_truth_values = [ new_fs.interpolation_coefficients[i] \
         for i in xrange( n_classes ) for j in range( n_samples_per_class ) ]
 
     new_fs._RebuildViews()

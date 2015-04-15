@@ -104,7 +104,7 @@ class TestFeatureSet( unittest.TestCase ):
 
         # Inflate the zipped test fit into a temp file
         import zipfile
-        zipped_file_path = pychrm_test_dir + sep + 'lymphoma_iicbu2008_subset_eosin_t5x6_v3.2features.fit.zip'
+        zipped_file_path = pychrm_test_dir + sep + 'lymphoma_iicbu2008_subset_EOSIN_ONLY_t5x6_v3.2features.fit.zip'
         zf = zipfile.ZipFile( zipped_file_path, mode='r' )
         tempdir = mkdtemp()
         zf.extractall( tempdir )
@@ -194,7 +194,7 @@ class TestFeatureSet( unittest.TestCase ):
         # to satisfy train_size/test_size params, and some don't
         remove_these = range(250,300) + range(700,750)
         fs_class_2_and_7_smaller = \
-              fs_discrete.SampleReduce( leave_out_samplegroupid_list=remove_these )
+              fs_discrete.SampleReduce( leave_out_sample_group_ids=remove_these )
 
         self.assertRaises( ValueError, fs_class_2_and_7_smaller.Split, train_size=80,
                            test_size=20 )
@@ -220,11 +220,11 @@ class TestFeatureSet( unittest.TestCase ):
         A = fs_discrete.SampleReduce( desired )
 
         correct_samplenames = ['FakeClass-100_050', 'FakeClass-77.78_050', 'FakeClass-55.56_050', 'FakeClass-33.33_050', 'FakeClass-11.11_050', 'FakeClass11.11_050', 'FakeClass33.33_050', 'FakeClass55.56_050', 'FakeClass77.78_050']
-        self.assertEqual( correct_samplenames, A._contiguous_samplenames_list )
+        self.assertEqual( correct_samplenames, A._contiguous_sample_names )
 
         # Note the absense of the classname at index 2, "FakeClass-55.56"
         correct_classnames = ['FakeClass-100', 'FakeClass-77.78', 'FakeClass-33.33', 'FakeClass-11.11', 'FakeClass11.11', 'FakeClass33.33', 'FakeClass55.56', 'FakeClass77.78', 'FakeClass100']
-        self.assertEqual( correct_samplenames, A._contiguous_samplenames_list )
+        self.assertEqual( correct_samplenames, A._contiguous_sample_names )
         del A
 
         # Request more classes than exists in the original
@@ -239,15 +239,15 @@ class TestFeatureSet( unittest.TestCase ):
         # check that function barfs when passed an iterable containing anythin other than ints
         UNdesired = [ [val] for val in xrange(50, 950, 100)]
         self.assertRaises( TypeError, fs_discrete.SampleReduce,
-                leave_out_samplegroupid_list=UNdesired )
+                leave_out_sample_group_ids=UNdesired )
 
         UNdesired = range(50, 950, 100)
-        C = fs_discrete.SampleReduce( leave_out_samplegroupid_list=UNdesired )
+        C = fs_discrete.SampleReduce( leave_out_sample_group_ids=UNdesired )
         self.assertEqual( C.num_samples, fs_discrete.num_samples - len( UNdesired ) )
 
         # Single integers for leave_out_list is ok
         UNdesired = 50
-        C = fs_discrete.SampleReduce( leave_out_samplegroupid_list=UNdesired )
+        C = fs_discrete.SampleReduce( leave_out_sample_group_ids=UNdesired )
         self.assertEqual( C.num_samples, fs_discrete.num_samples - 1 )
         del C
 
@@ -270,21 +270,21 @@ class TestFeatureSet( unittest.TestCase ):
         # check that function barfs when passed an iterable containing anythin other than ints
         UNdesired = [ [val] for val in xrange(50, 950, 100)]
         self.assertRaises( TypeError, fs_discrete.SampleReduce,
-                leave_out_samplegroupid_list=UNdesired )
+                leave_out_sample_group_ids=UNdesired )
 
         # You can't leave out a sample group that doesn't exist
         UNdesired = range(50000, 50010)
         self.assertRaises( ValueError, fs_discrete.SampleReduce,
-                leave_out_samplegroupid_list=UNdesired )
+                leave_out_sample_group_ids=UNdesired )
 
         # Can't leave out trash
         UNdesired = ['foo', 'bar']
         self.assertRaises( TypeError, fs_discrete.SampleReduce,
-                leave_out_samplegroupid_list=UNdesired )
+                leave_out_sample_group_ids=UNdesired )
 
         # This input is ok:
         UNdesired = range(5, 95, 10)
-        E = fs_discrete.SampleReduce( leave_out_samplegroupid_list=UNdesired )
+        E = fs_discrete.SampleReduce( leave_out_sample_group_ids=UNdesired )
         self.assertEqual( E.num_samples, fs_discrete.num_samples - len( UNdesired ) * num_tiles )
         del E
 
@@ -313,12 +313,12 @@ class TestFeatureSet( unittest.TestCase ):
         # Section 6: LEAVE OUT, Untiled Continuous FeatureSpace instances
 
         UNdesired = range(50, 950)
-        G = fs_cont.SampleReduce( leave_out_samplegroupid_list=UNdesired )
+        G = fs_cont.SampleReduce( leave_out_sample_group_ids=UNdesired )
         self.assertEqual( G.num_samples, fs_cont.num_samples - len(UNdesired) )
         del G
 
         # single int is ok
-        H = fs_cont.SampleReduce( leave_out_samplegroupid_list=998 )
+        H = fs_cont.SampleReduce( leave_out_sample_group_ids=998 )
         self.assertEqual( H.num_samples, fs_cont.num_samples - 1 )
         del H
 
@@ -344,12 +344,12 @@ class TestFeatureSet( unittest.TestCase ):
         # Section 8: LEAVE OUT, TILED Continuous FeatureSpace instances
 
         UNdesired = range(50, 95)
-        K = fs_cont.SampleReduce( leave_out_samplegroupid_list=UNdesired )
+        K = fs_cont.SampleReduce( leave_out_sample_group_ids=UNdesired )
         self.assertEqual( K.num_samples, fs_cont.num_samples - len(UNdesired) * num_tiles )
         del K
 
         # single int is ok
-        L = fs_cont.SampleReduce( leave_out_samplegroupid_list=98 )
+        L = fs_cont.SampleReduce( leave_out_sample_group_ids=98 )
         self.assertEqual( L.num_samples, fs_cont.num_samples - num_tiles  )
         del L
 
@@ -408,15 +408,29 @@ class TestFeatureSet( unittest.TestCase ):
         finally:
             rmtree( tempdir )
 
-	# --------------------------------------------------------------------------
-	def test_Normalize( self ):
-		""""""
+    def test_Load_GroundTruthLabels_and_Values( self ):
+        """For continuous data, we expect a float ground truth value for every sample.
+        For categorized (classed, discrete) data we expect a string label with optional
+        ground truth float for each sample. Check to make sure the ground truth makes it into
+        the right place.
+        
+        test-l.fit has class names 2cell and 4cell, which means wndcharm should try to
+        pull the 2 and the 4 from the class names and have those be the values."""
 
-		from numpy.testing import assert_allclose
-		result_fs = FeatureSpace.NewFromFitFile( self.test_fit_path ).Normalize( inplace=True )
-		target_fs = FeatureSpace.NewFromFitFile( self.test_normalized_fit_path )
 
-		assert_allclose( result_fs.data_matrix, target_fs.data_matrix, rtol=self.epsilon )
+
+
+
+
+    # --------------------------------------------------------------------------
+    def test_Normalize( self ):
+	""""""
+
+	from numpy.testing import assert_allclose
+	result_fs = FeatureSpace.NewFromFitFile( self.test_fit_path ).Normalize( inplace=True )
+	target_fs = FeatureSpace.NewFromFitFile( self.test_normalized_fit_path )
+
+	assert_allclose( result_fs.data_matrix, target_fs.data_matrix, rtol=self.epsilon )
     
 if __name__ == '__main__':
     unittest.main()

@@ -215,7 +215,7 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
                 # Time the creation and classification of a single signature
                 t1 = time.time()
                 reduced_fw = feature_weights.Threshold( number_of_features_to_use )
-                sig = FeatureVector( source_filepath=test_image_path, featurenames_list=reduced_fw.featurenames_list ).GenerateFeatures()
+                sig = FeatureVector( source_filepath=test_image_path, feature_names=reduced_fw.feature_names ).GenerateFeatures()
                 reduced_ts = training_set.FeatureReduce( reduced_fw )
                 sig.Normalize( reduced_ts )
         

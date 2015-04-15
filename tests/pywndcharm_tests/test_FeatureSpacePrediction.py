@@ -57,7 +57,7 @@ class TestFeatureSpaceClassification( unittest.TestCase ):
 
         # Inflate the zipped test fit into a temp file
         import zipfile
-        zipped_file_path = pychrm_test_dir + sep + 'lymphoma_t5x6_10imgseach.fit.zip'
+        zipped_file_path = pychrm_test_dir + sep + 'lymphoma_iicbu2008_subset_EOSIN_ONLY_t5x6_v3.2features.fit.zip'
         zf = zipfile.ZipFile( zipped_file_path, mode='r' )
         tempdir = mkdtemp()
         zf.extractall( tempdir )

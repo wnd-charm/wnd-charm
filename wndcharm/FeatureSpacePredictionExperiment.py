@@ -82,7 +82,7 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
             if batch_result.figure_of_merit == None:
                 batch_result.GenerateStats()
             if batch_result.ground_truth_values:
-                lists_of_ground_truths.append( batch_result.groundtruthvalue_list )
+                lists_of_ground_truths.append( batch_result.ground_truth_values )
             if batch_result.predicted_values:
                 lists_of_predicted_values.append( batch_result.predicted_values )
 
@@ -96,7 +96,7 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
         for batch_result in self.individual_results:
             if not batch_result.feature_weights:
                 continue
-            weight_names_and_values = zip( batch_result.feature_weights.featurenames_list, 
+            weight_names_and_values = zip( batch_result.feature_weights.feature_names, 
                                                         batch_result.feature_weights.values)
             for name, weight in weight_names_and_values:
                 if not name in feature_weight_lists:
@@ -349,8 +349,8 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
         # Finalize the Average Class Probability Matrix by dividing each marginal probability
         # sum by the number of batches:
         # FIXME: This assumes there were an equal number of classifications in each batch
-        for row in self.test_set.classnames_list:
-            for col in self.training_set.classnames_list:
+        for row in self.test_set.class_names:
+            for col in self.training_set.class_names:
                 self.average_class_probability_matrix[ row ][ col ] /= \
                         len( self.individual_results )
 
@@ -358,12 +358,12 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
         # normalized to have 1's in the diagonal.
         # Doesn't make sense to do this unless the matrix is square
         # if row labels == column labels:
-        if self.test_set.classnames_list == self.training_set.classnames_list:
+        if self.test_set.class_names == self.training_set.class_names:
             from copy import deepcopy
             self.similarity_matrix = deepcopy( self.average_class_probability_matrix )
-            for row in self.test_set.classnames_list:
+            for row in self.test_set.class_names:
                 denom = self.similarity_matrix[ row ][ row ]
-                for col in self.training_set.classnames_list:
+                for col in self.training_set.class_names:
                     if self.similarity_matrix[ row ][ row ]:
                         self.similarity_matrix[ row ][ col ] /= denom
                         self.similarity_matrix[ col ][ row ] /= denom
@@ -431,12 +431,12 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
                 print outstr
 
         # Remember: iterate over the sorted list of class names, not the keys in the dict,
-        # because the dict keys aren't guaranteed to be ordered, nor is test_set.classnames_list.
+        # because the dict keys aren't guaranteed to be ordered, nor is test_set.class_names.
         # Also remember: there may be different numbers of classes in train and test set
         # or they may be named differently.
 
-        train_set_class_names = sorted( self.training_set.classnames_list )
-        test_set_class_names = sorted( self.test_set.classnames_list )
+        train_set_class_names = sorted( self.training_set.class_names )
+        test_set_class_names = sorted( self.test_set.class_names )
 
         column_headers = "\t".join( train_set_class_names )
         column_headers += "\n"
@@ -505,14 +505,14 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
             ts = FeatureSpace()
             ts.num_classes = 0
             ts.interpolation_coefficients = []
-            ts.classnames_list = []
+            ts.class_names = []
             for rownum, row in enumerate( rows ):
                 if rownum == 0:
                     continue # skip column header
                 ts.num_classes += 1
                 classname = re.search( r'<th>(.+?)</th>', row ).group(1)
-                ts.classnames_list.append( classname )
-            ts.interpolation_coefficients = CheckIfClassNamesAreInterpolatable( ts.classnames_list )
+                ts.class_names.append( classname )
+            ts.interpolation_coefficients = CheckIfClassNamesAreInterpolatable( ts.class_names )
             return ts
 
         # The following will be determined once the number of classes has been ascertained
@@ -595,7 +595,7 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
                     result.source_filepath = result.name
                     if ts.interpolation_coefficients is not None:
                         result.ground_truth_value = \
-                        ts.interpolation_coefficients[ ts.classnames_list.index(result.ground_truth_class_name ) ]
+                        ts.interpolation_coefficients[ ts.class_names.index(result.ground_truth_class_name ) ]
                         #result.predicted_value = float( values[ interp_val_col ] )
                         result.predicted_value = \
                         sum( [ x*y for x,y in zip( result.marginal_probabilities, _training_set.interpolation_coefficients ) ] )

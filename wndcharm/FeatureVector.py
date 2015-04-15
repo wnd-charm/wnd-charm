@@ -124,7 +124,7 @@ class FeatureVector( object ):
         self.name = None
 
         #: feature names
-        self.featurenames_list = None
+        self.feature_names = None
         #: feature vector
         self.values = None
         #: feature_maxima, feature_minima, and normalized_against are members
@@ -167,7 +167,7 @@ class FeatureVector( object ):
         self.rot = None
         self.fs_col = 0
 
-        #: self.num_features should always be == len( self.featurenames_list ) == len( self.values )
+        #: self.num_features should always be == len( self.feature_names ) == len( self.values )
         self.num_features = None
 
         # WND-CHARM feature bank-specific params:
@@ -180,7 +180,7 @@ class FeatureVector( object ):
     #==============================================================
     def __len__( self ):
         try:
-            length = len( self.featurenames_list )
+            length = len( self.feature_names )
         except:
             length = 0
         return length
@@ -198,7 +198,7 @@ class FeatureVector( object ):
             outstr += ' label="' + self.label + '"'
         if self.samplegroupid is not None:
             outstr += ' grp=' + str( self.samplegroupid )
-        if self.featurenames_list is not None:
+        if self.feature_names is not None:
             outstr += ' n_features=' + str( len( self ) )
         if self.samplesequenceid is not None:
             outstr += ' seq=' + str( self.samplesequenceid )
@@ -251,10 +251,10 @@ class FeatureVector( object ):
             # Minor version 0 refers to user-defined combination of features.
 
             # Check to see if there is a user-defined set of features for this feature vector:
-            if self.feature_computation_plan or self.featurenames_list:
+            if self.feature_computation_plan or self.feature_names:
                 # set num_features
-                if self.featurenames_list:
-                    self.num_features = len( self.featurenames_list )
+                if self.feature_names:
+                    self.num_features = len( self.feature_names )
                 else:
                     self.num_features = self.feature_computation_plan.n_features
 
@@ -262,7 +262,7 @@ class FeatureVector( object ):
                     minor = 0
                 else:
                     # FIXME: If features are out of order, should have a minor version of 0
-                    minor = feature_vector_minor_version_from_num_features[ len( self.featurenames_list ) ]
+                    minor = feature_vector_minor_version_from_num_features[ len( self.feature_names ) ]
             else:
                 if not self.long:
                     if not self.color:
@@ -438,7 +438,7 @@ class FeatureVector( object ):
         else:
             major, minor = self.feature_set_version.split('.')
             if minor == '0':
-                comp_plan = GenerateFeatureComputationPlan( self.featurenames_list )
+                comp_plan = GenerateFeatureComputationPlan( self.feature_names )
             elif minor == '1':
                 comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSet()
             elif minor == '2':
@@ -511,8 +511,8 @@ class FeatureVector( object ):
 
         # Feature Reduction/Reorder step:
         # Feature computation may give more features than are asked for by user, or out of order.
-        if self.featurenames_list:
-            if self.featurenames_list != comp_names:
+        if self.feature_names:
+            if self.feature_names != comp_names:
                 if partial_load:
                     # If we're here, we've already loaded some but not all of the features
                     # we need. Take what we've already loaded and slap it at the end 
@@ -524,9 +524,9 @@ class FeatureVector( object ):
                     comp_vals.extend( self.temp_values )
                     del self.temp_names
                     del self.temp_values
-                self.values = np.array( [ comp_vals[ comp_names.index( name ) ] for name in self.featurenames_list ] )
+                self.values = np.array( [ comp_vals[ comp_names.index( name ) ] for name in self.feature_names ] )
         else:
-            self.featurenames_list = comp_names
+            self.feature_names = comp_names
             self.values = comp_vals
 
         # FIXME: write to disk BEFORE feature reduce
@@ -537,7 +537,7 @@ class FeatureVector( object ):
         # Base case is that channel goes in the innermost parentheses, but really it's not
         # just channel, but all sampling options.
         # For now, let the FeatureSpace constructor code handle the modification of feature names
-        # for its own self.featurenames_list
+        # for its own self.feature_names
         return self
 
     #==============================================================
@@ -593,7 +593,7 @@ class FeatureVector( object ):
             raise ValueError( err.format( self.__class__.__name__, self.name ) )
         else:
             # Recalculate my feature space according to maxima/minima in reference_features
-            if reference_features.featurenames_list != self.featurenames_list:
+            if reference_features.feature_names != self.feature_names:
                 err_str = "Can't normalize {0} \"{1}\" against {2} \"{3}\": Features don't match.".format(
                   self.__class__.__name__, self.name,
                     reference_features.__class__.__name__, reference_features.name )
@@ -607,7 +607,7 @@ class FeatureVector( object ):
                 # Specific to FeatureVector implementation:
                 # no num_samples member:
                 print 'Normalizing {0} "{1}" ({2} features) against {3} "{4}"'.format(
-                    self.__class__.__name__, self.name, len( self.featurenames_list),
+                    self.__class__.__name__, self.name, len( self.feature_names),
                     reference_features.__class__.__name__, reference_features.name )
 
             # Need to make sure there are feature minima/maxima to normalize against:
@@ -631,21 +631,21 @@ class FeatureVector( object ):
         """Returns a new FeatureVector that contains a subset of the data by dropping
         features (columns), and/or rearranging columns.
 
-        requested_features := an object with a "featurenames_list" member
+        requested_features := an object with a "feature_names" member
             (FeatureVector/FeatureSpace/FeatureWeights) or an iterable containing
             strings that are feature names.
 
-        Implementation detail: compares input "requested_features" to self.featurenames_list,
-        and "requested_features" becomes the self.featurenames_list of the returned FeatureVector."""
+        Implementation detail: compares input "requested_features" to self.feature_names,
+        and "requested_features" becomes the self.feature_names of the returned FeatureVector."""
 
         try:
-            requested_features = requested_features.featurenames_list
+            requested_features = requested_features.feature_names
         except AttributeError:
             # assume it's already a list then
             pass
 
         # Check that self's featurelist contains all the features in requested_features
-        selfs_features = set( self.featurenames_list )
+        selfs_features = set( self.feature_names )
         their_features = set( requested_features )
         if not their_features <= selfs_features:
             missing_features_from_req = their_features - selfs_features
@@ -662,10 +662,10 @@ class FeatureVector( object ):
 
         newdata = {}
         newdata[ 'name' ] = self.name + "(feature reduced)"
-        newdata[ 'featurenames_list' ] = requested_features
+        newdata[ 'feature_names' ] = requested_features
         newdata[ 'num_features' ] = num_features
 
-        new_order = [ self.featurenames_list.index( name ) for name in requested_features ]
+        new_order = [ self.feature_names.index( name ) for name in requested_features ]
 
         # N.B. 1-D version used here, contrast with FeatureSpace.FeatureReduce() implementation.
         newdata[ 'values' ] = self.values[ new_order ]
@@ -687,7 +687,7 @@ class FeatureVector( object ):
     def LoadSigFile( self, sigfile_path=None, quiet=False ):
         """Load computed features from a sig file.
 
-        Desired features indicated by strings currently in self.featurenames_list.
+        Desired features indicated by strings currently in self.feature_names.
         Desired feature set version indicated self.feature_set_version.
 
         Compare what got loaded from file with desired."""
@@ -725,12 +725,12 @@ class FeatureVector( object ):
                 #for i, name in enumerate( names ):
                 #retval = wndcharm.FeatureNames.getFeatureInfoByName( name )
                 #if retval:
-                #    self.featurenames_list[i] = retval.name
+                #    self.feature_names[i] = retval.name
                 #else:
-                # self.featurenames_list[i] = name
+                # self.feature_names[i] = name
                 # Use pure Python for old-style name translation
                 #from wndcharm import FeatureNameMap
-                #self.featurenames_list = FeatureNameMap.TranslateToNewStyle( featurenames_list )
+                #self.feature_names = FeatureNameMap.TranslateToNewStyle( feature_names )
             else:
                 class_id, input_fs_version = m.group( 1, 2 )
                 input_fs_major_ver, input_fs_minor_ver = input_fs_version.split('.')
@@ -767,12 +767,12 @@ class FeatureVector( object ):
             self.auxiliary_feature_storage = path
 
         # Check to see that the sig file contains all of the desired features:
-        if self.featurenames_list:
-            if self.featurenames_list == names:
+        if self.feature_names:
+            if self.feature_names == names:
                 # Perfect! Do nothing.
                 pass
             else:
-                features_we_want = set( self.featurenames_list )
+                features_we_want = set( self.feature_names )
                 features_we_have = set( names )
                 if not features_we_want <= features_we_have:
                     # Need to calculate more features
@@ -787,12 +787,12 @@ class FeatureVector( object ):
                 else:
                     # If you get to here, we loaded MORE features than asked for,
                     # or the features are out of desired order, or both.
-                    values = [ values[ names.index( name ) ] for name in self.featurenames_list ]
+                    values = [ values[ names.index( name ) ] for name in self.feature_names ]
         else:
             # User didn't indicate what features they wanted.
             # It's a pretty dangerous assumption to make that the user just "got 
             # what they wanted" by loading the file, but danger is my ... middle name ;-)
-            self.featurenames_list = list( names )
+            self.feature_names = list( names )
 
         self.values = np.array( [ float( val ) for val in values ] )
 
@@ -843,7 +843,7 @@ class FeatureVector( object ):
             # Just hardcode the class membership for now.
             out.write( "0\t{0}\n".format( self.feature_set_version ) )
             out.write( "{0}\n".format( self.source_filepath ) )
-            for val, name in zip( self.values, self.featurenames_list ):
+            for val, name in zip( self.values, self.feature_names ):
                 out.write( "{0:0.6g} {1}\n".format( val, name ) )
 
 # end definition class FeatureVector

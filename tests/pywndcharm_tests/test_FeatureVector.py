@@ -207,7 +207,7 @@ class TestFeatureCalculation( unittest.TestCase ):
             kwargs[ 'tiling_scheme' ] = '5x6'
             kwargs[ 'tile_col_index' ] = 0
             kwargs[ 'tile_row_index' ] = 0
-            kwargs[ 'featurenames_list' ] = full_list[1:]
+            kwargs[ 'feature_names' ] = full_list[1:]
 
             fv1 = FeatureVector( **kwargs ).GenerateFeatures(quiet=False)
 
@@ -217,7 +217,7 @@ class TestFeatureCalculation( unittest.TestCase ):
             fv1.ToSigFile(quiet=False)
 
             # Now, ask for more features:
-            kwargs[ 'featurenames_list' ] = full_list
+            kwargs[ 'feature_names' ] = full_list
             fv2 = FeatureVector( **kwargs )
             with self.assertRaises( IncompleteFeatureSetError ):
                 fv2.LoadSigFile()
@@ -266,10 +266,13 @@ class TestSampleImageTiles( unittest.TestCase ):
 
         # Inflate the zipped test fit into a temp file
         import zipfile
-        zipped_file_path = pychrm_test_dir + sep + 'lymphoma_t5x6_10imgseach.fit.zip'
+        zipped_file_path = pychrm_test_dir + sep + 'lymphoma_iicbu2008_subset_EOSIN_ONLY_t5x6_v3.2features.fit.zip'
         zf = zipfile.ZipFile( zipped_file_path, mode='r' )
         tempdir = mkdtemp()
         zf.extractall( tempdir )
+
+        # REMOVE:
+        zf.extractall( pychrm_test_dir )
         fitfilepath = tempdir + sep + zf.namelist()[0]
 
         img_filename = "lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E.tif"
@@ -279,20 +282,23 @@ class TestSampleImageTiles( unittest.TestCase ):
         
         try:
             # copy the tiff to the tempdir so the .sig files end up there too
-            copy( orig_img_filepath, tempdir )
-            input_img_path = tempdir + sep + img_filename
+            #copy( orig_img_filepath, tempdir )
+            #input_image_path = tempdir + sep + img_filename
+            input_image_path = orig_img_filepath
 
-            #fs = FeatureSpace.NewFromFitFile( fitfilepath, tile_num_rows=5, tile_num_cols=6 )
-            fs = FeatureSpace.NewFromFitFile( fitfilepath ).Normalize( inplace=True, quiet=True )
+            fs = FeatureSpace.NewFromFitFile( fitfilepath, tile_num_rows=5, tile_num_cols=6 )
+            fs.Normalize( inplace=True, quiet=True )
+
+            #fs = FeatureSpace.NewFromFitFile( fitfilepath ).Normalize( inplace=True, quiet=True )
             fw = FisherFeatureWeights.NewFromFeatureSpace( fs ).Threshold()
             fs.FeatureReduce( fw, inplace=True )
 
             # Remember computation plan includes all features from all required
             # feature algorithm families
-            comp_plan = GenerateFeatureComputationPlan( fw.featurenames_list )
+            comp_plan = GenerateFeatureComputationPlan( fw.feature_names )
 
             # create the tile image iterator
-            image_iter = SampleImageTiles( input_img_path, scan_x, scan_y, True)
+            image_iter = SampleImageTiles( input_image_path, scan_x, scan_y, True)
             print "Number of samples = " + str( image_iter.samples )
 
             base, ext = splitext( input_image_path )
@@ -300,39 +306,40 @@ class TestSampleImageTiles( unittest.TestCase ):
             feature_vector_list = []
             # iterate over the image, classifying each tile
             for i, sample in enumerate( image_iter.sample() ):
-                #try:
-                    kwargs = {}
-                    kwargs[ 'name' ] = input_image_path
-                    kwargs[ 'source_filepath' ] = sample
-                    kwargs[ 'feature_computation_plan' ] = comp_plan
-                    kwargs[ 'tile_num_cols' ] = image_iter.tiles_x
-                    kwargs[ 'tile_num_rows' ] = image_iter.tiles_y
-                    kwargs[ 'tiling_scheme' ] = '{0}x{1}'.format( image_iter.tiles_x, image_iter.tiles_y )
-                    kwargs[ 'tile_col_index' ] = image_iter.current_col
-                    kwargs[ 'tile_row_index' ] = image_iter.current_row
-                    kwargs[ 'samplegroupid' ] = 0
+                kwargs = {}
+                kwargs[ 'name' ] = input_image_path
+                kwargs[ 'source_filepath' ] = sample
+                #kwargs[ 'feature_computation_plan' ] = comp_plan
+                kwargs[ 'long' ] = True
+                kwargs[ 'tile_num_cols' ] = image_iter.tiles_x
+                kwargs[ 'tile_num_rows' ] = image_iter.tiles_y
+                kwargs[ 'tiling_scheme' ] = '{0}x{1}'.format( image_iter.tiles_x, image_iter.tiles_y )
+                kwargs[ 'tile_col_index' ] = image_iter.current_col
+                kwargs[ 'tile_row_index' ] = image_iter.current_row
+                kwargs[ 'samplegroupid' ] = 0
 
-                    # Setting featurenames_list initiates the feature reduce from
-                    # the larger set of features that comes back from computation
-                    kwargs[ 'featurenames_list' ] = fw.featurenames_list
-                    # if these are set, then the code will try to take a ROI of a ROI:
-                    #kwargs[ 'x' ] = image_iter.current_x
-                    #kwargs[ 'y' ] = image_iter.current_y
-                    #kwargs[ 'w' ] = image_iter.tile_width
-                    #kwargs[ 'h' ] = image_iter.tile_height
+                # Setting feature_names initiates the feature reduce from
+                # the larger set of features that comes back from computation
+                #kwargs[ 'feature_names' ] = fw.feature_names
+                # if these are set, then the code will try to take a ROI of a ROI:
+                #kwargs[ 'x' ] = image_iter.current_x
+                #kwargs[ 'y' ] = image_iter.current_y
+                #kwargs[ 'w' ] = image_iter.tile_width
+                #kwargs[ 'h' ] = image_iter.tile_height
 
-                    samp_feats = FeatureVector( **kwargs ).GenerateFeatures( quiet=False, write_to_disk=True )
-                    feature_vector_list.append( samp_feats )
+                samp_feats = FeatureVector( **kwargs ).GenerateFeatures( quiet=False, write_to_disk=True )
+                feature_vector_list.append( samp_feats )
 
             fs_kwargs = {}
             fs_kwargs[ 'feature_vectors_list' ] = feature_vector_list
             fs_kwargs[ 'num_samples' ] = len( feature_vector_list )
             fs_kwargs[ 'num_features' ] = len( fw )
             fs_kwargs[ 'name' ] = input_image_path
+            fs_kwargs[ 'num_samples_per_group' ] = fs.num_samples_per_group
 
             test_set = FeatureSpace.NewFromListOfFeatureVectors( **fs_kwargs )
             test_set.Normalize( reference_features=fs, inplace=True )
-            result = FeatureSpaceClassification.NewWND5( fs, fw, samp_feats )
+            result = FeatureSpaceClassification.NewWND5( fs, test_set, fw )
             result.Print()
 
         finally:
