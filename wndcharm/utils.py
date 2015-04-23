@@ -247,3 +247,88 @@ class SampleImageTiles (object):
 
 initialize_module()
 
+def compare( a_list, b_list, atol=1e-7 ):
+    """Helps to compare floating point values to values stored
+    in text files (ala .fit and .sig files) where the number of
+    significant figures is sometimes orders of magnitude different"""
+
+    for count, (a_raw, b_raw) in enumerate( zip( a_list, b_list ) ):
+
+        if a_raw == b_raw:
+            continue
+        if abs( float( a_raw ) - float( b_raw ) ) < atol:
+            continue
+
+        a_str = "{0:0.6g}".format( a_raw )
+        b_str = "{0:0.6g}".format( b_raw )
+
+        # These deal with the 1e-6 ~ 6.93e-7 comparison issue
+        # a_addl_zero = ""
+        # b_addl_zero = ""
+
+        exp_digits = 0
+        e_in_a_str = 'e' in a_str
+        e_in_b_str = 'e' in b_str
+        if e_in_a_str != e_in_b_str:
+            errmsg = "Index {0}: \"{1}\" and \"{2}\" exponents don't match."
+            print errmsg
+            return False
+            #self.fail( errmsg.format( count, a_str, b_str, ) )
+        if e_in_a_str:
+            a_coeff, a_exp = a_str.split( 'e' )
+            b_coeff, b_exp = b_str.split( 'e' )
+            if a_exp != b_exp:
+                # AssertionError: Index 623: "1e-06" and "6.93497e-07" exponents don't match.
+                a_exp = int( a_exp )
+                b_exp = int( b_exp )
+#                    if a_exp > b_exp:
+#                        a_addl_zero = '0'* abs( a_exp - b_exp )
+#                    else:
+#                        b_addl_zero = '0'* abs( a_exp - b_exp )
+                exp_digits = abs( a_exp - b_exp )
+
+                #errmsg = "Index {0}: \"{1}\" and \"{2}\" exponents don't match."
+                #self.fail( errmsg.format( count, a_raw, b_raw, ) )
+            # FIXME: lstrip doesn't properly deal with negative numbers
+            a_int_str = a_coeff.translate( None, '.' ).lstrip('0')
+            b_int_str = b_coeff.translate( None, '.' ).lstrip('0')
+        else:
+            a_int_str = a_str.translate( None, '.' ).lstrip('0')
+            b_int_str = b_str.translate( None, '.' ).lstrip('0')
+
+        a_len = len( a_int_str )
+        b_len = len( b_int_str )
+        diff_digits = abs( a_len - b_len ) + exp_digits
+        tail = '0' * diff_digits
+
+        #msg = 'a_str "{0}" (len={1}), b_str "{2}" (len={3}), tail="{4}"'
+        #print msg.format( a_int_str, a_len, b_int_str, b_len, tail )
+
+        if a_len > b_len:
+#                a = int( a_int_str + a_addl_zero )
+#                b = int( b_int_str + tail + b_addl_zero )
+#            else:
+#                a = int( a_int_str + tail + a_addl_zero )
+#                b = int( b_int_str + b_addl_zero )
+            a = int( a_int_str )
+            b = int( b_int_str + tail )
+        elif b_len > a_len:
+            a = int( a_int_str + tail )
+            b = int( b_int_str )
+        else:
+            a = int( a_int_str )
+            b = int( b_int_str )
+        # Rounding is useless, since due to floating point's inexact representation
+        # it's possible to have 2.65 round to 2.6
+        #a = round( a, -1 * diff_digits )
+        #b = round( b, -1 * diff_digits )
+
+        diff = abs( a - b )
+
+        #print "{0}->{1}=={2}<-{3} : {4} <= {5}".format( a_raw, a, b, b_raw, diff, 10 ** diff_digits )
+        if diff > 10 ** diff_digits:      
+            errstr = "Index {0}: {1} isn't enough like {2}"
+            print errmsg
+            return False
+            #self.fail( errstr.format( count, a_raw, b_raw ) )
+    return True

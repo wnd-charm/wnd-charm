@@ -109,7 +109,7 @@ class FeatureVector( object ):
     # rotations:
     r'(?:-R_(?P<rot>\d))?',
     # tiling info:
-    r'(?P<tiling_scheme>-t(?P<tile_num_rows>\d+)(?:x(?P<tile_num_cols>\d+))?_(?P<tile_col_index>\d+)_(?P<tile_row_index>\d+))?',
+    r'(?P<tiling_scheme>-t(?P<tile_num_rows>\d+)(?:x(?P<tile_num_cols>\d+))?_(?P<tile_row_index>\d+)_(?P<tile_col_index>\d+))?',
     # color features:
     r'(?P<color>-c)?',
     # long feature set:
@@ -282,14 +282,16 @@ class FeatureVector( object ):
 
         # When reading in sampling opts from the path, they get pulled out as strings
         # instead of ints:
-        if self.tile_row_index and type( self.tile_row_index ) != int:
+        if self.tile_row_index is not None and type( self.tile_row_index ) != int:
             self.tile_row_index = int( self.tile_row_index )
-        if self.tile_col_index and type( self.tile_col_index ) != int:
+        if self.tile_col_index is not None and type( self.tile_col_index ) != int:
             self.tile_col_index = int( self.tile_col_index )
-        if self.tile_num_rows and type( self.tile_num_rows ) != int:
+        if self.tile_num_rows is not None and type( self.tile_num_rows ) != int:
             self.tile_num_rows = int( self.tile_num_rows )
-        if self.tile_num_cols and type( self.tile_num_cols ) != int:
+        if self.tile_num_cols is not None and type( self.tile_num_cols ) != int:
             self.tile_num_cols = int( self.tile_num_cols )
+        if self.samplegroupid is not None and type( self.samplegroupid ) != int:
+            self.samplegroupid = int( self.tile_num_cols )
 
         # sequence order:
         # index 0 = position row 0, col 0

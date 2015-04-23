@@ -531,19 +531,24 @@ class FeatureSpace( object ):
 
         fitfile.close()
 
+        # Every sample gets a string label
+        new_fs._contiguous_ground_truth_labels = [ new_fs.class_names[ class_index ] \
+          for class_index in xrange( num_classes ) \
+            for i in xrange( new_fs.class_sizes[ class_index ] ) ]
+
+        # If label is interpretable as a number, load it up into a target vector
+        # for interpolation/regression/etc.
         _retval = CheckIfClassNamesAreInterpolatable( new_fs.class_names )
         if _retval:
-            # Numeric ground truth/target vector
             new_fs.interpolation_coefficients = _retval
             new_fs._contiguous_ground_truth_values = [ _retval[ class_index ] \
                 for class_index in xrange( num_classes ) \
                   for i in xrange( new_fs.class_sizes[ class_index ] ) ]
         else:
-            # Just a string label ground truth
-            new_fs._contiguous_ground_truth_values = None
-            new_fs._contiguous_ground_truth_labels = [ new_fs.class_names[ class_index ] \
-              for class_index in xrange( num_classes ) \
-                for i in xrange( new_fs.class_sizes[ class_index ] ) ]
+            new_fs._contiguous_ground_truth_values = [ None \
+                for class_index in xrange( num_classes ) \
+                  for i in xrange( new_fs.class_sizes[ class_index ] ) ]
+
 
         if new_fs.num_samples_per_group != 1:
             # sample sequence id = tile id
@@ -718,7 +723,7 @@ class FeatureSpace( object ):
                     if len( filelist ) <= 0:
                         raise ValueError( 'No tiff files in directory {0}'.format( root ) )
                     for _file in filelist:
-                        tile_position_index = col_index * tile_num_rows + row_index
+                        #tile_position_index = col_index * tile_num_rows + row_index
                         for col_index in xrange( tile_num_cols ):
                             for row_index in xrange( tile_num_rows ):
                                 fv = deepcopy( global_sampling_options )
@@ -741,7 +746,7 @@ class FeatureSpace( object ):
                     continue
                 class_name = basename( root )
                 for _file in filelist:
-                    tile_position_index = col_index * tile_num_rows + row_index
+                    #tile_position_index = col_index * tile_num_rows + row_index
                     for col_index in xrange( tile_num_cols ):
                         for row_index in xrange( tile_num_rows ):
                             fv = deepcopy( global_sampling_options )
@@ -861,9 +866,9 @@ class FeatureSpace( object ):
                     base_sample_opts = deepcopy( global_sampling_options )
                     base_sample_opts.name = cols[0]
                     base_sample_opts.label = cols[1]
-                    m = num_search( cols[1] )
-                    if m:
-                        base_sample_opts.ground_truth = float(m.group(1))
+                    val_match = num_search.search( cols[1] )
+                    if val_match:
+                        base_sample_opts.ground_truth = float(val_match.group(1))
 
                     # Note only difference with base_sampling_opts in the 3+ col version code below
                     # is the fs_col is always 0
@@ -921,9 +926,9 @@ class FeatureSpace( object ):
                         base_sample_opts.name = cols[0]
                         base_sample_opts.samplegroupid = ReturnSampleGroupID( cols[0] )
                         base_sample_opts.label = cols[1]
-                        m = num_search( cols[1] )
-                        if m:
-                            base_sample_opts.ground_truth = float(m.group(1))
+                        val_match = num_search.search( cols[1] )
+                        if val_match:
+                            base_sample_opts.ground_truth = float(val_match.group(1))
                         base_sample_opts.fs_col = fs_col
 
                         # Pull sampling options out of parentheses and load into template
@@ -1003,8 +1008,11 @@ class FeatureSpace( object ):
                     raise ValueError( errmsg.format( line_num, num_feats_in_this_row, num_features ) )
             except Exception as e:
                 # Tell the user which line the parser choked on:
-                errmsg = "Error in file {0}, line {1}".err_msg.format( pathname, line_num, )
-                e.args = tuple( errmsg ) + ( e.args if e.args else tuple() )
+                errmsg = "Error in file {0}, line {1}".format( pathname, line_num, )
+                if e.args:
+                    e.args = tuple( [errmsg] + list( e.args ) )
+                else:
+                    e.args = tuple( [errmsg] )
                 raise
 
         # END iterating over lines in FOF
@@ -1030,8 +1038,6 @@ class FeatureSpace( object ):
         new_fs = cls( name, source_filepath, num_samples, num_samples_per_group,
                      num_features, discrete, feature_set_version )
 
-        new_fs.Print()
-
         # For compound samples, e.g., multichannel, need to know the column offsets.
         # key: col index, value: index in data_matrix demarking rightmost feature for this column
         feature_set_col_offset = {}
@@ -1048,6 +1054,12 @@ class FeatureSpace( object ):
         # and feature_names from left to right.
 
         sorted_by_fs_cols = sorted( feature_vectors_list, key=lambda fv: fv.fs_col )
+
+        # DEBUG optional sort 1: sort again by sample group
+        #sorted_by_fs_cols = sorted( sorted_by_fs_cols, key=lambda fv: fv.samplegroupid )
+        # DEBUG optional sort 2: Sort again by sample sequence id
+        #sorted_by_fs_cols = sorted( sorted_by_fs_cols, key=lambda fv: fv.samplesequenceid )
+        # Now your row index calculated below should also equal the feature vector index
 
         # Be consistent with kludge solution in NewFromFileOfFiles() re: setting a
         # FeatureSpace.feature_set_version ... let self.feature_set_version be
@@ -1078,6 +1090,7 @@ class FeatureSpace( object ):
                         fv.feature_names
             # Fill in row metadata with FeatureVector data from column 0 only
             if fv.fs_col == 0: # (fs_col member must be > 0 and cannot be None)
+                #print 'row index', row_index, str( fv )
                 new_fs._contiguous_sample_names[ row_index ] = fv.name
                 new_fs._contiguous_sample_group_ids[ row_index ] = fv.samplegroupid
                 new_fs._contiguous_sample_sequence_ids[ row_index ] = fv.samplesequenceid

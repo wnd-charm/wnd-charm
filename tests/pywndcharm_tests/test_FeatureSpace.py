@@ -354,23 +354,52 @@ class TestFeatureSet( unittest.TestCase ):
         del L
 
     def test_NewFromFileOfFiles( self ):
-        """Pulls in the lymphoma eosin histology 5x6 tiled featureset via sigfiles."""
+        """Pulls in the lymphoma eosin histology 5x6 tiled featureset via .sig files."""
+
+        # Types of files containing features:
+        # FIT: contains an entire FeatureSpace definition including features.
+        # FOF: "File Of Files" containing a FeatureSpace structure definition only,
+        #      listing paths to files of pre-calculated features (.sig) or the
+        #      tiff images themselves so features can be calculated
+        # SIG: A text file containing pre-calculated features for a single sample.
+
+        # Test dataset: subset of the IICBU2008 lymphoma dataset. 2 channels (H+E),
+        #    3 classes ('CLL', 'FL', 'MCL'), 10 images per class per channel,
+        #    5x6 tiling grid = 30 samples per image resulting in 
+        #    2 x 3 x 10 X 30 = 1800 total samples available
+
+        # Files containing features included in this test suite:
+        # 1. lymphoma_iicbu2008_subset_EOSIN_ONLY_t5x6_v3.2features.fit.zip:
+        #    A zip archive containing a single FIT file with features pre-calculated.
+        # 2. lymphoma_iicbu2008_subset_HE_t5x6_v3.2features_SIGFILES.zip:
+        #    Contains 1800 SIG files, plus 4 FOF files (items 2-5 below):
+        #       "lymphoma_iicbu2008_subset_EOSIN_ONLY_images.fof.tsv"
+        #       "lymphoma_iicbu2008_subset_EOSIN_ONLY_sigfiles_t5x6-l.fof.tsv"
+        #       "lymphoma_iicbu2008_subset_2CHAN_HE_images.fof.tsv"
+        #       "lymphoma_iicbu2008_subset_2CHAN_HE_sigfiles_t5x6-l.fof.tsv"
+
+        # List of possible feature sources:
+        #    1. Single channel FIT (Eosin only)
+        #    2. Single channel FOF (Eosin only) referencing to 30 tiffs (requires global sampling options -t5x6 -l to grab sigs)
+        #    3. Single channel FOF (Eosin only) referencing 900 sig files
+        #    4. Double channel FOF (Eosin+Haemotoxylin) referencing 60 tiffs (requires global sampling options -t5x6 -l to grab sigs)
+        #    5. Double channel FOF (Eosin+Haemotoxylin) referencing 1800 sig files.
 
         # Inflate the zipped test fit into a temp file
         import zipfile
         
-        zipped_file_path = pychrm_test_dir + sep + 'lymphoma_t5x6_10imgseach_SIGFILES.zip'
+        zipped_file_path = pychrm_test_dir + sep + 'lymphoma_iicbu2008_subset_HE_t5x6_v3.2features_SIGFILES.zip'
         zf1 = zipfile.ZipFile( zipped_file_path, mode='r' )
         tempdir = mkdtemp()
         zf1.extractall( tempdir )
 
         # for comparison:
-        zf2 = zipfile.ZipFile( pychrm_test_dir + sep + 'lymphoma_iicbu2008_subset_eosin_t5x6_v3.2features.fit.zip', mode='r')
+        zf2 = zipfile.ZipFile( pychrm_test_dir + sep + 'lymphoma_iicbu2008_subset_EOSIN_ONLY_t5x6_v3.2features.fit.zip', mode='r')
         zf2.extractall( tempdir )
 
         try:
             kwargs = {}
-            kwargs['pathname'] = tempdir + sep + 'lymphoma_t5x6_10imgseach.fof'
+            kwargs['pathname'] = tempdir + sep + 'lymphoma_iicbu2008_subset_EOSIN_ONLY_sigfiles_t5x6-l.fof.tsv'
             kwargs['quiet'] = True
             # sampling opts: -l -t5x6
             kwargs['long'] = True
@@ -378,7 +407,7 @@ class TestFeatureSet( unittest.TestCase ):
             kwargs['tile_num_cols'] = 6
             fs_fof = FeatureSpace.NewFromFileOfFiles( **kwargs )
 
-            kwargs['pathname'] = tempdir + sep + 'lymphoma_t5x6_10imgseach.fit'
+            kwargs['pathname'] = tempdir + sep + 'lymphoma_iicbu2008_subset_eosin_t5x6_v3.2features.fit'
             fs_fit = FeatureSpace.NewFromFitFile( **kwargs )
 
             # Fit file has less significant figures than Signature files, and it's not
@@ -408,6 +437,7 @@ class TestFeatureSet( unittest.TestCase ):
         finally:
             rmtree( tempdir )
 
+    @unittest.skip('')
     def test_Load_GroundTruthLabels_and_Values( self ):
         """For continuous data, we expect a float ground truth value for every sample.
         For categorized (classed, discrete) data we expect a string label with optional
@@ -416,6 +446,7 @@ class TestFeatureSet( unittest.TestCase ):
         
         test-l.fit has class names 2cell and 4cell, which means wndcharm should try to
         pull the 2 and the 4 from the class names and have those be the values."""
+        pass
 
 
 
@@ -424,13 +455,35 @@ class TestFeatureSet( unittest.TestCase ):
 
     # --------------------------------------------------------------------------
     def test_Normalize( self ):
-	""""""
+	"""Load unnormalized feature space, normalize,
+        then compare to stored normalized feature space."""
 
-	from numpy.testing import assert_allclose
+        from wndcharm.utils import compare
 	result_fs = FeatureSpace.NewFromFitFile( self.test_fit_path ).Normalize( inplace=True )
 	target_fs = FeatureSpace.NewFromFitFile( self.test_normalized_fit_path )
 
-	assert_allclose( result_fs.data_matrix, target_fs.data_matrix, rtol=self.epsilon )
+	from numpy.testing import assert_allclose
+	assert_allclose( result_fs.data_matrix, target_fs.data_matrix, rtol=1e-05 )
+
+        # See the problem with using all close...?
+
+
+        # AssertionError: 
+        # Not equal to tolerance rtol=1e-07, atol=0
+
+        # (mismatch 100.0%)
+        # x: array([[  18.540434,   44.441657,   30.894861, ...,    0.      ,
+        #          56.162296,   48.702817],
+        #       [   0.      ,    0.      ,   63.576585, ...,    0.669004,...
+        # y: array([[  18.5404  ,   44.4417  ,   30.8949  , ...,    0.      ,
+        #          56.1623  ,   48.7028  ],
+        #       [   0.      ,    0.      ,   63.5766  , ...,    0.669004,...
+
+
+        #if not compare( result_fs.data_matrix, target_fs.data_matrix ):
+        #    # actually, the one good thing about "allclose" is the error reporting
+        #    from numpy.testing import assert_allclose
+	#    assert_allclose( result_fs.data_matrix, target_fs.data_matrix )
     
 if __name__ == '__main__':
     unittest.main()
