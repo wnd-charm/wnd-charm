@@ -224,6 +224,9 @@ class FisherFeatureWeights( FeatureWeights ):
         """Returns an instance of a FisherFeatureWeights class with the top n relevant features
         in order.
 
+        num_features_to_be_used can be integer n where 0 < n <= len( self.feature_names )
+        or num_features_to_be_used can be float n where 0 < n <= 1
+
         if _all == True: simple reorder by feature rank returning even 0-weighted features
         If _all == 'nonzero': returns non-zero weighted features ranked by weight."""
 
@@ -232,7 +235,11 @@ class FisherFeatureWeights( FeatureWeights ):
         # Default is top 15% of features
         elif num_features_to_be_used is None:
             num_features_to_be_used = int( len( self.values ) * 0.15 )
-        elif num_features_to_be_used > len( self.values ):
+        elif type( num_features_to_be_used ) is float:
+            if num_features_to_be_used <= 0 or num_features_to_be_used > 1:
+                raise ValueError('Choose feature reduction fraction on interval (0,1] (got "{0}"'.format( num_features_to_be_used  ) )
+            num_features_to_be_used = int( round( num_features_to_be_used * len( self ) ) )
+        elif num_features_to_be_used > len( self.values ) or num_features_to_be_used <= 0:
             raise ValueError('Cannot reduce a set of {0} feature weights to requested {1} features.'.\
                                   format( len( self.values ), num_features_to_be_used ) )
 
@@ -445,7 +452,11 @@ class PearsonFeatureWeights( FeatureWeights ):
         elif num_features_to_be_used is None:
             # Default is top 15% of features
             num_features_to_be_used = int( len( self.values ) * 0.15 )
-        elif num_features_to_be_used < 1 or num_features_to_be_used > len( self.values ):
+        elif type( num_features_to_be_used ) is float:
+            if num_features_to_be_used <= 0 or num_features_to_be_used > 1:
+                raise ValueError('Choose feature reduction fraction on interval (0,1] (got "{0}"'.format( num_features_to_be_used  ) )
+            num_features_to_be_used = int( round( num_features_to_be_used * len( self ) ) )
+        elif num_features_to_be_used <= 0 or num_features_to_be_used > len( self.values ):
             raise ValueError('Cannot reduce a set of {0} feature weights to requested {1} features.'.\
                                   format( len( self.values ), num_features_to_be_used ) )
 

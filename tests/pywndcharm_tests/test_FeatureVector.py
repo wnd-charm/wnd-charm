@@ -161,7 +161,7 @@ from wndcharm.FeatureSpacePrediction import FeatureSpaceClassification
 from wndcharm.utils import SampleImageTiles
 
 from sys import exit
-from PIL import Image
+#from skimage import io
 import numpy as np
 
 class TestSampleImageTiles( unittest.TestCase ):
@@ -194,8 +194,6 @@ class TestSampleImageTiles( unittest.TestCase ):
         tempdir = mkdtemp()
         zf.extractall( tempdir )
 
-        # REMOVE:
-        zf.extractall( pychrm_test_dir )
         fitfilepath = tempdir + sep + zf.namelist()[0]
 
         img_filename = "lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E.tif"
@@ -205,15 +203,14 @@ class TestSampleImageTiles( unittest.TestCase ):
         
         try:
             # copy the tiff to the tempdir so the .sig files end up there too
-            #copy( orig_img_filepath, tempdir )
-            #input_image_path = tempdir + sep + img_filename
-            input_image_path = orig_img_filepath
+            copy( orig_img_filepath, tempdir )
+            input_image_path = tempdir + sep + img_filename
 
             fs = FeatureSpace.NewFromFitFile( fitfilepath, tile_num_rows=5, tile_num_cols=6 )
             fs.Normalize( inplace=True, quiet=True )
 
             #fs = FeatureSpace.NewFromFitFile( fitfilepath ).Normalize( inplace=True, quiet=True )
-            fw = FisherFeatureWeights.NewFromFeatureSpace( fs ).Threshold()
+            fw = FisherFeatureWeights.NewFromFeatureSpace( fs ).Threshold( 0.05 )
             fs.FeatureReduce( fw, inplace=True )
 
             # Remember computation plan includes all features from all required
@@ -232,7 +229,8 @@ class TestSampleImageTiles( unittest.TestCase ):
                 kwargs = {}
                 kwargs[ 'name' ] = input_image_path
                 kwargs[ 'source_filepath' ] = sample
-                #kwargs[ 'feature_computation_plan' ] = comp_plan
+                kwargs[ 'feature_names' ] = fw.feature_names
+                kwargs[ 'feature_computation_plan' ] = comp_plan
                 kwargs[ 'long' ] = True
                 kwargs[ 'tile_num_cols' ] = image_iter.tiles_x
                 kwargs[ 'tile_num_rows' ] = image_iter.tiles_y
@@ -250,7 +248,7 @@ class TestSampleImageTiles( unittest.TestCase ):
                 #kwargs[ 'w' ] = image_iter.tile_width
                 #kwargs[ 'h' ] = image_iter.tile_height
 
-                samp_feats = FeatureVector( **kwargs ).GenerateFeatures( quiet=False, write_to_disk=True )
+                samp_feats = FeatureVector( **kwargs ).GenerateFeatures( quiet=False, write_to_disk=False )
                 feature_vector_list.append( samp_feats )
 
             fs_kwargs = {}

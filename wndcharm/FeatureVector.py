@@ -196,10 +196,10 @@ class FeatureVector( object ):
             outstr += ' "' + name + '"'
         if self.label is not None:
             outstr += ' label="' + self.label + '"'
-        if self.samplegroupid is not None:
-            outstr += ' grp=' + str( self.samplegroupid )
         if self.feature_names is not None:
             outstr += ' n_features=' + str( len( self ) )
+        if self.samplegroupid is not None:
+            outstr += ' grp=' + str( self.samplegroupid )
         if self.samplesequenceid is not None:
             outstr += ' seq=' + str( self.samplesequenceid )
         if self.fs_col is not None:
@@ -422,6 +422,9 @@ class FeatureVector( object ):
             pass
         except IncompleteFeatureSetError:
             # LoadSigFile should create a FeatureComputationPlan
+            if not quiet:
+                print 'Loaded {0} features from disk for sample "{1}"'.format(
+                        len( self.temp_names ), self.name )
             partial_load = True
             pass
 
@@ -530,6 +533,9 @@ class FeatureVector( object ):
         else:
             self.feature_names = comp_names
             self.values = comp_vals
+
+        if not quiet:
+            print str( self ), '(calculated ' + str(len(comp_vals)) + ' features)'
 
         # FIXME: write to disk BEFORE feature reduce
         if write_to_disk:
