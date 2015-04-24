@@ -809,7 +809,7 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
             if leave_one_out:
                 sample_group_id = augmented_train_set.sample_group_ids[ test_image_index ]
                 intermediate_train_set = augmented_train_set.SampleReduce(\
-                        leave_out_sample_group_ids = sample_group_id,)
+                        leave_out_sample_group_ids = sample_group_id, override=True)
             one_image_features = augmented_test_set.data_matrix[ test_image_index,: ]
             result = SingleSampleRegression._LeastSquares( \
                            one_image_features, intermediate_train_set )

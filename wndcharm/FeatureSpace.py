@@ -1326,7 +1326,7 @@ class FeatureSpace( object ):
 
     #==============================================================
     def SampleReduce( self, leave_in_sample_group_ids=None, leave_out_sample_group_ids=None,
-        inplace=False):
+        inplace=False, override=False):
         """Returns a new FeatureSpace that contains a subset of the data by dropping
         samples (rows), and/or rearranging rows.
 
@@ -1344,7 +1344,7 @@ class FeatureSpace( object ):
         if leave_in_sample_group_ids is None and leave_out_sample_group_ids is None:
             raise ValueError( 'Invalid input, both leave_in_sample_group_ids and leave_out_sample_group_ids were None')
 
-        if self.normalized_against:
+        if self.normalized_against and not override:
             errmsg = 'Cannot perform SampleReduce on FeatureSpace "{0}" '.format( self.name ) + \
                 "because it's features have already been normalized and is therefore immutable."
             raise ValueError( errmsg )
