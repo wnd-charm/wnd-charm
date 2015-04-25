@@ -48,7 +48,6 @@ class TestFeatureSpaceClassification( unittest.TestCase ):
     """
     Test the classification functionality
     """
-    
     def test_FitOnFit( self ):
         """Uses a curated subset of the IICBU 2008 Lymphoma dataset, preprocessed as follows:
         auto-deconvolved, eosin channel only, tiled 5x6, 3 classes, 10 imgs per class,
@@ -87,27 +86,54 @@ class TestFeatureSpaceClassification( unittest.TestCase ):
 #            p.sort_stats('time').print_stats(20)
 #            prof.close()
 
-            html_path = pychrm_test_dir + sep + 'lymphoma_t5x6_10imgseach_WITHOUT_tiled_samples.html' 
+            self.maxDiff = None
+
+            html_path = pychrm_test_dir + sep + 'lymphoma_iicbu2008_subset_eosin_t5x6_v3.2feats_REFERENCE_RESULTS_900_samples_TRAINING_ERROR.html' 
             wres = FeatureSpaceClassificationExperiment.NewFromHTMLReport( html_path )
             wc_batch_result = wres.individual_results[0] # only 1 split in fit-on-fit
 
-            self.assertSequenceEqual( wc_batch_result.individual_results, pychrm_res.individual_results )
+            # This takes WAY too long:
+            #self.assertSequenceEqual( wc_batch_result.individual_results, pychrm_res.individual_results )
+            wc_result = np.empty( (3* len( wc_batch_result.individual_results ) ) )
+            for i, single_result in enumerate( wc_batch_result.individual_results ):
+                wc_result[ i*3 : (i+1)*3 ] = single_result.marginal_probabilities
+
+            pc_result = np.empty( (3* len( pychrm_res.individual_results ) ) )
+            for i, single_result in enumerate( pychrm_res.individual_results ):
+                # HTML report only has 3 decimal places
+                pc_result[ i*3 : (i+1)*3 ] = \
+                    [ float( "{0:0.3f}".format( val ) ) for val in single_result.marginal_probabilities ]
+
+            from numpy.testing import assert_allclose
+            assert_allclose( actual=pc_result, desired=wc_result, atol=0.003 )
+
             #wc_batch_result.Print()
             #pres.Print()
 
+            # ==========================================================
             # Now do the same with tiling, reusing fs from before:
             fs.Update( tile_rows=5, tile_cols=6, num_samples_per_group=30 )
             with_tile_pychrm_result = FeatureSpaceClassification.NewWND5( fs, fs, fw )
-            html_path = pychrm_test_dir + sep + 'lymphoma_t5x6_10imgseach_WITH_tiled_samples.html' 
+            html_path = pychrm_test_dir + sep + 'lymphoma_iicbu2008_subset_eosin_t5x6_v3.2feats_REFERENCE_RESULTS_30_samples_tiled_TRAINING_ERROR.html' 
             with_tile_wndchrm_result = \
               FeatureSpaceClassificationExperiment.NewFromHTMLReport( html_path ).individual_results[0]
 
-            self.assertSequenceEqual( with_tile_pychrm_result.tiled_results, with_tile_wndchrm_result.individual_results )
+            #self.assertSequenceEqual( with_tile_pychrm_result.tiled_results, with_tile_wndchrm_result.individual_results )
+            wc_result = np.empty( (3* len( with_tile_wndchrm_result.individual_results ) ) )
+            for i, single_result in enumerate( with_tile_wndchrm_result.individual_results ):
+                wc_result[ i*3 : (i+1)*3 ] = single_result.marginal_probabilities
+
+            pc_result = np.empty( (3* len( with_tile_pychrm_result.tiled_results ) ) )
+            for i, single_result in enumerate( with_tile_pychrm_result.tiled_results ):
+                # HTML report only has 3 decimal places
+                pc_result[ i*3 : (i+1)*3 ] = \
+                    [ float( "{0:0.3f}".format( val ) ) for val in single_result.marginal_probabilities ]
+
+            assert_allclose( actual=pc_result, desired=wc_result, atol=0.003 )
 
         finally:
             rmtree( tempdir )
 
-    @unittest.skip("")
     def test_TiledTrainTestSplit( self ):
         """Uses a fake FeatureSpace"""
 
@@ -129,13 +155,13 @@ class TestFeatureSpaceClassification( unittest.TestCase ):
 
         train, test = fs.Split( random_state=False, quiet=True )
         train.Normalize( inplace=True, quiet=True )
-        fw = FisherFeatureWeights.NewFromFeatureSpace( train_set ).Threshold()
+        fw = FisherFeatureWeights.NewFromFeatureSpace( train ).Threshold()
 
         train.FeatureReduce( fw, inplace=True )
         test.FeatureReduce( fw, inplace=True, quiet=True ).Normalize( train, inplace=True, quiet=True )
 
-        batch_result = DiscreteBatchClassificationResult.New( train, test, fw  )
-        batch_result.Print()
+        batch_result = FeatureSpaceClassification.NewWND5( train, test, fw  )
+        batch_result.GenerateStats()
             
 if __name__ == '__main__':
     unittest.main()

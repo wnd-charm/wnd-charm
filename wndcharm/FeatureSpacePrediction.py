@@ -553,6 +553,10 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
                     result.ground_truth_value = test_set_interp_coeffs[ test_class_index ]
                     batch_result.ground_truth_values.append( test_set_interp_coeffs[ test_class_index ] )
 
+                # Helps to identify which results correspond with which sample
+                result.samplegroupid = test_set.sample_group_ids[ test_class_index ][ test_image_index ]
+                result.samplesequenceid = test_set.sample_sequence_ids[ test_class_index ][ test_image_index ]
+
                 if test_set.num_samples_per_group > 1:
                     result.tile_index = len( tile_results_in_this_sample_group )
                     result.num_samples_in_group = test_set.num_samples_per_group

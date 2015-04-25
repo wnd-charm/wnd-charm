@@ -73,7 +73,8 @@ class TestWND5Classification( unittest.TestCase ):
         fs2 = feature_set.feature_names
         self.assertSequenceEqual( fs1, fs2 )
 
-        test_sample = FeatureVector.NewFromSigFile( test_sig_path, test_tif_path )
+        test_sample = FeatureVector( source_filepath=test_tif_path, long=True )
+        test_sample.LoadSigFile( test_sig_path )
         self.assertSequenceEqual( feature_set.feature_names, test_sample.feature_names )
         test_sample.Normalize( feature_set )
 

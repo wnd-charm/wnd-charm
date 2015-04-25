@@ -1008,11 +1008,12 @@ class FeatureSpace( object ):
                     raise ValueError( errmsg.format( line_num, num_feats_in_this_row, num_features ) )
             except Exception as e:
                 # Tell the user which line the parser choked on:
-                errmsg = "Error in file {0}, line {1}".format( pathname, line_num, )
+                premsg = "Error processing file {0}, line {1}".format( pathname, line_num+1, )
+                postmsg = "Can you spot an error in this line?:\n{0}".format( line )
                 if e.args:
-                    e.args = tuple( [errmsg] + list( e.args ) )
+                    e.args = tuple( [errmsg] + list( e.args ) + [postmsg] )
                 else:
-                    e.args = tuple( [errmsg] )
+                    e.args = tuple( [errmsg + ' ' + postmsg] )
                 raise
 
         # END iterating over lines in FOF
@@ -1254,7 +1255,7 @@ class FeatureSpace( object ):
         return self.Derive( **newdata )
 
     #==============================================================
-    def FeatureReduce( self, requested_features, inplace=False ):
+    def FeatureReduce( self, requested_features, inplace=False, quiet=False  ):
         """Returns a new FeatureSpace that contains a subset of the data by dropping
         features (columns), and/or rearranging columns.
 
@@ -1282,6 +1283,9 @@ class FeatureSpace( object ):
                     len( missing_features_from_req ), len( requested_features ) )
             err_str += "\nDid you forget to convert the feature names into their modern counterparts?"
             raise ValueError( err_str )
+
+        if not quiet:
+            orig_len = self.num_features
 
         num_features = len( requested_features )
         shape = ( self.num_samples, num_features )
@@ -1321,8 +1325,13 @@ class FeatureSpace( object ):
                     "{0}.0".format( self.feature_set_version.split('.',1)[0] )
 
         if inplace:
-            return self.Update( **newdata )._RebuildViews()
-        return self.Derive( **newdata )
+            newfs = self.Update( **newdata )._RebuildViews()
+        else:
+            newfs = self.Derive( **newdata )
+
+        if not quiet:
+            print newfs, 'features reduced/reordered from orig len {0}'.format( orig_len )
+        return newfs
 
     #==============================================================
     def SampleReduce( self, leave_in_sample_group_ids=None, leave_out_sample_group_ids=None,

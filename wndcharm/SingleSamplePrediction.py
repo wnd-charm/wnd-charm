@@ -43,6 +43,8 @@ class SingleSamplePrediction( object ):
         self.ground_truth_value = None
         self.predicted_value = None
         self.batch_number = None
+        self.samplegroupid = None
+        self.samplesequenceid = None
 
         #: Indicates the position of the ROI within an image
         self.tile_index = None
@@ -141,12 +143,21 @@ class SingleSampleClassification( SingleSamplePrediction ):
             samp_name = '...' + samp_name[ -25: ]
 
         outstr += ' "' + samp_name + '"'
+        if self.samplegroupid is not None:
+            outstr += ' grp=' + str( self.samplegroupid )
+        if self.samplesequenceid is not None:
+            outstr += ' seq=' + str( self.samplesequenceid )
         if self.predicted_class_name:
             outstr += ' pred="' + self.predicted_class_name + '"'
         if self.ground_truth_class_name:
             outstr += ' act="' + self.ground_truth_class_name + '"'
+        if self.marginal_probabilities is not None:
+            outstr += ' marg probs={'
+            for val in self.marginal_probabilities:
+                outstr += "{0:0.3f},".format( val )
+            outstr += '}'
         if self.predicted_value is not None:
-            outstr += " interp={0.2f}".format( self.predicted_value )
+            outstr += " interp={0:0.2f}".format( self.predicted_value )
         return outstr + '>'
 
     #==============================================================
@@ -254,6 +265,11 @@ class SingleSampleClassification( SingleSamplePrediction ):
             result.source_filepath = test_samp.source_filepath.source
         else:
             result.source_filepath = test_samp.name
+
+        if test_samp.samplegroupid is not None:
+            result.samplegroupid = test_samp.samplegroupid
+        if test_samp.samplesequenceid is not None:
+            resultsamplesequenceid = test_samp.samplesequenceid
 
         marg_probs = np.array( result.marginal_probabilities )
         result.predicted_class_name = training_set.class_names[ marg_probs.argmax() ]

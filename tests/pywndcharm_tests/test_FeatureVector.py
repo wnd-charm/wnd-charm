@@ -84,14 +84,13 @@ class TestFeatureCalculation( unittest.TestCase ):
         # FIXME: Actually do some checking of the profile results
 
     # --------------------------------------------------------------------------
-    @unittest.skip('')
     def test_LargeFeatureSetGrayscale( self ):
         """Large feature set, grayscale image"""
         reference_sample = FeatureVector.NewFromSigFile( self.sig_file_path,
             image_path=self.test_tif_path )
 
         target_sample = FeatureVector( source_filepath=self.test_tif_path,
-            long=True).GenerateFeatures( write_sig_files_to_disk=False )
+            long=True).GenerateFeatures( write_to_disk=False )
 
 #        This doesn't work since the ranges of features are so wide
 #        Tried using relative tolerance, but no dice:
@@ -102,7 +101,9 @@ class TestFeatureCalculation( unittest.TestCase ):
         # you only have 6 sig figs. Better apples to apples comparison is to 
         # compare strings.
 
-        self.compare( target_sample.values, reference_sample.values )
+        from wndcharm.utils import compare
+        
+        self.assertTrue( compare( target_sample.values, reference_sample.values ) )
 
     # --------------------------------------------------------------------------
     def test_LoadSubsetFromFile( self ):

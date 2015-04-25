@@ -385,6 +385,80 @@ class TestFeatureSet( unittest.TestCase ):
         #    4. Double channel FOF (Eosin+Haemotoxylin) referencing 60 tiffs (requires global sampling options -t5x6 -l to grab sigs)
         #    5. Double channel FOF (Eosin+Haemotoxylin) referencing 1800 sig files.
 
+        #=============================================
+        # BEGIN CODE TO CREATE TESTDATA ZIP PACKAGE
+
+        #import zipfile
+        #import zlib
+        #path = '/Users/chris/src/wnd-charm/tests/pywndcharm_tests/TESTDATA_lymphoma_iicbu2008_subset_HE_t5x6_v3.2features_SIGFILES.zip'
+        #zf = zipfile.ZipFile( path, mode='w' )
+        #import os
+        #classes = 'CLL', 'FL', 'MCL',
+        #channels = 'haemotoxylin', 'eosin'
+        #from collections import defaultdict
+        #sig_tracker = defaultdict(int)
+        #samplegroupid_tracker = {}
+        #samplegroup_counter = 0
+        #
+        #eosin_tif_fof = [] # 30 lines
+        #eosin_sig_fof = [] # 900 lines
+        #double_tif_fof = [] # 30 lines, 2 feature set columns
+        #double_sig_fof = [] # 900 lines, 2 feature set columns
+        #
+        #for _channel in channels:
+        #    zf.write( './' + _channel, compress_type=zipfile.ZIP_DEFLATED )
+        #    for _class in classes:
+        #        zf.write( './' + _channel + '/' + _class, compress_type=zipfile.ZIP_DEFLATED )
+        #        for root, dirs, files in os.walk( _channel + '/' + _class ):
+        #            for _file in files:
+        #                if _file.endswith( '.tif' ):
+        #                    # Strip off the _H.tif or _E.tif
+        #                    samplename = _file[:-6]
+        #                    eosinpath = './eosin/' + _class + '/' + samplename + '_E.tif'
+        #                    haemopath = './haemotoxylin/' + _class + '/' + samplename + '_H.tif'
+        #                    if _channel == 'eosin':
+        #                        eosin_tif_fof.append( eosinpath + '\t' + _class )
+        #                        double_tif_fof.append( samplename + '\t' + _class + '\t' + eosinpath + '\t{\tchannel\t=\teosin\t}\t' + haemopath + '\t{\tchannel\t=\thaemotoxylin\t}')
+        #                elif _file.endswith( '.sig' ):
+        #                    zf.write( './' + _channel + '/' + _class + '/' + _file, compress_type=zipfile.ZIP_DEFLATED )
+        #                    if _channel == 'eosin':
+        #                        # Strip off the _H-t5x6_0_0-l.sig
+        #                        samplename = _file[:-17] + '.tif'
+        #                        eosinpath = './eosin/' + _class + '/' + _file
+        #                        haemopath = './haemotoxylin/' + _class + '/' + _file.replace( '_E-t5x6_', '_H-t5x6_' )
+        #                        # count samples from 0:
+        #                        samplesequenceid = str( sig_tracker[ samplename ] )
+        #                        sig_tracker[ samplename ] += 1
+        #                        if samplename not in samplegroupid_tracker:
+        #                            samplegroupid_tracker[ samplename ] = samplegroup_counter
+        #                            samplegroup_counter += 1
+        #                        samplegroupid = str( samplegroupid_tracker[ samplename ] )
+        #                        eosin_sig_fof.append( eosinpath + '\t' + _class )
+        #                        double_sig_fof.append( samplename + '\t' + _class + '\t' + eosinpath + '\t{\tchannel\t=\teosin\t;\tsamplegroupid\t=\t' + samplegroupid + '\t;\tsamplesequenceid\t=\t' + samplesequenceid + '\t}\t' + haemopath + '\t{\tchannel\t=\thaemotoxylin\t;\tsamplegroupid\t=\t' + samplegroupid + '\t;\tsamplesequenceid\t=\t' + samplesequenceid + '\t}\t')
+        #
+        #fof_dir = '/Users/chris/src/wnd-charm/tests/pywndcharm_tests/'
+        #with open( 'lymphoma_iicbu2008_subset_EOSIN_ONLY_images.fof.tsv', 'w') as out:
+        #    for _ in eosin_tif_fof:
+        #        out.write( _ + '\n')
+        #with open( 'lymphoma_iicbu2008_subset_EOSIN_ONLY_sigfiles_t5x6-l.fof.tsv', 'w') as out:
+        #    for _ in eosin_sig_fof:
+        #        out.write( _ + '\n')
+        #with open( 'lymphoma_iicbu2008_subset_2CHAN_HE_images.fof.tsv', 'w') as out:
+        #    for _ in double_tif_fof:
+        #        out.write( _ + '\n')
+        #with open( 'lymphoma_iicbu2008_subset_2CHAN_HE_sigfiles_t5x6-l.fof.tsv', 'w') as out:
+        #    for _ in double_sig_fof:
+        #        out.write( _ + '\n')
+        #zf.write( './' + 'lymphoma_iicbu2008_subset_EOSIN_ONLY_images.fof.tsv', compress_type=zipfile.ZIP_DEFLATED )
+        #zf.write( './' + 'lymphoma_iicbu2008_subset_EOSIN_ONLY_sigfiles_t5x6-l.fof.tsv', compress_type=zipfile.ZIP_DEFLATED )
+        #zf.write( './' + 'lymphoma_iicbu2008_subset_2CHAN_HE_images.fof.tsv', compress_type=zipfile.ZIP_DEFLATED )
+        #zf.write( './' + 'lymphoma_iicbu2008_subset_2CHAN_HE_sigfiles_t5x6-l.fof.tsv', compress_type=zipfile.ZIP_DEFLATED )
+        #zf.printdir()
+        #zf.close()
+
+        # END CODE TO CREATE TESTDATA ZIP PACKAGE
+        #=============================================
+
         # Inflate the zipped test fit into a temp file
         import zipfile
         
@@ -447,11 +521,6 @@ class TestFeatureSet( unittest.TestCase ):
         test-l.fit has class names 2cell and 4cell, which means wndcharm should try to
         pull the 2 and the 4 from the class names and have those be the values."""
         pass
-
-
-
-
-
 
     # --------------------------------------------------------------------------
     def test_Normalize( self ):

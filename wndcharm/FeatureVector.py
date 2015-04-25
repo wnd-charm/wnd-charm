@@ -635,7 +635,7 @@ class FeatureVector( object ):
         return self.Derive( **newdata )
 
     #==============================================================
-    def FeatureReduce( self, requested_features, inplace=False ):
+    def FeatureReduce( self, requested_features, inplace=False, quiet=False ):
         """Returns a new FeatureVector that contains a subset of the data by dropping
         features (columns), and/or rearranging columns.
 
@@ -668,6 +668,9 @@ class FeatureVector( object ):
         # Here is where the implementations diverge"
         num_features = len( requested_features )
 
+        if not quiet:
+            orig_len = len( self )
+
         newdata = {}
         newdata[ 'name' ] = self.name + "(feature reduced)"
         newdata[ 'feature_names' ] = requested_features
@@ -687,9 +690,15 @@ class FeatureVector( object ):
         if self.feature_set_version is not None and num_features != self.num_features:
             newdata[ 'feature_set_version' ] = \
                     "{0}.0".format( self.feature_set_version.split('.',1)[0] )
+
         if inplace:
-            return self.Update( **newdata )
-        return self.Derive( **newdata )
+            newfv = self.Update( **newdata )
+        else:
+            newfv = self.Derive( **newdata )
+
+        if not quiet:
+            print newfv, 'features reduced/reordered from orig len {0}'.format( orig_len )
+        return newfv
 
     #================================================================
     def LoadSigFile( self, sigfile_path=None, quiet=False ):
