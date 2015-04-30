@@ -312,8 +312,8 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
             self.chart_title = chart_title
 
         # need to make axes have same range
-        ls_yvals = [ batch_result.figure_of_merit for batch_result in ls_experiment.individual_results ]
-        voting_yvals = [ batch_result.figure_of_merit for batch_result in voting_experiment.individual_results ]
+        ls_yvals = [ batch_result.std_err for batch_result in ls_experiment.individual_results ]
+        voting_yvals = [ batch_result.std_err for batch_result in voting_experiment.individual_results ]
 
         min_ls_yval = min(ls_yvals)
         optimal_num_feats_ls = ls_yvals.index( min_ls_yval ) + 1 # count from 1, not 0

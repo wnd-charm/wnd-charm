@@ -64,8 +64,9 @@ class FeatureSpace( object ):
     channel_opt_finder = re.compile(r'(?:(?P<key>.+?)=)?(?P<value>.+)')
 
     #==============================================================
-    def __init__( self, name=None, source_filepath=None, num_samples=None, num_samples_per_group=1,
-                    num_features=None, discrete=True, feature_set_version=None ):
+    def __init__( self, name=None, source_filepath=None, num_samples=None,
+                  num_samples_per_group=1, feature_names=None,
+                  num_features=None, discrete=True, feature_set_version=None ):
         """FeatureSpace constructor"""
         
         # Let F = # features for a given 5D ROI.
@@ -104,6 +105,8 @@ class FeatureSpace( object ):
         #: The minor version must match also if it is one of the standard feature vectors (i.e. non-0)
         self.feature_set_version = feature_set_version
 
+        #: An instance of a FeatureVector which contains the global sampling
+        #: options for samples in this space.
         self.feature_options = None
         self.tile_rows = None
         self.tile_cols = None
@@ -162,14 +165,18 @@ class FeatureSpace( object ):
 
         # FEATURE METADATA DATA MEMBERS
         # -------------------------------------------
-        #: FIXME: Eliminate in favor of len( self.feature_names )
-        self.num_features = num_features
 
         #: block out some features for purposes of feature contribution analysis, et al.
         self.feature_mask = None
 
         #: A list of strings length M
-        self.feature_names = None
+        self.feature_names = feature_names
+
+        #: FIXME: Eliminate in favor of len( self.feature_names )
+        if self.feature_names:
+            self.num_features = len( self.feature_names )
+        else:
+            self.num_features = num_features
 
         #: Contains pre-normalized feature maxima so feature space of this or other
         #: FeatureSpaces can be transformed.
@@ -191,7 +198,7 @@ class FeatureSpace( object ):
             self._contiguous_ground_truth_values = [None] * self.num_samples
             self._contiguous_ground_truth_labels = [None] * self.num_samples
 
-        if self.num_features:
+        if self.num_features and not self.feature_names:
             self.feature_names = [None] * self.num_features
 
     #==============================================================
@@ -723,7 +730,6 @@ class FeatureSpace( object ):
                     if len( filelist ) <= 0:
                         raise ValueError( 'No tiff files in directory {0}'.format( root ) )
                     for _file in filelist:
-                        #tile_position_index = col_index * tile_num_rows + row_index
                         for col_index in xrange( tile_num_cols ):
                             for row_index in xrange( tile_num_rows ):
                                 fv = deepcopy( global_sampling_options )
@@ -746,7 +752,6 @@ class FeatureSpace( object ):
                     continue
                 class_name = basename( root )
                 for _file in filelist:
-                    #tile_position_index = col_index * tile_num_rows + row_index
                     for col_index in xrange( tile_num_cols ):
                         for row_index in xrange( tile_num_rows ):
                             fv = deepcopy( global_sampling_options )
@@ -1036,8 +1041,14 @@ class FeatureSpace( object ):
         discrete=True, quiet=True ):
         """Input is list of FeatureVectors WHOSE FEATURES HAVE ALREADY BEEN CALCULATED."""
 
-        new_fs = cls( name, source_filepath, num_samples, num_samples_per_group,
-                     num_features, discrete, feature_set_version )
+        new_fs = cls( name=name,
+                      source_filepath=source_filepath,
+                      num_samples=num_samples,
+                      num_samples_per_group=num_samples_per_group,
+                      feature_names=None,
+                      num_features=num_features,
+                      discrete=discrete,
+                      feature_set_version=feature_set_version )
 
         # For compound samples, e.g., multichannel, need to know the column offsets.
         # key: col index, value: index in data_matrix demarking rightmost feature for this column
@@ -1056,9 +1067,9 @@ class FeatureSpace( object ):
 
         sorted_by_fs_cols = sorted( feature_vectors_list, key=lambda fv: fv.fs_col )
 
-        # DEBUG optional sort 1: sort again by sample group
+        # DEBUG: optional sort 1: sort again by sample group
         #sorted_by_fs_cols = sorted( sorted_by_fs_cols, key=lambda fv: fv.samplegroupid )
-        # DEBUG optional sort 2: Sort again by sample sequence id
+        # DEBUG: optional sort 2: Sort again by sample sequence id
         #sorted_by_fs_cols = sorted( sorted_by_fs_cols, key=lambda fv: fv.samplesequenceid )
         # Now your row index calculated below should also equal the feature vector index
 
@@ -1165,10 +1176,10 @@ class FeatureSpace( object ):
 
         # resize the matrix
         if self.data_matrix is not None:
-            self.data_matrix.resize (self.num_samples, self.num_features)
+            self.data_matrix.resize( self.num_samples, self.num_features )
         else:
             #print "called with empty data_matrix"
-            self.data_matrix = np.empty ([ self.num_samples, self.num_features ], dtype='double')
+            self.data_matrix = np.empty( [ self.num_samples, self.num_features ], dtype='double' )
             copy_class = 0
             copy_row = 0
 
@@ -1292,7 +1303,8 @@ class FeatureSpace( object ):
 
         newdata = {}
         newdata[ 'shape' ] = shape
-        newdata[ 'source_filepath' ] = self.source_filepath + "(feature reduced)"
+        if self.source_filepath:
+            newdata[ 'source_filepath' ] = self.source_filepath + "(feature reduced)"
         newdata[ 'name' ] = self.name + "(feature reduced)"
         newdata[ 'feature_names' ] = requested_features
         newdata[ 'num_features' ] = num_features
@@ -1335,7 +1347,7 @@ class FeatureSpace( object ):
 
     #==============================================================
     def SampleReduce( self, leave_in_sample_group_ids=None, leave_out_sample_group_ids=None,
-        inplace=False, override=False):
+        inplace=False, override=False ):
         """Returns a new FeatureSpace that contains a subset of the data by dropping
         samples (rows), and/or rearranging rows.
 
@@ -1433,7 +1445,8 @@ class FeatureSpace( object ):
 
         newdata = {}
         newdata[ 'shape' ] = shape
-        newdata[ 'source_filepath' ] = self.source_filepath + " (subset)"
+        if self.source_filepath:
+            newdata[ 'source_filepath' ] = self.source_filepath + " (subset)"
         newdata[ 'name' ] = self.name + " (subset)"
         newdata[ 'num_samples' ] = total_num_samples
         data_matrix = np.empty( shape, dtype='double' )
@@ -1677,9 +1690,130 @@ class FeatureSpace( object ):
         return training_set, test_set
 
     #==============================================================
-    def RemoveClass( self, class_index ):
-        """For a future relase."""
-        raise NotImplementedError()
+    def RemoveClass( self, class_token, inplace=False ):
+        """Identify all the samples in the class and call SampleReduce
+        class_token (int) - class id - STARTS FROM 0!
+                    (string) - class name"""
+
+        #FIXME: assumes samples are grouped/contiguous by classes
+
+        if not self.discrete:
+            raise ValueError( "This FeatureSpace isn't organized into categories, so no classes to remove (self.discrete is set to True)" )
+
+        try:
+            if type( class_token ) is int:
+                class_index_to_be_removed = class_token
+            elif type( class_token ) is str:
+                class_index_to_be_removed = self.class_names.index( class_token )
+
+            # sample indices AREN'T the same as sample group ids:
+            sample_group_ids_to_be_removed = self.sample_group_ids[ class_index_to_be_removed ]
+            retval = self.SampleReduce( leave_in_sample_group_ids=None,
+                leave_out_sample_group_ids=sample_group_ids_to_be_removed,
+                inplace=inplace )
+        except:
+            print "Error removing class {0}".format( class_token )
+            raise
+
+        return retval
+
+    #==============================================================
+    def SamplesUnion( self, other_fs, override=False, quiet=False ):
+        """Concatenate two FeatureSpaces along the samples (rows) axis.
+        The two FeatureSpaces need to have the same number of features.
+        New sample group ids are assigned."""
+
+        if type( other_fs ) is not FeatureSpace:
+            raise ValueError( 'Arg other_fs needs to be of type "FeatureSpace", was a {0}'.format( 
+                type( other_fs ) ) )
+
+        #FIXME: Check to see if major feature set version are the same.
+
+        if self.feature_names != other_fs.feature_names:
+            raise ValueError( "Can't perform SamplesUnion on following FeatureSpace objs: feature_names don't match.\n{0}\n{1}".format(
+                self, other_fs ) )
+
+        #FIXME: Use override and self.normalized_against to make sure it's ok to
+        #       join samples.
+
+        assert( self.shape[1] == self.num_features == other_fs.shape[1] == other_fs.num_features )
+        assert( self.num_samples == self.shape[0] )
+        assert( other_fs.num_samples == other_fs.shape[0] )
+        assert( self.num_samples_per_group == other_fs.num_samples_per_group )
+
+        new_num_samples = self.num_samples + other_fs.num_samples
+        newfs = self.__class__( name=self.name + ' | ' + other_fs.name,
+                                num_samples=new_num_samples,
+                                num_features=self.num_features,
+                                feature_names=self.feature_names,
+                                num_samples_per_group=self.num_samples_per_group,
+                                discrete=self.discrete,
+                                feature_set_version=self.feature_set_version)
+        
+        # Copy from self:
+        newfs.data_matrix[ 0 : self.num_samples ] = self.data_matrix
+        newfs._contiguous_sample_names[ 0 : self.num_samples ] = \
+                self._contiguous_sample_names
+        #newfs._contiguous_sample_group_ids[ 0 : self.num_samples ] = \
+        #        self._contiguous_sample_group_ids
+        newfs._contiguous_sample_sequence_ids[ 0 : self.num_samples ] = \
+                self._contiguous_sample_sequence_ids
+        newfs._contiguous_ground_truth_values[ 0 : self.num_samples ] = \
+                self._contiguous_ground_truth_values
+        newfs._contiguous_ground_truth_labels[ 0 : self.num_samples ] = \
+                self._contiguous_ground_truth_labels
+
+        # Copy from other:
+        newfs.data_matrix[ self.num_samples : new_num_samples ] = other_fs.data_matrix
+        newfs._contiguous_sample_names[ self.num_samples : new_num_samples  ] = \
+                other_fs._contiguous_sample_names
+        #newfs._contiguous_sample_group_ids[ self.num_samples : new_num_samples  ] = \
+        #        other_fs._contiguous_sample_group_ids
+        newfs._contiguous_sample_sequence_ids[ self.num_samples : new_num_samples ] = \
+                other_fs._contiguous_sample_sequence_ids
+        newfs._contiguous_ground_truth_values[ self.num_samples : new_num_samples ] = \
+                other_fs._contiguous_ground_truth_values
+        newfs._contiguous_ground_truth_labels[ self.num_samples : new_num_samples ] = \
+                other_fs._contiguous_ground_truth_labels
+
+        # Assign new sample group ids:
+        if newfs.num_samples_per_group != 1:
+            # samples with same group id can't be split
+            # goes: [ 1, 1, 1, 1, 2, 2, 2, 2, ... ]
+            newfs._contiguous_sample_group_ids = [ j \
+              for j in xrange( new_num_samples/newfs.num_samples_per_group ) \
+                for i in xrange( newfs.num_samples_per_group ) ]
+        else:
+            newfs._contiguous_sample_group_ids = range( new_num_samples )
+
+        #FIXME: Post-union do a sort to collect samples belonging to same class.
+        newfs.data_matrix_is_contiguous = True
+        if self.discrete:
+            newfs.class_names = self.class_names + other_fs.class_names
+            newfs.class_sizes = self.class_sizes + other_fs.class_sizes
+            if self.interpolation_coefficients is not None and \
+                    other_fs.interpolation_coefficients is not None:
+                newfs.interpolation_coefficients = self.interpolation_coefficients + \
+                    other_fs.interpolation_coefficients
+
+            newfs.num_classes = self.num_classes + other_fs.num_classes
+
+        newfs._RebuildViews()
+        if not quiet:
+            print str(newfs)
+        return newfs
+
+    #==============================================================
+    def FeaturesUnion( self, other_fs, inplace=False ):
+        """Concatenate two FeatureSpaces along the features (columns) axis."""
+
+        if type( other_fs ) is not FeatureSpace:
+            raise ValueError( 'Arg other_fs needs to be of type "FeatureSpace", was a {0}'.format( 
+                type( other_fs ) ) )
+
+            raise NotImplementedError()
+
+
     #==============================================================
     def ScrambleGroundTruths( self ):
         """For a future release. Produce an instant negative control training set"""

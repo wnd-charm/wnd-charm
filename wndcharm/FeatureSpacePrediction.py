@@ -50,6 +50,8 @@ class FeatureSpacePrediction( object ):
             self.name = training_set.name
         self.individual_results = []
         self.tiled_results = None
+        self.tiled_ground_truth_values = None
+        self.tiled_predicted_values = None
 
         # Give myself a number so that it looks good when I print out results
         if not batch_number:
@@ -60,7 +62,7 @@ class FeatureSpacePrediction( object ):
 
         self.num_classifications = 0
 
-        self.figure_of_merit = None
+        self.std_err = None
         self.predicted_values = None
         self.ground_truth_values = None
 
@@ -86,36 +88,45 @@ class FeatureSpacePrediction( object ):
         in self.individual_results correlate with their ground truth values."""
         #FIXME: Calculate p-value of our standard error figure of merit.
 
-        if len( self.individual_results ) == 0:
+        if self.tiled_results:
+            classification_results = self.tiled_results
+            ground_truth_values = self.tiled_ground_truth_values
+            predicted_values = self.tiled_predicted_values
+        else:
+            classification_results = self.individual_results
+            ground_truth_values = self.ground_truth_values
+            predicted_values = self.predicted_values
+
+        if len( classification_results ) == 0:
             raise ValueError( 'No individual results in this batch with which to generate statistics.' )
 
-        self.num_classifications = len( self.individual_results )
+        self.num_classifications = len( classification_results )
 
-        if self.ground_truth_values and self.predicted_values and \
-                len( self.ground_truth_values ) == len( self.predicted_values ):
+        if ground_truth_values and predicted_values:
+            assert( len(ground_truth_values) == len(predicted_values) )
 
-            gt = np.array( self.ground_truth_values )
-            pv = np.array( self.predicted_values )
+            gt = np.array( ground_truth_values )
+            pv = np.array( predicted_values )
 
             diffs = gt - pv
             diffs = np.square( diffs )
             err_sum = np.sum( diffs )
 
             from math import sqrt
-            from scipy.stats import linregress, spearmanr
-
-            self.figure_of_merit = sqrt( err_sum / self.num_classifications )
+            self.std_err = sqrt( err_sum / self.num_classifications )
 
             # no point in doing regression stuff if there's only 1 individual result:
-            if len( self.individual_results ) == 1:
+            if len( classification_results ) > 1:
+                from scipy.stats import linregress, spearmanr
+
                 # For now, ignore "FloatingPointError: 'underflow encountered in stdtr'"
                 np.seterr (under='ignore')
                 slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
-                         linregress( self.ground_truth_values, self.predicted_values )
+                         linregress( ground_truth_values, predicted_values )
 
                 try:
                     self.spearman_coeff, self.spearman_p_value =\
-                   spearmanr( self.ground_truth_values, self.predicted_values )
+                   spearmanr( ground_truth_values, predicted_values )
                 except FloatingPointError:
                     # to avoid: "FloatingPointError: invalid value encountered in true_divide"
                     self.spearman_coeff, self.spearman_p_value = ( 0, 1 )
@@ -132,31 +143,44 @@ class FeatureSpacePrediction( object ):
         """Rank-order sorts ground truth/predicted value data points for purposes of 
         being graphed."""
 
+        if self.tiled_results:
+            classification_results = self.tiled_results
+            ground_truth_values = self.tiled_ground_truth_values
+            predicted_values = self.tiled_predicted_values
+        else:
+            classification_results = self.individual_results
+            ground_truth_values = self.ground_truth_values
+            predicted_values = self.predicted_values
+
         if not self.ground_truth_values or not self.predicted_values:
             self.GenerateStats()
 
         # Check again:
-        if not self.ground_truth_values:
+        if not ground_truth_values:
             raise ValueError( "Can't rank-order sort: no numeric ground truth values for predicted results." )
-        if not self.predicted_values:
-            # FIXME: this might be wrong, since the member predicted_values may contain a
-            # non-graphable label string
+        if not predicted_values:
             raise ValueError( "Can't rank-order sort: no sample predicted values" )
 
-        value_pairs = zip( self.ground_truth_values, self.predicted_values )
+        value_pairs = zip( ground_truth_values, predicted_values )
 
         # sort by ground_truth value first, predicted value second
         sorted_pairs = sorted( sorted( value_pairs, key=lambda x: x[0] ), key=lambda x: x[1] )
         
         # we want lists, not tuples!
-        self.ground_truth_values, self.predicted_values =\
+        ground_truth_values, predicted_values =\
             [ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_pairs ) ]
+
+        if self.tiled_results:
+            self.tiled_ground_truth_values = ground_truth_values
+            self.tiled_predicted_values = predicted_values
+        else:
+            self.ground_truth_values = ground_truth_values
+            self.predicted_values = predicted_values
 
 #=================================================================================
 class FeatureSpaceClassification( FeatureSpacePrediction ):
     """Container for SingleSampleClassification instances.
-    Use for classifying all samples in a FeatureSpace in one sitting.
-    Member "figure_of_merit" is classification accuracy."""
+    Use for classifying all samples in a FeatureSpace in one sitting."""
 
     #: obj_count class attribute
     obj_count = 0
@@ -187,8 +211,11 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
             outstr += ' n=' + str( len( self.individual_results ) )
         if self.num_correct_classifications:
             outstr += ' n_corr=' + str( self.num_correct_classifications )
-        if self.figure_of_merit is not None:
-            outstr += ' acc={0:0.2f}%'.format( self.figure_of_merit * 100 )
+        if self.classification_accuracy is not None:
+            outstr += ' acc={0:0.2f}%'.format( self.classification_accuracy * 100 )
+        if self.std_err is not None:
+            outstr += ' std_err={0:0.2f}%'.format( self.std_err )
+
         return outstr + '>'
     #==============================================================
     def __repr__( self ):
@@ -260,12 +287,9 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
             for row in self.test_set.class_names:
                 denom = self.similarity_matrix[ row ][ row ]
                 for col in self.training_set.class_names:
-                    if self.similarity_matrix[ row ][ row ]:
-                        self.similarity_matrix[ row ][ col ] /= denom
-                        self.similarity_matrix[ col ][ row ] /= denom
+                    self.similarity_matrix[ row ][ col ] /= denom
 
         self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
-        self.figure_of_merit = self.classification_accuracy
         return self
 
     #==============================================================
@@ -275,7 +299,7 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
         classification accuracy, confusion matrix, similarity matrix, and average class 
         probability matrix."""
 
-        if self.figure_of_merit == None:
+        if self.classification_accuracy == None:
             self.GenerateStats()
 
         classification_results = self.tiled_results if self.tiled_results else self.individual_results
@@ -300,29 +324,35 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
             # The confidence interval is S.E.M. * quantile for your chosen accuracy
             # The quantile for 95% accuracy is ~ 1.96.
             z_score = 1.95996;
+            z2 = 3.84144 # z^2
 
             from math import sqrt
 
             # This is a rule of thumb test to check whecther sample size is large enough
             # to use normal approximation of binomial distribution:
             if ((n * acc) > 5) and ((n * (1 - acc)) > 5):
-                use_wilson = False
+                # Using normal approximation:
                 std_error_of_mean = sqrt( acc * (1-acc) / n )
-                conf_interval = z_score * std_error_of_mean
-            else:
-                use_wilson = True
-                conf_interval = z_score * sqrt( acc * (1-acc) / n + z_score * z_score / (4 * n * n) ) / \
-                    ( 1 + z_score * z_score / n )
-                acc = (acc + z_score * z_score / (2 * n) ) / ( 1 + z_score * z_score / n )
-
-            print "{0}/{1} correct = {2:0.2f} +/- {3:0.2f}%".format(
+                conf_interval = z * std_error_of_mean
+                print "{0}/{1} correct = {2:0.2f} +/- {3:0.2f}% w/ 95% conf. (normal approx. interval)".format(
                     n_correct, n, acc * 100, conf_interval * 100 )
-            print "Intervals based on 95% confidence using {0} method.".format(
-                "Wilson Score" if use_wilson else "Normal Approximation" )
+            else:
+                # Using Wilson approximation:
+                # This term goes to 1 as number of classifications gets large:
+                coeff = 1 / (1+(z2/n))
+                raw_acc = acc
+                # Wilson accuracy modifies the raw accuracy for low n:
+                acc = coeff * (raw_acc + z2/(2*n))
+                conf_interval = coeff * z * sqrt( (raw_acc*(1-raw_acc)/n) + (z2/(4*n**2)) )
 
+                outstr = "{0}/{1} correct = {2:0.1f}% raw accuracy".format(
+                    n_correct, n, raw_acc * 100, conf_interval * 100 )
+                outstr += " ({0:0.2f} +/- {1:0.2f}% w/ 95% conf. (Wilson score interval))".format(
+                        acc * 100, conf_interval * 100)
+                print outstr
 
-        if self.figure_of_merit is not None:
-            print "Standard Error: {0:0.4f}".format( self.figure_of_merit )
+        if self.std_err is not None:
+            print "Standard Error: {0:0.4f}".format( self.std_err)
         if self.pearson_coeff is not None:
             print "Pearson Coefficient: {0:0.4f}".format( self.pearson_coeff )
         if self.spearman_coeff is not None:
@@ -338,34 +368,37 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
         test_set_class_names = sorted( self.test_set.class_names )
 
         column_headers = "\t".join( train_set_class_names )
-        column_headers += "\n"
-        column_headers += "\t".join( [ '-'*len(name) for name in train_set_class_names ] )
+        column_separators = "\t".join( [ '-'*len(name) for name in train_set_class_names ] )
 
         print "Confusion Matrix:"
-        print column_headers
+        print column_headers + '\tTotal Tested\tPer-Class Acc'
+        print column_separators + '\t------------\t-------------'
 
         # See how the row labels are test set class names
         # and the column labels are training set class names?
-
         for row_name in test_set_class_names:
             line = ""
             for col_name in train_set_class_names:
                 line += '{0}\t'.format( self.confusion_matrix[ row_name ][ col_name ] )
+            line += '{0}\t{1:0.2f}'.format( self.num_classifications_per_class[ row_name ], 
+                100 * self.num_correct_classifications_per_class[ row_name ] / self.num_classifications_per_class[ row_name ] )
             print line
         print ""
 
         if self.similarity_matrix:
             print "Similarity Matrix:"
             print column_headers
+            print column_separators
             for row_name in test_set_class_names:
                 line = ""
                 for col_name in train_set_class_names:
-                    line += '{0:0.4f}\t'.format( self.similarity_matrix[ row_name ][ col_name ] )
+                    line += '{0:0.2f}\t'.format( self.similarity_matrix[ row_name ][ col_name ] )
                 print line
             print ""
 
         print "Average Class Probability Matrix:"
         print column_headers
+        print column_separators
         for row_name in test_set_class_names:
             line = ""
             for col_name in train_set_class_names:
@@ -492,6 +525,8 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
         # Are the samples to be classified tiled?
         if test_set.num_samples_per_group > 1:
             batch_result.tiled_results = []
+            batch_result.tiled_ground_truth_values = []
+            batch_result.tiled_predicted_values = []
 
         # Say what we're going to do
         if not quiet:
@@ -579,7 +614,6 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
                         marg_prob_lists = [ [] for i in xrange( training_set.num_classes ) ]
                         norm_factor_list = []
                         for tile_result in tile_results_in_this_sample_group:
-
                             if tile_result.marginal_probabilities:
                                 # Sometimes the result comes back with a non-call, like when the sample image
                                 # collides with every test image
@@ -600,8 +634,10 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
                             # interpolated value, if applicable
                             if train_set_interp_coeffs is not None:
                                 aggregated_result.predicted_value = np.sum( np_marg_probs * train_set_interp_coeffs )
+                                batch_result.tiled_predicted_values.append( aggregated_result.predicted_value )
                             if test_set_interp_coeffs is not None:
                                 aggregated_result.ground_truth_value = test_set_interp_coeffs[ test_class_index ]
+                                batch_result.tiled_ground_truth_values.append( aggregated_result.ground_truth_value )
                         # Save references to the tiled results on the aggregated result
                         # To facilitate creation of graphs, heatmaps, etc
                         aggregated_result.tiled_results = tile_results_in_this_sample_group
@@ -618,8 +654,7 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
 #=================================================================================
 class FeatureSpaceRegression( FeatureSpacePrediction ):
     """Container for SingleSampleRegression instances.
-    Use for regressing all samples in a FeatureSpace in one sitting.
-    Member "figure_of_merit" represents standard error between predicted and ground truth."""
+    Use for regressing all samples in a FeatureSpace in one sitting."""
 
     #: obj_count class attribute
     obj_count = 0
@@ -638,8 +673,8 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
             outstr += ' #' + str( self.batch_number )
         if self.individual_results:
             outstr += ' n=' + str( len( self.individual_results ) )
-        if self.figure_of_merit is not None:
-            outstr += ' R={0:0.2f}'.format( self.figure_of_merit )
+        if self.std_err is not None:
+            outstr += ' R={0:0.2f}'.format( self.std_err )
         return outstr + '>'
     #==============================================================
     def __repr__( self ):
@@ -657,15 +692,14 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
     def Print( self ):
         """Calculates and outputs batch-level statistics based on the
         SingleSampleRegressions contained in self.individualresults."""
-        if self.figure_of_merit == None:
+        if self.std_err == None:
             self.GenerateStats()
 
         print "==========================================="
         print "Number of observations: {0}".format( self.num_classifications )
-        if self.figure_of_merit != None:
-            print "Standard error of predicted vs. ground truth values: {0}".format( self.figure_of_merit )
+        if self.std_err != None:
+            print "Standard error of predicted vs. ground truth values: {0}".format( self.std_err )
         #print "p-value for this split: {0}".format( self.p_value )
-        #print "Standard error for this split: {0}".format( self.std_err )
 
     #=====================================================================
     @classmethod
@@ -687,14 +721,14 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
         if not quiet:
             out_str = 'Classifying test set "{0}" ({1} images, {2} features)\n\tagainst training set "{3}" ({4} images)'
             print out_str.format( test_set.name, test_set.num_samples, \
-              len( test_set.feature_names ), feature_weights.associated_training_set.name, \
-              feature_weights.associated_training_set.num_samples )
+              len( test_set.feature_names ), feature_weights.associated_feature_space.name, \
+              feature_weights.associated_feature_space.num_samples )
 
         if not quiet:
             column_header = "image\tground truth\tpred. val."
             print column_header
 
-        batch_result = cls( feature_weights.associated_training_set, test_set, feature_weights,
+        batch_result = cls( feature_weights.associated_feature_space, test_set, feature_weights,
                 name, batch_number )
 
         if test_set.ground_truth_values is not None and \

@@ -44,6 +44,7 @@ from wndcharm.FeatureWeights import FisherFeatureWeights, PearsonFeatureWeights
 from wndcharm.FeatureSpacePrediction import FeatureSpaceClassification, FeatureSpaceRegression
 from wndcharm.FeatureSpacePredictionExperiment import FeatureSpaceClassificationExperiment
 
+
 class TestFeatureSpaceClassification( unittest.TestCase ):
     """
     Test the classification functionality
@@ -160,8 +161,18 @@ class TestFeatureSpaceClassification( unittest.TestCase ):
         train.FeatureReduce( fw, inplace=True )
         test.FeatureReduce( fw, inplace=True, quiet=True ).Normalize( train, inplace=True, quiet=True )
 
-        batch_result = FeatureSpaceClassification.NewWND5( train, test, fw  )
-        batch_result.GenerateStats()
+        result = FeatureSpaceClassification.NewWND5( train, test, fw  )
+        result.GenerateStats()
+        result.Print()
+
+        for class_name in result.test_set.class_names:
+            try:
+                self.assertEqual( result.similarity_matrix[ class_name ][ class_name ], float(1) )
+            except:
+                print "offending class: {0}, val: {1}".format(
+                    class_name, result.similarity_matrix[ class_name ][ class_name ] )
+                raise
+
             
 if __name__ == '__main__':
     unittest.main()

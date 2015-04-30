@@ -42,7 +42,7 @@ wndchrm_test_dir = dirname( pychrm_test_dir ) + sep + 'wndchrm_tests'
 from wndcharm.FeatureSpace import FeatureSpace
 from wndcharm.FeatureWeights import FisherFeatureWeights, PearsonFeatureWeights
 from wndcharm.FeatureSpacePrediction import FeatureSpaceClassification, \
-        FeatureSpaceRegression
+       FeatureSpaceRegression
 
 class TestFeatureSet( unittest.TestCase ):
     """
@@ -353,6 +353,61 @@ class TestFeatureSet( unittest.TestCase ):
         self.assertEqual( L.num_samples, fs_cont.num_samples - num_tiles  )
         del L
 
+    def test_RemoveClass( self ):
+        from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
+
+        n_classes = 10
+        fs = CreateArtificialFeatureSpace_Discrete( n_samples=1000, n_classes=n_classes,
+                num_features_per_signal_type=30, noise_gradient=5, initial_noise_sigma=10,
+                n_samples_per_group=1, interpolatable=True )
+        orig_num_features = fs.num_features
+
+        #print "BEFORE:", str( fs )
+        fs.RemoveClass( 5, inplace=True )
+        #print "AFTER:", str( fs )
+
+        self.assertEqual( fs.num_classes, n_classes - 1 )
+
+        # Now, the list of classes are:
+        # ['FakeClass-100', 'FakeClass-77.78', 'FakeClass-55.56', 'FakeClass-33.33', 'FakeClass-11.11', 'FakeClass33.33', 'FakeClass55.56', 'FakeClass77.78', 'FakeClass100']
+        # "FakeClass33.33" is the 5th class, so essentially we're trying to remove the
+        # 5th class twice:
+
+        #import pdb; pdb.set_trace()
+        fs.RemoveClass( "FakeClass33.33" , inplace=True )
+        #print "AFTER AFTER:", str( fs )
+
+        self.assertEqual( fs.num_classes, n_classes - 2 )
+        # Each class has 100 samples, and we've removed 2 classes:
+        self.assertEqual( fs.num_samples, 800 )
+        self.assertEqual( fs.shape[0], 800 )
+        self.assertEqual( fs.num_features, orig_num_features )
+
+
+        self.assertRaises( ValueError, fs.RemoveClass, class_token='trash' )
+        self.assertRaises( IndexError, fs.RemoveClass, class_token=10 )
+
+    def test_SamplesUnion( self ):
+        from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
+
+        n_classes = 2
+        fs1 = CreateArtificialFeatureSpace_Discrete( n_samples=20, n_classes=n_classes,
+                num_features_per_signal_type=30, noise_gradient=5, initial_noise_sigma=10,
+                n_samples_per_group=1, interpolatable=True )
+
+        fitfile_path = wndchrm_test_dir + sep + 'test-l.fit'
+        fs2 = FeatureSpace.NewFromFitFile( fitfile_path )
+
+        self.assertRaises( ValueError, fs1.SamplesUnion, other_fs=fs2 )
+
+        fs3 = CreateArtificialFeatureSpace_Discrete( n_samples=20, n_classes=n_classes,
+                num_features_per_signal_type=30, noise_gradient=5, initial_noise_sigma=10,
+                n_samples_per_group=1, interpolatable=True )
+
+        joined_fs = fs1.SamplesUnion( fs3 )
+
+        print joined_fs
+
     def test_NewFromFileOfFiles( self ):
         """Pulls in the lymphoma eosin histology 5x6 tiled featureset via .sig files."""
 
@@ -528,11 +583,11 @@ class TestFeatureSet( unittest.TestCase ):
         then compare to stored normalized feature space."""
 
         from wndcharm.utils import compare
-	result_fs = FeatureSpace.NewFromFitFile( self.test_fit_path ).Normalize( inplace=True )
-	target_fs = FeatureSpace.NewFromFitFile( self.test_normalized_fit_path )
+        result_fs = FeatureSpace.NewFromFitFile( self.test_fit_path ).Normalize( inplace=True )
+        target_fs = FeatureSpace.NewFromFitFile( self.test_normalized_fit_path )
 
-	from numpy.testing import assert_allclose
-	assert_allclose( result_fs.data_matrix, target_fs.data_matrix, rtol=1e-05 )
+        from numpy.testing import assert_allclose
+        assert_allclose( result_fs.data_matrix, target_fs.data_matrix, rtol=1e-05 )
 
         # See the problem with using all close...?
 

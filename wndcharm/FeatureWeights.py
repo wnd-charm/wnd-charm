@@ -44,7 +44,7 @@ class FeatureWeights( object ):
 
     def __init__( self, name=None, size=None ):
         self.name = name
-        self.associated_training_set = None
+        self.associated_feature_space = None
         if size is not None:
             self.feature_names = [None] * size
             self.values = [None] * size
@@ -53,14 +53,19 @@ class FeatureWeights( object ):
             self.values = None
     #================================================================
     def __len__( self ):
-        return len( self.feature_names )
-
+        try:
+            return len( self.feature_names )
+        except:
+            return 0
     #================================================================
     def __str__( self ):
         s = '<' + self.__class__.__name__
         if self.name:
             s += '"' + str( self.name ) + '"'
-        s += " n_features=" + str( len(self) ) + '>'
+        s += " n_features=" + str( len(self.feature_names) )
+        if len( self.feature_names ) > 0:
+            s+= ' feat0="{0}" val0={1}'.format( self.feature_names[0], self.values[0] )
+        s += '>'
         return s
     #================================================================
     def __repr__( self ):
@@ -135,7 +140,7 @@ class FisherFeatureWeights( FeatureWeights ):
 
     #================================================================
     @classmethod
-    def NewFromFeatureSpace( cls, training_set ):
+    def NewFromFeatureSpace( cls, fs ):
         """Takes a FeatureSpace as input and calculates a Fisher score for
         each feature. Returns a newly instantiated instance of FisherFeatureWeights.
 
@@ -146,19 +151,22 @@ class FisherFeatureWeights( FeatureWeights ):
         Ic = number of images in a given class
         """
 
+        if fs.normalized_against is None:
+            raise ValueError( "Before generating feature weights, call Normalize() of the feature space." )
+
         # we deal with NANs/INFs separately, so turn off numpy warnings about invalid floats.
         oldsettings = np.seterr(all='ignore')
 
         # 1D matrix 1 * F
-        population_means = np.mean( training_set.data_matrix, axis = 0 )
+        population_means = np.mean( fs.data_matrix, axis = 0 )
 
         # WARNING, this only works in python27:
         # ====================================
-        # If 'training_set' is a balanced training set (i.e., same number of images
+        # If 'fs' is a balanced training set (i.e., same number of images
         # in each class), you can use pure matrix calls without iteration:
 
         # 3D matrix N * Ic * F
-        #all_images_classes_separate = np.array( training_set.data_list )
+        #all_images_classes_separate = np.array( fs.data_list )
 
         #if len( all_images_classes_separate.shape ) == 3:
 
@@ -171,14 +179,12 @@ class FisherFeatureWeights( FeatureWeights ):
         # ====================================
 
         # 2D matrix shape N * F
-        intra_class_means = np.empty(
-            ( training_set.num_classes, len( training_set.feature_names ) ) )
+        intra_class_means = np.empty( (fs.num_classes, len(fs.feature_names)) )
         # 2D matrix shape N * F
-        intra_class_variances = np.empty(
-            ( training_set.num_classes, len( training_set.feature_names ) ) )
+        intra_class_variances = np.empty( (fs.num_classes, len(fs.feature_names)) )
 
         class_index = 0
-        for class_feature_matrix in training_set.data_list:
+        for class_feature_matrix in fs.data_list:
             intra_class_means[ class_index ] = np.mean( class_feature_matrix, axis=0 )
             # Note that by default, numpy divides by N instead of the more common N-1, hence ddof=1.
             intra_class_variances[ class_index ] = np.var( class_feature_matrix, axis=0, ddof=1 )
@@ -195,16 +201,15 @@ class FisherFeatureWeights( FeatureWeights ):
         denom[denom == 0] = np.nan
         feature_weights_m =  np.ma.masked_invalid (
             ( np.square( population_means - intra_class_means ).sum( axis = 0 ) /
-            (training_set.num_classes - 1) ) / denom
-            )
+            ( fs.num_classes - 1 ) ) / denom )
         # return numpy error settings to original
         np.seterr(**oldsettings)
 
         new_fw = cls()
-        new_fw.feature_names = training_set.feature_names[:]
+        new_fw.feature_names = fs.feature_names[:]
         # the filled(0) method of the masked array sets all nan and infs to 0
         new_fw.values = feature_weights_m.filled(0).tolist()
-        new_fw.associated_training_set = training_set
+        new_fw.associated_feature_space = fs
 
         return new_fw
 
@@ -271,7 +276,7 @@ class FisherFeatureWeights( FeatureWeights ):
         new_weights.values, new_weights.feature_names =\
           [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
 
-        new_weights.associated_training_set = self.associated_training_set
+        new_weights.associated_feature_space = self.associated_feature_space
 
         return new_weights
 
@@ -303,7 +308,7 @@ class FisherFeatureWeights( FeatureWeights ):
         new_weights.feature_names, new_weights.values =\
           [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
 
-        new_weights.associated_training_set = self.associated_training_set
+        new_weights.associated_feature_space = self.associated_feature_space
 
         return new_weights
 
@@ -368,12 +373,15 @@ class PearsonFeatureWeights( FeatureWeights ):
 
     #================================================================
     @classmethod
-    def NewFromFeatureSpace( cls, training_set ):
+    def NewFromFeatureSpace( cls, fs ):
         """Calculate regression parameters and correlation statistics that fully define
         a continuous classifier.
 
         At present the feature weights are proportional the Pearson correlation coefficient
         for each given feature."""
+
+        if fs.normalized_against is None:
+            raise ValueError( "Before generating feature weights, call Normalize() of the feature space." )
 
         from scipy.stats import linregress, spearmanr
 
@@ -383,25 +391,25 @@ class PearsonFeatureWeights( FeatureWeights ):
         # back to normal at the end. -CEC
         np.seterr (under='ignore')
 
-        if training_set.name:
-            name = cls.__name__ + ' from training set "' + training_set.name + '"'
+        if fs.name:
+            name = cls.__name__ + ' from training set "' + fs.name + '"'
         else:
             name = None
 
-        new_fw = cls( name=name, size=training_set.num_features )
-        new_fw.associated_training_set = training_set
+        new_fw = cls( name=name, size=fs.num_features )
+        new_fw.associated_feature_space = fs
 
         #r_val_sum = 0
         r_val_squared_sum = 0
         #r_val_cubed_sum = 0
 
-        ground_truths = np.array( [ float(val) for val in training_set.ground_truth_values ] )
+        ground_truths = np.array( [ float(val) for val in fs.ground_truth_values ] )
 
-        new_fw.feature_names = training_set.feature_names[:]
+        new_fw.feature_names = fs.feature_names[:]
 
-        for feature_index in range( training_set.num_features ):
+        for feature_index in range( fs.num_features ):
 
-            feature_values = training_set.data_matrix[ :, feature_index ]
+            feature_values = fs.data_matrix[ :, feature_index ]
 
             slope, intercept, pearson_coeff, p_value, std_err = \
                          linregress( ground_truths, feature_values )
@@ -519,7 +527,7 @@ class PearsonFeatureWeights( FeatureWeights ):
             r_val_sum += val * val
         new_weights.values = [ ( (val*val) / r_val_sum ) for val in abs_corr_coeffs ]
 
-        new_weights.associated_training_set = self.associated_training_set
+        new_weights.associated_feature_space = self.associated_feature_space
 
         return new_weights
 
@@ -563,7 +571,7 @@ class PearsonFeatureWeights( FeatureWeights ):
             r_val_sum += val
         new_weights.values = [ val / r_val_sum for val in abs_pearson_coeffs ]
 
-        new_weights.associated_training_set = self.associated_training_set
+        new_weights.associated_feature_space = self.associated_feature_space
 
         return new_weights
 
