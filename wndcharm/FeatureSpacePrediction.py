@@ -78,9 +78,18 @@ class FeatureSpacePrediction( object ):
         self.spearman_coeff = None
         self.spearman_p_value = None
 
+        # used for pretty printing
+        self.column_headers = None
+        self.column_separators = None
+
     #==============================================================
     def __len__( self ):
-        return len( self.individual_results )
+        if self.tiled_results:
+            return len( self.tiled_results )
+        try:
+            return len( self.individual_results )
+        except:
+            return 0
 
     #==============================================================
     def GenerateStats( self ):
@@ -132,6 +141,7 @@ class FeatureSpacePrediction( object ):
                     self.spearman_coeff, self.spearman_p_value = ( 0, 1 )
 
                 np.seterr (all='raise')
+        return self
 
     #==============================================================
     def NewNFold( self, num_folds=5, *args, **kwargs ):
@@ -176,6 +186,129 @@ class FeatureSpacePrediction( object ):
         else:
             self.ground_truth_values = ground_truth_values
             self.predicted_values = predicted_values
+        return self
+
+    #==============================================================
+    def ConfusionMatrix( self ):
+        """Only applies for classification problems"""
+
+        outstr = "Confusion Matrix:\n"
+        if not self.confusion_matrix:
+            outstr += '<empty>'
+            return outstr
+
+        # These are the row headers:
+        gt_names = sorted( self.confusion_matrix )
+        first_col_width = max( [ len( class_name ) for class_name in gt_names ] )
+
+        # Collect all the predicted value class names that have appeared this far:
+        # These become the column headers.
+        pred_class_names = set()
+        for gt_class in gt_names:
+            gt_row_dict = self.confusion_matrix[ gt_class ]
+            for pred_class in gt_row_dict.keys():
+                pred_class_names.add( pred_class )
+
+        pred_class_names = sorted( pred_class_names )
+
+        # print column headers and horizontal table bar separator
+        outstr += ' '*first_col_width + '\t' + "\t".join( pred_class_names ) + '\t|\ttotal\tacc.\n'
+        outstr += " "*first_col_width + "\t" + "\t".join( [ '-'*len(name) for name in pred_class_names ] ) + '\t|\t-----\t----\n'
+
+        for gt_class in gt_names:
+            gt_row_dict = self.confusion_matrix[ gt_class ]
+            outstr += gt_class + '\t'
+            for pred_class in pred_class_names:
+                if pred_class not in gt_row_dict:
+                    outstr += '0\t'
+                else:
+                    outstr += '{0}\t'.format( gt_row_dict[ pred_class ] )
+            outstr += '|\t{0}\t{1:0.2f}%'.format( self.num_classifications_per_class[ gt_class ],
+                100.0 * self.num_correct_classifications_per_class[ gt_class ] / self.num_classifications_per_class[ gt_class ] )
+            outstr += '\n'
+        return outstr
+
+    #==============================================================
+    def SimilarityMatrix( self ):
+        """Only applies for classification problems
+        Doesn't make sense to do this unless the matrix is square"""
+        # if row labels == column labels:
+        if self.test_set.class_names != self.training_set.class_names:
+            return ValueError( "Can't do similarity matrix if self.test_set.class_names != self.training_set.class_names" )
+
+        outstr = "Similarity Matrix:\n"
+        if not self.similarity_matrix:
+            outstr += '<empty>'
+            return outstr
+
+        # These are the row headers:
+        gt_names = sorted( self.similarity_matrix )
+        first_col_width = max( [ len( class_name ) for class_name in gt_names ] )
+
+        # Collect all the predicted value class names that have appeared this far:
+        # These become the column headers.
+        pred_class_names = set()
+        for gt_class in gt_names:
+            gt_row_dict = self.similarity_matrix[ gt_class ]
+            for pred_class in gt_row_dict.keys():
+                pred_class_names.add( pred_class )
+
+        pred_class_names = sorted( pred_class_names )
+
+        # print column headers and horizontal table bar separator
+        outstr += ' '*first_col_width + '\t' + "\t".join( pred_class_names ) + '\n'
+        outstr += " "*first_col_width + "\t" + "\t".join( [ '-'*len(name) for name in pred_class_names ] ) + '\n'
+
+        for gt_class in gt_names:
+            gt_row_dict = self.similarity_matrix[ gt_class ]
+            outstr += gt_class + '\t'
+            for pred_class in pred_class_names:
+                if pred_class not in gt_row_dict:
+                    outstr += '\t'
+                else:
+                    outstr += '{0:0.2f}\t'.format( gt_row_dict[ pred_class ] )
+            outstr += '\n'
+        return outstr
+
+    #==============================================================
+    def AvgClassProbMatrix( self ):
+        """Only applies for classification problems.
+        Meant to be able to be called while results are coming in,
+        showing results so far."""
+
+        outstr = "Average Class Probability Matrix:\n"
+        if not self.average_class_probability_matrix:
+            outstr += '<empty>'
+            return outstr
+
+        # These are the row headers:
+        gt_names = sorted( self.average_class_probability_matrix )
+        first_col_width = max( [ len( class_name ) for class_name in gt_names ] )
+
+        # Collect all the predicted value class names that have appeared this far:
+        # These become the column headers.
+        pred_class_names = set()
+        for gt_class in gt_names:
+            gt_row_dict = self.average_class_probability_matrix[ gt_class ]
+            for pred_class in gt_row_dict.keys():
+                pred_class_names.add( pred_class )
+
+        pred_class_names = sorted( pred_class_names )
+
+        # print column headers and horizontal table bar separator
+        outstr += ' '*first_col_width + '\t' + "\t".join( pred_class_names ) + '\n'
+        outstr += " "*first_col_width + "\t" + "\t".join( [ '-'*len(name) for name in pred_class_names ] ) + '\n'
+
+        for gt_class in gt_names:
+            gt_row_dict = self.average_class_probability_matrix[ gt_class ]
+            outstr += gt_class + '\t'
+            for pred_class in pred_class_names:
+                if pred_class not in gt_row_dict:
+                    outstr += '\t'
+                else:
+                    outstr += '{0:0.4f}\t'.format( gt_row_dict[ pred_class ] )
+            outstr += '\n'
+        return outstr
 
 #=================================================================================
 class FeatureSpaceClassification( FeatureSpacePrediction ):
@@ -214,7 +347,7 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
         if self.classification_accuracy is not None:
             outstr += ' acc={0:0.2f}%'.format( self.classification_accuracy * 100 )
         if self.std_err is not None:
-            outstr += ' std_err={0:0.2f}%'.format( self.std_err )
+            outstr += ' std_err={0:0.2f}'.format( self.std_err )
 
         return outstr + '>'
     #==============================================================
@@ -271,7 +404,7 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
                     self.average_class_probability_matrix[ gt_class ][ putative_class ] += marg_prob
 
         # Finalize the Average Class Probability Matrix by dividing each marginal probability
-        # sum by the number of marginal probabilities:
+        # sum by the number of marginal probabilities for that ground truth:
         for row in self.test_set.class_names:
             for col in self.training_set.class_names:
                 self.average_class_probability_matrix[ row ][ col ] /= \
@@ -323,7 +456,7 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
             # For more info, see http://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval
             # The confidence interval is S.E.M. * quantile for your chosen accuracy
             # The quantile for 95% accuracy is ~ 1.96.
-            z_score = 1.95996;
+            z = 1.95996;
             z2 = 3.84144 # z^2
 
             from math import sqrt
@@ -357,54 +490,11 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
             print "Pearson Coefficient: {0:0.4f}".format( self.pearson_coeff )
         if self.spearman_coeff is not None:
             print "Spearman Coefficient: {0:0.4f}".format( self.spearman_coeff )
-        print ""
+        print "\n"
 
-        # Remember: iterate over the sorted list of class names, not the keys in the dict,
-        # because the dict keys aren't guaranteed to be ordered, nor is test_set.class_names.
-        # Also remember: there may be different numbers of classes in train and test set
-        # or they may be named differently.
-
-        train_set_class_names = sorted( self.training_set.class_names )
-        test_set_class_names = sorted( self.test_set.class_names )
-
-        column_headers = "\t".join( train_set_class_names )
-        column_separators = "\t".join( [ '-'*len(name) for name in train_set_class_names ] )
-
-        print "Confusion Matrix:"
-        print column_headers + '\tTotal Tested\tPer-Class Acc'
-        print column_separators + '\t------------\t-------------'
-
-        # See how the row labels are test set class names
-        # and the column labels are training set class names?
-        for row_name in test_set_class_names:
-            line = ""
-            for col_name in train_set_class_names:
-                line += '{0}\t'.format( self.confusion_matrix[ row_name ][ col_name ] )
-            line += '{0}\t{1:0.2f}'.format( self.num_classifications_per_class[ row_name ], 
-                100 * self.num_correct_classifications_per_class[ row_name ] / self.num_classifications_per_class[ row_name ] )
-            print line
-        print ""
-
-        if self.similarity_matrix:
-            print "Similarity Matrix:"
-            print column_headers
-            print column_separators
-            for row_name in test_set_class_names:
-                line = ""
-                for col_name in train_set_class_names:
-                    line += '{0:0.2f}\t'.format( self.similarity_matrix[ row_name ][ col_name ] )
-                print line
-            print ""
-
-        print "Average Class Probability Matrix:"
-        print column_headers
-        print column_separators
-        for row_name in test_set_class_names:
-            line = ""
-            for col_name in train_set_class_names:
-                line += '{0:0.4f}\t'.format( self.average_class_probability_matrix[ row_name ][ col_name ] )
-            print line
-        print ""
+        print self.ConfusionMatrix()
+        print self.SimilarityMatrix()
+        print self.AvgClassProbMatrix()
     
     #==============================================================
     @output_railroad_switch

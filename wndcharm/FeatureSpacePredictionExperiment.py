@@ -53,6 +53,13 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
         self.individual_stats = None
 
     #=====================================================================
+    def __len__( self ):
+        try:
+            return len( self.individual_results )
+        except:
+            return 0
+
+    #=====================================================================
     def GenerateStats( self ):
         """Aggregation of ground truth->predicted value pairs for all samples across splits.
         Aggregate feature weight statistics.
@@ -67,24 +74,31 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
         4. Hybrid test sets (discrete test sets loaded into a continuous test set)
            have "pseudo-classes," i.e., easily binnable ground truth values."""
 
-        # Simple result aggregation.
-        # Calls GenerateStats() on the individual batches if the 
-        # ground truth->predicted value pairs haven't been scraped
-        # from the batch's list of individual ImageClassifications.
         from itertools import chain
-
         lists_of_ground_truths = []
         lists_of_predicted_values = []
 
-        # remember:  
         for batch_result in self.individual_results:
-            self.num_classifications += len( batch_result.individual_results )
-            if batch_result.std_err == None:
+            # Call GenerateStats() on the individual batches if the
+            # ground truth->predicted value pairs haven't been scraped
+            # from the batch's list of individual SingleSamplePrediction objects.
+            if batch_result.std_err == None and batch_result.classification_accuracy == None:
                 batch_result.GenerateStats()
-            if batch_result.ground_truth_values:
-                lists_of_ground_truths.append( batch_result.ground_truth_values )
-            if batch_result.predicted_values:
-                lists_of_predicted_values.append( batch_result.predicted_values )
+
+            if batch_result.tiled_results:
+                classification_results = batch_result.tiled_results
+                ground_truth_values = batch_result.tiled_ground_truth_values
+                predicted_values = batch_result.tiled_predicted_values
+            else:
+                classification_results = batch_result.individual_results
+                ground_truth_values = batch_result.ground_truth_values
+                predicted_values = batch_result.predicted_values
+
+            self.num_classifications += len( classification_results )
+            if ground_truth_values:
+                lists_of_ground_truths.append( ground_truth_values )
+            if predicted_values:
+                lists_of_predicted_values.append( predicted_values )
 
         if lists_of_ground_truths:
             self.ground_truth_values = list( chain( *lists_of_ground_truths ) )
@@ -181,7 +195,7 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
     @classmethod
     def NewShuffleSplit( cls, feature_space, n_iter=5, name=None, features_size=0.15,
                            train_size=None, test_size=None, random_state=True, classifier=None,
-                           quiet=False):
+                           quiet=False, display=15 ):
         """args train_size, test_size, and random_state are all passed through to Split()
         feature_size if a float is feature usage fraction, if in is top n features."""
 
@@ -198,7 +212,7 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
             raise ValueError( 'Arg "features_size" must be valid float or int.' )
 
         if not quiet:
-            print "using top "+str (num_features)+" features"
+            print "using top " + str( num_features ) + " features"
 
         # If you passed the same random_state into Split, you'd get the same exact split for
         # all n_iter. Therefore use the seed passed in here to predictably generate seeds
@@ -218,10 +232,15 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
                 raise ValueError( "arg random_state must be an int, instance of numpy.random.RandomState, or True")
             experiment.use_error_bars = True
         else:
-            randint = lambda: None # samples split the same way all iterations - not recommended!
+            # Samples split the same way all iterations,
+            # not useful except for testing results aggregation:
+            randint = lambda: None
             experiment.use_error_bars = False
 
         for split_index in range( n_iter ):
+            if not quiet:
+                print "=========================================="
+                print "SHUFFLE SPLIT ITERATION", str( split_index )
             train_set, test_set = feature_space.Split(
                 train_size, test_size, random_state=randint(), quiet=quiet )
             train_set.Normalize( quiet=quiet )
@@ -234,7 +253,7 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
                   PearsonFeatureWeights.NewFromFeatureSpace( train_set ).Threshold( num_features )
 
             if not quiet:
-                weights.Print()
+                weights.Print( display=display )
             reduced_train_set = train_set.FeatureReduce( weights, quiet=quiet )
             reduced_test_set = test_set.FeatureReduce( weights, quiet=quiet )
             reduced_test_set.Normalize( reduced_train_set, quiet=quiet )
@@ -251,8 +270,14 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
                     batch_result = FeatureSpaceRegression.NewLeastSquares(
                         reduced_train_set, reduced_test_set, weights, batch_number=split_index, quiet=quiet )
 
+            batch_result.GenerateStats()
+            if not quiet:
+                batch_result.Print()
+
             experiment.individual_results.append( batch_result )
 
+        if not quiet:
+            experiment.Print()
         return experiment
 
 #============================================================================
@@ -309,7 +334,8 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
         """Generate confusion, similarity, average class probability matrices
         from constituent iterations."""
 
-        # Base class does feature weight analysis, ground truth-pred. value aggregation
+        # Base class does feature weight analysis, aggregation of ground truth &
+        # predicted values
         super( FeatureSpaceClassificationExperiment, self ).GenerateStats()
         
         # Initialize the matrices:
@@ -330,13 +356,22 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
         self.num_correct_classifications_per_class = defaultdict( int )
 
         self.num_classifications = 0
+        # Iterate over all the splits:
         for batch_result in self.individual_results:
             if batch_result.classification_accuracy == None:
                 batch_result.GenerateStats()
             self.num_classifications += len( batch_result )
-
-            for gt_class, gt_dict in batch_result.confusion_matrix.iteritems():
-                for pred_class, count in gt_dict.iteritems():
+            # Iterate over the rows in the confusion matrix:
+            for gt_class in self.test_set.class_names:
+                gt_row_dict = batch_result.confusion_matrix[ gt_class ]
+                # Iterate over the columns in the confusion matrix:
+                for pred_class in self.training_set.class_names:
+                    if pred_class not in gt_row_dict:
+                        # Important to try to add 0 since it will create that cell 
+                        # in the matrix in the defaultdict if it doesn't exist yet.
+                        count = 0
+                    else:
+                        count = gt_row_dict[ pred_class ]
                     self.confusion_matrix[ gt_class ][ pred_class ] += count
                     self.num_classifications_per_class[ gt_class ] += count
                     if gt_class == pred_class:
@@ -346,13 +381,12 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
                     self.average_class_probability_matrix[ gt_class ][ pred_class ] += \
                       batch_result.average_class_probability_matrix[ gt_class ][ pred_class ]
 
-        # Finalize the Average Class Probability Matrix by dividing each marginal probability
-        # sum by the number of batches:
+        # Finalize the Average Class Probability Matrix by dividing each marginal
+        # probability sum by the number of splits:
         # FIXME: This assumes there were an equal number of classifications in each batch
-        for row in self.test_set.class_names:
-            for col in self.training_set.class_names:
-                self.average_class_probability_matrix[ row ][ col ] /= \
-                        len( self.individual_results )
+        for row in sorted( self.test_set.class_names ):
+            for col in sorted( self.training_set.class_names ):
+                self.average_class_probability_matrix[ row ][ col ] /= len( self )
 
         # The similarity matrix is just the average class probability matrix
         # normalized to have 1's in the diagonal.
@@ -367,7 +401,6 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
                     self.similarity_matrix[ row ][ col ] /= denom
 
         self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
-
         return self
 
     #=====================================================================
@@ -376,6 +409,9 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
         """Generate and output statistics across all batches, as well as the figures of merit
         for each individual batch."""
         
+        if self.classification_accuracy == None:
+            self.GenerateStats()
+
         if self.feature_weight_statistics:
             n_feature_weights = len( self.feature_weight_statistics )
             if n_feature_weights <= display:
@@ -385,9 +421,6 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
                             display )
         else:
             display = False
-
-        if self.classification_accuracy == None:
-            self.GenerateStats()
 
         print '='*50
         s = self.__class__.__name__
@@ -436,52 +469,9 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
                         acc * 100, conf_interval * 100)
                 print outstr
 
-        # Remember: iterate over the sorted list of class names, not the keys in the dict,
-        # because the dict keys aren't guaranteed to be ordered, nor is test_set.class_names.
-        # Also remember: there may be different numbers of classes in train and test set
-        # or they may be named differently.
-
-        train_set_class_names = sorted( self.training_set.class_names )
-        test_set_class_names = sorted( self.test_set.class_names )
-
-        column_headers = "\t".join( train_set_class_names )
-        column_separators = "\t".join( [ '-'*len(name) for name in train_set_class_names ] )
-
-        print "Confusion Matrix:"
-        print column_headers + '\tTotal Tested\tPer-Class Acc'
-        print column_separators + '\t------------\t-------------'
-
-        # See how the row labels are test set class names
-        # and the column labels are training set class names?
-        for row_name in test_set_class_names:
-            line = ""
-            for col_name in train_set_class_names:
-                line += '{0}\t'.format( self.confusion_matrix[ row_name ][ col_name ] )
-            line += '{0}\t{1:0.2f}'.format( self.num_classifications_per_class[ row_name ], 
-                100 * self.num_correct_classifications_per_class[ row_name ] / self.num_classifications_per_class[ row_name ] )
-            print line
-        print ""
-
-        if self.similarity_matrix:
-            print "Similarity Matrix:"
-            print column_headers
-            print column_separators
-            for row_name in test_set_class_names:
-                line = ""
-                for col_name in train_set_class_names:
-                    line += '{0:0.2f}\t'.format( self.similarity_matrix[ row_name ][ col_name ] )
-                print line
-            print ""
-
-        print "Average Class Probability Matrix:"
-        print column_headers
-        print column_separators
-        for row_name in test_set_class_names:
-            line = ""
-            for col_name in train_set_class_names:
-                line += '{0:0.4f}\t'.format( self.average_class_probability_matrix[ row_name ][ col_name ] )
-            print line
-        print ""
+        print self.ConfusionMatrix(), '\n'
+        print self.SimilarityMatrix(), '\n'
+        print self.AvgClassProbMatrix(), '\n'
 
         if display:
             outstr = "{0}\t{1:0.3f}\t{2:>3}\t{3:0.3f}\t{4:0.3f}\t{5:0.3f}\t{6}"

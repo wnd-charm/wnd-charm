@@ -75,6 +75,7 @@ class TestFeatureSpaceClassification( unittest.TestCase ):
             #fw.Print()
             #fs.Print(verbose=True)
             pychrm_res = FeatureSpaceClassification.NewWND5( fs, fs, fw )
+            pychrm_res.Print()
 #
 #            import cProfile as pr
 #            #import profile as pr
@@ -91,6 +92,7 @@ class TestFeatureSpaceClassification( unittest.TestCase ):
 
             html_path = pychrm_test_dir + sep + 'lymphoma_iicbu2008_subset_eosin_t5x6_v3.2feats_REFERENCE_RESULTS_900_samples_TRAINING_ERROR.html' 
             wres = FeatureSpaceClassificationExperiment.NewFromHTMLReport( html_path )
+            wres.Print()
             wc_batch_result = wres.individual_results[0] # only 1 split in fit-on-fit
 
             # This takes WAY too long:
@@ -162,7 +164,6 @@ class TestFeatureSpaceClassification( unittest.TestCase ):
         test.FeatureReduce( fw, inplace=True, quiet=True ).Normalize( train, inplace=True, quiet=True )
 
         result = FeatureSpaceClassification.NewWND5( train, test, fw  )
-        result.GenerateStats()
         result.Print()
 
         for class_name in result.test_set.class_names:

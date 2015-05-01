@@ -452,8 +452,6 @@ class FeatureSpace( object ):
         if not filename.endswith( ".fit" ):
             raise ValueError( 'Not a .fit file: {0}'.format( pathname ) )
 
-        if not quiet:
-            print "Creating Training Set from legacy WND-CHARM text file file {0}".format( pathname )
         new_fs = cls()
 
         new_fs.source_filepath = filename
@@ -572,8 +570,11 @@ class FeatureSpace( object ):
             new_fs._contiguous_sample_sequence_ids = [1] * num_samples
             new_fs._contiguous_sample_group_ids = range( num_samples )
 
-        print "Features version from .fit file: {0}".format( new_fs.feature_set_version )
         new_fs._RebuildViews()
+
+        if not quiet:
+            print "LOADED FEATURE SPACE FROM WND-CHARM .fit FILE {0}: {1}".format(
+                    pathname, new_fs )
         return new_fs
 
     #==============================================================
@@ -767,11 +768,15 @@ class FeatureSpace( object ):
         [ fv.GenerateFeatures( write_sig_files_to_disk, quiet ) for fv in samples ]
 
         name = basename( top_level_dir_path )
-        return cls.NewFromListOfFeatureVectors( samples, name=name,
+        retval = cls.NewFromListOfFeatureVectors( samples, name=name,
                source_filepath=top_level_dir_path, num_samples=None,
                num_samples_per_group=(tile_num_rows*tile_num_cols),
                num_features=global_sampling_options.num_features,
-               discrete=discrete, quiet=quiet )
+               discrete=discrete, quiet=True )
+
+        if not quiet:
+            print "NEW FEATURE SPACE FROM DIRECTORY:", str( retval )
+        return retval
 
     #==============================================================
     @classmethod
@@ -793,9 +798,6 @@ class FeatureSpace( object ):
 
         if not global_sampling_options:
             global_sampling_options = FeatureVector( **kwargs )
-
-        if not quiet:
-            print 'Loading {0} from file of files "{1}"'.format( cls.__name__, pathname )
 
         basepath, ext = splitext( pathname )
         dir_containing_fof, file_name = split( basepath )
@@ -1029,10 +1031,14 @@ class FeatureSpace( object ):
 
         assert num_features > 0
 
-        return cls.NewFromListOfFeatureVectors( samples, name=file_name, source_filepath=pathname,
+        retval = cls.NewFromListOfFeatureVectors( samples, name=file_name, source_filepath=pathname,
                num_samples=len(samp_name_to_samp_group_id_dict)*num_samples_per_group,
                num_samples_per_group=num_samples_per_group, num_features=num_features,
-               feature_set_version=feature_set_version, discrete=discrete, quiet=quiet )
+               feature_set_version=feature_set_version, discrete=discrete, quiet=True )
+
+        if not quiet:
+            print "NEW FEATURE SPACE FROM FILE LIST:", retval
+        return retval
 
     #==============================================================
     @classmethod
@@ -1130,7 +1136,7 @@ class FeatureSpace( object ):
         new_fs._RebuildViews()
 
         if not quiet:
-            new_fs.Print()
+            print "NEW FEATURE SPACE FROM LIST OF FEATURE VECTORS:", str( new_fs )
 
         return new_fs
 
@@ -1227,9 +1233,6 @@ class FeatureSpace( object ):
 
         if not reference_features:
             # Recalculate my feature space using my own maxima/minima
-            if not quiet:
-                print 'Normalizing {0} "{1}" ({2} images) against self'.format(
-                    self.__class__.__name__, self.name, self.num_samples )
             mins = None
             maxs = None
             newdata['normalized_against'] = 'self'
@@ -1245,10 +1248,6 @@ class FeatureSpace( object ):
                 raise ValueError( err_str.format( self.name, self.feature_set_version,
                     reference_features.name, reference_features.feature_set_version ) )
             
-            if not quiet:
-                print 'Normalizing "{0}" ({1} samples) against "{2}" ({3} samples)'.format(
-                    self.name, self.num_samples, reference_features.name, reference_features.num_samples )
-
             # Need to make sure there are feature minima/maxima to normalize against:
             if not reference_features.normalized_against:
                 reference_features.Normalize( quiet=quiet )
@@ -1262,8 +1261,17 @@ class FeatureSpace( object ):
             normalize_by_columns( newdata['data_matrix'], mins, maxs )
 
         if inplace:
-            return self.Update( **newdata )._RebuildViews()
-        return self.Derive( **newdata )
+            retval = self.Update( **newdata )._RebuildViews()
+        else:
+            retval = self.Derive( **newdata )
+
+        if not quiet:
+            if not reference_features:
+                print 'NORMALIZED FEATURES AGAINST SELF FOR FEATURE SPACE:', str( retval )
+            else:
+                print 'NORMALIZED FEATURES AGAINST {0} FOR FEATURE SPACE {1}'.format(
+                    reference_features, retval )
+        return retval
 
     #==============================================================
     def FeatureReduce( self, requested_features, inplace=False, quiet=False  ):
@@ -1342,12 +1350,13 @@ class FeatureSpace( object ):
             newfs = self.Derive( **newdata )
 
         if not quiet:
-            print newfs, 'features reduced/reordered from orig len {0}'.format( orig_len )
+            print "FEATURE-REDUCED FEATURE SPACE (orig len {0}) {1}:'".format(
+                    orig_len, newfs )
         return newfs
 
     #==============================================================
     def SampleReduce( self, leave_in_sample_group_ids=None, leave_out_sample_group_ids=None,
-        inplace=False, override=False ):
+        inplace=False, override=False, quiet=False ):
         """Returns a new FeatureSpace that contains a subset of the data by dropping
         samples (rows), and/or rearranging rows.
 
@@ -1516,8 +1525,13 @@ class FeatureSpace( object ):
         newdata[ '_contiguous_ground_truth_labels' ] = _contiguous_ground_truth_labels
 
         if inplace:
-            return self.Update( **newdata )._RebuildViews()
-        return self.Derive( **newdata )
+            retval = self.Update( **newdata )._RebuildViews()
+        else:
+            retval = self.Derive( **newdata )
+
+        if not quiet:
+            print "SAMPLE REDUCED FEATURE SPACE: ", str( retval )
+        return retval
 
     #==============================================================
     def Split( self, train_size=None, test_size=None, random_state=True,
@@ -1678,19 +1692,21 @@ class FeatureSpace( object ):
             if not any( test_groups ):
                 training_set_only = True
 
-        training_set = self.SampleReduce( train_groups, inplace=False )
+        training_set = self.SampleReduce( train_groups, inplace=False, quiet=True )
         if not quiet:
-            training_set.Print()
+            #training_set.Print()
+            print "SPLIT FEATURE SPACE INTO TRAINING SET: ", str( training_set )
         if training_set_only:
             return training_set
 
-        test_set = self.SampleReduce( test_groups, inplace=False )
+        test_set = self.SampleReduce( test_groups, inplace=False, quiet=True )
         if not quiet:
-            test_set.Print()
+            #test_set.Print()
+            print "TEST SET: ", str( test_set )
         return training_set, test_set
 
     #==============================================================
-    def RemoveClass( self, class_token, inplace=False ):
+    def RemoveClass( self, class_token, inplace=False, quiet=False ):
         """Identify all the samples in the class and call SampleReduce
         class_token (int) - class id - STARTS FROM 0!
                     (string) - class name"""
@@ -1715,6 +1731,8 @@ class FeatureSpace( object ):
             print "Error removing class {0}".format( class_token )
             raise
 
+        if not quiet:
+            print "REMOVED CLASS, RESULTANT FEATURE SPACE:", str( retval )
         return retval
 
     #==============================================================
@@ -1800,7 +1818,7 @@ class FeatureSpace( object ):
 
         newfs._RebuildViews()
         if not quiet:
-            print str(newfs)
+            print "COMBINED SAMPLES INTO NEW FEATURE SPACE: ", str(newfs)
         return newfs
 
     #==============================================================
@@ -1808,7 +1826,7 @@ class FeatureSpace( object ):
         """Concatenate two FeatureSpaces along the features (columns) axis."""
 
         if type( other_fs ) is not FeatureSpace:
-            raise ValueError( 'Arg other_fs needs to be of type "FeatureSpace", was a {0}'.format( 
+            raise ValueError( 'Arg other_fs needs to be of type "FeatureSpace", was a {0}'.format(
                 type( other_fs ) ) )
 
             raise NotImplementedError()

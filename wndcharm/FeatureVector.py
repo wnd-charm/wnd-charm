@@ -535,7 +535,11 @@ class FeatureVector( object ):
             self.values = comp_vals
 
         if not quiet:
-            print str( self ), '(calculated ' + str(len(comp_vals)) + ' features)'
+            if len( comp_vals ) != len( self ):
+                print "CALCULATED {0} TOTAL FEATURES, REDUCED TO: {1}".format(
+                        len( comp_vals ), self )
+            else:
+                print "CALCULATED: " + str( self )
 
         # FIXME: write to disk BEFORE feature reduce
         if write_to_disk:
@@ -697,7 +701,7 @@ class FeatureVector( object ):
             newfv = self.Derive( **newdata )
 
         if not quiet:
-            print newfv, 'features reduced/reordered from orig len {0}'.format( orig_len )
+            print "FEATURE VECTOR REDUCED (orig len {0}): {1}".format( orig_len, newfv )
         return newfv
 
     #================================================================
@@ -824,7 +828,7 @@ class FeatureVector( object ):
                 self.Update( **result.groupdict() )
 
         if not quiet:
-            print "Loaded features from file {0}".format( path )
+            print "LOADED ", str( self )
         return self
 
     #================================================================

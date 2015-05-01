@@ -329,7 +329,7 @@ class FisherFeatureWeights( FeatureWeights ):
         s = self.__class__.__name__
         if self.name:
             s += ' "{0}:"'.format( self.name )
-        s += " ({0} features)".format( len(self ) )
+        s += " ({0} features)".format( len( self ) )
         print s
         print "Rank\tValue\tName"
         print "====\t=====\t===="
@@ -337,7 +337,7 @@ class FisherFeatureWeights( FeatureWeights ):
             print "{0}\t{1:.6f}\t{2}".format( i, val, name )
 
         if remainder:
-            print "<output truncated by user, {0} more feature weights>".format( remainder )
+            print "<output truncated by user via \"display\" arg, {0} more feature weights>".format( remainder )
 
 #############################################################################
 # class definition of PearsonFeatureWeights
