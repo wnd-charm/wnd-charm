@@ -213,7 +213,7 @@ void mb_zernike2D (const ImageMatrix &Im, double order, double rad, double *zval
 	else L = 15;
 	assert (L < MAX_L);
 
-	if (! rad > 0.0) rad = N;
+	if (! (rad > 0.0) ) rad = N;
 	D = (int)(rad * 2);
 
 	static double H1[MAX_L][MAX_L];

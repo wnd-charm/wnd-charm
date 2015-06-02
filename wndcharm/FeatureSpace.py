@@ -554,7 +554,6 @@ class FeatureSpace( object ):
                 for class_index in xrange( num_classes ) \
                   for i in xrange( new_fs.class_sizes[ class_index ] ) ]
 
-
         if new_fs.num_samples_per_group != 1:
             # sample sequence id = tile id
             # goes: [ 1, 2, 3, 4, 1, 2, 3, 4, ... ]
@@ -1551,13 +1550,13 @@ class FeatureSpace( object ):
                     is also None, test size is set to 0.25.
 
         train_size : float, int, or None (default is None)
-                If float, should be between 0.0 and 1.0 and represent the proportion
+                    If float, should be between 0.0 and 1.0 and represent the proportion
                     of the dataset to include in the train split (rounded down). If int,
                     represents the absolute number of train samples. If None, the value
                     is automatically set to the complement of the test size.
 
         random_state : int or RandomState
-                If true, generate a new random split. If int or Pseudo-random number
+                    If true, generate a new random split. If int or Pseudo-random number
                     generator state used for random sampling. If value evaluates to false,
                     then do not randomize, but take the first samples in the order
                     the occur in the FeatureSpace/class."""
@@ -1726,13 +1725,13 @@ class FeatureSpace( object ):
             sample_group_ids_to_be_removed = self.sample_group_ids[ class_index_to_be_removed ]
             retval = self.SampleReduce( leave_in_sample_group_ids=None,
                 leave_out_sample_group_ids=sample_group_ids_to_be_removed,
-                inplace=inplace )
+                inplace=inplace, quiet=True )
         except:
             print "Error removing class {0}".format( class_token )
             raise
 
         if not quiet:
-            print "REMOVED CLASS, RESULTANT FEATURE SPACE:", str( retval )
+            print "REMOVED CLASS {0}, RESULTANT FEATURE SPACE: {1}".format( class_token, retval )
         return retval
 
     #==============================================================

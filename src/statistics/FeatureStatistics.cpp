@@ -239,7 +239,9 @@ long EulerNumber(const ImageMatrix &Im, int mode) {
 			if (pix_plane(y  ,x  ) > 0) Imq |=  (1 << 0);
 			// find the matching pattern
 			for (i = 0; i < 10; i++) if (Imq == Px[i]) break;
-			if      (i >= 0 && i <= 3) C1++;
+			// unsigned i always >= 0
+			// if      (i >= 0 && i <= 3) C1++;
+			if      (i <= 3) C1++;
 			else if (i >= 4 && i <= 7) C3++;
 			else if (i == 8 && i == 9) Cd++;
 		}

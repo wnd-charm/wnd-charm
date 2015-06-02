@@ -194,6 +194,8 @@ class FeatureVector( object ):
             else:
                 name = self.name
             outstr += ' "' + name + '"'
+        if self.x is not None and self.y is not None and self.w is not None and self.h is not None:
+            outstr += ' ROI={0}x{1}+{2}+{3}"'.format( self.w, self.h, self.x, self.y)
         if self.label is not None:
             outstr += ' label="' + self.label + '"'
         if self.feature_names is not None:
@@ -348,7 +350,7 @@ class FeatureVector( object ):
                 self.source_filepath.source:
             base, ext = splitext( self.source_filepath.source )
             self.basename = base
-        elif self.source_filepath:
+        elif isinstance( self.source_filepath, str ) and self.source_filepath:
             base, ext = splitext( self.source_filepath )
             self.basename = base
         elif self.name:
@@ -482,8 +484,10 @@ class FeatureVector( object ):
             mean = 0
             stddev = 0
 
+        from .PyImageMatrix import PyImageMatrix
+
         if isinstance( self.source_filepath, str ):
-            the_tiff = wndcharm.ImageMatrix()
+            the_tiff = PyImageMatrix()
             if 1 != the_tiff.OpenImage( self.source_filepath, self.downsample, bb, mean, stddev ):
                 raise ValueError( 'Could not build an ImageMatrix from {0}, check the path.'.\
                     format( self.source_filepath ) )
@@ -495,9 +499,19 @@ class FeatureVector( object ):
             else:
                 # API calls for copying desired pixels into empty ImageMatrix instance:
                 # the_tiff is garbage collected on return
-                the_tiff = wndcharm.ImageMatrix()
+                the_tiff = PyImageMatrix()
                 # bb only used when calling OpenImage
-                the_tiff.submatrix( self.source_filepath, self.x, self.y, self.w, self.h ) # no retval
+
+                # ImageMatrix::submatrix() has a funky signature:
+                # void ImageMatrix::submatrix (const ImageMatrix &matrix, const unsigned int x1, const unsigned int y1, const unsigned int x2, const unsigned int y2);
+                # where x2 and y2 are INCLUSIVE, i.e., must subtract 1 from both
+                x1 = self.x
+                y1 = self.y
+                x2 = x1 + self.w - 1
+                y2 = y1 + self.h - 1
+                if 1 != the_tiff.submatrix( self.source_filepath, x1, y1, x2, y2 ):
+                    raise ValueError( 'Could not crop bounding box ({0},{1}),({2},{3}) from image "{4}"'.\
+                    format( x1, y1, x2, y2, self.source_filepath.source ) )
         else:
             raise ValueError("image parameter 'image_path_or_mat' is not a string or a wndcharm.ImageMatrix")
 

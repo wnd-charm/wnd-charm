@@ -222,6 +222,10 @@ class SampleImageTiles (object):
             self.tiles_y = y
 
         self.samples = self.tiles_x * self.tiles_y
+        self.current_row = 0
+        self.current_y = 0
+        self.current_col = 0
+        self.current_x = 0
 
     def sample(self):
         width = self.tile_width
@@ -229,11 +233,7 @@ class SampleImageTiles (object):
         max_x = self.image.width
         max_y = self.image.height
         original = self.image
-        self.current_row = 0
-        self.current_y = 0
         while self.current_y + height <= max_y:
-            self.current_col = 0
-            self.current_x = 0
             while self.current_x + width <= max_x:
                 new_px_plane = wndcharm.ImageMatrix()
                 bb = ( self.current_x, self.current_y,
@@ -252,7 +252,11 @@ def compare( a_list, b_list, atol=1e-7 ):
     in text files (ala .fit and .sig files) where the number of
     significant figures is sometimes orders of magnitude different"""
 
+    result = True
+    errcount = 0
     for count, (a_raw, b_raw) in enumerate( zip( a_list, b_list ) ):
+        if errcount > 20:
+            break
 
         if a_raw == b_raw:
             continue
@@ -272,7 +276,9 @@ def compare( a_list, b_list, atol=1e-7 ):
         if e_in_a_str != e_in_b_str:
             errmsg = "Index {0}: \"{1}\" and \"{2}\" exponents don't match."
             print errmsg
-            return False
+            result = False
+            errcount += 1
+            continue
             #self.fail( errmsg.format( count, a_str, b_str, ) )
         if e_in_a_str:
             a_coeff, a_exp = a_str.split( 'e' )
@@ -327,8 +333,10 @@ def compare( a_list, b_list, atol=1e-7 ):
 
         #print "{0}->{1}=={2}<-{3} : {4} <= {5}".format( a_raw, a, b, b_raw, diff, 10 ** diff_digits )
         if diff > 10 ** diff_digits:      
-            errstr = "Index {0}: {1} isn't enough like {2}"
-            print errmsg
-            return False
+            errstr = "Index {0}: {1} isn't enough like {2}".format( count, a_raw, b_raw )
+            print errstr
+            result = False
+            errcount += 1
+            continue
             #self.fail( errstr.format( count, a_raw, b_raw ) )
-    return True
+    return result

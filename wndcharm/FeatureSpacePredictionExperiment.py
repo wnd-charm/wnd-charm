@@ -136,60 +136,57 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
         return self
 
     #=====================================================================
+    @classmethod
     @output_railroad_switch
-    def WeightsOptimizationAnalysis( self ):
-        """For use in only those classification experiments where predicted values are generated
-        as part of the classification.
+    def FeatureWeightsGridSearch( cls, start=None, stop=None, step=10, **kwargs ):
+        """Takes same args as NewShuffleSplit. Calls ShuffleSplit for varying number of features.
         
-        This function is used when the user has varied the number/composition of image features
-        in each of the batches and wants to figure out which classifier results in the best
-        figure of merit. This function evaluates which of the batches was created using
-        the optimal classifier configuration and outputs that."""
+        Returns the instance of FeatureSpacePredictionExperiment that has best figure of merit."""
 
-        print "Calculating optimized continuous classifier for training set {0}".\
-                format( self.training_set.source_filepath )
+        best_exp = None
+        max_classification_accuracy = 0
+        features_accuracy_dict = {}
 
-        best_classification_result = None
-        best_weights = None
-        opt_number_features = None
-        min_std_err = float( "inf" )
+        try:
+            for n_features in xrange( start, stop, step ):
+                exp = cls.NewShuffleSplit( **kwargs ).GenerateStats()
+                features_accuracy_dict[ n_features ] = exp.classification_accuracy
+                if exp.classification_accuracy > max_classification_accuracy:
+                    best_exp = exp
+                    max_classification_accuracy = exp.classification_accuracy
+        finally:
+            print "==================================================="
+            for n_features in sorted( features_accuracy_dict.keys() ):
+                print n_features, ',' , features_accuracy_dict[ n_features ] 
+            print "==================================================="
+            best_exp.features_accuracy_dict = features_accuracy_dict
 
-        for batch_result in self.individual_results:
-            weights = batch_result.feature_weights
-            num_features = len( weights.values )
-            if batch_result.std_err < min_std_err:
-                min_std_err = batch_result.std_err
-                best_classification_result = batch_result
-                best_weights = weights
-                opt_number_features = num_features
+        return best_exp
 
-        print "Optimum number of features: {0}".format( opt_number_features )
-        best_classification_result.Print()
-        best_weights.Print()
-        print ""
-        print "Aggregate feature weight analysis:"
-        print "-----------------------------------"
-        print "Legend:"
-        print "NUM - Number of features used in aggregate / Individual feature rank"
-        print "ASE - Standard Error of Final Predicted Value (using aggregated feature) vs ground truth"
-        print "APC - Pearson correlation coefficient of Final Predicted Values vs ground truth"
-        print "APE - Standard Error of APC"
-        print "APP - P-value of APC"
-        print "ASC - Spearman correlation coefficient of Final Predicted Values vs ground truth"
-        print "APP - P-value of ASC"
-        print ""
-
-        print "NUM\tASE\tAPC\tAPE\tAPP\tASC\tAPP"
-        print "===\t===\t===\t===\t===\t===\t==="
-        for result in self.individual_results:
-            line_item = "{0}\t".format( len( result.feature_weights.values ) ) # NUM
-            line_item += "{0:.4f}\t".format( result.std_err ) # ASE
-            line_item += "{0:.4f}\t".format( result.pearson_coeff ) # APC
-            line_item += "{0:.4f}\t".format( result.pearson_std_err ) # APE
-            line_item += "{0:.4f}\t".format( result.pearson_p_value ) # APP
-            line_item += "{0:.4f}\t".format( result.spearman_coeff ) # ASC
-            line_item += "{0:.4f}\t".format( result.spearman_p_value ) # ASP
-            print line_item
+#        print ""
+#        print "Aggregate feature weight analysis:"
+#        print "-----------------------------------"
+#        print "Legend:"
+#        print "NUM - Number of features used in aggregate / Individual feature rank"
+#        print "ASE - Standard Error of Final Predicted Value (using aggregated feature) vs ground truth"
+#        print "APC - Pearson correlation coefficient of Final Predicted Values vs ground truth"
+#        print "APE - Standard Error of APC"
+#        print "APP - P-value of APC"
+#        print "ASC - Spearman correlation coefficient of Final Predicted Values vs ground truth"
+#        print "APP - P-value of ASC"
+#        print ""
+#
+#        print "NUM\tASE\tAPC\tAPE\tAPP\tASC\tAPP"
+#        print "===\t===\t===\t===\t===\t===\t==="
+#        for result in self.individual_results:
+#            line_item = "{0}\t".format( len( result.feature_weights.values ) ) # NUM
+#            line_item += "{0:.4f}\t".format( result.std_err ) # ASE
+#            line_item += "{0:.4f}\t".format( result.pearson_coeff ) # APC
+#            line_item += "{0:.4f}\t".format( result.pearson_std_err ) # APE
+#            line_item += "{0:.4f}\t".format( result.pearson_p_value ) # APP
+#            line_item += "{0:.4f}\t".format( result.spearman_coeff ) # ASC
+#            line_item += "{0:.4f}\t".format( result.spearman_p_value ) # ASP
+#            print line_item
 
     #=====================================================================
     @classmethod

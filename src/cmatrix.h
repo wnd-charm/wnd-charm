@@ -169,6 +169,13 @@ private:
 	bool _is_clr_writeable;
 	double _median;
 public:
+
+	// N.B.: Re: ctor, see note in implementation
+	ImageMatrix () : _pix_plane (NULL,0,0), _clr_plane (NULL,0,0) {
+		init();
+	};
+	virtual ~ImageMatrix();
+
 	std::string source;                             // path of image source file
 	enum ColorModes ColorMode;                       // can be cmRGB, cmHSV or cmGRAY
 	unsigned short bits;                            // the number of intensity bits (8,16, etc)
@@ -224,13 +231,8 @@ public:
 	void copyFields(const ImageMatrix &copy);
 	void copyData(const ImageMatrix &copy);
 	void copy(const ImageMatrix &copy);
-	void submatrix(const ImageMatrix &matrix,
+	int submatrix(const ImageMatrix &matrix_IN,
 		const unsigned int x1, const unsigned int y1, const unsigned int x2, const unsigned int y2);
-	// N.B.: See note in implementation
-	ImageMatrix () : _pix_plane (NULL,0,0), _clr_plane (NULL,0,0) {
-		init();
-	};
-	virtual ~ImageMatrix();                                 // destructor
 
 	virtual void transform (const ImageMatrix &matrix_IN, const ImageTransform *transform);
 
@@ -247,27 +249,27 @@ public:
 	void UpdateStats();
 	void GetStats (Moments2 &moments2) const;
 	inline double min() {
-		if (! stats.n() > 0) UpdateStats();
+		if( !( stats.n() > 0 ) ) UpdateStats();
 		return (stats.min());
 	}
 	inline double max() {
-		if (! stats.n() > 0) UpdateStats();
+		if( !( stats.n() > 0 ) ) UpdateStats();
 		return (stats.max());
 	}
 	inline double mean() {
-		if (! stats.n() > 0) UpdateStats();
+		if( !( stats.n() > 0 ) ) UpdateStats();
 		return (stats.mean());
 	}
 	inline double std() {
-		if (! stats.n() > 0) UpdateStats();
+		if( !( stats.n() > 0 ) ) UpdateStats();
 		return (stats.std());
 	}
 	inline double var() {
-		if (! stats.n() > 0) UpdateStats();
+		if( !( stats.n() > 0 ) ) UpdateStats();
 		return (stats.var());
 	}
 	inline double median() {
-		if (!has_median) update_median();
+		if( !( has_median ) ) update_median();
 		return (_median);
 	}
 	void GetColorStatistics(double *hue_avg, double *hue_std, double *sat_avg, double *sat_std, double *val_avg, double *val_std, double *max_color, double *colors) const;

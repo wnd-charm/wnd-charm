@@ -157,7 +157,7 @@ class TestFeatureSet( unittest.TestCase ):
         batch_result = FeatureSpaceClassification.NewWND5( fs, fs, fw, quiet=True )
         # FIXME: compare result to something
 
-    @unittest.skip('')
+    @unittest.skip('Write this test immediately!')
     def test_TileOptions( self ):
 
         fs = FeatureSpace.NewFromFitFile( wndchrm_test_dir + sep + 'test-l.fit', tile_options  )
