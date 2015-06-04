@@ -898,11 +898,11 @@ class FeatureSpace( object ):
                         base_sample_opts.LoadSigFile( path_to_sample )
                         # Classic 2-col FOF listing sig path is an edgecase where we assign sample group id
                         # based on base prefix resulting from parsing out the sampling options ("-l", etc).
-                        base_sample_opts.samplegroupid = ReturnSampleGroupID( base_sample_opts.basename )
+                        base_sample_opts.sample_group_id = ReturnSampleGroupID( base_sample_opts.basename )
                         samples.append( base_sample_opts )
                     else:
                         base_sample_opts.source_filepath = path_to_sample
-                        base_sample_opts.samplegroupid = ReturnSampleGroupID( cols[0] )
+                        base_sample_opts.sample_group_id = ReturnSampleGroupID( cols[0] )
                         for col_index in xrange( tile_num_cols ):
                             for row_index in xrange( tile_num_rows ):
                                 fv = deepcopy( base_sample_opts )
@@ -930,7 +930,7 @@ class FeatureSpace( object ):
                         # Start with a clean sample options template for each column
                         base_sample_opts = deepcopy( global_sampling_options )
                         base_sample_opts.name = cols[0]
-                        base_sample_opts.samplegroupid = ReturnSampleGroupID( cols[0] )
+                        base_sample_opts.sample_group_id = ReturnSampleGroupID( cols[0] )
                         base_sample_opts.label = cols[1]
                         val_match = num_search.search( cols[1] )
                         if val_match:
@@ -1073,9 +1073,9 @@ class FeatureSpace( object ):
         sorted_by_fs_cols = sorted( feature_vectors_list, key=lambda fv: fv.fs_col )
 
         # DEBUG: optional sort 1: sort again by sample group
-        #sorted_by_fs_cols = sorted( sorted_by_fs_cols, key=lambda fv: fv.samplegroupid )
+        #sorted_by_fs_cols = sorted( sorted_by_fs_cols, key=lambda fv: fv.sample_group_id )
         # DEBUG: optional sort 2: Sort again by sample sequence id
-        #sorted_by_fs_cols = sorted( sorted_by_fs_cols, key=lambda fv: fv.samplesequenceid )
+        #sorted_by_fs_cols = sorted( sorted_by_fs_cols, key=lambda fv: fv.sample_sequence_id )
         # Now your row index calculated below should also equal the feature vector index
 
         # Be consistent with kludge solution in NewFromFileOfFiles() re: setting a
@@ -1092,7 +1092,7 @@ class FeatureSpace( object ):
 
             col_left_boundary_index = feature_set_col_offset[ fv.fs_col - 1 ]
             col_right_boundary_index = col_left_boundary_index + fv.num_features
-            row_index = (fv.samplegroupid * num_samples_per_group) + fv.samplesequenceid
+            row_index = (fv.sample_group_id * num_samples_per_group) + fv.sample_sequence_id
 
             #print "row", row_index, "left", col_left_boundary_index, "right", col_right_boundary_index
 
@@ -1109,8 +1109,8 @@ class FeatureSpace( object ):
             if fv.fs_col == 0: # (fs_col member must be > 0 and cannot be None)
                 #print 'row index', row_index, str( fv )
                 new_fs._contiguous_sample_names[ row_index ] = fv.name
-                new_fs._contiguous_sample_group_ids[ row_index ] = fv.samplegroupid
-                new_fs._contiguous_sample_sequence_ids[ row_index ] = fv.samplesequenceid
+                new_fs._contiguous_sample_group_ids[ row_index ] = fv.sample_group_id
+                new_fs._contiguous_sample_sequence_ids[ row_index ] = fv.sample_sequence_id
                 new_fs._contiguous_ground_truth_labels[ row_index ] = fv.label
                 new_fs._contiguous_ground_truth_values[ row_index ] = fv.ground_truth
 
@@ -1194,6 +1194,7 @@ class FeatureSpace( object ):
         self._contiguous_sample_group_ids = [ None ] * self.num_samples
         self._contiguous_sample_sequence_ids = [ None ] * self.num_samples
         self._contiguous_ground_truth_values = [ None ] * self.num_samples
+        self._contiguous_ground_truth_labels = [ None ] * self.num_samples
 
         # We need to start copying at the first non-view class mat to the end.
         for class_index in range (copy_class, len (self.data_list)):
@@ -1828,7 +1829,7 @@ class FeatureSpace( object ):
             raise ValueError( 'Arg other_fs needs to be of type "FeatureSpace", was a {0}'.format(
                 type( other_fs ) ) )
 
-            raise NotImplementedError()
+        raise NotImplementedError()
 
 
     #==============================================================

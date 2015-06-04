@@ -108,8 +108,8 @@ class FeatureVector( object ):
     r'(?:-S(?P<pixel_intensity_mean>\d+)(?:_(?P<pixel_intensity_stddev>\d+))?)?',
     # rotations:
     r'(?:-R_(?P<rot>\d))?',
-    # tiling info:
-    r'(?P<tiling_scheme>-t(?P<tile_num_rows>\d+)(?:x(?P<tile_num_cols>\d+))?_(?P<tile_row_index>\d+)_(?P<tile_col_index>\d+))?',
+    # tiling info: (I know the order is a bit wacky: num_cols, num_rows, col index, row_index
+    r'(?P<tiling_scheme>-t(?P<tile_num_cols>\d+)(?:x(?P<tile_num_rows>\d+))?_(?P<tile_col_index>\d+)_(?P<tile_row_index>\d+))?',
     # color features:
     r'(?P<color>-c)?',
     # long feature set:
@@ -142,7 +142,7 @@ class FeatureVector( object ):
         #: label is stringified ground truth
         self.label = None
         self.ground_truth = None
-        self.samplegroupid = None
+        self.sample_group_id = None
         self.channel = None
         self.time_index = None
         self.tiling_scheme = None
@@ -152,7 +152,7 @@ class FeatureVector( object ):
         #: indices count from 0
         self.tile_row_index = 0
         self.tile_col_index = 0
-        self.samplesequenceid = 0
+        self.sample_sequence_id = 0
         #: downsample (in percents)
         self.downsample = 0
         self.pixel_intensity_mean = None
@@ -200,10 +200,10 @@ class FeatureVector( object ):
             outstr += ' label="' + self.label + '"'
         if self.feature_names is not None:
             outstr += ' n_features=' + str( len( self ) )
-        if self.samplegroupid is not None:
-            outstr += ' grp=' + str( self.samplegroupid )
-        if self.samplesequenceid is not None:
-            outstr += ' seq=' + str( self.samplesequenceid )
+        if self.sample_group_id is not None:
+            outstr += ' grp=' + str( self.sample_group_id )
+        if self.sample_sequence_id is not None:
+            outstr += ' seq=' + str( self.sample_sequence_id )
         if self.fs_col is not None:
             outstr += ' fs_col=' + str( self.fs_col )
         return outstr + '>'
@@ -292,14 +292,14 @@ class FeatureVector( object ):
             self.tile_num_rows = int( self.tile_num_rows )
         if self.tile_num_cols is not None and type( self.tile_num_cols ) != int:
             self.tile_num_cols = int( self.tile_num_cols )
-        if self.samplegroupid is not None and type( self.samplegroupid ) != int:
-            self.samplegroupid = int( self.tile_num_cols )
+        if self.sample_group_id is not None and type( self.sample_group_id ) != int:
+            self.sample_group_id = int( self.tile_num_cols )
 
-        # sequence order:
-        # index 0 = position row 0, col 0
-        # index 1 = position row 0, col 1
-        # index 2 = position row 1, col 0, etc...
-        self.samplesequenceid = (self.tile_row_index * self.tile_num_cols) + self.tile_col_index
+        # sequence order has historically been (e.g. 3x3):
+        # 0 3 6
+        # 1 4 7
+        # 2 5 8
+        self.sample_sequence_id = (self.tile_col_index * self.tile_num_rows ) + self.tile_row_index
         return self
 
     #==============================================================
@@ -372,12 +372,13 @@ class FeatureVector( object ):
                 base += "-S" + str(self.pixel_intensity_stddev)
         if self.rot is not None:
             base += "-R_" + str(self.rot)
-        if self.tile_num_rows and self.tile_num_rows != 1:
-            base += "-t" + str(self.tile_num_rows)
-            if self.tile_num_cols and self.tile_num_cols != 1:
-                base +="x" + str(self.tile_num_cols)
-            if self.tile_row_index is not None and self.tile_col_index is not None:
-                base += "_{0}_{1}".format( self.tile_row_index, self.tile_col_index )
+        # the historical tile notation order is: num_cols, num_rows, col index, row_index
+        if self.tile_num_cols and self.tile_num_cols != 1:
+            base += "-t" + str(self.tile_num_cols)
+            if self.tile_num_rows and self.tile_num_rows != 1:
+                base +="x" + str(self.tile_num_rows)
+            if self.tile_col_index is not None and self.tile_row_index is not None:
+                base += "_{0}_{1}".format( self.tile_col_index, self.tile_row_index )
             else:
                 raise ValueError('Need to specify tile_row_index and tile_col_index in self for tiling params')
         if self.color:
@@ -555,7 +556,7 @@ class FeatureVector( object ):
             else:
                 print "CALCULATED: " + str( self )
 
-        # FIXME: write to disk BEFORE feature reduce
+        # FIXME: maybe write to disk BEFORE feature reduce? Provide flag to let user decide?
         if write_to_disk:
             self.ToSigFile( quiet=quiet )
 

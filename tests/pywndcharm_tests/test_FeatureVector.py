@@ -192,7 +192,7 @@ class TestFeatureCalculation( unittest.TestCase ):
             kwargs[ 'w' ] = ROI_width
             kwargs[ 'h' ] = ROI_height
 
-            kwargs[ 'samplegroupid' ] = 0
+            kwargs[ 'sample_group_id' ] = 0
 
             top_left_tile_feats = FeatureVector( **kwargs ).GenerateFeatures( quiet=False, write_to_disk=False )
             top_left_tile_reference_feats = FeatureVector.NewFromSigFile( tempdir + sep + 'lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E-t6x5_0_0-l.sig' ) 
@@ -287,7 +287,7 @@ class TestSampleImageTiles( unittest.TestCase ):
             kwargs[ 'tiling_scheme' ] = '{0}x{1}'.format( image_iter.tiles_x, image_iter.tiles_y )
             kwargs[ 'tile_col_index' ] = image_iter.current_col
             kwargs[ 'tile_row_index' ] = image_iter.current_row
-            kwargs[ 'samplegroupid' ] = 0
+            kwargs[ 'sample_group_id' ] = 0
 
             top_left_tile_feats = FeatureVector( **kwargs ).GenerateFeatures( quiet=False, write_to_disk=False )
 

@@ -43,8 +43,8 @@ class SingleSamplePrediction( object ):
         self.ground_truth_value = None
         self.predicted_value = None
         self.batch_number = None
-        self.samplegroupid = None
-        self.samplesequenceid = None
+        self.sample_group_id = None
+        self.sample_sequence_id = None
 
         #: Indicates the position of the ROI within an image
         self.tile_index = None
@@ -143,10 +143,10 @@ class SingleSampleClassification( SingleSamplePrediction ):
             samp_name = '...' + samp_name[ -25: ]
 
         outstr += ' "' + samp_name + '"'
-        if self.samplegroupid is not None:
-            outstr += ' grp=' + str( self.samplegroupid )
-        if self.samplesequenceid is not None:
-            outstr += ' seq=' + str( self.samplesequenceid )
+        if self.sample_group_id is not None:
+            outstr += ' grp=' + str( self.sample_group_id )
+        if self.sample_sequence_id is not None:
+            outstr += ' seq=' + str( self.sample_sequence_id )
         if self.predicted_class_name:
             outstr += ' pred="' + self.predicted_class_name + '"'
         if self.ground_truth_class_name:
@@ -266,10 +266,10 @@ class SingleSampleClassification( SingleSamplePrediction ):
         else:
             result.source_filepath = test_samp.name
 
-        if test_samp.samplegroupid is not None:
-            result.samplegroupid = test_samp.samplegroupid
-        if test_samp.samplesequenceid is not None:
-            resultsamplesequenceid = test_samp.samplesequenceid
+        if test_samp.sample_group_id is not None:
+            result.sample_group_id = test_samp.sample_group_id
+        if test_samp.sample_sequence_id is not None:
+            result.sample_sequence_id = test_samp.sample_sequence_id
 
         marg_probs = np.array( result.marginal_probabilities )
         result.predicted_class_name = training_set.class_names[ marg_probs.argmax() ]

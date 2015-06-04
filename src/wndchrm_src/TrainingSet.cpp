@@ -2418,29 +2418,29 @@ long TrainingSet::WNNclassify(signatures *test_sample, double *probabilities, do
 long TrainingSet::classify2( char* name, int test_sample_index, signatures *test_sample, double *probabilities, double *normalization_factor)
 { 
 	using namespace std;
-	vector<int> num_samples_per_class( class_num + 1, 0 ); 
-  vector<double> indiv_distances( count, 0.0 ); 
-  vector<double> indiv_similarities( count, 0.0 ); 
-  // class numberings start at 1.
-  vector<double> class_similarities( class_num + 1, 0.0 );
+	vector<int> num_samples_per_class( class_num + 1, 0 );
+	vector<double> indiv_distances( count, 0.0 ); 
+	vector<double> indiv_similarities( count, 0.0 ); 
+	// class numberings start at 1.
+	vector<double> class_similarities( class_num + 1, 0.0 );
 	vector<double> class_distances( class_num + 1, 0.0 );
 	vector<int> num_collisions( class_num + 1, 0 );
 
-  // normalize the test sample
-  test_sample->normalize(this);
+	// normalize the test sample
+	test_sample->normalize(this);
 
-  int sample_index;
-  int sig_index;
-  double dist;
+	int sample_index;
+	int sig_index;
+	double dist;
 	double dist_sum;
-  double similarity;
+	double similarity;
 
 	// iterate over all images in training set
-  for( sample_index = 0; sample_index < count; sample_index++ )
+	for( sample_index = 0; sample_index < count; sample_index++ )
 	{
-    dist_sum = 0.0;
+		dist_sum = 0.0;
 		// iterate over all features
-    for( sig_index = 0; sig_index < signature_count; sig_index++ )
+		for( sig_index = 0; sig_index < signature_count; sig_index++ )
 		{
 			// if the feature weight for this feature == 0, skip to next feature
 			if (SignatureWeights[ sig_index ] < DBL_EPSILON) continue;
@@ -2465,7 +2465,7 @@ long TrainingSet::classify2( char* name, int test_sample_index, signatures *test
 			}
 		}
 
-    if( dist_sum < DBL_EPSILON ) {
+		if( dist_sum < DBL_EPSILON ) {
 			//cout << "Small dist: " << test_sample_index << " & " << sample_index << endl;
 			num_collisions[ samples[ sample_index ]->sample_class ]++;
 			continue;
@@ -2816,7 +2816,7 @@ long TrainingSet::dendrogram(FILE *output_file, char *dataset_name, char *phylib
 	sprintf(file_path,"%s/dend_file.txt",phylib_path);
 	if (!(dend_file=fopen(file_path,"w"))) return(0);
 	fprintf(dend_file,"%d\n",nodes_num);
-/* print the labels */
+	/* print the labels */
 	for (label_index=1;label_index<=nodes_num;label_index++) {
 		char label[128];
 		double dist=0.0, diff;
@@ -2985,12 +2985,12 @@ long TrainingSet::PrintConfusion(FILE *output_file,unsigned short *confusion_mat
    Returns 2 if all the characters in *s are part of a valid number.
 */
 int check_numeric (char *s, double *samp_val) {
-char *p2;
-int numeric=1;
-int pure_numeric=1;
-long maybe_int;
-double val;
-int last_errno;
+	char *p2;
+	int numeric=1;
+	int pure_numeric=1;
+	long maybe_int;
+	double val;
+	int last_errno;
 
 	// Checking errno is the only way we have to know that the numeric conversion had an error
 	last_errno = errno;
@@ -3041,17 +3041,17 @@ void chomp (char *line) {
 long TrainingSet::report( FILE*                     output_file,
                           int                       argc,
                           char**                    argv,
-													char*                     output_file_name,
-													std::vector<data_split>&  splits,
-													unsigned short            split_num,
-													featureset_t*             featureset,
-													int                       max_train_images,
-													char*                     phylib_path,
-													int                       distance_method,
-													int                       phylip_algorithm,
-													int                       export_tsv,
-													TrainingSet*              testset,
-													int                       image_similarities,
+                          char*                     output_file_name,
+                          std::vector<data_split>&  splits,
+                          unsigned short            split_num,
+                          featureset_t*             featureset,
+                          int                       max_train_images,
+                          char*                     phylib_path,
+                          int                       distance_method,
+                          int                       phylip_algorithm,
+                          int                       export_tsv,
+                          TrainingSet*              testset,
+                          int                       image_similarities,
                           bool                      use_err_bars = true )
 {
 	int class_index,class_index2,split_index,test_set_size,train_set_size;

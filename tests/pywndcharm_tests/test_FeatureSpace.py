@@ -43,6 +43,7 @@ from wndcharm.FeatureSpace import FeatureSpace
 from wndcharm.FeatureWeights import FisherFeatureWeights, PearsonFeatureWeights
 from wndcharm.FeatureSpacePrediction import FeatureSpaceClassification, \
        FeatureSpaceRegression
+from wndcharm.utils import compare
 
 class TestFeatureSet( unittest.TestCase ):
     """
@@ -530,10 +531,10 @@ class TestFeatureSet( unittest.TestCase ):
             kwargs = {}
             kwargs['pathname'] = tempdir + sep + 'lymphoma_iicbu2008_subset_EOSIN_ONLY_sigfiles_t5x6-l.fof.tsv'
             kwargs['quiet'] = True
-            # sampling opts: -l -t5x6
+            # sampling opts: -l -t5x6 implies 5 columns and 6 rows ... I know it's weird.
             kwargs['long'] = True
-            kwargs['tile_num_rows'] = 5
-            kwargs['tile_num_cols'] = 6
+            kwargs['tile_num_rows'] = 6
+            kwargs['tile_num_cols'] = 5
             fs_fof = FeatureSpace.NewFromFileOfFiles( **kwargs )
 
             kwargs['pathname'] = tempdir + sep + 'lymphoma_iicbu2008_subset_eosin_t5x6_v3.2features.fit'
@@ -559,9 +560,23 @@ class TestFeatureSet( unittest.TestCase ):
             #
             # +  223.787,    # fit
 
+            # More of the same:
+            #(Pdb) fs_fof.data_matrix[0,-5:]
+            #array([   0.935442,   14.005003,  -43.562076,  127.394914,    0.628772])
+            #(Pdb) fs_fit.data_matrix[0,-5:]
+            #array([   0.935442,   14.005   ,  -43.5621  ,  127.395   ,    0.628772])
+
             # default is rtol=1e-07, atol=0
-            np.testing.assert_allclose( actual=fs_fit.data_matrix, desired=fs_fof.data_matrix,
-                    rtol=5e-06, atol=0 )
+            #np.testing.assert_allclose( actual=fs_fit.data_matrix, desired=fs_fof.data_matrix,
+            #        rtol=1e-03, atol=0 )
+            #np.testing.assert_array_almost_equal_nulp( fs_fit.data_matrix, fs_fof.data_matrix )
+            for row_num, (fit_row, fof_row) in enumerate( zip( fs_fit.data_matrix, fs_fof.data_matrix )):
+                retval = compare( fit_row, fof_row )
+                if retval == False:
+                    print "error in sample row", row_num
+                    print "FIT: ", fs_fit._contiguous_sample_names[row_num], "FOF", fs_fof._contiguous_sample_names[row_num]
+                    print "FIT: ", fs_fit._contiguous_sample_names[row_num], "FOF", fs_fof._contiguous_sample_names[row_num]
+                self.assertTrue( retval )
 
         finally:
             rmtree( tempdir )

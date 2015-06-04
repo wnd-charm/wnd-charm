@@ -95,17 +95,17 @@ def CreateArtificialFeatureSpace_Continuous( name="ContinuousArtificialFS", n_sa
       raise ValueError( "n_samples_per_group has to be an integer, and at least 1." )
 
     if random_state:
-      from numpy.random import RandomState
-      if random_state is True:
-        from numpy.random import normal
-      elif type( random_state ) is RandomState:
-        normal = random_state.normal
-      elif type( random_state ) is int:
-        normal = RandomState( random_state ).normal
-      else:
-        raise ValueError( 'Arg random_state must be an instance of np.random.RandomState, an int, or the value True')
+        from numpy.random import RandomState
+        if random_state is True:
+            from numpy.random import normal
+        elif type( random_state ) is RandomState:
+            normal = random_state.normal
+        elif type( random_state ) is int:
+            normal = RandomState( random_state ).normal
+        else:
+            raise ValueError( 'Arg random_state must be an instance of np.random.RandomState, an int, or the value True')
     else: # no noise added to feature values
-      normal = lambda mu, sigma, n: np.zeros( n )
+        normal = lambda mu, sigma, n: np.zeros( n )
 
     # Figure out what signals to use
     if singularity:
@@ -153,24 +153,24 @@ def CreateArtificialFeatureSpace_Continuous( name="ContinuousArtificialFS", n_sa
                                     for i in xrange( num_features_per_signal_type ) ]
     # Creating sample metadata
     if n_samples_per_group == 1:
-      new_fs._contiguous_sample_names = [ "FakeContinuousSample{0:03d}".format( i )\
+        new_fs._contiguous_sample_names = [ "FakeContinuousSample{0:03d}".format( i )\
                                              for i in xrange( n_samples ) ]
-      new_fs._contiguous_sample_group_ids = range( n_samples ) # not xrange
-      new_fs._contiguous_sample_sequence_ids =  [1] * n_samples
+        new_fs._contiguous_sample_group_ids = range( n_samples ) # not xrange
+        new_fs._contiguous_sample_sequence_ids =  [1] * n_samples
     else:
-      # Format: FakeContinuousSample_i<sample index>_g<group>_t<tile#>
-      temp1 = [ "FakeContinuousSample_i{0:03d}".format( i ) for i in xrange( n_samples ) ]
-      n_samplegroups = n_samples / n_samples_per_group
-      temp2 = [ "_g{0:03d}_t{1:02d}".format( samplegroup_index, tile_index ) \
-        for samplegroup_index in xrange( n_samplegroups ) \
-          for tile_index in xrange( n_samples_per_group ) ]
-      new_fs._contiguous_sample_names = [ a + b for a, b in zip( temp1, temp2 ) ]
-      new_fs._contiguous_sample_group_ids = \
-          [ samplegroup_index for samplegroup_index in xrange( n_samplegroups ) \
-          for tile_index in xrange( n_samples_per_group ) ]
-      new_fs._contiguous_sample_sequence_ids = \
-          [ tile_index for samplegroup_index in xrange( n_samplegroups ) \
-          for tile_index in xrange( n_samples_per_group ) ]
+        # Format: FakeContinuousSample_i<sample index>_g<group>_t<tile#>
+        temp1 = [ "FakeContinuousSample_i{0:03d}".format( i ) for i in xrange( n_samples ) ]
+        n_samplegroups = n_samples / n_samples_per_group
+        temp2 = [ "_g{0:03d}_t{1:02d}".format( samplegroup_index, tile_index ) \
+            for samplegroup_index in xrange( n_samplegroups ) \
+                for tile_index in xrange( n_samples_per_group ) ]
+        new_fs._contiguous_sample_names = [ a + b for a, b in zip( temp1, temp2 ) ]
+        new_fs._contiguous_sample_group_ids = \
+            [ samplegroup_index for samplegroup_index in xrange( n_samplegroups ) \
+                for tile_index in xrange( n_samples_per_group ) ]
+        new_fs._contiguous_sample_sequence_ids = \
+            [ tile_index for samplegroup_index in xrange( n_samplegroups ) \
+                for tile_index in xrange( n_samples_per_group ) ]
 
     old_settings = np.seterr( all='ignore' ) # Bring on the NaN's!
 
@@ -179,13 +179,13 @@ def CreateArtificialFeatureSpace_Continuous( name="ContinuousArtificialFS", n_sa
     # N.B. The features are in sort order!
     ground_truth_values = np.array( new_fs._contiguous_ground_truth_values )
     for func_name in sorted( signals.keys() ):
-      f = signals[ func_name ]
-      raw_feature_values = clip( f( ground_truth_values ) )
-      for feat_index in xrange( num_features_per_signal_type ):
-        # Add noise proportional to the feature index
-        noise_vector = normal( 0, initial_noise_sigma + feat_index * noise_gradient, n_samples )
-        new_fs.data_matrix[:,feat_count] = np.add( noise_vector, raw_feature_values )
-        feat_count += 1
+        f = signals[ func_name ]
+        raw_feature_values = clip( f( ground_truth_values ) )
+        for feat_index in xrange( num_features_per_signal_type ):
+            # Add noise proportional to the feature index
+            noise_vector = normal( 0, initial_noise_sigma + feat_index * noise_gradient, n_samples )
+            new_fs.data_matrix[:,feat_count] = np.add( noise_vector, raw_feature_values )
+            feat_count += 1
 
     np.seterr( **old_settings )
 
@@ -220,21 +220,21 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
     """
 
     if random_state:
-      from numpy.random import RandomState
+        from numpy.random import RandomState
 
-      if random_state is True:
-        from numpy.random import normal
-      elif type( random_state ) is RandomState:
-        normal = random_state.normal
-      elif type( random_state ) is int:
-        normal = RandomState( random_state ).normal
-      else:
-        raise ValueError( 'Arg random_state must be an instance of np.random.RandomState, an int, or the value True')
+        if random_state is True:
+            from numpy.random import normal
+        elif type( random_state ) is RandomState:
+            normal = random_state.normal
+        elif type( random_state ) is int:
+            normal = RandomState( random_state ).normal
+        else:
+            raise ValueError( 'Arg random_state must be an instance of np.random.RandomState, an int, or the value True')
     else: # no noise added to feature values
-      normal = lambda mu, sigma, n: np.zeros( n )
+        normal = lambda mu, sigma, n: np.zeros( n )
 
     if n_samples_per_group < 1 or type(n_samples_per_group) is not int:
-      raise ValueError( "n_samples_per_group has to be an integer, and at least 1." )
+        raise ValueError( "n_samples_per_group has to be an integer, and at least 1." )
 
     # Figure out what signals to use
     if singularity:
@@ -267,15 +267,15 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
     n_samples_per_class = int( n_samplegroups_per_class * n_samples_per_group ) # change number inputted
     n_samples = int( n_samples_per_class * n_classes ) # changes number inputted!
     if n_samples <= 0:
-      raise ValueError( "Specify n_samples to be a multiple of n_classes ({0}) * n_samples_per_group ({1}) >= {2}".format( n_classes, n_samples_per_group, n_classes* n_samples_per_group ) )
+        raise ValueError( "Specify n_samples to be a multiple of n_classes ({0}) * n_samples_per_group ({1}) >= {2}".format( n_classes, n_samples_per_group, n_classes* n_samples_per_group ) )
     # Initialize the basic data members
 
     num_features = num_features_per_signal_type * len( signals )
 
     # Instantiate and assign basic data members
     new_fs = FeatureSpace( name=name, source_filepath=name, num_samples=n_samples,
-      num_samples_per_group=n_samples_per_group, num_features=num_features, discrete=True,
-      feature_set_version='-1.0')
+        num_samples_per_group=n_samples_per_group, num_features=num_features, discrete=True,
+        feature_set_version='-1.0')
 
     new_fs.num_classes = n_classes
     new_fs.class_sizes = [ n_samples_per_class for i in xrange( n_classes ) ]
@@ -291,11 +291,11 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
 
     new_fs.class_names = []
     for val in new_fs.interpolation_coefficients:
-      # Try to use integers for each individual class name
-      if float(int(val)) == val:
-        new_fs.class_names.append( "FakeClass{0:02d}".format( int(val) ) )
-      else:
-        new_fs.class_names.append( "FakeClass{0:.02f}".format( val )  )
+        # Try to use integers for each individual class name
+        if float(int(val)) == val:
+            new_fs.class_names.append( "FakeClass{0:02d}".format( int(val) ) )
+        else:
+            new_fs.class_names.append( "FakeClass{0:.02f}".format( val ) )
 
     # Generate artificial feature names
     # N.B. The feature generation signals are sorted in alphanum order!
@@ -303,7 +303,7 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
                                     for fname in sorted( signals.keys() ) \
                                     for i in xrange( num_features_per_signal_type ) ]
     if n_samples_per_group >= 1:
-      group_index = 0
+        group_index = 0
 
     # Creating sample metadata
     if n_samples_per_group == 1:
@@ -336,17 +336,17 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
     # N.B. The features are in sort order!
     ground_truth_values = np.array( new_fs.interpolation_coefficients )
     for func_name in sorted( signals.keys() ):
-      f = signals[ func_name ]
-      raw_class_feature_values = clip( f( ground_truth_values ) )
-      raw_feature_values = np.empty( n_samples, )
-      for i, val in enumerate( raw_class_feature_values ):
-        raw_feature_values[ i * n_samples_per_class: (i+1) * n_samples_per_class].fill( val )
+        f = signals[ func_name ]
+        raw_class_feature_values = clip( f( ground_truth_values ) )
+        raw_feature_values = np.empty( n_samples, )
+        for i, val in enumerate( raw_class_feature_values ):
+            raw_feature_values[ i * n_samples_per_class: (i+1) * n_samples_per_class].fill( val )
 
-      for feat_index in xrange( num_features_per_signal_type ):
-        # Add noise proportional to the feature index
-        noise_vector = normal( 0, initial_noise_sigma + feat_index * noise_gradient, n_samples )
-        new_fs.data_matrix[:,feat_count] = np.add( noise_vector, raw_feature_values )
-        feat_count += 1
+        for feat_index in xrange( num_features_per_signal_type ):
+            # Add noise proportional to the feature index
+            noise_vector = normal( 0, initial_noise_sigma + feat_index * noise_gradient, n_samples )
+            new_fs.data_matrix[:,feat_count] = np.add( noise_vector, raw_feature_values )
+            feat_count += 1
 
     np.seterr( **old_settings )
 
@@ -356,11 +356,11 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
             for j in xrange( n_samples_per_class ) ]
 
     if not interpolatable:
-      # delete the coefficients if user asks for a pure classification problem feat. set.
-      new_fs.interpolation_coefficients = None
+        # delete the coefficients if user asks for a pure classification problem feat. set.
+        new_fs.interpolation_coefficients = None
     else:
-      new_fs._contiguous_ground_truth_values = [ new_fs.interpolation_coefficients[i] \
-        for i in xrange( n_classes ) for j in range( n_samples_per_class ) ]
+        new_fs._contiguous_ground_truth_values = [ new_fs.interpolation_coefficients[i] \
+            for i in xrange( n_classes ) for j in range( n_samples_per_class ) ]
 
     new_fs._RebuildViews()
     return new_fs
