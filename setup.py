@@ -39,24 +39,24 @@ execfile(os.path.join (pkg_dir,'_version.py'))
 # require any action other than normal svn updates/commits to register new version numbers
 # The svn version is written to wndcharm/_svn_version.py (which is not under svn control) for inclusion by __init__.py
 # If we're not building from svn, then _svn_version.py is not written, and __version__ will be as in wndcharm/_version.py
-try:
-	import subprocess
-	import re
-	svn_vers = subprocess.Popen(['svnversion', pkg_dir], stdout=subprocess.PIPE).communicate()[0].strip()
-	rev_re = re.search(r'^(\d+)(.+)?$', svn_vers)
-	if rev_re:
-		if rev_re.group(2):
-			svn_vers = 'r'+rev_re.group(1)+'-local'
-		else:
-			svn_vers = 'r'+rev_re.group(1)
-		print "svn revision "+svn_vers
-		# this construction matches what is done in __init__.py by importing both _version.py and _svn_version.py
-		__version__ = __version__+'-'+svn_vers
-		f = open(os.path.join(pkg_dir,'_svn_version.py'), 'w+')
-		f.write ("__svn_version__ = '"+svn_vers+"'\n")
-		f.close()
-except:
-	pass
+#try:
+#	import subprocess
+#	import re
+#	svn_vers = subprocess.Popen(['svnversion', pkg_dir], stdout=subprocess.PIPE).communicate()[0].strip()
+#	rev_re = re.search(r'^(\d+)(.+)?$', svn_vers)
+#	if rev_re:
+#		if rev_re.group(2):
+#			svn_vers = 'r'+rev_re.group(1)+'-local'
+#		else:
+#			svn_vers = 'r'+rev_re.group(1)
+#		print "svn revision "+svn_vers
+#		# this construction matches what is done in __init__.py by importing both _version.py and _svn_version.py
+#		__version__ = __version__+'-'+svn_vers
+#		f = open(os.path.join(pkg_dir,'_svn_version.py'), 'w+')
+#		f.write ("__svn_version__ = '"+svn_vers+"'\n")
+#		f.close()
+#except:
+#	pass
 
 # Since there's a large C++ underpinning for the wndcharm Python API, run autotools to test build environment
 import os

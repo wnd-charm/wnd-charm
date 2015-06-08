@@ -48,8 +48,8 @@ def CheckIfClassNamesAreInterpolatable( class_names ):
 # class definition of FeatureSpace
 #############################################################################
 class FeatureSpace( object ):
-    """An instance of FeatureSpace is one-half of a WND-CHARM classifier, the other half being the
-    FeatureWeights instance.
+    """An instance of FeatureSpace is one-half of a WND-CHARM classifier,
+    the other half being the FeatureWeights instance.
 
     The FeatureSpace class is a container for sets of image descriptors, which are collected
     into Numpy matrices organized by image class or ground truth. FeatureSpaces are also used
@@ -62,6 +62,11 @@ class FeatureSpace( object ):
     import re
     channel_col_finder = re.compile(r'(?P<path>.*?)?\{(?P<opts>.*?)?\}')
     channel_opt_finder = re.compile(r'(?:(?P<key>.+?)=)?(?P<value>.+)')
+
+    # Don't bother copying these "view" members which are rebuilt by self._RebuildViews()
+    # Used for Derive, pickling operations, etc.
+    convenience_view_members = [ 'data_list', 'sample_names', 'sample_group_ids',\
+            'sample_sequence_ids', 'ground_truth_values', 'ground_truth_labels' ]
 
     #==============================================================
     def __init__( self, name=None, source_filepath=None, num_samples=None,
@@ -98,7 +103,7 @@ class FeatureSpace( object ):
 
         #: @type: boolean
         #: Set to True when features packed into single matrix via internal
-        self.data_matrix_is_contiguous = False
+        self.samples_sorted_by_ground_truth = False
         
         #: The feature vector version contained in this FeatureSpace
         #: The major version must match for all feature vectors in the FeatureSpace
@@ -210,10 +215,6 @@ class FeatureSpace( object ):
         self_namespace = vars( self )
         new_obj_namespace = vars( new_obj )
 
-        # Don't bother copying these "view" members which are rebuilt by self._RebuildViews()
-        convenience_view_members = [ 'data_list', 'sample_names', 'sample_group_ids',\
-            'sample_sequence_ids', 'ground_truth_values', 'ground_truth_labels' ]
-
         # Are all keys in kwargs valid instance attribute names?
         invalid_kwargs = set( kwargs.keys() ) - set( self_namespace.keys() )
         if len( invalid_kwargs ) > 0:
@@ -222,7 +223,7 @@ class FeatureSpace( object ):
         # Go through all of self's members and copy them to new_fs
         # unless a key-val pair was passed in as kwargs
         for key in self_namespace:
-            if key in convenience_view_members:
+            if key in self.convenience_view_members:
                 continue
             if key in kwargs:
                 new_obj_namespace[key] = kwargs[key]
@@ -417,21 +418,187 @@ class FeatureSpace( object ):
         else:
             print "Writing {0}".format( outfile_pathname )
 
-        # Since we may have both a data_matrix and views into it (data_list), we only want to store
-        # one or the other.  Pickle is not smart enough to store numpy views as references.
-        # We chose to store the data_matrix, setting data_list to [] if we have it
-        # The views have to be reconstructed from the un-pickle using the class_sizes
-        self.ContiguousDataMatrix()
-        data_list_copy = None
-        if ("data_list" in self.__dict__):
-            data_list_copy = self.data_list
-            self.data_list = []
         with open( outfile_pathname, 'wb') as outfile:
             pickle.dump( self.__dict__, outfile, pickle.HIGHEST_PROTOCOL )
 
-        # Restore the data_list
-        if (data_list_copy):
-            self.data_list = data_list_copy
+    #==============================================================
+    def _RebuildViews( self, recalculate_class_metadata=True ):
+        """Anytime you've finished adding or subtracting samples to a FeatureSpace,
+        call this method.
+
+        Construct self's data members into either A) lists of per-class lists of
+        features/meature metadata which are optimized for classification-style machine
+        learning problems or B) single contiguous lists of data for regression-style problems.
+
+        reorder - a sample was added out of order, reorder by class membership"""
+
+        if not self.samples_sorted_by_ground_truth:
+            self.SortSamplesByGroundTruth( inplace=True )
+
+        if self.discrete is None:
+            errmsg = 'FeatureSpace {0} "discrete" member hasn\'t been set. '.format( self )
+            errmsg += 'Please set the flag on the object indicating classification vs. regression/clustering.'
+            raise ValueError( errmsg )
+
+        if self.discrete == True:
+            if recalculate_class_metadata:
+                seen = set()
+                seen_add = seen.add
+                self.class_names = [ x for x in self._contiguous_ground_truth_labels \
+                        if not (x in seen or seen_add(x) ) ]
+                self.num_classes = len( self.class_names )
+                self.class_sizes = [ self._contiguous_ground_truth_labels.count( label ) \
+                      for label in self.class_names ]
+                   # The labels could all be None's
+                if self.class_names == [None]:
+                    self.class_names = ["UNKNOWN"]
+                self.interpolation_coefficients = \
+                    CheckIfClassNamesAreInterpolatable( self.class_names )
+
+            # Remember, for class-based classification problems, we construct per-class
+            # views into the contiguous feature space/metadata that results in lists of lists
+            self.data_list = [None] * self.num_classes
+            self.sample_names = [None] * self.num_classes
+            self.sample_group_ids = [None] * self.num_classes
+            self.sample_sequence_ids = [None] * self.num_classes
+            if self._contiguous_ground_truth_values:
+                self.ground_truth_values = [None] * self.num_classes
+            if self._contiguous_ground_truth_labels:
+                self.ground_truth_labels = [None] * self.num_classes
+
+            class_bndry_index = 0
+            for class_index in xrange( self.num_classes ):
+                n_class_samples = self.class_sizes[ class_index ]
+                self.data_list[ class_index ] = \
+                    self.data_matrix[ class_bndry_index : class_bndry_index + n_class_samples ]
+                self.sample_names[ class_index ] = \
+                    self._contiguous_sample_names[ class_bndry_index : class_bndry_index + n_class_samples ]
+                self.sample_group_ids[ class_index ] = \
+                    self._contiguous_sample_group_ids[ class_bndry_index : class_bndry_index + n_class_samples ]
+                self.sample_sequence_ids[ class_index ] = \
+                    self._contiguous_sample_sequence_ids[ class_bndry_index : class_bndry_index + n_class_samples ]
+                if self._contiguous_ground_truth_values:
+                    self.ground_truth_values[ class_index ] = \
+                        self._contiguous_ground_truth_values[ class_bndry_index : class_bndry_index + n_class_samples ]
+                if self._contiguous_ground_truth_labels:
+                    self.ground_truth_labels[ class_index ] = \
+                        self._contiguous_ground_truth_labels[ class_bndry_index : class_bndry_index + n_class_samples ]
+
+                class_bndry_index += n_class_samples
+
+        else:
+            self.data_list = self.data_matrix
+            self.sample_names = self._contiguous_sample_names
+            self.sample_group_ids = self._contiguous_sample_group_ids
+            self.sample_sequence_ids = self._contiguous_sample_sequence_ids
+            self.ground_truth_values = self._contiguous_ground_truth_values
+            self.ground_truth_labels = self._contiguous_ground_truth_labels
+
+        return self
+
+    #==============================================================
+    def SortSamplesByGroundTruth( self, rebuild_views=True, inplace=False, quiet=False ):
+        """Sort sample rows in self to be in ground truth label/value order."""
+
+        sample_data = zip( self._contiguous_ground_truth_labels,
+            self._contiguous_ground_truth_values, self.data_matrix,
+            self._contiguous_sample_names, self._contiguous_sample_sequence_ids )
+
+        from operator import itemgetter
+        if self.discrete:
+            # sort by the labels
+            sortfunc = itemgetter(0)
+        else:
+            # sort by the numeric values
+            sortfunc = itemgetter(1)
+
+        newdata = {}
+        newdata['_contiguous_ground_truth_labels'], \
+            newdata['_contiguous_ground_truth_values'], \
+            newdata['data_matrix'], newdata['_contiguous_sample_names'], \
+            newdata['_contiguous_sample_sequence_ids'] = \
+                    zip( *sorted( sample_data, key=sortfunc ) )
+
+        # post-sort, newdata['data_matrix'] is a tuple of numpy arrays
+        newdata['data_matrix'] = np.array( newdata['data_matrix'] )
+
+        # Preserve new sort order by assigning new sample group ids:
+        if self.num_samples_per_group != 1:
+            # samples with same group id can't be split
+            # goes: [ 1, 1, 1, 1, 2, 2, 2, 2, ... ]
+            newdata['_contiguous_sample_group_ids'] = [ j \
+              for j in xrange( self.num_samples / self.num_samples_per_group ) \
+                for i in xrange( self.num_samples_per_group ) ]
+        else:
+            newdata['_contiguous_sample_group_ids'] = range( self.num_samples )
+
+        newdata['samples_sorted_by_ground_truth'] = True
+
+        if inplace:
+            retval = self.Update( **newdata )
+        else:
+            retval = self.Derive( **newdata )
+
+        if rebuild_views:
+            retval._RebuildViews()
+
+        return retval
+
+    #==============================================================
+    def Normalize( self, reference_features=None, inplace=True, quiet=False ):
+        """By convention, the range of feature values in the WND-CHARM algorithm are
+        normalized on the interval [0,100]. Normalizing is useful in making the variation
+        of features human readable. Normalized samples are only comprable if they've been
+        normalized against the same feature maxima/minima."""
+
+        if self.normalized_against:
+            # I've already been normalized, and you want to normalize me again?
+            raise ValueError( "{0} \"{1}\" has already been normalized against {2}.".format (
+                self.__class__.__name__, self.name, self.normalized_against ) )
+
+        newdata = {}
+
+        if not reference_features:
+            # Recalculate my feature space using my own maxima/minima
+            mins = None
+            maxs = None
+            newdata['normalized_against'] = 'self'
+        else:
+            # Recalculate my feature space according to maxima/minima in reference_features
+            if reference_features.feature_names != self.feature_names:
+                err_str = "Can't normalize {0} \"{1}\" against {2} \"{3}\": Features don't match.".format(
+                  self.__class__.__name__, self.name,
+                    reference_features.__class__.__name__, reference_features.name )
+                raise ValueError( err_str )
+            if not self.CompatibleFeatureSetVersion( reference_features ):
+                err_str = 'Incompatible feature versions: "{0}" ({1}) and "{2}" ({3})'
+                raise ValueError( err_str.format( self.name, self.feature_set_version,
+                    reference_features.name, reference_features.feature_set_version ) )
+
+            # Need to make sure there are feature minima/maxima to normalize against:
+            if not reference_features.normalized_against:
+                reference_features.Normalize( quiet=quiet )
+
+            mins = reference_features.feature_minima
+            maxs = reference_features.feature_maxima
+            newdata['normalized_against'] = reference_features
+
+        newdata['data_matrix'] = np.copy( self.data_matrix )
+        newdata['feature_minima'], newdata['feature_maxima'] = \
+            normalize_by_columns( newdata['data_matrix'], mins, maxs )
+
+        if inplace:
+            retval = self.Update( **newdata )._RebuildViews( recalculate_class_metadata=False)
+        else:
+            retval = self.Derive( **newdata )
+
+        if not quiet:
+            if not reference_features:
+                print 'NORMALIZED FEATURES AGAINST SELF FOR FEATURE SPACE:', str( retval )
+            else:
+                print 'NORMALIZED FEATURES AGAINST {0} FOR FEATURE SPACE {1}'.format(
+                    reference_features, retval )
+        return retval
 
     #==============================================================
     @classmethod
@@ -461,15 +628,15 @@ class FeatureSpace( object ):
         fitfile = open( pathname )
 
         name_line = False
-        line_num = 0
         sample_count = 0
 
         new_fs.tile_rows = global_sampling_options.tile_num_rows
         new_fs.tile_cols = global_sampling_options.tile_num_cols
         new_fs.num_samples_per_group = new_fs.tile_rows * new_fs.tile_cols
         new_fs.global_sampling_options = global_sampling_options
+        new_fs.samples_sorted_by_ground_truth = True
 
-        for line in fitfile:
+        for line_num, line in enumerate( fitfile ):
             if line_num is 0:
                 # 1st line: number of classes and feature vector version
                 num_classes, feature_set_version = re.match('^(\S+)\s*(\S+)?$', line.strip()).group(1, 2)
@@ -532,8 +699,6 @@ class FeatureSpace( object ):
                     sample_count += 1
                 name_line = not name_line
 
-            line_num += 1
-
         fitfile.close()
 
         # Every sample gets a string label
@@ -569,7 +734,7 @@ class FeatureSpace( object ):
             new_fs._contiguous_sample_sequence_ids = [1] * num_samples
             new_fs._contiguous_sample_group_ids = range( num_samples )
 
-        new_fs._RebuildViews()
+        new_fs._RebuildViews( recalculate_class_metadata=False )
 
         if not quiet:
             print "LOADED FEATURE SPACE FROM WND-CHARM .fit FILE {0}: {1}".format(
@@ -578,125 +743,64 @@ class FeatureSpace( object ):
 
     #==============================================================
     def ToFitFile( self, path=None ):
+        """Writes features to ASCII text file which can be read by classic wnd-charm.
 
-        # FIXME: only works for discrete right now
+        Intended to be a const funtion, but outputted fit files are required by C++
+        implementation to be in sort order, so if current FeatureSpace not sorted,
+        make a sorted temporary FeatureSpace from this one and work from that."""
+
+        #FIXME: Not quite sure how to represent regression datasets to c++ wndchrm
+        if not self.discrete:
+            raise NotImplementedError( 'FIT file representation of regression datasets not supported at this time. (self.discrete==False)' )
+
+        assert( len( self.data_matrix) == len(self._contiguous_sample_names) == \
+                len( self._contiguous_ground_truth_labels ) )
+
         if path == None:
-            path = self.name + '.fit'
+            path = self.name
+        if not path.endswith('.fit'):
+            path += '.fit'
 
-        """Writes features to ASCII text file which can be read by classic wnd-charm."""
+        # C++ WNDCHARM only likes to read classes if their class labes are in sort order
+        if not self.samples_sorted_by_ground_truth:
+            temp_fs = self.SortSamplesByGroundTruth( inplace=False, rebuild_views=False )
+        else:
+            temp_fs = self
+
         fit = open( path, 'w' )
 
         # 1st line: number of classes and feature vector version
-        fit.write( str(self.num_classes) + ' ' + self.feature_set_version + '\n' )
+        fit.write( str( temp_fs.num_classes ) + ' ' + temp_fs.feature_set_version + '\n' )
         # 2nd line: num features
-        fit.write( str(self.num_features) + '\n' )
+        fit.write( str( temp_fs.num_features ) + '\n' )
         # 3rd line: number of samples
-        fit.write( str(self.num_samples) + '\n' )
+        fit.write( str( temp_fs.num_samples ) + '\n' )
         # Lines 4 through num_features contains the feature names
-        for name in self.feature_names:
+        for name in temp_fs.feature_names:
             fit.write( name + '\n' )
         # The line after the block of feature names is blank
         fit.write('\n')
         # Then all the Class labels
+        for class_name in temp_fs.class_names:
+            fit.write( class_name + '\n' )
 
-        # C++ WNDCHARM only likes to read classes if their class labes are in sort order
-
-        if self.discrete:
-            class_index_order = \
-            [ self.class_names.index( name ) for name in sorted( self.class_names ) ]
-
-        for index in class_index_order:
-            label = self.class_names[ index ]
-            fit.write( label + '\n' )
-
+        # Finally, alternating lines of features and paths to sample original file (tif or sig)
         # In the fit file format, a sample's class membership is denoted by the final int
         # at the end of the line of features. A class index of 0 implies it belongs
         # to the UNKNOWN CLASS so in practical terms, fit file indexing starts at 1.
-#        class_indices = [0] * self.num_samples
-#            if self.interpolation_coefficients:
-#                ground_truth_class_vals = self.interpolation_coefficients
-#            else:
-#                ground_truth_class_vals = self.class_names
-#
-#            class_indices = [None] * self.num_samples
-#            for i in xrange( self.num_samples ):
-#                try:
-#                    val = str( 1 + ground_truth_class_vals.index( self._contiguous_ground_truth_values[i] ) )
-#                except ValueError:
-#                    val = str( 0 )
-#                class_indices[i] = val
 
-
-        # Finally, alternating lines of features and paths to sample original file (tif or sig)
-        for class_count, class_index in enumerate( class_index_order, start=1 ):
-            class_features = self.data_list[ class_index ]
-            class_sample_names = self.sample_names[ class_index ]
-            for i, sample_name in enumerate( class_sample_names ):
-                class_features[ i ].tofile( fit, sep=' ', format='%g' )
-                # add class index of sample to end of features line
-                fit.write( ' ' + str(class_count) + '\n' )
-                fit.write( sample_name + '\n' )
+        for samp_feats, samp_name, samp_label in zip( temp_fs.data_matrix, \
+                temp_fs._contiguous_sample_names, temp_fs._contiguous_ground_truth_labels ):
+            samp_feats.tofile( fit, sep=' ', format='%g' )
+            # add class index of sample to end of features line
+            if not samp_label or samp_label == 'UNKNOWN':
+                class_index = 0
+            else:
+                class_index = temp_fs.class_names.index( samp_label ) + 1
+            fit.write( ' ' + str(class_index) + '\n' )
+            fit.write( samp_name + '\n' )
 
         fit.close()
-
-    #==============================================================
-    def _RebuildViews( self, reorder=False ):
-        """Construct self's data members into either A) lists of per-class lists of 
-        features/meature metadata which are optimized for classification-style machine 
-        learning problems or B) single contiguous lists of data for regression-style problems.
-
-        reorder - a sample was added out of order, reorder by class membership"""
-
-        if reorder:
-            raise NotImplementedError( "Sorry, this method doesn't handle sorting by classes yet" )
-
-        if self.discrete is None:
-            errmsg = 'FeatureSpace {0} "discrete" member hasn\'t been set. '.format( self )
-            errmsg += 'Please set the flag on the object indicating classification vs. regression/clustering.'
-            raise ValueError( errmsg )
-
-        if self.discrete == True:
-            # Remember, for class-based classification problems, we construct per-class
-            # views into the contiguous feature space/metadata that results in lists of lists
-            self.data_list = [None] * self.num_classes
-            self.sample_names = [None] * self.num_classes
-            self.sample_group_ids = [None] * self.num_classes
-            self.sample_sequence_ids = [None] * self.num_classes
-            if self._contiguous_ground_truth_values:
-                self.ground_truth_values = [None] * self.num_classes
-            if self._contiguous_ground_truth_labels:
-                self.ground_truth_labels = [None] * self.num_classes
-
-            class_bndry_index = 0
-            for class_index in xrange( self.num_classes ):
-                n_class_samples = self.class_sizes[ class_index ]
-                self.data_list[ class_index ] = \
-                    self.data_matrix[ class_bndry_index : class_bndry_index + n_class_samples ]
-                self.sample_names[ class_index ] = \
-                    self._contiguous_sample_names[ class_bndry_index : class_bndry_index + n_class_samples ]
-                self.sample_group_ids[ class_index ] = \
-                    self._contiguous_sample_group_ids[ class_bndry_index : class_bndry_index + n_class_samples ]
-                self.sample_sequence_ids[ class_index ] = \
-                    self._contiguous_sample_sequence_ids[ class_bndry_index : class_bndry_index + n_class_samples ]
-                if self._contiguous_ground_truth_values:
-                    self.ground_truth_values[ class_index ] = \
-                        self._contiguous_ground_truth_values[ class_bndry_index : class_bndry_index + n_class_samples ]
-                if self._contiguous_ground_truth_labels:
-                    self.ground_truth_labels[ class_index ] = \
-                        self._contiguous_ground_truth_labels[ class_bndry_index : class_bndry_index + n_class_samples ]
-
-                class_bndry_index += n_class_samples
-
-        else:
-            self.data_list = self.data_matrix
-            self.sample_names = self._contiguous_sample_names
-            self.sample_group_ids = self._contiguous_sample_group_ids 
-            self.sample_sequence_ids = self._contiguous_sample_sequence_ids
-            self.ground_truth_values = self._contiguous_ground_truth_values
-            self.ground_truth_labels = self._contiguous_ground_truth_labels
-
-        self.data_matrix_is_contiguous = True
-        return self
 
     #==============================================================
     @classmethod
@@ -806,13 +910,6 @@ class FeatureSpace( object ):
         num_features = None
         feature_set_version = None
 
-        # A FeatureSpace's samples in feature space need to be grouped by ground truth.
-        # These variables help to determine if the samples listed in the input FOF are grouped.
-        seen_ground_truths = set()
-        previous_ground_truth = None
-        current_ground_truth = None
-        samples_grouped_by_ground_truth = True
-
         tile_num_rows = global_sampling_options.tile_num_rows
         tile_num_cols = global_sampling_options.tile_num_cols
         num_samples_per_group = tile_num_rows * tile_num_cols
@@ -826,39 +923,43 @@ class FeatureSpace( object ):
                 samp_name_to_samp_group_id_dict[ name ] = len(samp_name_to_samp_group_id_dict)
             return samp_name_to_samp_group_id_dict[ name ]
 
-        samples = []
-        fof = open( pathname )
-
-        # There are a number of places to look for the existence of the files
-        # specified via relative path.
-
-        for line_num, line in enumerate( fof ):
-            # Allow user to comment out lines in file list:
-            if line.startswith('#'):
-                continue
-            # If the parsing operation chokes on a specific line, tell the user what the
-            # problem line is:
+        # BEGIN SORT FOF LINES BY GROUND TRUTH:
+        # More efficient to slurp the whole file and sort the FOF lines by ground truth
+        # before starting to populate objects, giving sample groups a proper group id
+        # from the get go, rather than sorting & reassigning, etc
+        with open( pathname ) as fof:
+            lines = fof.read().splitlines()
+        splitlines = []
+        # If the parsing operation chokes on a specific line, tell the user what the
+        # problem line is:
+        for line_num, line in enumerate( lines ):
             try:
+                # Allow user to comment out lines in file list:
+                if line.startswith('#'):
+                    continue
                 cols = line.strip().split('\t', 2)
+                splitlines.append( cols )
+            except Exception as e:
+                # Tell the user which line the parser choked on:
+                premsg = "Error processing file {0}, line {1}".format( pathname, line_num+1, )
+                postmsg = "Can you spot an error in this line?:\n{0}".format( line )
+                if e.args:
+                    e.args = tuple( [errmsg] + list( e.args ) + [postmsg] )
+                else:
+                    e.args = tuple( [errmsg + ' ' + postmsg] )
+                raise
+        from operator import itemgetter
+        # sort on ground truth column, i.e., column index 1
+        lines = sorted( splitlines, key=itemgetter(1) )
+        # END SORT FOF LINES BY GROUND TRUTH
 
-                if samples_grouped_by_ground_truth:
-                    if current_ground_truth == None:
-                        # first line
-                        current_ground_truth = cols[1]
-                    else:
-                        previous_ground_truth = current_ground_truth
-                        current_ground_truth = cols[1]
-                        if current_ground_truth != previous_ground_truth:
-                            # crossed a class boundary, can't use previous ground truth anymore
-                            seen_ground_truths.add( previous_ground_truth )
-                        if current_ground_truth in seen_ground_truths:
-                            # Samples not grouped, will require sample sorting.
-                            # No need to keep checking.
-                            samples_grouped_by_ground_truth = False
+        # FeatureVector instances go in here:
+        samples = []
 
-                # Classic two-column FOF format
+        for line_num, cols in enumerate( lines ):
+            try:
+                # Classic two-column (pre-2015) FOF format
                 if len( cols ) < 3:
-
                     # If first time through, set a flag to indicate this is an classic version FOF
                     # Set number of sample columns = -1 so as not to confuse with columns 0, 1, 2, ...
                     # in multichannel FOF format below.
@@ -1021,9 +1122,7 @@ class FeatureSpace( object ):
                 else:
                     e.args = tuple( [errmsg + ' ' + postmsg] )
                 raise
-
         # END iterating over lines in FOF
-        fof.close()
 
         # FIXME: Here's where the parallization magic can (will!) happen.
         [ fv.GenerateFeatures( write_sig_files_to_disk, quiet ) for fv in samples ]
@@ -1067,7 +1166,7 @@ class FeatureSpace( object ):
         # add the "channel" string token inside the inner parentheses of the feature names
         num_fs_columns = len( set( [ fv.fs_col for fv in feature_vectors_list ] ) )
 
-        # Sort list of FeatureVectors by column so we can fill in then new data_matrix
+        # Sort list of FeatureVectors by column so we can fill in the new data_matrix
         # and feature_names from left to right.
 
         sorted_by_fs_cols = sorted( feature_vectors_list, key=lambda fv: fv.fs_col )
@@ -1117,161 +1216,12 @@ class FeatureSpace( object ):
             new_fs.data_matrix[ row_index, col_left_boundary_index : col_right_boundary_index ] = \
               fv.values
 
-        if discrete:
-            # Uniquify the sample group list, maintaining order of input sample group list.
-            seen = set()
-            seen_add = seen.add
-            new_fs.class_names = [ x for x in new_fs._contiguous_ground_truth_labels \
-                    if not (x in seen or seen_add(x) ) ]
-            new_fs.num_classes = len( new_fs.class_names )
-            new_fs.class_sizes = [ new_fs._contiguous_ground_truth_labels.count( label ) \
-                  for label in new_fs.class_names ]
-               # The labels could all be None's
-            if new_fs.class_names == [None]:
-                new_fs.class_names = ["UNKNOWN"]
-            new_fs.interpolation_coefficients = \
-                CheckIfClassNamesAreInterpolatable( new_fs.class_names )
-
         new_fs._RebuildViews()
 
         if not quiet:
             print "NEW FEATURE SPACE FROM LIST OF FEATURE VECTORS:", str( new_fs )
 
         return new_fs
-
-    #==============================================================
-    def ContiguousDataMatrix( self ):
-        """This method should be called to access the class data_matrix field.
-        In the case where there are both views into this matrix (e.g. data_list) as well as the matrix itself,
-        this method ensures that the data_matrix is a vstack of all data_lists
-        After this call, the self.data_matrix field will be contiguous, and all of the views in data_list
-        are consistent with it.
-        """
-        if not self.discrete:
-            self._contiguous_sample_names = self.sample_names
-            self._contiguous_sample_group_ids = self.sample_group_ids
-            self._contiguous_sample_sequence_ids = self.sample_sequence_ids
-            self._contiguous_ground_truth_values = self.ground_truth_values
-            self._contiguous_ground_truth_labels = self.ground_truth_labels
-            return self.data_matrix
-
-        # If its already contiguous, or there are no data_lists, just return it
-        if (self.data_matrix_is_contiguous or not self.data_list or not len (self.data_list) ):
-            return self.data_matrix
-
-        num_features = 0
-        copy_class = 0
-        copy_row = 0
-        for class_mat in self.data_list:
-            # Make sure all classes have the same number of features
-            if (num_features and class_mat.shape[1] != num_features):
-                raise ValueError ( "class index {0}:'{1}' has a different number of features than other classes ({3}).".format (
-                    copy_class, self.class_names[i], num_features) )
-            else:
-                num_features = class_mat.shape[1]
-            # if this flag is set in the numpy, then it is not a view.
-            if class_mat.flags.owndata:
-                # We don't need to keep going, all we need is the startpoint for the copy
-                break
-            copy_row += class_mat.shape[0]
-            copy_class += 1
-
-        if copy_class == len( self.data_list ):
-            raise RuntimeError( "Internal error: ContiguousDataMatrix: none of the class views had their own data. Is the data_matrix contiguous already?" )
-
-        # resize the matrix
-        if self.data_matrix is not None:
-            self.data_matrix.resize( self.num_samples, self.num_features )
-        else:
-            #print "called with empty data_matrix"
-            self.data_matrix = np.empty( [ self.num_samples, self.num_features ], dtype='double' )
-            copy_class = 0
-            copy_row = 0
-
-        # In addition, keep a list of sample names corresponding to the 
-        # rows in the contiguous feature matrix
-        self._contiguous_sample_names = [ None ] * self.num_samples
-        self._contiguous_sample_group_ids = [ None ] * self.num_samples
-        self._contiguous_sample_sequence_ids = [ None ] * self.num_samples
-        self._contiguous_ground_truth_values = [ None ] * self.num_samples
-        self._contiguous_ground_truth_labels = [ None ] * self.num_samples
-
-        # We need to start copying at the first non-view class mat to the end.
-        for class_index in range (copy_class, len (self.data_list)):
-            #print "copy class"+str(class_index)
-            nrows = self.data_list[class_index].shape[0]
-            self.data_matrix[copy_row : copy_row + nrows] = np.copy (self.data_list[class_index])
-            self.data_list[class_index] = self.data_matrix[copy_row : copy_row + nrows]
-            self._contiguous_sample_names[copy_row : copy_row + nrows] = \
-                                                         self.sample_names[class_index]
-            self._contiguous_sample_group_ids[copy_row : copy_row + nrows] = \
-                                                         self.sample_group_ids[class_index]
-            self._contiguous_sample_sequence_ids[copy_row : copy_row + nrows] = \
-                                                         self.sample_sequence_ids[class_index]
-            self._contiguous_ground_truth_values[copy_row : copy_row + nrows] = \
-                                                         self.ground_truth_values[class_index]
-            self._contiguous_ground_truth_labels[copy_row : copy_row + nrows] = \
-                                                         self.ground_truth_labels[class_index]
-            copy_row += nrows
-
-        self.data_matrix_is_contiguous = True
-        return self.data_matrix
-
-    #==============================================================
-    def Normalize( self, reference_features=None, inplace=True, quiet=False ):
-        """By convention, the range of feature values in the WND-CHARM algorithm are
-        normalized on the interval [0,100]. Normalizing is useful in making the variation 
-        of features human readable. Normalized samples are only comprable if they've been 
-        normalized against the same feature maxima/minima."""
-
-        if self.normalized_against:
-            # I've already been normalized, and you want to normalize me again?
-            raise ValueError( "{0} \"{1}\" has already been normalized against {2}.".format (
-                self.__class__.__name__, self.name, self.normalized_against ) )
-
-        newdata = {}
-
-        if not reference_features:
-            # Recalculate my feature space using my own maxima/minima
-            mins = None
-            maxs = None
-            newdata['normalized_against'] = 'self'
-        else:
-            # Recalculate my feature space according to maxima/minima in reference_features
-            if reference_features.feature_names != self.feature_names:
-                err_str = "Can't normalize {0} \"{1}\" against {2} \"{3}\": Features don't match.".format(
-                  self.__class__.__name__, self.name,
-                    reference_features.__class__.__name__, reference_features.name )
-                raise ValueError( err_str )
-            if not self.CompatibleFeatureSetVersion( reference_features ):
-                err_str = 'Incompatible feature versions: "{0}" ({1}) and "{2}" ({3})'
-                raise ValueError( err_str.format( self.name, self.feature_set_version,
-                    reference_features.name, reference_features.feature_set_version ) )
-            
-            # Need to make sure there are feature minima/maxima to normalize against:
-            if not reference_features.normalized_against:
-                reference_features.Normalize( quiet=quiet )
-
-            mins = reference_features.feature_minima
-            maxs = reference_features.feature_maxima
-            newdata['normalized_against'] = reference_features
-
-        newdata['data_matrix'] = np.copy( self.ContiguousDataMatrix() )
-        newdata['feature_minima'], newdata['feature_maxima'] = \
-            normalize_by_columns( newdata['data_matrix'], mins, maxs )
-
-        if inplace:
-            retval = self.Update( **newdata )._RebuildViews()
-        else:
-            retval = self.Derive( **newdata )
-
-        if not quiet:
-            if not reference_features:
-                print 'NORMALIZED FEATURES AGAINST SELF FOR FEATURE SPACE:', str( retval )
-            else:
-                print 'NORMALIZED FEATURES AGAINST {0} FOR FEATURE SPACE {1}'.format(
-                    reference_features, retval )
-        return retval
 
     #==============================================================
     def FeatureReduce( self, requested_features, inplace=False, quiet=False  ):
@@ -1694,14 +1644,12 @@ class FeatureSpace( object ):
 
         training_set = self.SampleReduce( train_groups, inplace=False, quiet=True )
         if not quiet:
-            #training_set.Print()
             print "SPLIT FEATURE SPACE INTO TRAINING SET: ", str( training_set )
         if training_set_only:
             return training_set
 
         test_set = self.SampleReduce( test_groups, inplace=False, quiet=True )
         if not quiet:
-            #test_set.Print()
             print "TEST SET: ", str( test_set )
         return training_set, test_set
 
@@ -1736,7 +1684,7 @@ class FeatureSpace( object ):
         return retval
 
     #==============================================================
-    def SamplesUnion( self, other_fs, override=False, quiet=False ):
+    def SamplesUnion( self, other_fs, inplace=False, override=False, quiet=False ):
         """Concatenate two FeatureSpaces along the samples (rows) axis.
         The two FeatureSpaces need to have the same number of features.
         New sample group ids are assigned."""
@@ -1753,73 +1701,67 @@ class FeatureSpace( object ):
 
         #FIXME: Use override and self.normalized_against to make sure it's ok to
         #       join samples.
-
         assert( self.shape[1] == self.num_features == other_fs.shape[1] == other_fs.num_features )
         assert( self.num_samples == self.shape[0] )
         assert( other_fs.num_samples == other_fs.shape[0] )
         assert( self.num_samples_per_group == other_fs.num_samples_per_group )
 
-        new_num_samples = self.num_samples + other_fs.num_samples
-        newfs = self.__class__( name=self.name + ' | ' + other_fs.name,
-                                num_samples=new_num_samples,
-                                num_features=self.num_features,
-                                feature_names=self.feature_names,
-                                num_samples_per_group=self.num_samples_per_group,
-                                discrete=self.discrete,
-                                feature_set_version=self.feature_set_version)
-        
-        # Copy from self:
-        newfs.data_matrix[ 0 : self.num_samples ] = self.data_matrix
-        newfs._contiguous_sample_names[ 0 : self.num_samples ] = \
+        # initialize
+        kwargs = {}
+        kwargs['name'] = self.name + ' | ' + other_fs.name
+        kwargs['num_samples'] = new_num_samples = self.num_samples + other_fs.num_samples
+        kwargs['shape'] = ( new_num_samples, self.num_features )
+
+        kwargs['data_matrix'] = np.empty( kwargs['shape'] )
+        kwargs['_contiguous_sample_names'] =  [None] * self.num_samples
+        kwargs['_contiguous_sample_group_ids'] = [None] * self.num_samples
+        kwargs['_contiguous_sample_sequence_ids'] = [None] * self.num_samples
+        kwargs['_contiguous_ground_truth_values'] = [None] * self.num_samples
+        kwargs['_contiguous_ground_truth_labels'] = [None] * self.num_samples
+
+        # First, transfer samples over from "self":
+        kwargs['data_matrix'][ 0 : self.num_samples ] = self.data_matrix
+
+        kwargs['_contiguous_sample_names'][ 0 : self.num_samples ] = \
                 self._contiguous_sample_names
+        # Samples in combined FeatureSpace will get new sample_group_ids:
         #newfs._contiguous_sample_group_ids[ 0 : self.num_samples ] = \
         #        self._contiguous_sample_group_ids
-        newfs._contiguous_sample_sequence_ids[ 0 : self.num_samples ] = \
+        kwargs['_contiguous_sample_sequence_ids'][ 0 : self.num_samples ] = \
                 self._contiguous_sample_sequence_ids
-        newfs._contiguous_ground_truth_values[ 0 : self.num_samples ] = \
+        kwargs['_contiguous_ground_truth_values'][ 0 : self.num_samples ] = \
                 self._contiguous_ground_truth_values
-        newfs._contiguous_ground_truth_labels[ 0 : self.num_samples ] = \
+        kwargs['_contiguous_ground_truth_labels'][ 0 : self.num_samples ] = \
                 self._contiguous_ground_truth_labels
 
-        # Copy from other:
-        newfs.data_matrix[ self.num_samples : new_num_samples ] = other_fs.data_matrix
-        newfs._contiguous_sample_names[ self.num_samples : new_num_samples  ] = \
+        # Second, transfer samples over from "other":
+        kwargs['data_matrix'][ self.num_samples : new_num_samples ] = other_fs.data_matrix
+        kwargs['_contiguous_sample_names'][ self.num_samples : new_num_samples  ] = \
                 other_fs._contiguous_sample_names
+        # Samples in combined FeatureSpace will get new sample_group_ids:
         #newfs._contiguous_sample_group_ids[ self.num_samples : new_num_samples  ] = \
         #        other_fs._contiguous_sample_group_ids
-        newfs._contiguous_sample_sequence_ids[ self.num_samples : new_num_samples ] = \
+        kwargs['_contiguous_sample_sequence_ids'][ self.num_samples : new_num_samples ] = \
                 other_fs._contiguous_sample_sequence_ids
-        newfs._contiguous_ground_truth_values[ self.num_samples : new_num_samples ] = \
+        kwargs['_contiguous_ground_truth_values'][ self.num_samples : new_num_samples ] = \
                 other_fs._contiguous_ground_truth_values
-        newfs._contiguous_ground_truth_labels[ self.num_samples : new_num_samples ] = \
+        kwargs['_contiguous_ground_truth_labels'][ self.num_samples : new_num_samples ] = \
                 other_fs._contiguous_ground_truth_labels
 
-        # Assign new sample group ids:
-        if newfs.num_samples_per_group != 1:
-            # samples with same group id can't be split
-            # goes: [ 1, 1, 1, 1, 2, 2, 2, 2, ... ]
-            newfs._contiguous_sample_group_ids = [ j \
-              for j in xrange( new_num_samples/newfs.num_samples_per_group ) \
-                for i in xrange( newfs.num_samples_per_group ) ]
+        if inplace:
+            retval = self.Update( **kwargs )
         else:
-            newfs._contiguous_sample_group_ids = range( new_num_samples )
+            retval = self.Derive( **kwargs )
 
-        #FIXME: Post-union do a sort to collect samples belonging to same class.
-        newfs.data_matrix_is_contiguous = True
-        if self.discrete:
-            newfs.class_names = self.class_names + other_fs.class_names
-            newfs.class_sizes = self.class_sizes + other_fs.class_sizes
-            if self.interpolation_coefficients is not None and \
-                    other_fs.interpolation_coefficients is not None:
-                newfs.interpolation_coefficients = self.interpolation_coefficients + \
-                    other_fs.interpolation_coefficients
+        retval.SortSamplesByGroundTruth( rebuild_views=True, inplace=True )
 
-            newfs.num_classes = self.num_classes + other_fs.num_classes
-
-        newfs._RebuildViews()
         if not quiet:
-            print "COMBINED SAMPLES INTO NEW FEATURE SPACE: ", str(newfs)
-        return newfs
+            print "COMBINED SAMPLES INTO NEW FEATURE SPACE: ", str( retval )
+        return retval
+
+    #==============================================================
+    def __add__( self, other ):
+        return self.SamplesUnion( other )
 
     #==============================================================
     def FeaturesUnion( self, other_fs, inplace=False ):
@@ -1830,7 +1772,6 @@ class FeatureSpace( object ):
                 type( other_fs ) ) )
 
         raise NotImplementedError()
-
 
     #==============================================================
     def ScrambleGroundTruths( self ):

@@ -340,7 +340,6 @@ class TestFeatureSet( unittest.TestCase ):
         self.assertEqual( J.num_samples, num_tiles )
         del J
 
-
         #========================================================
         # Section 8: LEAVE OUT, TILED Continuous FeatureSpace instances
 
@@ -384,7 +383,6 @@ class TestFeatureSet( unittest.TestCase ):
         self.assertEqual( fs.shape[0], 800 )
         self.assertEqual( fs.num_features, orig_num_features )
 
-
         self.assertRaises( ValueError, fs.RemoveClass, class_token='trash' )
         self.assertRaises( IndexError, fs.RemoveClass, class_token=10 )
 
@@ -405,9 +403,9 @@ class TestFeatureSet( unittest.TestCase ):
                 num_features_per_signal_type=30, noise_gradient=5, initial_noise_sigma=10,
                 n_samples_per_group=1, interpolatable=True )
 
-        joined_fs = fs1.SamplesUnion( fs3 )
+        joined_fs = fs1 + fs3
 
-        print joined_fs
+        self.assertEqual( n_classes, joined_fs.num_classes )
 
     def test_NewFromFileOfFiles( self ):
         """Pulls in the lymphoma eosin histology 5x6 tiled featureset via .sig files."""
@@ -575,7 +573,6 @@ class TestFeatureSet( unittest.TestCase ):
                 if retval == False:
                     print "error in sample row", row_num
                     print "FIT: ", fs_fit._contiguous_sample_names[row_num], "FOF", fs_fof._contiguous_sample_names[row_num]
-                    print "FIT: ", fs_fit._contiguous_sample_names[row_num], "FOF", fs_fof._contiguous_sample_names[row_num]
                 self.assertTrue( retval )
 
         finally:
@@ -622,7 +619,18 @@ class TestFeatureSet( unittest.TestCase ):
         #if not compare( result_fs.data_matrix, target_fs.data_matrix ):
         #    # actually, the one good thing about "allclose" is the error reporting
         #    from numpy.testing import assert_allclose
-	#    assert_allclose( result_fs.data_matrix, target_fs.data_matrix )
-    
+        #    assert_allclose( result_fs.data_matrix, target_fs.data_matrix )
+
+    # --------------------------------------------------------------------------
+    @unittest.skip('')
+    def test_ClassSortingFunctionality( self ):
+        """FOF order, and adding FeatureSets"""
+
+        from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
+        fs1 = CreateArtificialFeatureSpace_Discrete()
+        fs2 = CreateArtificialFeatureSpace_Discrete()
+
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -189,7 +189,8 @@ def CreateArtificialFeatureSpace_Continuous( name="ContinuousArtificialFS", n_sa
 
     np.seterr( **old_settings )
 
-    new_fs._RebuildViews()
+    new_fs.samples_sorted_by_ground_truth = True
+    new_fs._RebuildViews( recalculate_class_metadata=False )
     return new_fs
 
 def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_samples=100,
@@ -362,5 +363,6 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
         new_fs._contiguous_ground_truth_values = [ new_fs.interpolation_coefficients[i] \
             for i in xrange( n_classes ) for j in range( n_samples_per_class ) ]
 
-    new_fs._RebuildViews()
+    new_fs.samples_sorted_by_ground_truth = True
+    new_fs._RebuildViews( recalculate_class_metadata=False )
     return new_fs
