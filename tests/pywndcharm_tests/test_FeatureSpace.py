@@ -210,37 +210,25 @@ class TestFeatureSet( unittest.TestCase ):
                 num_features_per_signal_type=30, noise_gradient=5, initial_noise_sigma=10,
                 n_samples_per_group=1, interpolatable=True)
 
-        # For discrete feature sets, passing in a flat list of ints ain't gonna cut it,
-        # they have to be arranged into lists of lists indicating class composition
-        desired = range(15)
-        self.assertRaises( TypeError, fs_discrete.SampleReduce, desired )
-
         # Reduce to 9 classes from 10, one sample per class
-        desired = [ [val] for val in xrange(50, 950, 100)]
-        desired.insert( 2, False )
+        # Drop the last class:
+        desired = range(50, 950, 100)
+
         A = fs_discrete.SampleReduce( desired )
+        # Further reduce to 8 classes
+        A.RemoveClass( "FakeClass-055.6", inplace=True )
 
-        correct_samplenames = ['FakeClass-100_050', 'FakeClass-77.78_050', 'FakeClass-55.56_050', 'FakeClass-33.33_050', 'FakeClass-11.11_050', 'FakeClass11.11_050', 'FakeClass33.33_050', 'FakeClass55.56_050', 'FakeClass77.78_050']
+        #The actual alphanumeric sort order is different from the value sort order
+        #correct_samplenames = ['FakeClass-100.0_050', 'FakeClass-077.8_050', 'FakeClass-033.3_050', 'FakeClass-011.1_050', 'FakeClass+011.1_050', 'FakeClass+033.3_050', 'FakeClass+055.5_050', 'FakeClass+077.8_050']
+        correct_samplenames = ['FakeClass+011.1_050', 'FakeClass+033.3_050', 'FakeClass+055.6_050', 'FakeClass+077.8_050', 'FakeClass-011.1_050', 'FakeClass-033.3_050', 'FakeClass-077.8_050', 'FakeClass-100.0_050']
         self.assertEqual( correct_samplenames, A._contiguous_sample_names )
 
-        # Note the absense of the classname at index 2, "FakeClass-55.56"
-        correct_classnames = ['FakeClass-100', 'FakeClass-77.78', 'FakeClass-33.33', 'FakeClass-11.11', 'FakeClass11.11', 'FakeClass33.33', 'FakeClass55.56', 'FakeClass77.78', 'FakeClass100']
-        self.assertEqual( correct_samplenames, A._contiguous_sample_names )
+        correct_classnames = ['FakeClass+011.1', 'FakeClass+033.3', 'FakeClass+055.6', 'FakeClass+077.8', 'FakeClass-011.1', 'FakeClass-033.3', 'FakeClass-077.8', 'FakeClass-100.0']
+        self.assertEqual( correct_classnames, A.class_names )
         del A
-
-        # Request more classes than exists in the original
-        desired = [ [val] for val in xrange(50, 1000, 50)]
-        B = fs_discrete.SampleReduce( desired )
-        self.assertEqual( B.num_classes, len( desired ) )
-        del B
 
         #========================================================
         # Section 2: LEAVE OUT, UNTiled Feature sets, Discrete FeatureSpace instances
-
-        # check that function barfs when passed an iterable containing anythin other than ints
-        UNdesired = [ [val] for val in xrange(50, 950, 100)]
-        self.assertRaises( TypeError, fs_discrete.SampleReduce,
-                leave_out_sample_group_ids=UNdesired )
 
         UNdesired = range(50, 950, 100)
         C = fs_discrete.SampleReduce( leave_out_sample_group_ids=UNdesired )
@@ -259,7 +247,7 @@ class TestFeatureSet( unittest.TestCase ):
                 num_features_per_signal_type=30, noise_gradient=5, initial_noise_sigma=10,
                 n_samples_per_group=num_tiles, interpolatable=True)
 
-        desired = [ [val] for val in xrange(5, 95, 10) ] # Rearrange into 9 classes
+        desired = range(5, 95, 10) # Rearrange into 9 classes
         D = fs_discrete.SampleReduce( desired )
         # Total num samples should be 9 classes, 1 sample group per class, 4 tiles per SG = 36
         self.assertEqual( num_tiles * len( desired ), D.num_samples )
@@ -267,11 +255,6 @@ class TestFeatureSet( unittest.TestCase ):
 
         #========================================================
         # Section 4: LEAVE OUT, WITH Tiled Feature sets, Discrete FeatureSpace instances
-
-        # check that function barfs when passed an iterable containing anythin other than ints
-        UNdesired = [ [val] for val in xrange(50, 950, 100)]
-        self.assertRaises( TypeError, fs_discrete.SampleReduce,
-                leave_out_sample_group_ids=UNdesired )
 
         # You can't leave out a sample group that doesn't exist
         UNdesired = range(50000, 50010)
@@ -299,10 +282,6 @@ class TestFeatureSet( unittest.TestCase ):
 
         # dummyproof
         desired = ['foo', 'bar']
-        self.assertRaises( TypeError, fs_cont.SampleReduce, desired )
-
-        # flat lists only please
-        desired = [ [val] for val in xrange(50, 950, 100)]
         self.assertRaises( TypeError, fs_cont.SampleReduce, desired )
 
         desired = range(50, 950)
@@ -373,8 +352,7 @@ class TestFeatureSet( unittest.TestCase ):
         # "FakeClass33.33" is the 5th class, so essentially we're trying to remove the
         # 5th class twice:
 
-        #import pdb; pdb.set_trace()
-        fs.RemoveClass( "FakeClass33.33" , inplace=True )
+        fs.RemoveClass( "FakeClass+033.3" , inplace=True )
         #print "AFTER AFTER:", str( fs )
 
         self.assertEqual( fs.num_classes, n_classes - 2 )

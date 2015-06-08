@@ -430,7 +430,8 @@ class FeatureSpace( object ):
         features/meature metadata which are optimized for classification-style machine
         learning problems or B) single contiguous lists of data for regression-style problems.
 
-        reorder - a sample was added out of order, reorder by class membership"""
+        arg recalculate_class_metadata: recalculate members self.class_names,
+                self.num_classes, self.class_sizes, and self.interpolation_coefficients."""
 
         if not self.samples_sorted_by_ground_truth:
             self.SortSamplesByGroundTruth( inplace=True )
@@ -485,7 +486,6 @@ class FeatureSpace( object ):
                         self._contiguous_ground_truth_labels[ class_bndry_index : class_bndry_index + n_class_samples ]
 
                 class_bndry_index += n_class_samples
-
         else:
             self.data_list = self.data_matrix
             self.sample_names = self._contiguous_sample_names
@@ -512,15 +512,15 @@ class FeatureSpace( object ):
             # sort by the numeric values
             sortfunc = itemgetter(1)
 
-        newdata = {}
-        newdata['_contiguous_ground_truth_labels'], \
-            newdata['_contiguous_ground_truth_values'], \
-            newdata['data_matrix'], newdata['_contiguous_sample_names'], \
-            newdata['_contiguous_sample_sequence_ids'] = \
-                    zip( *sorted( sample_data, key=sortfunc ) )
+        # These are all tuples:
+        a, b, c, d, e = zip( *sorted( sample_data, key=sortfunc ) )
 
-        # post-sort, newdata['data_matrix'] is a tuple of numpy arrays
-        newdata['data_matrix'] = np.array( newdata['data_matrix'] )
+        newdata = {}
+        newdata['_contiguous_ground_truth_labels'] = list(a)
+        newdata['_contiguous_ground_truth_values'] = list(b)
+        newdata['data_matrix'] = np.array(c)
+        newdata['_contiguous_sample_names'] = list(d)
+        newdata['_contiguous_sample_sequence_ids'] = list(e)
 
         # Preserve new sort order by assigning new sample group ids:
         if self.num_samples_per_group != 1:
@@ -1310,14 +1310,12 @@ class FeatureSpace( object ):
         """Returns a new FeatureSpace that contains a subset of the data by dropping
         samples (rows), and/or rearranging rows.
 
-        leave_in_sample_group_list := indicate the composition of the FeatureSpace to be returned.
-            For discrete/classification FeatureSpaces:
-            an iterable of iterables of sample group indices indicating desired sample groups;
-            For continuous/regression FeatureSpaces:
-            a iterable of desired sample group indices.
+        leave_in_sample_group_list := a list containing sample group ids
+            that should be left IN
 
         leave_out_sample_group_ids := a list containing sample group ids
-            that should be left out
+            that should be left OUT
+
         Returns a near-deep copy of self including only the sample groups specified in the list.
         If no tiles, sample group reduces to just sample index."""
 
@@ -1343,20 +1341,10 @@ class FeatureSpace( object ):
                       str( sorted( list( set( the_list ) - set( self._contiguous_sample_group_ids ) ) ) )
                 raise ValueError( msg )
 
-        def CheckForValidLISTOFLISTSOfInts( the_list ):
-            try:
-                for item in the_list:
-                    if type( item ) is bool:
-                        continue
-                    elif type( item ) is list:
-                        CheckForValidListOfInts( item )
-            except TypeError:
-                raise TypeError( "Input must be an iterable containing either booleans or iterables containing only ints.")
-
         def UniquifySansLeaveOutList( sg_list, leave_out ):
             seen = set()
             seen_add = seen.add
-            uniq_sgids = [ x for x in sg_list  if not( x in seen or seen_add(x) ) and ( x not in leave_out) ]
+            uniq_sgids = [ x for x in sg_list if not( x in seen or seen_add(x) ) and ( x not in leave_out) ]
             return uniq_sgids
         #==================================
 
@@ -1366,118 +1354,66 @@ class FeatureSpace( object ):
             CheckForValidListOfInts( leave_out_sample_group_ids )
 
             # build up a leave IN list, excluding the SGids that the user indicated
-            if self.discrete:
-                leave_in_sample_group_ids = []
-                for class_sgid_list in self.sample_group_ids:
-                    class_leave_in_sg_list = UniquifySansLeaveOutList( class_sgid_list, leave_out_sample_group_ids )
-                    leave_in_sample_group_ids.append( class_leave_in_sg_list  )
-            else:
-                leave_in_sample_group_ids = \
-                  UniquifySansLeaveOutList( self.sample_group_ids, leave_out_sample_group_ids )
+            leave_in_sample_group_ids = UniquifySansLeaveOutList(
+                    self._contiguous_sample_group_ids, leave_out_sample_group_ids )
         else: # user provided leave in list
-            if self.discrete:
-                CheckForValidLISTOFLISTSOfInts( leave_in_sample_group_ids )
-            else: # if continuous
-                if type( leave_in_sample_group_ids ) is int:
-                    leave_in_sample_group_ids = [ leave_in_sample_group_ids ]
-                CheckForValidListOfInts( leave_in_sample_group_ids )
+            if type( leave_in_sample_group_ids ) is int:
+                leave_in_sample_group_ids = [ leave_in_sample_group_ids ]
+            CheckForValidListOfInts( leave_in_sample_group_ids )
 
         # Dummyproofing over.
         # Now we can count on the fact that leave_in_sample_group_ids is defined,
         # either by the user or by the above code.
 
-        # How many total training groups are requested?
-        if self.discrete:
-            try:
-                total_num_sample_groups = \
-                    sum( len( class_list ) for class_list in leave_in_sample_group_ids if class_list )
-            except TypeError:
-                errmsg = 'Leave in list for discrete FeatureSpaces has to be a list (of length ' + \
-                         'num_classes) of lists of ' + \
-                         'desired sample group ids. Did you mean to pass it in as the leave OUT list?'
-                raise TypeError( errmsg )
-        else:
-            total_num_sample_groups = len( leave_in_sample_group_ids )
+        # Initialize
+        new_sg_count          = len( leave_in_sample_group_ids )
+        new_samp_count        = new_sg_count * self.num_samples_per_group
+        new_shape             = ( new_samp_count, self.num_features )
+        new_mat               = np.empty( new_shape, dtype='double' )
+        new_samp_names        = [None] * new_samp_count
+        new_samp_sequence_ids = [None] * new_samp_count
+        new_gt_values         = [None] * new_samp_count
+        new_gt_labels         = [None] * new_samp_count
 
-        total_num_samples = total_num_sample_groups * self.num_samples_per_group
-        shape =  (total_num_samples, self.num_features)
+        # Alias:
+        group_len = self.num_samples_per_group
+
+        new_sg_ids = [ sgid for sgid in leave_in_sample_group_ids \
+                for j in xrange( group_len ) ]
+
+        for target_row in xrange( 0, new_samp_count, group_len ):
+            sgid = new_sg_ids[ target_row ]
+            source_row = self._contiguous_sample_group_ids.index( sgid )
+            np.copyto( new_mat[ target_row : target_row + group_len ],
+                    self.data_matrix[ source_row : source_row + group_len ] )
+            new_samp_names[ target_row : target_row + group_len ] = \
+               self._contiguous_sample_names[ source_row : source_row + group_len ]
+            new_samp_sequence_ids[ target_row : target_row + group_len ] = \
+               self._contiguous_sample_sequence_ids[ source_row : source_row + group_len ]
+            new_gt_values[ target_row : target_row + group_len ] = \
+               self._contiguous_ground_truth_values[ source_row : source_row + group_len ]
+            new_gt_labels[ target_row : target_row + group_len ] = \
+               self._contiguous_ground_truth_labels[ source_row : source_row + group_len ]
 
         newdata = {}
-        newdata[ 'shape' ] = shape
         if self.source_filepath:
             newdata[ 'source_filepath' ] = self.source_filepath + " (subset)"
         newdata[ 'name' ] = self.name + " (subset)"
-        newdata[ 'num_samples' ] = total_num_samples
-        data_matrix = np.empty( shape, dtype='double' )
-        _contiguous_sample_group_ids = [None] * total_num_samples
-        _contiguous_sample_names = [None] * total_num_samples
-        _contiguous_sample_sequence_ids = [None] * total_num_samples
-        _contiguous_ground_truth_values = [None] * total_num_samples
-        _contiguous_ground_truth_labels = [None] * total_num_samples
-
-        j = 0
-        if self.discrete:
-            # If there's a False in the list of lists instead of a list, skip the class whose
-            # index is in the same position as the False's index.
-            newdata['class_sizes' ] = class_sizes = \
-                [ self.num_samples_per_group * len(class_group_list) \
-                    for class_group_list in leave_in_sample_group_ids if class_group_list ]
-            newdata[ 'num_classes' ] = num_classes = len( class_sizes )
-
-            # If user requests more classes than exists in self, that's ok, but you have to makeup
-            # classnames. Throw a letter on the end of Class, and if they want more than
-            # 26 classes, well they can inherit from this class and reimplement this function
-            if num_classes <= self.num_classes:
-                newdata[ 'class_names' ] = [ self.class_names[i] \
-                  for i, num_groups in enumerate( leave_in_sample_group_ids ) if num_groups ]
-                if self.interpolation_coefficients:
-                    newdata[ 'interpolation_coefficients' ] = [ self.interpolation_coefficients[i] \
-                  for i, num_groups in enumerate( leave_in_sample_group_ids ) if num_groups ]
-            else:
-                newdata[ 'class_names' ] = [ "Class" + letter for i, letter in \
-                        zip( leave_in_sample_group_ids, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' ) if i ]
-                newdata[ 'interpolation_coefficients' ] = None
-            for class_group_list in leave_in_sample_group_ids:
-                if not class_group_list:
-                    continue
-                for samp_group_id in class_group_list:
-                    _contiguous_sample_group_ids[ j : j + self.num_samples_per_group ] = \
-                        [samp_group_id] * self.num_samples_per_group
-                    j += self.num_samples_per_group
-              
-        else:
-            for samp_group_id in leave_in_sample_group_ids:
-                _contiguous_sample_group_ids[ j : j + self.num_samples_per_group ] = \
-                    [samp_group_id] * self.num_samples_per_group
-                j += self.num_samples_per_group
-
-        assert( len( _contiguous_sample_group_ids ) == total_num_samples )
-
-        for i in xrange( 0, total_num_samples, self.num_samples_per_group ):
-            groupid = _contiguous_sample_group_ids[i]
-            original_index = self._contiguous_sample_group_ids.index( groupid )
-            np.copyto( data_matrix[ i : i + self.num_samples_per_group ],
-                            self.data_matrix[ original_index : original_index + self.num_samples_per_group ] )
-            _contiguous_sample_names[ i : i + self.num_samples_per_group ] = \
-               self._contiguous_sample_names[ original_index : original_index +  self.num_samples_per_group]
-            _contiguous_sample_sequence_ids[ i : i + self.num_samples_per_group ] = \
-               self._contiguous_sample_sequence_ids[ original_index : original_index +  self.num_samples_per_group]
-            _contiguous_ground_truth_values[ i : i + self.num_samples_per_group ] = \
-               self._contiguous_ground_truth_values[ original_index : original_index +  self.num_samples_per_group ]
-            _contiguous_ground_truth_labels[ i : i + self.num_samples_per_group ] = \
-               self._contiguous_ground_truth_labels[ original_index : original_index +  self.num_samples_per_group ]
-
-        newdata[ 'data_matrix' ] = data_matrix
-        newdata[ '_contiguous_sample_names' ] = _contiguous_sample_names
-        newdata[ '_contiguous_sample_group_ids' ] = _contiguous_sample_group_ids
-        newdata[ '_contiguous_sample_sequence_ids' ] = _contiguous_sample_sequence_ids
-        newdata[ '_contiguous_ground_truth_values' ] = _contiguous_ground_truth_values
-        newdata[ '_contiguous_ground_truth_labels' ] = _contiguous_ground_truth_labels
+        newdata[ 'num_samples' ] = new_samp_count
+        newdata[ 'shape' ] = new_shape
+        newdata[ 'data_matrix' ] = new_mat
+        newdata[ '_contiguous_sample_names' ] = new_samp_names
+        newdata[ '_contiguous_sample_group_ids' ] = new_sg_ids
+        newdata[ '_contiguous_sample_sequence_ids' ] = new_samp_sequence_ids
+        newdata[ '_contiguous_ground_truth_values' ] = new_gt_values
+        newdata[ '_contiguous_ground_truth_labels' ] = new_gt_labels
 
         if inplace:
-            retval = self.Update( **newdata )._RebuildViews()
+            retval = self.Update( **newdata )
         else:
             retval = self.Derive( **newdata )
+
+        retval.SortSamplesByGroundTruth( rebuild_views=True, inplace=True )
 
         if not quiet:
             print "SAMPLE REDUCED FEATURE SPACE: ", str( retval )
@@ -1630,14 +1566,18 @@ class FeatureSpace( object ):
                 try:
                     class_train_groups, class_test_groups = \
                       CalcTrainTestSampleGroupMembership( self.sample_group_ids[class_index], _max=smallest_class_size  )
-                except ValueError as e:
+                except Exception as e:
                     addl_msg = "Error with class index " + str(class_index) + \
                                '. For discrete FeatureSpaces (with classes), train_size and test_size' + \
                                ' are evaluated per-class. '
-                    raise ValueError( addl_msg + e.message )
+                    if e.args:
+                        e.args = tuple( [addl_msg] + list( e.args ) )
+                    else:
+                        e.args = tuple( [addl_msg] )
+                    raise
                 else:
-                    train_groups.append( class_train_groups )
-                    test_groups.append( class_test_groups )                    
+                    train_groups.extend( class_train_groups )
+                    test_groups.extend( class_test_groups )
 
             if not any( test_groups ):
                 training_set_only = True
@@ -1761,7 +1701,7 @@ class FeatureSpace( object ):
 
     #==============================================================
     def __add__( self, other ):
-        return self.SamplesUnion( other )
+        return self.SamplesUnion( other, quiet=True )
 
     #==============================================================
     def FeaturesUnion( self, other_fs, inplace=False ):
