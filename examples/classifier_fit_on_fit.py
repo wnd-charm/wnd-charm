@@ -21,45 +21,49 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                                                
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- Written by:  Christopher Coletta <christopher.coletta [at] nih [dot] gov>
+ Written by:  Christopher Coletta (github.com/colettace)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Meant to exercize train/test/split functionality"""
 
-def get_featureset (input_filename):
-	# Get the classifier parameter(s)
-	if ( input_filename.endswith (".fit") ):
-		featureset = FeatureSet_Discrete.NewFromFitFile( input_filename )
-	elif ( input_filename.endswith (".fit.pickled") ):
-		featureset = FeatureSet_Discrete.NewFromPickleFile( input_filename )
-	elif ( input_filename.endswith (".fof") ):
-		featureset = FeatureSet_Discrete.NewFromFileOfFiles( input_filename )
-	else:
-		raise Exception( 'The classifier must either end in .fit, .fit.pickled, or .fof' )
-	featureset.Print()
-	return (featureset)
+def get_featureset( path, quiet=True ):
+    if path.endswith( ".fit" ):
+        fs = FeatureSpace.NewFromFitFile( path )
+    elif path.endswith( ".fit.pickled" ):
+        fs = FeatureSpace.NewFromPickleFile( path )
+    elif path.endswith( ".fof" ):
+        fs = FeatureSpace.NewFromFileOfFiles( path )
+    else:
+        raise Exception( 'The classifier must either end in .fit, .fit.pickled, or .fof' )
+    if not quiet:
+        fs.Print()
+    return fs
 
+from wndcharm.FeatureSpace import FeatureSpace
+from wndcharm.FeatureWeights import FisherFeatureWeights
+from wndcharm.FeatureSpacePrediction import FeatureSpaceClassification
+from wndcharm.FeatureSpacePredictionExperiment import FeatureSpaceClassificationExperiment
 
-# import wndcharm
-from wndcharm.FeatureSet import *
 from wndcharm import __version__ as wndcharm_version
 print "wndcharm "+wndcharm_version
 
 import argparse
 
-parser = argparse.ArgumentParser( description="perform classifier cross validation" )
+parser = argparse.ArgumentParser( description="obtain classifier *training* accuracy" )
 parser.add_argument( '-n', help='specify number of train/test splits',
-                     type=int, metavar='<integer>', default=5 )
+                     type=int, metavar='<integer>', default=1 )
 parser.add_argument( '-f', help='specify number feature usage fraction on interval [0.0,1.0]',
-                     type=float, metavar='<float>',default = None)
+                     type=float, metavar='<float>',default=None)
 parser.add_argument( '-F', help='specify number of features',
-                     type=int, metavar='<integer>',default = 200)
-parser.add_argument( 'training_set_file_path', help='path to Pychrm classifier file for training, could be WND-CHARM .fit file, Pychrm .fit.pickled file, or Pychrm/WND-CHRM file of files .fof',
+                     type=int, metavar='<integer>',default=None)
+parser.add_argument( 'training_set_file_path', help='path to WND-CHARM classifier file for training, could be WND-CHARM .fit file, Pychrm .fit.pickled file, or Pychrm/WND-CHRM file of files .fof',
                      nargs=1 )
-parser.add_argument( 'test_set_file_path', help='path to Pychrm classifier file for testing, could be WND-CHARM .fit file, Pychrm .fit.pickled file, or Pychrm/WND-CHRM file of files .fof',
+parser.add_argument( 'test_set_file_path', help='path to WND-CHARM classifier file for testing, could be WND-CHARM .fit file, Pychrm .fit.pickled file, or Pychrm/WND-CHRM file of files .fof',
                      nargs=1 )
 parser.add_argument( 'output_filepath', help='Results are written to this file, otherwise to STDOUT',
-                     nargs='?', default = None )
+                     nargs='?', default=None )
+parser.add_argument( '-D', help='write all intermediates to disk, including .sig and .fit',
+                     action='store_true', default=False)
 args = parser.parse_args()
 
 num_splits = args.n
@@ -68,39 +72,46 @@ num_features = args.F
 training_filename = args.training_set_file_path[0]
 testing_filename = args.test_set_file_path[0]
 outpath = args.output_filepath
+write_intermediates = args.D
 
-training_featureset = get_featureset (training_filename)
-testing_featureset = get_featureset (testing_filename)
+train_set = get_featureset( training_filename )
+if write_intermediates:
+    train_set.ToFitFile()
 
-
+if training_filename == testing_filename:
+    test_set = train_set
+else:
+    test_set = get_featureset( testing_filename )
+    if write_intermediates:
+        train_set.ToFitFile()
 
 if feature_usage_fraction:
-	if feature_usage_fraction < 0 or feature_usage_fraction > 1.0:
-		raise Exception('Feature usage fraction must be on interval [0,1]')
-	num_features = int( feature_usage_fraction * training_featureset.num_features )
-print "using top "+str (num_features)+" features"
+    if feature_usage_fraction < 0 or feature_usage_fraction > 1.0:
+        raise Exception('Feature usage fraction must be on interval [0,1]')
+    num_features = int( feature_usage_fraction * train_set.num_features )
 
-experiment = DiscreteClassificationExperimentResult( training_set = training_featureset )
+if num_features:
+    print "Using top {0} Fisher-ranked features.".format( num_features )
+else:
+    print "Using top 15% Fisher-ranked features."
 
-training_featureset.Normalize()
-testing_featureset.Normalize( training_featureset )
+experiment = FeatureSpaceClassificationExperiment( training_set=train_set )
 
-fisher_weights = FisherFeatureWeights.NewFromFeatureSet( training_featureset )
-fisher_weights = fisher_weights.Threshold( num_features )
+train_set.Normalize( inplace=True )
+weights = FisherFeatureWeights.NewFromFeatureSpace( train_set ).Threshold( num_features )
+train_set.FeatureReduce( weights, inplace=True )
 
-reduced_test_set = testing_featureset.FeatureReduce( fisher_weights.names )
-reduced_training_set = training_featureset.FeatureReduce( fisher_weights.names )
+if train_set != test_set:
+    test_set.FeatureReduce( weights, inplace=True ).Normalize( train_set )
 
-batch_result = DiscreteBatchClassificationResult.New( reduced_training_set,
-	reduced_test_set, fisher_weights, batch_number = 0 )
-
-
-experiment.individual_results.append( batch_result )
+for i in range( num_splits ):
+    split = FeatureSpaceClassification.NewWND5( train_set, test_set, weights, batch_number=i )
+    experiment.individual_results.append( split )
 
 if outpath:
-	experiment.Print( output_filepath=outpath, mode='w' )
-	experiment.PredictedValueAnalysis( output_filepath=outpath, mode= 'a' )
+    experiment.Print( output_filepath=outpath, mode='w' )
+    #experiment.PerSampleStatistics( output_filepath=outpath, mode= 'a' )
 else:
-	experiment.Print()
-	experiment.PredictedValueAnalysis()
+    experiment.Print()
+    #experiment.PerSampleStatistics()
 

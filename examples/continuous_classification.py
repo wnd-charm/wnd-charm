@@ -34,7 +34,9 @@ a single PDF using ImageMagick's convert command."""
 
 
 # import wndcharm
-from wndcharm.FeatureSet import *
+from wndcharm.FeatureSpace import FeatureSpace
+from wndcharm.visualization import PredictedValuesGraph
+
 from wndcharm import __version__ as wndcharm_version
 print "wndcharm "+wndcharm_version
 
@@ -61,67 +63,51 @@ input_filename = args.classifier_file_path[0]
 outpath = args.output_filepath
 dump_pickle = args.D
 
-if ( input_filename.endswith (".fit") ):
-	full_set = FeatureSet_Continuous.NewFromFitFile( input_filename )
-elif ( input_filename.endswith (".fit.pickled") ):
-	full_set = FeatureSet_Continuous.NewFromPickleFile( input_filename )
-elif ( input_filename.endswith (".fof") ):
-	full_set = FeatureSet_Continuous.NewFromFileOfFiles( input_filename )
+if input_filename.endswith( ".fit" ):
+    full_set = FeatureSpace.NewFromFitFile( input_filename )
+elif input_filename.endswith( ".fit.pickled" ):
+    full_set = FeatureSpace.NewFromPickleFile( input_filename )
+elif input_filename.endswith( ".fof" ):
+    full_set = FeatureSpace.NewFromFileOfFiles( input_filename )
 else:
-	raise Exception( 'The classifier must either end in .fit, .fit.pickled, or .fof' )
+    raise Exception( 'The classifier must either end in .fit, .fit.pickled, or .fof' )
 
 
 if not dump_pickle == 'unset':
-	if dump_pickle:
-		# user used -D to specify a name for their training set pickle
-		full_set.PickleMe( dump_pickle )
-	else:
-		# user used -D as a flag, use default pickle name pattern
-		full_set.PickleMe()
+    if dump_pickle:
+        # user used -D to specify a name for their training set pickle
+        full_set.PickleMe( dump_pickle )
+    else:
+        # user used -D as a flag, use default pickle name pattern
+        full_set.PickleMe()
 
-num_features_per_bin = int( float( len( full_set.featurenames_list ) ) / float( num_bins) )
+num_features_per_bin = int( float( len( full_set.feature_names ) ) / float( num_bins ) )
 bin_offset = 0
 
 rank_ordered_graphs = []
 ks_density_graphs = []
 
+norm_full_set = full_set.Normalize()
+# arg _all=True performs rank order sort without reducing number of features
+sorted_full_set_pearson_weights = PearsonFeatureWeights.NewFromFeatureSpace( norm_full_set ).Threshold( _all=True ) 
+
 for bin_index in range( num_bins ):
-	name = "{0}\nFeatures ranked {1}-{2}".format( full_set.source_path,
-	                                     bin_offset + 1, bin_offset + num_features_per_bin )
-	print name
-	experiment = ContinuousClassificationExperimentResult( name )
-	experiment.test_set = full_set
+    name = "{0}\nFeatures ranked {1}-{2}".format( full_set.source_path,
+                                         bin_offset + 1, bin_offset + num_features_per_bin )
+    print name
 
-	for i in range( num_splits ):
+    sliced_pearson_weights = sorted_full_set_pearson_weights.Slice( bin_offset, bin_offset + num_features_per_bin )
+    sliced_fs = full_set.FeatureReduce( sliced_pearson_weights )
+    experiment = FeatureSpaceRegressionExperiment.NewShuffleSplit( sliced_fs )
 
-		full_training_set, full_test_set = full_set.Split( quiet = True )
-		full_training_set.Normalize( quiet = True )
-		full_test_set.Normalize( full_training_set, quiet = True )
+    grapher = PredictedValuesGraph( experiment )
+    grapher.RankOrderedPredictedValuesGraph( name )
+    grapher.SaveToFile( "rank_ordered_features_{0:03d}-{1:03d}".format( bin_offset + 1, bin_offset + num_features_per_bin  ) )
 
-		full_weights = ContinuousFeatureWeights.NewFromFeatureSet( full_training_set )
-		# This just does a reorder
-		full_weights = full_weights.Threshold( len( full_weights.names ) )
-		weights_subset = full_weights.Slice( bin_offset, bin_offset + num_features_per_bin -1 )
-		#weights_subset.Print( print_legend = False )
+    grapher.KernelSmoothedDensityGraph( name )
+    grapher.SaveToFile( "ks_density_features_{0:03d}-{1:03d}".format( bin_offset + 1, bin_offset + num_features_per_bin ) )
 
-		reduced_training_set = full_training_set.FeatureReduce( weights_subset.names )
-		reduced_test_set = full_test_set.FeatureReduce( weights_subset.names )
-
-		batch_result = ContinuousBatchClassificationResult.New( reduced_test_set, \
-		                                 weights_subset, quiet = True, batch_number = i )
-
-		experiment.individual_results.append( batch_result )
-
-	experiment.Print()
-
-	grapher = PredictedValuesGraph( experiment )
-	grapher.RankOrderedPredictedValuesGraph( name )
-	grapher.SaveToFile( "rank_ordered_features_{0:03d}-{1:03d}".format( bin_offset + 1, bin_offset + num_features_per_bin  ) )
-
-	grapher.KernelSmoothedDensityGraph( name )
-	grapher.SaveToFile( "ks_density_features_{0:03d}-{1:03d}".format( bin_offset + 1, bin_offset + num_features_per_bin ) )
-
-	bin_offset += num_features_per_bin 
+    bin_offset += num_features_per_bin 
 
 
 import subprocess

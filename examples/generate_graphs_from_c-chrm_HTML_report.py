@@ -21,20 +21,18 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                                                
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- Written by:  Christopher Coletta <christopher.coletta [at] nih [dot] gov>
+ Written by:  Christopher Coletta (github.com/colettace)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Takes a C-chrm-generated HTML report and generates a kernel-smoothed probability
 density estimate graph or a rank-ordered predicted values graph"""
 
 
-# import wndcharm
-from wndcharm.FeatureSet import *
+from wndcharm.visualization import PredictedValuesGraph
 from wndcharm import __version__ as wndcharm_version
 print "wndcharm "+wndcharm_version
 
 import argparse
-import os
 
 parser = argparse.ArgumentParser( description="Takes a C-chrm-generated HTML report and generates a kernel-smoothed probability density estimate graph or a rank-ordered predicted values graph")
 parser.add_argument( 'html_report_filepath', help='path WND-CHARM HTML report',
@@ -50,31 +48,33 @@ html_file = args.html_report_filepath[0]
 print "parsing HTML file {0}".format( html_file )
 
 if args.figure_basename is None:
-	figure_basename = html_file
+    figure_basename = html_file
 else:
-	figure_basename = args.figure_basename
+    figure_basename = args.figure_basename
 
-figure_basename, extension = os.path.splitext( figure_basename )
+from os.path import splitext
+figure_basename, extension = splitext( figure_basename )
 figure_basename = figure_basename.replace( '.', '_' )
 
 print "using figure basename {0}".format( figure_basename )
 
 text_out = None
 if args.debug is 'unset':
-	# unset means user doesn't need debug out
-	print "User doesn't want to see debug output, sending it to /dev/null"
-	text_out = os.devnull
+    # unset means user doesn't need debug out
+    print "User doesn't want to see debug output, sending it to /dev/null"
+    from os import devnull
+    text_out = devnull
 elif args.debug is not None:
-	text_out = args.debug
-	print "Sending debug output to file {0}".format( text_out )
+    text_out = args.debug
+    print "Sending debug output to file {0}".format( text_out )
 else:
-	print "Sending debug output to STDOUT"
+    print "Sending debug output to STDOUT"
 
 
 if text_out:
-	graph = PredictedValuesGraph.NewFromHTMLFile( html_file, output_filepath=text_out )
+    graph = PredictedValuesGraph.NewFromHTMLFile( html_file, output_filepath=text_out )
 else:
-	graph = PredictedValuesGraph.NewFromHTMLFile( html_file )
+    graph = PredictedValuesGraph.NewFromHTMLFile( html_file )
 
 graph.KernelSmoothedDensityGraph( chart_title=html_file )
 graph.SaveToFile( figure_basename + '-ks_density' )

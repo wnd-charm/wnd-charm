@@ -1,3 +1,27 @@
+"""
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                                               
+ Copyright (C) 2015 National Institutes of Health 
+
+    This library is free software; you can redistribute it and/or              
+    modify it under the terms of the GNU Lesser General Public                 
+    License as published by the Free Software Foundation; either               
+    version 2.1 of the License, or (at your option) any later version.         
+                                                                               
+    This library is distributed in the hope that it will be useful,            
+    but WITHOUT ANY WARRANTY; without even the implied warranty of             
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU          
+    Lesser General Public License for more details.                            
+                                                                               
+    You should have received a copy of the GNU Lesser General Public           
+    License along with this library; if not, write to the Free Software        
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA  
+                                                                               
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                                               
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ Written by:  Christopher Coletta (github.com/colettace)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"""
 
 name_dict = {}
 #=================================================================================
@@ -8,22 +32,21 @@ def TranslateToNewStyle( old_name_list ):
     "Feature DistHist" ... See http://code.google.com/p/wnd-charm/issues/detail?id=35
 	"""
 	global name_dict
-	new_name_list = []
+	new_name_list = [None] * len( old_name_list )
 
 	FeatureDistHist_count = 0
-	for old_name in old_name_list:
+	for i, old_name in enumerate( old_name_list ):
 		if old_name == "Feature DistHist":
 			old_name = "FeatureDistHist Bin{0}".format( FeatureDistHist_count )
 			FeatureDistHist_count += 1
 		if old_name in name_dict:
-			new_name_list.append( name_dict[ old_name ] )
+			new_name_list[i] = name_dict[ old_name ]
 		else:
-			new_name_list.append( old_name )
+			new_name_list[i] = old_name
 	return new_name_list
 
 #=================================================================================
 def InitializeThisModule():
-
 
 	global name_dict
 	name_dict[ "Chebishev Statistics bin 0 ()" ]                                     = "Chebyshev Coefficients () [0]"

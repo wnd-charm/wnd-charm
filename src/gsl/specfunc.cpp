@@ -1677,7 +1677,9 @@ int gsl_sf_choose_e(unsigned int n, unsigned int m, gsl_sf_result * result)
           prod *= tk;
         }
         result->val = prod;
-        result->err = 2.0 * GSL_DBL_EPSILON * prod * fabs(n-m);
+        // CEC edit: fabs() on two unsigned integers is superfluous
+        // result->err = 2.0 * GSL_DBL_EPSILON * prod * fabs(n-m);
+        result->err = 2.0 * GSL_DBL_EPSILON * prod * (n-m);
         return GSL_SUCCESS;
       }
     else
