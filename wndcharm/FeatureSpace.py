@@ -505,7 +505,7 @@ class FeatureSpace( object ):
             self._contiguous_sample_names, self._contiguous_sample_sequence_ids )
 
         from operator import itemgetter
-        if self.discrete:
+        if self.discrete and self.interpolation_coefficients is None:
             # sort by the labels
             sortfunc = itemgetter(0)
         else:
@@ -516,6 +516,7 @@ class FeatureSpace( object ):
         a, b, c, d, e = zip( *sorted( sample_data, key=sortfunc ) )
 
         newdata = {}
+        newdata['name'] = self.name + " (sorted)"
         newdata['_contiguous_ground_truth_labels'] = list(a)
         newdata['_contiguous_ground_truth_values'] = list(b)
         newdata['data_matrix'] = np.array(c)
@@ -838,7 +839,7 @@ class FeatureSpace( object ):
                             for row_index in xrange( tile_num_rows ):
                                 fv = deepcopy( global_sampling_options )
                                 fv.source_filepath = _file
-                                fv.label = "UNKNOWN"
+                                fv.ground_truth_label = "UNKNOWN"
                                 fv.tile_row_index = row_index
                                 fv.tile_col_index = col_index
                                 fv.Update()
@@ -860,7 +861,7 @@ class FeatureSpace( object ):
                         for row_index in xrange( tile_num_rows ):
                             fv = deepcopy( global_sampling_options )
                             fv.source_filepath = _file
-                            fv.label = class_name
+                            fv.ground_truth_label = class_name
                             fv.tile_row_index = row_index
                             fv.tile_col_index = col_index
                             fv.Update()
@@ -972,10 +973,10 @@ class FeatureSpace( object ):
                     # Create a sampling opts template for this line in the FOF
                     base_sample_opts = deepcopy( global_sampling_options )
                     base_sample_opts.name = cols[0]
-                    base_sample_opts.label = cols[1]
+                    base_sample_opts.ground_truth_label = cols[1]
                     val_match = num_search.search( cols[1] )
                     if val_match:
-                        base_sample_opts.ground_truth = float(val_match.group(1))
+                        base_sample_opts.ground_truth_value = float(val_match.group(1))
 
                     # Note only difference with base_sampling_opts in the 3+ col version code below
                     # is the fs_col is always 0
@@ -1032,10 +1033,10 @@ class FeatureSpace( object ):
                         base_sample_opts = deepcopy( global_sampling_options )
                         base_sample_opts.name = cols[0]
                         base_sample_opts.sample_group_id = ReturnSampleGroupID( cols[0] )
-                        base_sample_opts.label = cols[1]
+                        base_sample_opts.ground_truth_label = cols[1]
                         val_match = num_search.search( cols[1] )
                         if val_match:
-                            base_sample_opts.ground_truth = float(val_match.group(1))
+                            base_sample_opts.ground_truth_value = float(val_match.group(1))
                         base_sample_opts.fs_col = fs_col
 
                         # Pull sampling options out of parentheses and load into template
@@ -1210,8 +1211,8 @@ class FeatureSpace( object ):
                 new_fs._contiguous_sample_names[ row_index ] = fv.name
                 new_fs._contiguous_sample_group_ids[ row_index ] = fv.sample_group_id
                 new_fs._contiguous_sample_sequence_ids[ row_index ] = fv.sample_sequence_id
-                new_fs._contiguous_ground_truth_labels[ row_index ] = fv.label
-                new_fs._contiguous_ground_truth_values[ row_index ] = fv.ground_truth
+                new_fs._contiguous_ground_truth_labels[ row_index ] = fv.ground_truth_label
+                new_fs._contiguous_ground_truth_values[ row_index ] = fv.ground_truth_value
 
             new_fs.data_matrix[ row_index, col_left_boundary_index : col_right_boundary_index ] = \
               fv.values

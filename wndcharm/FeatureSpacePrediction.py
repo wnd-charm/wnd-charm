@@ -27,10 +27,11 @@ import numpy as np
 from .utils import output_railroad_switch
 from .FeatureSpace import FeatureSpace
 from .FeatureWeights import FeatureWeights, FisherFeatureWeights, PearsonFeatureWeights
-from .SingleSamplePrediction import SingleSampleClassification, SingleSampleRegression
+from .SingleSamplePrediction import SingleSampleClassification, SingleSampleRegression,\
+    AveragedSingleSamplePrediction
 
 #=================================================================================
-class FeatureSpacePrediction( object ):
+class _FeatureSpacePrediction( object ):
     """Base class container for individual SingleSamplePrediction instances.
     Use for generating predicted values for a FeatureSpace all at once.
     
@@ -39,8 +40,8 @@ class FeatureSpacePrediction( object ):
 
     #==============================================================
     def __init__( self, training_set=None, test_set=None, feature_weights=None, name=None,
-        batch_number=None ):
-        """FeatureSpacePrediction constructor"""
+        split_number=None ):
+        """_FeatureSpacePrediction constructor"""
 
         self.training_set = training_set
         self.test_set = test_set
@@ -49,16 +50,16 @@ class FeatureSpacePrediction( object ):
         if self.name is None and training_set and training_set.name:
             self.name = training_set.name
         self.individual_results = []
-        self.tiled_results = None
-        self.tiled_ground_truth_values = None
-        self.tiled_predicted_values = None
+        self.averaged_results = None
+        self.averaged_ground_truth_values = None
+        self.averaged_predicted_values = None
 
         # Give myself a number so that it looks good when I print out results
-        if not batch_number:
-            batch_number = self.__class__.obj_count
+        if not split_number:
+            split_number = self.__class__.obj_count
             self.__class__.obj_count += 1
 
-        self.batch_number = batch_number
+        self.split_number = split_number
 
         self.num_classifications = 0
 
@@ -84,8 +85,8 @@ class FeatureSpacePrediction( object ):
 
     #==============================================================
     def __len__( self ):
-        if self.tiled_results:
-            return len( self.tiled_results )
+        if self.averaged_results:
+            return len( self.averaged_results )
         try:
             return len( self.individual_results )
         except:
@@ -97,10 +98,10 @@ class FeatureSpacePrediction( object ):
         in self.individual_results correlate with their ground truth values."""
         #FIXME: Calculate p-value of our standard error figure of merit.
 
-        if self.tiled_results:
-            classification_results = self.tiled_results
-            ground_truth_values = self.tiled_ground_truth_values
-            predicted_values = self.tiled_predicted_values
+        if self.averaged_results:
+            classification_results = self.averaged_results
+            ground_truth_values = self.averaged_ground_truth_values
+            predicted_values = self.averaged_predicted_values
         else:
             classification_results = self.individual_results
             ground_truth_values = self.ground_truth_values
@@ -140,31 +141,36 @@ class FeatureSpacePrediction( object ):
                     # to avoid: "FloatingPointError: invalid value encountered in true_divide"
                     self.spearman_coeff, self.spearman_p_value = ( 0, 1 )
 
-                np.seterr (all='raise')
+                np.seterr( all='raise' )
         return self
 
-    #==============================================================
-    def NewNFold( self, num_folds=5, *args, **kwargs ):
-        """Base method, implemented in daughter classes."""
-        raise NotImplementedError()
+#    #==============================================================
+#    def NewNFold( self, num_folds=5, *args, **kwargs ):
+#        """Base method, implemented in daughter classes."""
+#        raise NotImplementedError()
 
     #==============================================================
-    def RankOrderSort( self ):
+    def RankOrderSort( self, use_averaged_results=True ):
         """Rank-order sorts ground truth/predicted value data points for purposes of 
-        being graphed."""
+        being graphed.
 
-        if self.tiled_results:
-            classification_results = self.tiled_results
-            ground_truth_values = self.tiled_ground_truth_values
-            predicted_values = self.tiled_predicted_values
+        use_averaged_results - bool - If this object has averaged results (due to tiling or
+            "per sample" aggregation across splits, use those results instead of
+            individual results.
+
+        returns - (list, list) - ground truth values, predicted values"""
+
+        self.GenerateStats()
+
+        if use_averaged_results and self.averaged_results:
+            classification_results = self.averaged_results
+            ground_truth_values = self.averaged_ground_truth_values
+            predicted_values = self.averaged_predicted_values
         else:
             classification_results = self.individual_results
             ground_truth_values = self.ground_truth_values
             predicted_values = self.predicted_values
-
-        if not self.ground_truth_values or not self.predicted_values:
-            self.GenerateStats()
-
+            
         # Check again:
         if not ground_truth_values:
             raise ValueError( "Can't rank-order sort: no numeric ground truth values for predicted results." )
@@ -174,19 +180,21 @@ class FeatureSpacePrediction( object ):
         value_pairs = zip( ground_truth_values, predicted_values )
 
         # sort by ground_truth value first, predicted value second
-        sorted_pairs = sorted( sorted( value_pairs, key=lambda x: x[0] ), key=lambda x: x[1] )
+        value_pairs.sort( key=lambda x: x[0] )
+        value_pairs.sort( key=lambda x: x[1] )
         
         # we want lists, not tuples!
         ground_truth_values, predicted_values =\
-            [ list( unzipped_tuple ) for unzipped_tuple in zip( *sorted_pairs ) ]
+            [ list( unzipped_tuple ) for unzipped_tuple in zip( *value_pairs ) ]
 
-        if self.tiled_results:
-            self.tiled_ground_truth_values = ground_truth_values
-            self.tiled_predicted_values = predicted_values
+        if use_averaged_results and self.averaged_results:
+            self.averaged_ground_truth_values = ground_truth_values
+            self.averaged_predicted_values = predicted_values
         else:
             self.ground_truth_values = ground_truth_values
             self.predicted_values = predicted_values
-        return self
+
+        return ground_truth_values, predicted_values
 
     #==============================================================
     def ConfusionMatrix( self ):
@@ -198,7 +206,17 @@ class FeatureSpacePrediction( object ):
             return outstr
 
         # These are the row headers:
-        gt_names = sorted( self.confusion_matrix )
+
+        # do your best to sort the column and row headers by numeric value
+        if self.test_set.interpolation_coefficients is not None:
+            gt_coeffs = self.test_set.interpolation_coefficients
+            gt_class_names = self.test_set.class_names
+            gt_lut = { name : val for name, val in zip( gt_class_names, gt_coeffs ) }
+            gt_sortfunc = lambda n: gt_lut[n]
+        else:
+            gt_sortfunc = lambda n: n
+        gt_names = sorted( self.confusion_matrix.keys(), key=gt_sortfunc)
+
         first_col_width = max( [ len( class_name ) for class_name in gt_names ] )
 
         # Collect all the predicted value class names that have appeared this far:
@@ -209,7 +227,15 @@ class FeatureSpacePrediction( object ):
             for pred_class in gt_row_dict.keys():
                 pred_class_names.add( pred_class )
 
-        pred_class_names = sorted( pred_class_names )
+        if self.training_set.interpolation_coefficients is not None:
+            pred_coeffs = self.training_set.interpolation_coefficients
+            pred_class_names = self.training_set.class_names
+            pred_lut = { name : val for name, val in zip( pred_class_names, pred_coeffs ) }
+            pred_sortfunc = lambda n: pred_lut[n]
+        else:
+            pred_sortfunc = lambda n: n
+
+        pred_class_names = sorted( pred_class_names, key=pred_sortfunc )
 
         # print column headers and horizontal table bar separator
         outstr += ' '*first_col_width + '\t' + "\t".join( pred_class_names ) + '\t|\ttotal\tacc.\n'
@@ -242,7 +268,14 @@ class FeatureSpacePrediction( object ):
             return outstr
 
         # These are the row headers:
-        gt_names = sorted( self.similarity_matrix )
+        if self.test_set.interpolation_coefficients is not None:
+            gt_coeffs = self.test_set.interpolation_coefficients
+            gt_class_names = self.test_set.class_names
+            gt_lut = { name : val for name, val in zip( gt_class_names, gt_coeffs ) }
+            gt_sortfunc = lambda n: gt_lut[n]
+        else:
+            gt_sortfunc = lambda n: n
+        gt_names = sorted( self.similarity_matrix.keys(), key=gt_sortfunc)
         first_col_width = max( [ len( class_name ) for class_name in gt_names ] )
 
         # Collect all the predicted value class names that have appeared this far:
@@ -253,7 +286,15 @@ class FeatureSpacePrediction( object ):
             for pred_class in gt_row_dict.keys():
                 pred_class_names.add( pred_class )
 
-        pred_class_names = sorted( pred_class_names )
+#        if self.training_set.interpolation_coefficients is not None:
+#            pred_coeffs = self.training_set.interpolation_coefficients
+#            pred_class_names = self.training_set.class_names
+#            pred_lut = { name : val for name, val in zip( pred_class_names, pred_coeffs ) }
+#            pred_sortfunc = lambda n: pred_lut[n]
+#        else:
+#            pred_sortfunc = lambda n: n
+
+        pred_class_names = sorted( pred_class_names, key=gt_sortfunc )
 
         # print column headers and horizontal table bar separator
         outstr += ' '*first_col_width + '\t' + "\t".join( pred_class_names ) + '\n'
@@ -282,7 +323,15 @@ class FeatureSpacePrediction( object ):
             return outstr
 
         # These are the row headers:
-        gt_names = sorted( self.average_class_probability_matrix )
+        # do your best to sort the column and row headers by numeric value
+        if self.test_set.interpolation_coefficients is not None:
+            gt_coeffs = self.test_set.interpolation_coefficients
+            gt_class_names = self.test_set.class_names
+            gt_lut = { name : val for name, val in zip( gt_class_names, gt_coeffs ) }
+            gt_sortfunc = lambda n: gt_lut[n]
+        else:
+            gt_sortfunc = lambda n: n
+        gt_names = sorted( self.average_class_probability_matrix.keys(), key=gt_sortfunc)
         first_col_width = max( [ len( class_name ) for class_name in gt_names ] )
 
         # Collect all the predicted value class names that have appeared this far:
@@ -293,7 +342,15 @@ class FeatureSpacePrediction( object ):
             for pred_class in gt_row_dict.keys():
                 pred_class_names.add( pred_class )
 
-        pred_class_names = sorted( pred_class_names )
+        if self.training_set.interpolation_coefficients is not None:
+            pred_coeffs = self.training_set.interpolation_coefficients
+            pred_class_names = self.training_set.class_names
+            pred_lut = { name : val for name, val in zip( pred_class_names, pred_coeffs ) }
+            pred_sortfunc = lambda n: pred_lut[n]
+        else:
+            pred_sortfunc = lambda n: n
+
+        pred_class_names = sorted( pred_class_names, key=pred_sortfunc )
 
         # print column headers and horizontal table bar separator
         outstr += ' '*first_col_width + '\t' + "\t".join( pred_class_names ) + '\n'
@@ -311,7 +368,7 @@ class FeatureSpacePrediction( object ):
         return outstr
 
 #=================================================================================
-class FeatureSpaceClassification( FeatureSpacePrediction ):
+class FeatureSpaceClassification( _FeatureSpacePrediction ):
     """Container for SingleSampleClassification instances.
     Use for classifying all samples in a FeatureSpace in one sitting."""
 
@@ -321,7 +378,7 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
     #==============================================================
     def __init__( self, *args, **kwargs ):
         """Possible kwargs, with defaults:
-        training_set=None, test_set=None, feature_weights=None, name=None, batch_number=None"""
+        training_set=None, test_set=None, feature_weights=None, name=None, split_number=None"""
 
         super( FeatureSpaceClassification, self ).__init__( *args, **kwargs )
 
@@ -338,8 +395,8 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
     #==============================================================    
     def __str__( self ):
         outstr = '<' + self.__class__.__name__
-        if self.batch_number is not None:
-            outstr += ' #' + str( self.batch_number )
+        if self.split_number is not None:
+            outstr += ' #' + str( self.split_number )
         if self.individual_results:
             outstr += ' n=' + str( len( self.individual_results ) )
         if self.num_correct_classifications:
@@ -380,13 +437,13 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
         self.num_classifications_per_class = defaultdict( int )
         self.num_correct_classifications_per_class = defaultdict( int )
 
-        classification_results = self.tiled_results if self.tiled_results else self.individual_results
+        classification_results = self.averaged_results if self.averaged_results else self.individual_results
 
         for indiv_result in classification_results:
-            gt_class = indiv_result.ground_truth_class_name
+            gt_class = indiv_result.ground_truth_label
             if gt_class == None:
                 gt_class = "UNKNOWN"
-            pred_class = indiv_result.predicted_class_name
+            pred_class = indiv_result.predicted_label
 
             self.num_classifications_per_class[ gt_class ] += 1
 
@@ -435,7 +492,7 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
         if self.classification_accuracy == None:
             self.GenerateStats()
 
-        classification_results = self.tiled_results if self.tiled_results else self.individual_results
+        classification_results = self.averaged_results if self.averaged_results else self.individual_results
 
         print '='*50
         s = self.__class__.__name__
@@ -576,7 +633,7 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
     #==============================================================
     @classmethod
     @output_railroad_switch
-    def NewWND5( cls, training_set, test_set, feature_weights, name=None, batch_number=None,
+    def NewWND5( cls, training_set, test_set, feature_weights, name=None, split_number=None,
                 quiet=False, norm_factor_threshold=None, error_bars=False ):
         """The equivalent of the "wndcharm classify" command in the command line implementation
         of WND-CHARM. Input a training set, a test set, and feature weights, and returns a
@@ -609,39 +666,35 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
         feature_weights_len = len( feature_weights.feature_names )
 
         # instantiate myself
-        batch_result = cls( training_set, test_set, feature_weights, name, batch_number )
-        batch_result.use_error_bars = error_bars
+        split_result = cls( training_set, test_set, feature_weights, name, split_number )
+        split_result.use_error_bars = error_bars
 
         # Are the samples to be classified tiled?
         if test_set.num_samples_per_group > 1:
-            batch_result.tiled_results = []
-            batch_result.tiled_ground_truth_values = []
-            batch_result.tiled_predicted_values = []
+            split_result.averaged_results = []
+            split_result.averaged_ground_truth_values = []
+            split_result.averaged_predicted_values = []
 
         # Say what we're going to do
         if not quiet:
             print "Classifying test set '{0}' ({1} features) against training set '{2}' ({3} features)".\
                     format( test_set.name, test_set_len, training_set.name, train_set_len )
-            if batch_result.tiled_results:
+            if split_result.averaged_results:
                 print "Performing tiled classification."
-            column_header = "image\tnorm. fact.\t"
-            column_header +=\
-                "".join( [ "p(" + class_name + ")\t" for class_name in training_set.class_names ] )
-            column_header += "act. class\tpred. class\tpred. val."
-            print column_header
 
         # Will there be a numeric predicted value associated with this classification?
         train_set_interp_coeffs = None
         if training_set.interpolation_coefficients != None and len( training_set.interpolation_coefficients) != 0:
             train_set_interp_coeffs = np.array( training_set.interpolation_coefficients )
-            batch_result.predicted_values = []
+            split_result.predicted_values = []
 
         # Are there numeric ground truth values associated with the input samples?
         test_set_interp_coeffs = None
         if test_set.interpolation_coefficients != None and len( test_set.interpolation_coefficients ) != 0:
             test_set_interp_coeffs = np.array( test_set.interpolation_coefficients )
-            batch_result.ground_truth_values = []
+            split_result.ground_truth_values = []
 
+        first_time_through = True
         for test_class_index in range( test_set.num_classes ):
             num_class_imgs, num_class_features = test_set.data_list[ test_class_index ].shape
 
@@ -656,93 +709,67 @@ class FeatureSpaceClassification( FeatureSpacePrediction ):
                 if norm_factor_threshold and (result.normalization_factor > norm_factor_threshold):
                     continue
                 result.source_filepath = test_set.sample_names[ test_class_index ][ test_image_index ]
-                result.ground_truth_class_name = test_set.class_names[ test_class_index ]
-                result.batch_number = batch_number
+                result.ground_truth_label = test_set.class_names[ test_class_index ]
+                result.split_number = split_number
                 result.name = name
                 if result.marginal_probabilities:
                     # Sometimes the result comes back with a non-call, like when the sample image
                     # collides with every test image
                     marg_probs = np.array( result.marginal_probabilities )
-                    result.predicted_class_name = training_set.class_names[ marg_probs.argmax() ]
+                    result.predicted_label = training_set.class_names[ marg_probs.argmax() ]
                 else:
                     marg_probs = np.array( [np.nan] * training_set.num_classes )
-                    result.predicted_class_name = "*Collided with every training sample*"
+                    result.predicted_label = "*Collided with every training sample*"
 
                 # interpolated value, if applicable
                 if train_set_interp_coeffs is not None:
                     interp_val = np.sum( marg_probs * train_set_interp_coeffs )
                     result.predicted_value = interp_val
-                    batch_result.predicted_values.append( interp_val )
+                    split_result.predicted_values.append( interp_val )
 
                 if test_set_interp_coeffs is not None:
                     result.ground_truth_value = test_set_interp_coeffs[ test_class_index ]
-                    batch_result.ground_truth_values.append( test_set_interp_coeffs[ test_class_index ] )
+                    split_result.ground_truth_values.append( test_set_interp_coeffs[ test_class_index ] )
 
                 # Helps to identify which results correspond with which sample
-                result.samplegroupid = test_set.sample_group_ids[ test_class_index ][ test_image_index ]
-                result.samplesequenceid = test_set.sample_sequence_ids[ test_class_index ][ test_image_index ]
-
+                result.sample_group_id = test_set.sample_group_ids[ test_class_index ][ test_image_index ]
                 if test_set.num_samples_per_group > 1:
-                    result.tile_index = len( tile_results_in_this_sample_group )
-                    result.num_samples_in_group = test_set.num_samples_per_group
+                    # result.sample_sequence_id = test_set.sample_sequence_ids[ test_class_index ][ test_image_index ]
+                    result.sample_sequence_id = len(tile_results_in_this_sample_group)
+                result.num_samples_in_group = test_set.num_samples_per_group
 
                 if not quiet:
-                    result.Print( line_item=True )
-                batch_result.individual_results.append( result )
+                    result.Print( line_item=True, include_col_header=first_time_through,
+                            training_set_class_names=training_set.class_names )
+                split_result.individual_results.append( result )
 
                 # TILING SECTION:
                 # Create a whole image classification result that
                 # is the average of all the calls from all the tiles
                 if test_set.num_samples_per_group > 1:
                     tile_results_in_this_sample_group.append( result )
-                    if len( tile_results_in_this_sample_group ) >= test_set.num_samples_per_group:
-                        aggregated_result = SingleSampleClassification()
-                        # Use the last result from above
-                        aggregated_result.source_filepath = result.source_filepath
-                        aggregated_result.tile_index = 'AVG'
-                        aggregated_result.ground_truth_class_name = result.ground_truth_class_name
-                        marg_prob_lists = [ [] for i in xrange( training_set.num_classes ) ]
-                        norm_factor_list = []
-                        for tile_result in tile_results_in_this_sample_group:
-                            if tile_result.marginal_probabilities:
-                                # Sometimes the result comes back with a non-call, like when the sample image
-                                # collides with every test image
-                                for class_index, val in enumerate( tile_result.marginal_probabilities ):
-                                    marg_prob_lists[ class_index ].append( val )
-                                norm_factor_list.append( tile_result.normalization_factor )
+                    if len( tile_results_in_this_sample_group ) == test_set.num_samples_per_group:
+                        avg_result = AveragedSingleSamplePrediction(
+                            tile_results_in_this_sample_group, training_set.class_names )
 
-                        if any( [ len( class_marg_prob_list ) <= 0 for class_marg_prob_list in marg_prob_lists ] ):
-                            aggregated_result.marginal_probabilities = np.array( [np.nan] * training_set.num_classes )
-                            aggregated_result.predicted_class_name = "*Collided with every training image*"
-                        else:
-                            marg_probs = [ sum( l ) / float( len( l ) ) for l in marg_prob_lists ]
-                            aggregated_result.marginal_probabilities = marg_probs
-                            np_marg_probs = np.array( marg_probs )
-                            aggregated_result.predicted_class_name = training_set.class_names[ np_marg_probs.argmax() ]
-                            aggregated_result.normalization_factor = sum(norm_factor_list)/float(len(norm_factor_list))
+                        if avg_result.predicted_value is not None:
+                            split_result.averaged_predicted_values.append( avg_result.predicted_value )
+                        if avg_result.ground_truth_value is not None:
+                            split_result.averaged_ground_truth_values.append( avg_result.ground_truth_value )
 
-                            # interpolated value, if applicable
-                            if train_set_interp_coeffs is not None:
-                                aggregated_result.predicted_value = np.sum( np_marg_probs * train_set_interp_coeffs )
-                                batch_result.tiled_predicted_values.append( aggregated_result.predicted_value )
-                            if test_set_interp_coeffs is not None:
-                                aggregated_result.ground_truth_value = test_set_interp_coeffs[ test_class_index ]
-                                batch_result.tiled_ground_truth_values.append( aggregated_result.ground_truth_value )
-                        # Save references to the tiled results on the aggregated result
-                        # To facilitate creation of graphs, heatmaps, etc
-                        aggregated_result.tiled_results = tile_results_in_this_sample_group
-                        batch_result.tiled_results.append( aggregated_result )
+                        split_result.averaged_results.append( avg_result )
                         if not quiet:
-                            aggregated_result.Print( line_item=True )
+                            avg_result.Print( line_item=True )
 
                         # now reset for the next sample group
                         tile_results_in_this_sample_group = []
-                        tile_count = 0
+                first_time_through = False
+
         np.seterr (all='raise')
-        return batch_result
+        return split_result
 
 #=================================================================================
-class FeatureSpaceRegression( FeatureSpacePrediction ):
+class FeatureSpaceRegression( _FeatureSpacePrediction ):
     """Container for SingleSampleRegression instances.
     Use for regressing all samples in a FeatureSpace in one sitting."""
 
@@ -751,7 +778,7 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
 
     def __init__( self, *args, **kwargs ):
         """Possible kwargs, with defaults:
-        training_set=None, test_set=None, feature_weights=None, name=None, batch_number=None"""
+        training_set=None, test_set=None, feature_weights=None, name=None, split_number=None"""
 
         super( FeatureSpaceRegression, self ).__init__( *args, **kwargs )
         self.predicted_values = []
@@ -759,8 +786,8 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
     #==============================================================    
     def __str__( self ):
         outstr = '<' + self.__class__.__name__
-        if self.batch_number is not None:
-            outstr += ' #' + str( self.batch_number )
+        if self.split_number is not None:
+            outstr += ' #' + str( self.split_number )
         if self.individual_results:
             outstr += ' n=' + str( len( self.individual_results ) )
         if self.std_err is not None:
@@ -793,7 +820,7 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
 
     #=====================================================================
     @classmethod
-    def NewMultivariateLinear( cls, test_set, feature_weights, name=None, batch_number=None,
+    def NewMultivariateLinear( cls, test_set, feature_weights, name=None, split_number=None,
             quiet=False ):
         """Uses Pearson-coefficient weighted Multivatiate Linear classifier."""
 
@@ -818,33 +845,33 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
             column_header = "image\tground truth\tpred. val."
             print column_header
 
-        batch_result = cls( feature_weights.associated_feature_space, test_set, feature_weights,
-                name, batch_number )
+        split_result = cls( feature_weights.associated_feature_space, test_set, feature_weights,
+                name, split_number )
 
         if test_set.ground_truth_values is not None and \
                 len( test_set.ground_truth_values ) != 0:
-            batch_result.ground_truth_values = test_set.ground_truth_values
+            split_result.ground_truth_values = test_set.ground_truth_values
 
         for test_image_index in range( test_set.num_samples ):
             one_image_features = test_set.data_matrix[ test_image_index,: ]
             result = SingleSampleRegression._MultivariateLinear( one_image_features, feature_weights )
-            result.batch_number = batch_result.batch_number
+            result.split_number = split_result.split_number
             result.name = name
             result.source_filepath = test_set.sample_names[ test_image_index ]
             result.ground_truth_value = test_set.ground_truth_values[ test_image_index ]
-            batch_result.predicted_values.append( result.predicted_value )
+            split_result.predicted_values.append( result.predicted_value )
 
             if not quiet:
                 result.Print( line_item = True )
-            batch_result.individual_results.append( result )
+            split_result.individual_results.append( result )
 
-        batch_result.GenerateStats()
-        return batch_result
+        split_result.GenerateStats()
+        return split_result
 
     #=====================================================================
     @classmethod
     def NewLeastSquares( cls, training_set, test_set, feature_weights, name=None,
-            batch_number=None, leave_one_out=False, quiet=False ):
+            split_number=None, leave_one_out=False, quiet=False ):
         """Uses Linear Least Squares Regression classifier in a feature space filtered/weighed
         by Pearson coefficients.
         
@@ -926,11 +953,11 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
         if not quiet:
             print "image\tground truth\tpred. val."
 
-        batch_result = cls( training_set, test_set, feature_weights, name, batch_number )
+        split_result = cls( training_set, test_set, feature_weights, name, split_number )
 
         if augmented_test_set.ground_truth_values is not None and \
                 len( augmented_test_set.ground_truth_values ) != 0:
-            batch_result.ground_truth_values = augmented_test_set.ground_truth_values
+            split_result.ground_truth_values = augmented_test_set.ground_truth_values
 
         intermediate_train_set = augmented_train_set
         for test_image_index in range( augmented_test_set.num_samples ):
@@ -941,18 +968,18 @@ class FeatureSpaceRegression( FeatureSpacePrediction ):
             one_image_features = augmented_test_set.data_matrix[ test_image_index,: ]
             result = SingleSampleRegression._LeastSquares( \
                            one_image_features, intermediate_train_set )
-            result.batch_number = batch_result.batch_number
+            result.split_number = split_result.split_number
             result.name = name
             result.source_filepath = augmented_test_set.sample_names[ test_image_index ]
             result.ground_truth_value = augmented_test_set.ground_truth_values[ test_image_index ]
-            batch_result.predicted_values.append( result.predicted_value )
+            split_result.predicted_values.append( result.predicted_value )
 
             if not quiet:
                 result.Print( line_item = True )
-            batch_result.individual_results.append( result )
+            split_result.individual_results.append( result )
 
         # return settings to original
         np.seterr(**oldsettings)
 
-        batch_result.GenerateStats()
-        return batch_result
+        split_result.GenerateStats()
+        return split_result

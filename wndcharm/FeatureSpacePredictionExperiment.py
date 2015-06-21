@@ -27,30 +27,32 @@
 import numpy as np
 from .utils import output_railroad_switch
 from .FeatureSpace import FeatureSpace, CheckIfClassNamesAreInterpolatable
-from .FeatureSpacePrediction import FeatureSpacePrediction, FeatureSpaceClassification, \
+from .FeatureSpacePrediction import _FeatureSpacePrediction, FeatureSpaceClassification,\
         FeatureSpaceRegression
 from .FeatureWeights import FisherFeatureWeights, PearsonFeatureWeights
-from .SingleSamplePrediction import SingleSampleClassification
+from .SingleSamplePrediction import SingleSampleClassification, SingleSampleRegression, \
+        AveragedSingleSamplePrediction
 
 #============================================================================
-class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
+class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
     """Base class container for FeatureSpacePrediction instances,
     i.e., when classifying/regressing a FeatureSpace multiple times, as in train/test splits.
-    Methods here aggregate results and calculate statistics across splits."""
+    Methods here aggregate results and calculate statistics across splits.
+
+    Instance Attributes:
+    --------------------
+        self.averaged_results - list of instances of AveragedSingleSamplePredictions,
+            used to collect statistics on sample predictions across splits
+    """
 
     def __init__( self, *args, **kwargs ):
         """Possible kwargs, with defaults:
-        training_set=None, test_set=None, feature_weights=None, name=None, batch_number=None"""
+        training_set=None, test_set=None, feature_weights=None, name=None, split_number=None"""
 
-        super( FeatureSpacePredictionExperiment, self ).__init__( *args, **kwargs )
-
-        #: A dictionary where the name is the key, and the value is a list of individual results
-        self.accumulated_individual_results = None
-
+        super( _FeatureSpacePredictionExperiment, self ).__init__( *args, **kwargs )
+        # declared on base class
+        #self.averaged_results = None
         self.feature_weight_statistics = None
-
-        #: keep track of stats related to predicted values for reporting purposes
-        self.individual_stats = None
 
     #=====================================================================
     def __len__( self ):
@@ -67,7 +69,7 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
         Use the function PerSampleStatistics() to average results for specific
              images across splits.
 
-        Considerations for future implementation.
+        Considerations for analyzing prediction results:
         1. The test set may or may not have ground truth (discrete and continuous)
         2. The results may not have a predicted value (discrete only)
         3. Continuous classifications do not have marginal probabilities
@@ -78,21 +80,21 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
         lists_of_ground_truths = []
         lists_of_predicted_values = []
 
-        for batch_result in self.individual_results:
+        for split_result in self.individual_results:
             # Call GenerateStats() on the individual batches if the
             # ground truth->predicted value pairs haven't been scraped
-            # from the batch's list of individual SingleSamplePrediction objects.
-            if batch_result.std_err == None and batch_result.classification_accuracy == None:
-                batch_result.GenerateStats()
+            # from the batch's list of individual _SingleSamplePrediction objects.
+            if split_result.std_err == None and split_result.classification_accuracy == None:
+                split_result.GenerateStats()
 
-            if batch_result.tiled_results:
-                classification_results = batch_result.tiled_results
-                ground_truth_values = batch_result.tiled_ground_truth_values
-                predicted_values = batch_result.tiled_predicted_values
+            if split_result.averaged_results:
+                classification_results = split_result.averaged_results
+                ground_truth_values = split_result.averaged_ground_truth_values
+                predicted_values = split_result.averaged_predicted_values
             else:
-                classification_results = batch_result.individual_results
-                ground_truth_values = batch_result.ground_truth_values
-                predicted_values = batch_result.predicted_values
+                classification_results = split_result.individual_results
+                ground_truth_values = split_result.ground_truth_values
+                predicted_values = split_result.predicted_values
 
             self.num_classifications += len( classification_results )
             if ground_truth_values:
@@ -107,11 +109,11 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
 
         # Aggregate feature weight statistics across splits, if any:
         feature_weight_lists = {}
-        for batch_result in self.individual_results:
-            if not batch_result.feature_weights:
+        for split_result in self.individual_results:
+            if not split_result.feature_weights:
                 continue
-            weight_names_and_values = zip( batch_result.feature_weights.feature_names, 
-                                                        batch_result.feature_weights.values)
+            weight_names_and_values = zip( split_result.feature_weights.feature_names,
+                                                        split_result.feature_weights.values)
             for name, weight in weight_names_and_values:
                 if not name in feature_weight_lists:
                     feature_weight_lists[ name ] = []
@@ -196,6 +198,14 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
         """args train_size, test_size, and random_state are all passed through to Split()
         feature_size if a float is feature usage fraction, if in is top n features."""
 
+        # Splitting will result in a call to _RebuildViews and SortSamplesByGroundTruth
+        # so we have to make sure that the input FeatureSpace is sorted too
+        feature_space = feature_space.SortSamplesByGroundTruth( \
+                rebuild_views=True, inplace=False, quiet=True )
+
+        if not name:
+            name = feature_space.name
+
         experiment = cls( training_set=feature_space, test_set=feature_space, name=name )
         if isinstance( features_size, float ):
             if features_size < 0 or features_size > 1.0:
@@ -256,29 +266,78 @@ class FeatureSpacePredictionExperiment( FeatureSpacePrediction ):
             reduced_test_set.Normalize( reduced_train_set, quiet=quiet )
 
             if feature_space.discrete:
-                batch_result = FeatureSpaceClassification.NewWND5( reduced_train_set, \
-                 reduced_test_set, weights, batch_number=split_index, quiet=quiet,\
+                split_result = FeatureSpaceClassification.NewWND5( reduced_train_set, \
+                 reduced_test_set, weights, split_number=split_index, quiet=quiet,\
                  error_bars=experiment.use_error_bars )
             else:
                 if classifier == 'linear':
-                    batch_result = FeatureSpaceRegression.NewMultivariateLinear(
-                            reduced_train_set, weights, batch_number=split_index, quiet=quiet )
+                    split_result = FeatureSpaceRegression.NewMultivariateLinear(
+                            reduced_train_set, weights, split_number=split_index, quiet=quiet )
                 else: # default classifier == 'lstsq':
-                    batch_result = FeatureSpaceRegression.NewLeastSquares(
-                        reduced_train_set, reduced_test_set, weights, batch_number=split_index, quiet=quiet )
+                    split_result = FeatureSpaceRegression.NewLeastSquares(
+                        reduced_train_set, reduced_test_set, weights, split_number=split_index, quiet=quiet )
 
-            batch_result.GenerateStats()
+            split_result.GenerateStats()
             if not quiet:
-                batch_result.Print()
+                split_result.Print()
 
-            experiment.individual_results.append( batch_result )
+            experiment.individual_results.append( split_result )
 
         if not quiet:
             experiment.Print()
         return experiment
 
+    #=====================================================================
+    @output_railroad_switch
+    def PerSampleStatistics( self, print_indiv=True, quiet=False ):
+        """Characterizes variability of regressed predicted values across batches.
+        _SingleSamplePrediction info is aggregated for each individual sample,
+        statistics calculated and printed out.
+        
+        returns self for convenience.
+        quiet - bool - if True, just do the average"""
+
+        if self.individual_results == 0:
+            raise ValueError( 'No batch results to analyze' )
+
+        from collections import defaultdict
+        accumulated_results = defaultdict( list )
+        self.averaged_results = []
+
+        # Coallate:
+        for split in self.individual_results:
+            for result in split.individual_results:
+                accumulated_results[ result.source_filepath ].append( result )
+
+        self.averaged_results = [ AveragedSingleSamplePrediction( reslist,
+                self.training_set.class_names ) \
+                    for reslist in accumulated_results.values() ]
+
+        # sort by ground truth above, then sample name
+        self.averaged_results.sort( key=lambda res: res.ground_truth_label )
+        self.averaged_results.sort( key=lambda res: res.ground_truth_value )
+        self.averaged_results.sort( key=lambda res: res.source_filepath )
+
+        self.averaged_predicted_values, self.averaged_ground_truth_values = zip(
+            *[ (res.predicted_value, res.ground_truth_value ) for res in self.averaged_results ] )
+
+        if quiet:
+            return self
+
+        first_time_through = True
+        for avg_res in self.averaged_results:
+            avg_res.Print( line_item=True, include_name=True, include_col_header=first_time_through,\
+                    training_set_class_names=self.training_set.class_names )
+            if print_indiv and len( avg_res.individual_results ) > 1:
+                for res in avg_res.individual_results:
+                    res.Print( line_item=True, include_name=True,
+                        include_split_number=True )
+            first_time_through = False
+
+        return self
+
 #============================================================================
-class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
+class FeatureSpaceClassificationExperiment( _FeatureSpacePredictionExperiment ):
     """Container for FeatureSpaceClassifications instances,
     i.e., when classifying a FeatureSpace multiple times, as in train/test splits.
     Methods here aggregate results and calculate statistics across splits.
@@ -290,7 +349,7 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
 
     def __init__( self, *args, **kwargs ):
         """Possible kwargs, with defaults:
-        training_set=None, test_set=None, feature_weights=None, name=None, batch_number=None"""
+        training_set=None, test_set=None, feature_weights=None, name=None, split_number=None"""
 
         super( FeatureSpaceClassificationExperiment, self ).__init__( *args, **kwargs )
 
@@ -308,8 +367,8 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
     #==============================================================    
     def __str__( self ):
         outstr = '<' + self.__class__.__name__
-        if self.batch_number is not None:
-            outstr += ' #' + str( self.batch_number )
+        if self.split_number is not None:
+            outstr += ' #' + str( self.split_number )
         if self.name:
             outstr += ' "' + self.name + '"'
         if self.individual_results:
@@ -354,13 +413,13 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
 
         self.num_classifications = 0
         # Iterate over all the splits:
-        for batch_result in self.individual_results:
-            if batch_result.classification_accuracy == None:
-                batch_result.GenerateStats()
-            self.num_classifications += len( batch_result )
+        for split_result in self.individual_results:
+            if split_result.classification_accuracy == None:
+                split_result.GenerateStats()
+            self.num_classifications += len( split_result )
             # Iterate over the rows in the confusion matrix:
             for gt_class in self.test_set.class_names:
-                gt_row_dict = batch_result.confusion_matrix[ gt_class ]
+                gt_row_dict = split_result.confusion_matrix[ gt_class ]
                 # Iterate over the columns in the confusion matrix:
                 for pred_class in self.training_set.class_names:
                     if pred_class not in gt_row_dict:
@@ -376,7 +435,7 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
                         self.num_correct_classifications_per_class[ gt_class ] += count
 
                     self.average_class_probability_matrix[ gt_class ][ pred_class ] += \
-                      batch_result.average_class_probability_matrix[ gt_class ][ pred_class ]
+                      split_result.average_class_probability_matrix[ gt_class ][ pred_class ]
 
         # Finalize the Average Class Probability Matrix by dividing each marginal
         # probability sum by the number of splits:
@@ -583,21 +642,21 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
                     result.normalization_factor = float( values[ normalization_col ] )
                     result.marginal_probabilities = \
                             [ float( val.strip( '</b>' ) ) for val in values[ mp_col : mp_col + _training_set.num_classes ] ]
-                    result.predicted_class_name = values[ predicted_col ]
+                    result.predicted_label = values[ predicted_col ]
                     # Sometimes c-chrm labels classes with a * to say it's not part of the training set
-                    result.ground_truth_class_name = values[ ground_truth_col ].strip('*')
+                    result.ground_truth_label = values[ ground_truth_col ].strip('*')
                     result.name = name_re.search( values[ name_col ] ).groups()[0]
                     result.source_filepath = result.name
                     if ts.interpolation_coefficients is not None:
                         result.ground_truth_value = \
-                        ts.interpolation_coefficients[ ts.class_names.index(result.ground_truth_class_name ) ]
+                        ts.interpolation_coefficients[ ts.class_names.index(result.ground_truth_label ) ]
                         #result.predicted_value = float( values[ interp_val_col ] )
                         result.predicted_value = \
                         sum( [ x*y for x,y in zip( result.marginal_probabilities, _training_set.interpolation_coefficients ) ] )
                         split.predicted_values.append( result.predicted_value )
                         split.ground_truth_values.append( result.ground_truth_value )
                     #result.Print( line_item = True )
-                    result.batch_number = splitcount
+                    result.split_number = splitcount
                     split.individual_results.append(result)
 
         exp.training_set = _training_set
@@ -606,83 +665,11 @@ class FeatureSpaceClassificationExperiment( FeatureSpacePredictionExperiment ):
         exp.GenerateStats()
         return exp
 
-    #=====================================================================
-    @output_railroad_switch
-    def PerSampleStatistics( self ):
-        """Characterizes variability of regressed predicted values across batches.
-        SingleSamplePrediction info is aggregated for each individual sample,
-        statistics calculated and printed out."""
-
-        if self.individual_results == 0:
-            raise ValueError( 'No batch results to analyze' )
-
-        #self.predicted_values = []
-        self.ground_truth_values = []
-
-        self.accumulated_individual_results = {}
-        self.individual_stats = {}
-
-        for batch in self.individual_results:
-            for result in batch.individual_results:
-                if not result.source_filepath in self.accumulated_individual_results:
-                    # initialize list of individual results for this file
-                    self.accumulated_individual_results[ result.source_filepath ] = []
-                self.accumulated_individual_results[ result.source_filepath ].append( result )
-
-        for filename in self.accumulated_individual_results:
-
-            # Get marginal probability averages
-            mp_totals = None
-            for result in self.accumulated_individual_results[filename]:
-                if not mp_totals:
-                    mp_totals = result.marginal_probabilities[:]
-                else:
-                    new_total = []
-                    for class_total, new_mp in zip( mp_totals, result.marginal_probabilities ):
-                        new_total.append( class_total + new_mp )
-                    mp_totals = new_total
-
-            mp_avgs = [ float(mp_totals[i]) / len( self.accumulated_individual_results[filename] ) for i in range( len( mp_totals ) ) ]
-            #vals = np.array ([result.predicted_value for result in self.accumulated_individual_results[filename] ])
-            vals = [result.predicted_class_name for result in self.accumulated_individual_results[filename] ]
-            #self.ground_truth_values.append( self.accumulated_individual_results[filename][0].ground_truth_value )
-            gt_class = self.accumulated_individual_results[filename][0].ground_truth_class_name
-            self.ground_truth_values.append( gt_class )
-            #self.predicted_values.append( np.mean(vals) )
-            self.individual_stats[filename] = ( len(vals), float( vals.count( gt_class ) ) / len(vals), mp_avgs, gt_class )
-
-        print "==========================================="
-        print '{0} "{1}" per-sample statistics\n'.format( self.__class__.__name__, self.name )
-
-        mp_delim = "  "
-        discrlineoutstr = "\tsplit {split_num:02d}: pred: {pred_class}\tact: {actual_class}\tnorm factor: {norm_factor:0.3g},\tmarg probs: ( {norm_dists} )"
-        outstr = "\t---> Tested {0} times, avg correct: {1:0.3f}, avg marg probs ( {2} )"
-
-        #create view
-        res_dict = self.accumulated_individual_results
-
-        # sort by ground truth, then alphanum
-        sort_func = lambda A, B: cmp( A, B ) if res_dict[A][0].ground_truth_class_name == res_dict[B][0].ground_truth_class_name else cmp( res_dict[A][0].source_filepath, res_dict[B][0].source_filepath  ) 
-        sorted_images = sorted( self.accumulated_individual_results.iterkeys(), sort_func )
-
-        for samplename in sorted_images:
-            print 'File "' + samplename + '"'
-            for result in self.accumulated_individual_results[ samplename ]:
-                marg_probs = [ "{0:0.3f}".format( num ) for num in result.marginal_probabilities ]
-                print discrlineoutstr.format( split_num = result.batch_number, \
-                                         pred_class = result.predicted_class_name, \
-                                         actual_class = result.ground_truth_class_name, \
-                                         norm_factor = result.normalization_factor, \
-                                         norm_dists = mp_delim.join( marg_probs ) )
-
-            marg_probs = [ "{0:0.3f}".format( num ) for num in self.individual_stats[ samplename ][2] ]
-            print outstr.format( self.individual_stats[ samplename ][0], self.individual_stats[ samplename ][1], mp_delim.join( marg_probs ) )
-
         # If 2 or 3 class problem, plot individuals in marginal probability space
 # END class definition for FeatureSpaceClassificationExperiment
 
 #============================================================================
-class FeatureSpaceRegressionExperiment( FeatureSpacePredictionExperiment ):
+class FeatureSpaceRegressionExperiment( _FeatureSpacePredictionExperiment ):
     """Container for FeatureSpaceRegression instances,
     i.e., when regressing a FeatureSpace multiple times, as in train/test splits.
     Methods here aggregate results and calculate statistics across splits."""
@@ -694,8 +681,8 @@ class FeatureSpaceRegressionExperiment( FeatureSpacePredictionExperiment ):
     #==============================================================    
     def __str__( self ):
         outstr = '<' + self.__class__.__name__
-        if self.batch_number is not None:
-            outstr += ' #' + str( self.batch_number )
+        if self.split_number is not None:
+            outstr += ' #' + str( self.split_number )
         if self.name:
             outstr += ' "' + self.name + '"'
         if self.individual_results:
@@ -765,56 +752,3 @@ class FeatureSpaceRegressionExperiment( FeatureSpacePredictionExperiment ):
             print outstr.format( count, *fw_stat )
             if count >= 50:
                 break
-
-    #=====================================================================
-    @output_railroad_switch
-    def PerSampleStatistics( self ):
-        """Characterizes variability of classifications across batches.
-        SingleSamplePrediction info is aggregated for each individual sample,
-        statistics calculated and printed out."""
-
-        if self.individual_results == 0:
-            raise ValueError( 'No batch results to analyze' )
-
-        self.predicted_values = []
-        self.ground_truth_values = []
-
-        self.accumulated_individual_results = {}
-        self.individual_stats = {}
-
-        for batch in self.individual_results:
-            for result in batch.individual_results:
-                if not result.source_filepath in self.accumulated_individual_results:
-                    # initialize list of individual results for this file
-                    self.accumulated_individual_results[ result.source_filepath ] = []
-                self.accumulated_individual_results[ result.source_filepath ].append( result )
-
-        for filename in self.accumulated_individual_results:
-            vals = np.array( [result.predicted_value for result in self.accumulated_individual_results[filename] ])
-            self.ground_truth_values.append( self.accumulated_individual_results[filename][0].ground_truth_value )
-            self.predicted_values.append( np.mean(vals) )
-            self.individual_stats[filename] = ( len(vals), np.min(vals), np.mean(vals), \
-                np.max(vals), np.std(vals) ) 
-
-        print "==========================================="
-        print '{0} "{1}" per-sample statistics\n'.format( self.__class__.__name__, self.name )
-        mp = "  "
-        contlineoutstr = "\tsplit {split_num:02d} '{batch_name}': actual: {actual_class}. Predicted val: {pred_val:0.3f}"
-        outstr = "\t---> Tested {0} times, low {1:0.3f}, mean {2:0.3f}, high {3:0.3f}, std dev {4:0.3f}"
-
-        #create view
-        res_dict = self.accumulated_individual_results
-
-        # sort by ground truth, then alphanum
-        sort_func = lambda A, B: cmp( A, B ) if res_dict[A][0].ground_truth_value == res_dict[B][0].ground_truth_value else cmp( res_dict[A][0].ground_truth_value, res_dict[B][0].ground_truth_value  ) 
-        sorted_images = sorted( self.accumulated_individual_results.iterkeys(), sort_func )
-
-        for samplename in sorted_images:
-            print 'File "' + samplename + '"'
-            for result in self.accumulated_individual_results[ samplename ]:
-                print contlineoutstr.format( split_num = result.batch_number, \
-                                         batch_name = result.name, \
-                                         actual_class = result.ground_truth_value, \
-                                         pred_val = result.predicted_value )
-            print outstr.format( *self.individual_stats[ samplename ] )
-

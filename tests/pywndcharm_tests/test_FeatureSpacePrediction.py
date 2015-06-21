@@ -72,8 +72,8 @@ class TestFeatureSpaceClassification( unittest.TestCase ):
             #fs.ToFitFile( 'temp.fit' )
             fw = FisherFeatureWeights.NewFromFeatureSpace( fs ).Threshold()
             fs.FeatureReduce( fw, inplace=True )
-            #fw.Print()
-            #fs.Print(verbose=True)
+#            #fw.Print()
+#            #fs.Print(verbose=True)
             pychrm_res = FeatureSpaceClassification.NewWND5( fs, fs, fw )
             pychrm_res.Print()
 #
@@ -115,19 +115,24 @@ class TestFeatureSpaceClassification( unittest.TestCase ):
 
             # ==========================================================
             # Now do the same with tiling, reusing fs from before:
-            fs.Update( tile_rows=5, tile_cols=6, num_samples_per_group=30 )
+
+            num_samples_per_group = 30
+            n_groups = fs.num_samples / num_samples_per_group
+            new_sg_ids = [ i for i in xrange( n_groups ) for j in xrange( num_samples_per_group ) ]
+            fs.Update( tile_rows=5, tile_cols=6, num_samples_per_group=30,\
+                    _contiguous_sample_group_ids=new_sg_ids )._RebuildViews()
             with_tile_pychrm_result = FeatureSpaceClassification.NewWND5( fs, fs, fw )
             html_path = pychrm_test_dir + sep + 'lymphoma_iicbu2008_subset_eosin_t5x6_v3.2feats_REFERENCE_RESULTS_30_samples_tiled_TRAINING_ERROR.html' 
             with_tile_wndchrm_result = \
               FeatureSpaceClassificationExperiment.NewFromHTMLReport( html_path ).individual_results[0]
 
-            #self.assertSequenceEqual( with_tile_pychrm_result.tiled_results, with_tile_wndchrm_result.individual_results )
+            #self.assertSequenceEqual( with_tile_pychrm_result.averaged_results, with_tile_wndchrm_result.individual_results )
             wc_result = np.empty( (3* len( with_tile_wndchrm_result.individual_results ) ) )
             for i, single_result in enumerate( with_tile_wndchrm_result.individual_results ):
                 wc_result[ i*3 : (i+1)*3 ] = single_result.marginal_probabilities
 
-            pc_result = np.empty( (3* len( with_tile_pychrm_result.tiled_results ) ) )
-            for i, single_result in enumerate( with_tile_pychrm_result.tiled_results ):
+            pc_result = np.empty( (3* len( with_tile_pychrm_result.averaged_results ) ) )
+            for i, single_result in enumerate( with_tile_pychrm_result.averaged_results ):
                 # HTML report only has 3 decimal places
                 pc_result[ i*3 : (i+1)*3 ] = \
                     [ float( "{0:0.3f}".format( val ) ) for val in single_result.marginal_probabilities ]
@@ -137,6 +142,7 @@ class TestFeatureSpaceClassification( unittest.TestCase ):
         finally:
             rmtree( tempdir )
 
+    #@unittest.skip('')
     def test_TiledTrainTestSplit( self ):
         """Uses a fake FeatureSpace"""
 
