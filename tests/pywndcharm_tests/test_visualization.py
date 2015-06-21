@@ -51,7 +51,6 @@ try:
 except ImportError:
     HasMatplotlib = False
 
-@unittest.skip("Skip Graph test suite until merge Tiling branch w/ matplotlib version independent tests.")
 class TestGraphs( unittest.TestCase ):
     """Test WND-CHARM's graph-making functionality."""
     
@@ -186,7 +185,7 @@ class TestGraphs( unittest.TestCase ):
         ss_kwargs['test_size' ] = test_size = 2 # per-class
         ss_kwargs['random_state'] = 42
         exp = FeatureSpaceClassificationExperiment.NewShuffleSplit( small_fs, **ss_kwargs )
-        graph = PredictedValuesGraph( exp )
+        graph = PredictedValuesGraph( exp, use_averaged_results=False )
         graph.RankOrderedPredictedValuesGraph()
         self.CompareGraphs( graph, testfilename )
 
@@ -208,8 +207,7 @@ class TestGraphs( unittest.TestCase ):
         zf = zipfile.ZipFile( zipped_file_path, mode='r' )
         zf.extractall( self.tempdir )
         htmlfilepath = self.tempdir + sep + zf.namelist()[0]
-        exp_result = FeatureSpaceClassificationExperiment.NewFromHTMLReport( htmlfilepath )
-        graph = PredictedValuesGraph( exp_result )
+        graph = PredictedValuesGraph.NewFromHTMLReport( htmlfilepath, use_averaged_results=False ) 
         graph.RankOrderedPredictedValuesGraph()
 
         self.CompareGraphs( graph, testfilename )

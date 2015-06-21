@@ -218,12 +218,13 @@ class TestFeatureSet( unittest.TestCase ):
         # Further reduce to 8 classes
         A.RemoveClass( "FakeClass-055.6", inplace=True )
 
+        correct_samplenames = ['FakeClass-100.0_050', 'FakeClass-077.8_050', 'FakeClass-033.3_050', 'FakeClass-011.1_050', 'FakeClass+011.1_050', 'FakeClass+033.3_050', 'FakeClass+055.6_050', 'FakeClass+077.8_050']
         #The actual alphanumeric sort order is different from the value sort order
-        #correct_samplenames = ['FakeClass-100.0_050', 'FakeClass-077.8_050', 'FakeClass-033.3_050', 'FakeClass-011.1_050', 'FakeClass+011.1_050', 'FakeClass+033.3_050', 'FakeClass+055.5_050', 'FakeClass+077.8_050']
-        correct_samplenames = ['FakeClass+011.1_050', 'FakeClass+033.3_050', 'FakeClass+055.6_050', 'FakeClass+077.8_050', 'FakeClass-011.1_050', 'FakeClass-033.3_050', 'FakeClass-077.8_050', 'FakeClass-100.0_050']
+        #correct_samplenames = ['FakeClass+011.1_050', 'FakeClass+033.3_050', 'FakeClass+055.6_050', 'FakeClass+077.8_050', 'FakeClass-011.1_050', 'FakeClass-033.3_050', 'FakeClass-077.8_050', 'FakeClass-100.0_050']
         self.assertEqual( correct_samplenames, A._contiguous_sample_names )
 
-        correct_classnames = ['FakeClass+011.1', 'FakeClass+033.3', 'FakeClass+055.6', 'FakeClass+077.8', 'FakeClass-011.1', 'FakeClass-033.3', 'FakeClass-077.8', 'FakeClass-100.0']
+        correct_classnames = ['FakeClass-100.0', 'FakeClass-077.8', 'FakeClass-033.3', 'FakeClass-011.1',  'FakeClass+011.1', 'FakeClass+033.3', 'FakeClass+055.6', 'FakeClass+077.8'  ]
+        #correct_classnames = ['FakeClass+011.1', 'FakeClass+033.3', 'FakeClass+055.6', 'FakeClass+077.8', 'FakeClass-011.1', 'FakeClass-033.3', 'FakeClass-077.8', 'FakeClass-100.0']
         self.assertEqual( correct_classnames, A.class_names )
         del A
 

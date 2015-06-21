@@ -152,6 +152,7 @@ class TESTINGFeatureSpaceRegressionExperiment( unittest.TestCase ):
         self.assertAlmostEqual( exp.pearson_coeff, 0.0, delta=max_allowable_pearson_coeff )
 
     # -------------------------------------------------------------------
+    @unittest.skip('')
     def test_PerSampleStatistics(self):
         """Testing ContinuousClassificationExperimentResult.PerSampleStatistics()
 
@@ -191,7 +192,6 @@ class TESTINGFeatureSpaceRegressionExperiment( unittest.TestCase ):
             exp.PerSampleStatistics( output_stream=out )
         except Exception as e:
             m = 'Error in experiment.PredictedValueAnalysis: %s' % e
-            message += m + '\n'
             self.fail( m )
 
         # Count the number of lines

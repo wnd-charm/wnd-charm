@@ -26,9 +26,10 @@
 
 import numpy as np
 from .utils import output_railroad_switch
+from .FeatureSpacePredictionExperiment import FeatureSpaceClassificationExperiment
 
 #============================================================================
-class BaseGraph( object ):
+class _BaseGraph( object ):
     """An abstract base class that is supposed to hold onto objects on which to call
     matplotlib.pyplot API methods."""
 
@@ -37,7 +38,7 @@ class BaseGraph( object ):
         # general stuff:
         self.chart_title = None
         self.file_name = None
-        self.batch_result = None
+        self.split_result = None
 
         # pyplot-specific stuff
         self.figure = None
@@ -51,59 +52,64 @@ class BaseGraph( object ):
         print 'Wrote chart "{0}" to file "{1}"'.format( self.chart_title, filepath )
             
 #============================================================================
-class PredictedValuesGraph( BaseGraph ):
+class PredictedValuesGraph( _BaseGraph ):
     """This is a concrete class that can produce two types of graphs that are produced
     from SingleSamplePrediction data stored in a FeatureSpacePrediction."""
 
     #=================================================================
-    def __init__( self, result, name=None ):
+    def __init__( self, result, name=None, use_averaged_results=True ):
         """Constructor sorts ground truth values contained in FeatureSpacePrediction
-        and loads them into self.grouped_coords"""
-
-        self.batch_result = result
-        self.grouped_coords = {}
-
-        # Right now these are only dealing
-        self.classnames_list = result.test_set.classnames_list
-        self.class_values = result.test_set.interpolation_coefficients
-        self.num_classes = result.test_set.num_classes
-
-        if name:
-            self.chart_title = name
-        elif result and result.name:
-            self.chart_title = result.name
-        else:
-            self.chart_title = None
+        and loads them into self.grouped_coords
+        
+        use_averaged_results - bool - If this object has averaged results (due to tiling or 
+            "per sample" aggregation across splits, use those results instead of 
+            individual results."""
 
         #FIXME: implement user-definable bin edges
 
-        result.RankOrderSort()
-        whole_list = zip( result.ground_truth_values, result.predicted_values )
+        self.split_result = result
+        if name is None:
+            name = result.name
 
-        for class_index, class_name in enumerate( self.classnames_list ):
-            self.grouped_coords[ class_name ] = []
-            for coords in whole_list:
-                if coords[0] == self.class_values[ class_index ]:
-                    self.grouped_coords[ class_name ].append( coords )
+        self.chart_title = name
+
+        gt_vals, pred_vals = result.RankOrderSort( use_averaged_results=use_averaged_results )
+        whole_list = zip( gt_vals, pred_vals )
+
+        self.grouped_coords = {}
+
+        if result.test_set.discrete:
+            self.class_names = result.test_set.class_names
+            self.class_values = result.test_set.interpolation_coefficients
+            self.num_classes = result.test_set.num_classes
+            for class_val, class_name in zip( self.class_values, self.class_names ):
+                self.grouped_coords[ class_name ] = \
+                        [ xy for xy in whole_list if xy[0] == class_val ]
+        else:
+            class_name = result.test_set.name
+            self.class_names = [ class_name ]
+            self.class_values = [ 1 ]
+            self.num_classes = 1
+            self.grouped_coords[ class_name ] = whole_list
+
+        _min = min( self.class_values )
+        ampl = max( self.class_values ) - _min
+     
+        import matplotlib.pyplot as plt
+        self.class_colors = plt.cm.jet( [ float(val -_min)/ampl for val in self.class_values ] )
 
     #=====================================================================
     @classmethod
     @output_railroad_switch
-    def NewFromHTMLFile( cls, filepath ):
+    def NewFromHTMLReport( cls, filepath, use_averaged_results=True ):
         """Helper function to facilitate the fast generation of graphs from C++-generated
         HTML Report files."""
 
-        from wndcharm.FeatureSpacePredictionExperiment import FeatureSpaceClassificationExperiment
         exp = FeatureSpaceClassificationExperiment.NewFromHTMLReport( filepath )
         exp.GenerateStats()
-        exp.PredictedValueAnalysis()
-        newgraphobj = cls( exp )
+        exp.PerSampleStatistics( quiet=True )
+        newgraphobj = cls( exp, use_averaged_results=use_averaged_results )
         return newgraphobj
-
-    #=====================================================================
-    def SaveToFile( self, filepath ):
-        """Calls base class function"""
-        super( PredictedValuesGraph, self ).SaveToFile( filepath )
 
     #=====================================================================
     def RankOrderedPredictedValuesGraph( self, chart_title=None ):
@@ -121,10 +127,7 @@ class PredictedValuesGraph( BaseGraph ):
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
 
-        from itertools import cycle
-        color = cycle(['r', 'g', 'b', 'c', 'm', 'y', 'k'])
-
-        self.figure = plt.figure()
+        self.figure = plt.figure( figsize=(20,20) )
         self.main_axes = self.figure.add_subplot(111)
 
         if chart_title:
@@ -135,14 +138,16 @@ class PredictedValuesGraph( BaseGraph ):
 
         abscissa_index = 1
 
-        for class_name in self.classnames_list:
+        for class_name, class_color in zip( self.class_names, self.class_colors ):
             ground_truth_vals, predicted_vals = zip( *self.grouped_coords[ class_name ] )
             x_vals = [ i + abscissa_index for i in range( len( ground_truth_vals ) ) ]
-            self.main_axes.scatter( x_vals, predicted_vals, color = next( color ), marker = 'o', label = class_name )
+            self.main_axes.scatter( x_vals, predicted_vals, c=class_color, marker='o',
+                    s=150, edgecolor='none', label=class_name )
             abscissa_index += len( ground_truth_vals )
 
-        # FIXME: put legend in bottom left
+        #self.main_axes.legend( loc = 'lower right')
         self.main_axes.legend( loc = 'lower right')
+        return self.figure
         
     #=====================================================================
     def KernelSmoothedDensityGraph( self, chart_title=None ):
@@ -158,10 +163,7 @@ class PredictedValuesGraph( BaseGraph ):
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
 
-        from itertools import cycle
-        color = cycle(['r', 'g', 'b', 'c', 'm', 'y', 'k'])
-
-        self.figure = plt.figure()
+        self.figure = plt.figure( figsize=(20,20) )
         self.main_axes = self.figure.add_subplot(111)
         if chart_title:
             self.chart_title = chart_title
@@ -170,23 +172,25 @@ class PredictedValuesGraph( BaseGraph ):
         self.main_axes.set_xlabel( 'Age score' )
         self.main_axes.set_ylabel( 'Probability density' )
 
-        from scipy import stats
+        from scipy.stats import gaussian_kde
 
-        for class_name in self.classnames_list:
+        for class_name, class_color in zip( self.class_names, self.class_colors ):
             ground_truth_vals, predicted_vals = zip( *self.grouped_coords[ class_name ] )
 
             pred_vals = np.array( predicted_vals )
             lobound = pred_vals.min()
             hibound = pred_vals.max()
-            kernel_smoother = stats.gaussian_kde( pred_vals )
+            kernel_smoother = gaussian_kde( pred_vals )
             intervals = np.mgrid[ lobound:hibound:100j ]
             density_estimates = kernel_smoother.evaluate( intervals )
-            self.main_axes.plot( intervals, density_estimates, color = next( color ), linewidth = 3, label = class_name )
+            self.main_axes.plot( intervals, density_estimates, c=class_color,
+                linewidth=6, label=class_name )
 
         self.main_axes.legend()
+        return self.figure
 
 #============================================================================
-class FeatureTimingVersusAccuracyGraph( BaseGraph ):
+class FeatureTimingVersusAccuracyGraph( _BaseGraph ):
     """A cost/benefit analysis of the number of features used and the time it takes to calculate
     that number of features for a single image"""
 
@@ -229,9 +233,9 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
             timings.append( min( three_timings ) )
 
             # now, do a fit-on-fit test to measure classification accuracy
-            batch_result = FeatureSpaceClassification.NewWND5( reduced_ts, reduced_ts, reduced_fw )
-            batch_result.Print()
-            experiment.individual_results.append( batch_result )
+            split_result = FeatureSpaceClassification.NewWND5( reduced_ts, reduced_ts, reduced_fw )
+            split_result.Print()
+            experiment.individual_results.append( split_result )
 
         import matplotlib
         matplotlib.use('Agg')
@@ -249,7 +253,7 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
         self.main_axes.set_xlabel( 'Number of features' )
         self.main_axes.set_ylabel( 'Classification accuracy (%)', color='b' )
         classification_accuracies = \
-          [ batch_result.classification_accuracy * 100 for batch_result in experiment.individual_results ]
+          [ split_result.classification_accuracy * 100 for split_result in experiment.individual_results ]
 
         self.main_axes.plot( x_vals, classification_accuracies, color='b', linewidth=2 )
         for tl in self.main_axes.get_yticklabels():
@@ -261,11 +265,8 @@ class FeatureTimingVersusAccuracyGraph( BaseGraph ):
         for tl in self.timing_axes.get_yticklabels():
             tl.set_color('r')    
 
-    def SaveToFile( self, filepath ):
-        super( FeatureTimingVersusAccuracyGraph, self ).SaveToFile( filepath )
-
 #============================================================================
-class AccuracyVersusNumFeaturesGraph( BaseGraph ):
+class AccuracyVersusNumFeaturesGraph( _BaseGraph ):
     """Graphing the figure of merit a a function of number of features"""
 
     # FIXME: roll this class into FeatureTimingVersusAccuracyGraph, allowing
@@ -290,15 +291,15 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
             if not quiet:
                 reduced_fw.Print()
 
-            ls_batch_result = FeatureSpaceRegression.NewLeastSquares( reduced_ts, None, reduced_fw, batch_number=number_of_features_to_use, quiet=my_quiet )
+            ls_split_result = FeatureSpaceRegression.NewLeastSquares( reduced_ts, None, reduced_fw, split_number=number_of_features_to_use, quiet=my_quiet )
             if not quiet:
-                ls_batch_result.Print()
-            ls_experiment.individual_results.append( ls_batch_result )
+                ls_split_result.Print()
+            ls_experiment.individual_results.append( ls_split_result )
 
-            voting_batch_result = FeatureSpaceRegression.NewMultivariateLinear( reduced_ts, reduced_fw, batch_number=number_of_features_to_use )
+            voting_split_result = FeatureSpaceRegression.NewMultivariateLinear( reduced_ts, reduced_fw, split_number=number_of_features_to_use )
             if not quiet:
-                voting_batch_result.Print()
-            voting_experiment.individual_results.append( voting_batch_result )
+                voting_split_result.Print()
+            voting_experiment.individual_results.append( voting_split_result )
 
         import matplotlib
         matplotlib.use('Agg')
@@ -312,8 +313,8 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
             self.chart_title = chart_title
 
         # need to make axes have same range
-        ls_yvals = [ batch_result.std_err for batch_result in ls_experiment.individual_results ]
-        voting_yvals = [ batch_result.std_err for batch_result in voting_experiment.individual_results ]
+        ls_yvals = [ split_result.std_err for split_result in ls_experiment.individual_results ]
+        voting_yvals = [ split_result.std_err for split_result in voting_experiment.individual_results ]
 
         min_ls_yval = min(ls_yvals)
         optimal_num_feats_ls = ls_yvals.index( min_ls_yval ) + 1 # count from 1, not 0
@@ -371,9 +372,9 @@ class AccuracyVersusNumFeaturesGraph( BaseGraph ):
         horizontalalignment='right' )
 
 #============================================================================
-class Dendrogram( object ):
-    """Not implemented. In the future might use scipy.cluster (no unrooted dendrograms though!)
-    or Biopython.Phylo to visualize. Perhaps could continue C++ implementation's use of PHYLIP's
-    Fitch-Margoliash program "fitch" to generate Newick phylogeny, and visualize using
-    native python tools."""
-    pass
+#class Dendrogram( object ):
+#    """Not implemented. In the future might use scipy.cluster (no unrooted dendrograms though!)
+#    or Biopython.Phylo to visualize. Perhaps could continue C++ implementation's use of PHYLIP's
+#    Fitch-Margoliash program "fitch" to generate Newick phylogeny, and visualize using
+#    native python tools."""
+#    pass

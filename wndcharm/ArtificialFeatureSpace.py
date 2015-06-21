@@ -292,14 +292,20 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
 
     # Try to make something sortable:
     new_fs.class_names = []
-    for val in new_fs.interpolation_coefficients:
-        if val > 0:
-            sign = '+'
-        else:
-            sign = '-'
-        front, back = "{0:0.1f}".format( abs( val ) ).split('.')
-        name = "FakeClass{0}{1}.{2}".format( sign, front.zfill(3), back ) 
-        new_fs.class_names.append( name )
+    if interpolatable:
+        for val in new_fs.interpolation_coefficients:
+            if val > 0:
+                sign = '+'
+            else:
+                sign = '-'
+            front, back = "{0:0.1f}".format( abs( val ) ).split('.')
+            name = "FakeClass{0}{1}.{2}".format( sign, front.zfill(3), back ) 
+            new_fs.class_names.append( name )
+    else:
+        from itertools import cycle
+        alphabet = cycle( 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' )
+        new_fs.class_names = [ "FakeClass" + char \
+                for char, val in zip( alphabet, new_fs.interpolation_coefficients ) ]
 
     # Generate artificial feature names
     # N.B. The feature generation signals are sorted in alphanum order!

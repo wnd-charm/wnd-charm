@@ -93,8 +93,105 @@ def GenerateFeatureComputationPlan( feature_list, name='custom' ):
 #############################################################################
 class FeatureVector( object ):
     """
-    FeatureVector contains features for a single image or ROI, as well as all the sampling
-    options. It is the values contained here that are grouped together to form FeatureSpaces."""
+    FeatureVector is the container object for image features from a
+    single sample, as well as for the 5D image sampling parameters and feature
+    metadata that was used to produce the features. Info from FeatureVectors
+    are stacked horizontally and vertically to form FeatureSpaces. The general
+    workflow is to set sampling and feature attributes and call
+    self.GenerateFeatures() to either load corresponding features from disk
+    or obtain the pixel plane called out and calculate features outright.
+
+    Instance Attributes:
+    ============================
+
+    General Attributes:
+    -------------------
+
+        self.name - str - Sample (row) name, common across all channels
+        self.source_filepath - str or wndchrm.ImageMatrix - source pixel plane,
+            either filesystem path or instantiated wndcharm pixel plane obj.
+        self.auxiliary_feature_storage - str - Path to storage on file system,
+            currently an ASCII text representation of data and metadata, written
+            in a format used by the classic C++ WND-CHARM implementation. Has .sig
+            file extension, and contains 5D sampling options as part of the filename.
+            In future, could be a path to a hdf5 or sql file.
+        self.basename - str - Part of filename, a substring of self.auxiliary_feature_storage,
+            with all the sampling options and .sig file extension stripped out.
+        self.ground_truth_label - str - stringified ground truth/category
+        self.ground_truth_value - float - numeric representation of ground truth, if any.
+        self.fs_col - int - "FeatureSpace column index". FeatureVectors (and FeatureSpaces)
+            can be horizontally stacked to create FeatureSpaces with higher
+            dimensionality. Taking each FeatureVector to be one indivisible stackable
+            unit, this integer represents the index of this unit within that horizontal
+            stack, i.e. the feature set column to which this FeatureVector belongs.
+
+    Feature Metadata Attributes (iterables of length N features, unless noted):
+    -------------------------------------------------
+
+        self.feature_names - list - machine-parsable, human readable strings
+            specifying the feature extraction algorithm, pixel plane transform
+            chain, channel, and intra-feature family index.
+        self.values - numpy.ndarray containing features, order corresponds with
+            feature_names. Can be raw extracted values, or values normalized to be on
+            interval [0,100] relative to a FeatureSpace.
+        self.num_features - int - should always be == len( self.feature_names ) == len( self.values )
+        self.feature_maxima - list - if values are normalized, can uses these to back out
+            original, unnormalized features.
+        self.feature_minima - list - if values are normalized, can uses these to back out
+            original, unnormalized features.
+        self.normalized_against - wndcharm.FeatureSpace - if not None, is the source
+            FeatureSpace against which features contained herein are normalized.
+
+    Feature Set Metadata Attributes (scalars):
+    ---------------------
+
+        The following attributes are specific to the WND-CHARM feature bank,
+        but other feature sets can reuse these, or you can add other member attributes
+        specific to that feature set:
+
+        self.feature_set_version - str - in the form "X.Y", where X is the major version
+            and Y is the minor version.
+        self.color - bool - Extract additional features specific to RGB images.
+        self.long - bool - If evals to True, extract WND-CHARM "long" features set =
+            2919 features; if False calculate 1059 features.
+        self.feature_computation_plan - instance of wndcharm.FeatureComputationPlan.
+
+    Sampling Options Attributes:
+    ----------------------------
+
+        self.channel - string - channel name
+        self.time_index - whatever you want
+        self.sample_group_id - int - sample group id, identifies groups of samples
+            which is indivisible across train/test splits
+        self.sample_sequence_id - int, index within sample group. If no
+            ROI/image subsample, whole image is tile 1 of 1 in this sample group.
+        self.downsample  - int, in percents
+        self.pixel_intensity_mean = None
+        self.pixel_intensity_stddev = None
+        self.rot = None
+
+        The following attributes are for calling out a single ROI within an image for
+        feature extraction:
+        self.x - int - xi
+        self.w - int - xf
+        self.y - int - yi
+        self.h - int - yf
+        self.z - int - zi
+        self.z_delta - int - zf
+        self.roi - str - string pulled out of the file name sampling options in the
+            form of "-B<x>_<y>_<w>_<h>". Strong target for deprecation!
+
+        The following attributes are for setting up a tiling scheme for extracting
+        features from 2 or more repeating subsampled regions:
+        self.tiling_scheme - str - string pulled out of the file name sampling options
+            in the form of "-t<num_cols>_<num_rows>_<col_index>_<row_index>". Strong
+            target for deprecation!
+        self.tile_num_cols - int - default is 1
+        self.tile_num_rows - int - default is 1
+        self.tile_row_index - int, indices count from 0
+        self.tile_col_index - int, indices count from 0
+"""
+
 
     import re
     sig_filename_parser = re.compile( ''.join( [
@@ -119,9 +216,17 @@ class FeatureVector( object ):
 
     #==============================================================
     def __init__( self, **kwargs ):
-
         #: Row name, common across all channels
         self.name = None
+        #: Can also be a reference to a wndchrm.ImageMatrix object
+        self.source_filepath = None
+        #: Path to .sig file, in future hdf/sql file
+        self.auxiliary_feature_storage = None
+        #: the prefix string to which sampling options will be appended to form .sig filepath
+        self.basename = None
+        #: ground_truth_label is stringified ground truth
+        self.ground_truth_label = None
+        self.ground_truth_value = None
 
         #: feature names
         self.feature_names = None
@@ -133,15 +238,8 @@ class FeatureVector( object ):
         self.feature_maxima = None
         self.feature_minima = None
         self.normalized_against = None
-        #: the prefix string to which sampling options will be appended to form .sig filepath
-        self.basename = None
-        #: Can also be a reference to a wndchrm.ImageMatrix object
-        self.source_filepath = None
-        #: Path to .sig file, in future hdf/sql file
-        self.auxiliary_feature_storage = None
-        #: label is stringified ground truth
-        self.label = None
-        self.ground_truth = None
+
+
         self.sample_group_id = None
         self.channel = None
         self.time_index = None
@@ -196,8 +294,8 @@ class FeatureVector( object ):
             outstr += ' "' + name + '"'
         if self.x is not None and self.y is not None and self.w is not None and self.h is not None:
             outstr += ' ROI={0}x{1}+{2}+{3}"'.format( self.w, self.h, self.x, self.y)
-        if self.label is not None:
-            outstr += ' label="' + self.label + '"'
+        if self.ground_truth_label is not None:
+            outstr += ' label="' + self.ground_truth_label + '"'
         if self.feature_names is not None:
             outstr += ' n_features=' + str( len( self ) )
         if self.sample_group_id is not None:
