@@ -53,19 +53,18 @@ class TestFeatureCalculation( unittest.TestCase ):
     # test_tif = os.path.join (test_dir,'t1_s01_c05_ij.tif')
 
     # --------------------------------------------------------------------------
-    @unittest.skip( "Not doing anything with this right now" )
-    def test_ProfileLargeFeatureSet( self ):
-        """Profiling for calculating sigs"""
-
-        import cProfile
-        import tempfile
-        import pstats
-        prof = tempfile.NamedTemporaryFile()
-        cmd = 'FeatureVector( source_filepath="{0}", long=True ).GenerateFeatures()'.format( self.test_tif_path )
-        cProfile.run( cmd, prof.name, 'time')
-        p = pstats.Stats(prof.name)
-        p.sort_stats('time').print_stats(5)
-        prof.close()
+#    def test_ProfileLargeFeatureSet( self ):
+#        """Profiling for calculating sigs"""
+#
+#        import cProfile
+#        import tempfile
+#        import pstats
+#        prof = tempfile.NamedTemporaryFile()
+#        cmd = 'FeatureVector( source_filepath="{0}", long=True ).GenerateFeatures()'.format( self.test_tif_path )
+#        cProfile.run( cmd, prof.name, 'time')
+#        p = pstats.Stats(prof.name)
+#        p.sort_stats('time').print_stats(5)
+#        prof.close()
 
 #Loaded features from file /Users/chris/src/wnd-charm/tests/wndchrm_tests/010067_301x300-l_precalculated.sig
 #.Fri Jan 23 15:15:35 2015    /var/folders/cr/vsd9_15x6xbc3np6rvx12mqm0000gp/T/tmpf7Oof0

@@ -142,7 +142,6 @@ class TestFeatureSpaceClassification( unittest.TestCase ):
         finally:
             rmtree( tempdir )
 
-    #@unittest.skip('')
     def test_TiledTrainTestSplit( self ):
         """Uses a fake FeatureSpace"""
 

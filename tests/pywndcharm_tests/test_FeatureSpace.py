@@ -44,6 +44,7 @@ from wndcharm.FeatureWeights import FisherFeatureWeights, PearsonFeatureWeights
 from wndcharm.FeatureSpacePrediction import FeatureSpaceClassification, \
        FeatureSpaceRegression
 from wndcharm.utils import compare
+from wndcharm.FeatureVector import FeatureVector
 
 class TestFeatureSet( unittest.TestCase ):
     """
@@ -557,16 +558,51 @@ class TestFeatureSet( unittest.TestCase ):
         finally:
             rmtree( tempdir )
 
-    @unittest.skip('')
-    def test_Load_GroundTruthLabels_and_Values( self ):
-        """For continuous data, we expect a float ground truth value for every sample.
-        For categorized (classed, discrete) data we expect a string label with optional
-        ground truth float for each sample. Check to make sure the ground truth makes it into
-        the right place.
-        
-        test-l.fit has class names 2cell and 4cell, which means wndcharm should try to
-        pull the 2 and the 4 from the class names and have those be the values."""
-        pass
+    # --------------------------------------------------------------------------
+    def test_NewFromDirectory( self ):
+        """"""
+
+        ref_sig_path = 'lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E-t6x5_5_4-l.sig'
+        ref_fv = FeatureVector.NewFromSigFile( pychrm_test_dir + sep + ref_sig_path )
+        from shutil import copy
+        tempdir = mkdtemp()
+        img_filename = "lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E-t6x5_5_4-l.tiff"
+        orig_img_filepath = pychrm_test_dir + sep + img_filename
+        copy( orig_img_filepath, tempdir )
+        try:
+            fs = FeatureSpace.NewFromDirectory( tempdir, quiet=False )
+            self.assertTrue( compare( fs.data_matrix[0], ref_fv.values ) )
+            #from numpy.testing import assert_allclose
+            #assert_allclose( ref_fv.values, fs.data_matrix[0], rtol=1e-05 )
+        finally:
+            rmtree( tempdir )
+
+        from os import mkdir
+        toptempdir = mkdtemp()
+        try:
+            class_names = []
+            for letter in 'CBA':
+                dirname = toptempdir + sep + letter
+                mkdir( dirname )
+                copy( orig_img_filepath, dirname )
+
+            fs = FeatureSpace.NewFromDirectory( toptempdir, quiet=False, )
+            self.assertEqual( fs.class_names, ['A', 'B', 'C' ] )
+            for row_of_features in fs.data_matrix:
+                self.assertTrue( compare( row_of_features, ref_fv.values ) )
+
+        finally:
+            rmtree( toptempdir )
+
+#    def test_Load_GroundTruthLabels_and_Values( self ):
+#        """For continuous data, we expect a float ground truth value for every sample.
+#        For categorized (classed, discrete) data we expect a string label with optional
+#        ground truth float for each sample. Check to make sure the ground truth makes it into
+#        the right place.
+#        
+#        test-l.fit has class names 2cell and 4cell, which means wndcharm should try to
+#        pull the 2 and the 4 from the class names and have those be the values."""
+#        pass
 
     # --------------------------------------------------------------------------
     def test_Normalize( self ):
@@ -601,7 +637,6 @@ class TestFeatureSet( unittest.TestCase ):
         #    assert_allclose( result_fs.data_matrix, target_fs.data_matrix )
 
     # --------------------------------------------------------------------------
-    @unittest.skip('')
     def test_ClassSortingFunctionality( self ):
         """FOF order, and adding FeatureSets"""
 
