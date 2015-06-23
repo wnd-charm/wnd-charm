@@ -818,62 +818,55 @@ class FeatureSpace( object ):
         if not quiet:
             print "Creating Training Set from directories of images {0}".format( top_level_dir_path )
 
-        samples = []
+        feature_vector_list = []
         tile_num_rows = global_sampling_options.tile_num_rows
         tile_num_cols = global_sampling_options.tile_num_cols
 
         from copy import deepcopy
         from os import walk
-        from os.path import join, basename
+        from os.path import join, basename, realpath
+        global sample_group_count
         sample_group_count = 0
-        for root, dirs, files in walk( top_level_dir_path ):
-            if root == top_level_dir_path:
-                if len( dirs ) <= 0:
-                    # no class structure
-                    filelist = [ join( root, _file ) for _file in files \
-                                      if _file.endswith(('.tif','.tiff','.TIF','.TIFF')) ]
-                    if len( filelist ) <= 0:
-                        raise ValueError( 'No tiff files in directory {0}'.format( root ) )
-                    for _file in filelist:
-                        for col_index in xrange( tile_num_cols ):
-                            for row_index in xrange( tile_num_rows ):
-                                fv = deepcopy( global_sampling_options )
-                                fv.source_filepath = _file
-                                fv.ground_truth_label = "UNKNOWN"
-                                fv.tile_row_index = row_index
-                                fv.tile_col_index = col_index
-                                fv.Update()
-                                samples.append( fv )
-                        sample_group_count += 1
-                    break
-            else:
-                # If we're here, we're down in one of the sub directories
-                # This class's name will be "subdir" in /path/to/topleveldir/subdir
-                filelist = [ join( root, _file ) for _file in files \
-                                        if _file.endswith(('.tif','.tiff','.TIF','.TIFF')) ]
-                if len( filelist ) <= 0:
-                    # Maybe the user hid them?
-                    #raise ValueError( 'No tiff files in directory {0}'.format( root ) )
-                    continue
-                class_name = basename( root )
-                for _file in filelist:
-                    for col_index in xrange( tile_num_cols ):
-                        for row_index in xrange( tile_num_rows ):
-                            fv = deepcopy( global_sampling_options )
-                            fv.source_filepath = _file
-                            fv.ground_truth_label = class_name
-                            fv.tile_row_index = row_index
-                            fv.tile_col_index = col_index
-                            fv.Update()
-                            samples.append( fv )
-                    sample_group_count += 1
+
+        def InstantiateFeatureVectorsForDirectory( dir_path ):
+            global sample_group_count
+            #global feature_vector_list
+            root, dirs, files = walk( dir_path ).next()
+            filelist = [ join( root, _file ) for _file in files \
+                              if _file.endswith(('.tif','.tiff','.TIF','.TIFF')) ]
+            class_name = basename( realpath( dir_path ) )
+            for _file in filelist:
+                for col_index in xrange( tile_num_cols ):
+                    for row_index in xrange( tile_num_rows ):
+                        fv = deepcopy( global_sampling_options )
+                        fv.source_filepath = _file
+                        fv.ground_truth_label = class_name
+                        fv.sample_group_id = sample_group_count
+                        fv.tile_row_index = row_index
+                        fv.tile_col_index = col_index
+                        fv.Update()
+                        feature_vector_list.append( fv )
+                sample_group_count += 1
+
+        root, dirs, files = walk( top_level_dir_path ).next()
+        dirlist = [ join(root, subdir) for subdir in dirs if not subdir.startswith('.') ]
+        if len( dirlist ) == 0:
+            # no class structure
+            InstantiateFeatureVectorsForDirectory( top_level_dir_path )
+        else:
+            for subdir in dirlist:
+                InstantiateFeatureVectorsForDirectory( subdir )
+
+        if len( feature_vector_list ) == 0:
+            raise ValueError( "Didn't find any image data in top level directory \"{0}\"".format(
+                top_level_dir_path ) )
 
         # FIXME: Here's where the parallization magic can (will!) happen.
-        [ fv.GenerateFeatures( write_sig_files_to_disk, quiet ) for fv in samples ]
+        [ fv.GenerateFeatures( write_to_disk=write_sig_files_to_disk, quiet=quiet ) for fv in feature_vector_list ]
 
         name = basename( top_level_dir_path )
-        retval = cls.NewFromListOfFeatureVectors( samples, name=name,
-               source_filepath=top_level_dir_path, num_samples=None,
+        retval = cls.NewFromListOfFeatureVectors( feature_vector_list, name=name,
+               source_filepath=top_level_dir_path, num_samples=len(feature_vector_list),
                num_samples_per_group=(tile_num_rows*tile_num_cols),
                num_features=global_sampling_options.num_features,
                discrete=discrete, quiet=True )
