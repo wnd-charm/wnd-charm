@@ -633,7 +633,171 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
     #==============================================================
     @classmethod
     @output_railroad_switch
-    def NewWND5( cls, training_set, test_set, feature_weights, name=None, split_number=None,
+    def NewWND5( cls, training_set, test_set, feature_weights=None, name=None, split_number=None,
+                quiet=False, norm_factor_threshold=None, error_bars=False ):
+        """The equivalent of the "wndcharm classify" command in the command line implementation
+        of WND-CHARM. Input a training set, a test set, and feature weights, and returns a
+        new instance of a FeatureSpaceClassification, with self.individual_results
+        filled with a new instances of SingleSampleClassification.
+
+        If feature_weights == None: use 1's as weights."""
+
+        # type checking
+        if not isinstance( training_set, FeatureSpace ):
+            raise ValueError( 'First argument to New must be of type "FeatureSpace", you gave a {0}'.format( type( test_set ).__name__ ) )
+        if not isinstance( test_set, FeatureSpace ):
+            raise ValueError( 'Second argument to New must be of type "FeatureSpace", you gave a {0}'.format( type( test_set ).__name__ ) )
+        if feature_weights is not None and not isinstance( feature_weights, FeatureWeights ):
+                raise ValueError( 'Third argument to New must be of type "FeatureWeights" or derived class, you gave a {0}'.format( type( feature_weights ).__name__ ) )
+
+        # feature comparison
+        if test_set.feature_names != training_set.feature_names:
+            raise ValueError( "Can't classify, features in test set don't match features in training set. Try translating feature names from old style to new, or performing a FeatureReduce()" )
+        if feature_weights is not None and test_set.feature_names != feature_weights.feature_names:
+            raise ValueError( "Can't classify, features in test set don't match features in weights. Try translating feature names from old style to new, or performing a FeatureReduce()" )
+
+        # ignore divides => dist matrices with 0's down the diagonal will have nan's
+        # which should be ahndled by the mask
+        np.seterr( under='ignore', divide='ignore' )
+
+        n_feats = len( training_set.feature_names )
+        if feature_weights is None:
+            feature_weights = FisherFeatureWeights( size=n_feats )
+            feature_weights.values = np.ones( (n_feats,) )
+            feature_weights.feature_names = training_set.feature_names
+
+        # instantiate myself
+        split_result = cls( training_set, test_set, feature_weights, name, split_number )
+        split_result.use_error_bars = error_bars
+
+        # Say what we're going to do
+        if not quiet:
+            print "Classifying test set '{0}' ({1} samples) against training set '{2}' ({3} samples)".\
+                    format( test_set.name, test_set.num_samples, training_set.name, training_set.num_samples )
+            if test_set.num_samples_per_group > 1:
+                print "Performing tiled classification."
+
+        # Any collisions? (i.e., where the distance from test sample to training sample
+        # is below machine epsilon, i.e., 2.2204e-16
+        epsilon = np.finfo( np.float ).eps
+        import numpy.ma as ma
+
+        # Create slicer for training set class boundaries
+        slice_list = []
+        start_index = 0
+        for n_class_train_samps in training_set.class_sizes:
+            end_index = start_index + n_class_train_samps
+            slice_list.append( slice( start_index, end_index ) )
+            start_index = end_index
+
+        # Create distance matrix:
+        # result dist_mat where rows => train samps and cols => test_samps
+        wts = np.array( feature_weights.values )
+        w_train_featspace = training_set.data_matrix * wts
+        if training_set is test_set:
+            from scipy.spatial.distance import pdist
+            from scipy.spatial.distance import squareform
+            # collisions defined by L1 norm, aka taxicab, aka Manhattan, aka cityblock
+            # in UNWEIGHTED FEATURE SPACE
+            L1_dists = np.absolute( squareform( pdist( training_set.data_matrix, 'cityblock' ) ) )
+            L1_dists_ma = ma.masked_less_equal( L1_dists, epsilon, False )
+            # distances use L2 norm
+            raw_dist_mat = squareform( pdist( w_train_featspace, 'sqeuclidean' ) )
+            dist_mat = ma.masked_array( raw_dist_mat, mask=L1_dists_ma.mask)
+        else:
+            from scipy.spatial.distance import cdist
+            w_test_featspace = test_set.data_matrix * wts
+            # collisions defined by L1 norm, aka taxicab, aka Manhattan, aka cityblock
+            # in UNWEIGHTED FEATURE SPACE
+            L1_dists = np.absolute( cdist( training_set.data_matrix, test_set.data_matrix, 'cityblock' ) )
+            L1_dists_ma = ma.masked_less_equal( L1_dists, epsilon, False )
+            # distances use L2 norm
+            raw_dist_mat = cdist( w_train_featspace, w_test_featspace, 'sqeuclidean' )
+            dist_mat = ma.masked_array( raw_dist_mat, mask=L1_dists_ma.mask )
+
+        # Create marginal probabilities from distance matrix:
+        similarity_mat = np.power( dist_mat, -5 )
+
+        first_time_through = True
+        for test_samp_index, test_samp_sims in enumerate( similarity_mat.T ):
+            result = SingleSampleClassification()
+            per_class_sims_list = [ test_samp_sims[ class_slice ] \
+                    for class_slice in slice_list ]
+            class_siml_means = []
+            for class_sims in per_class_sims_list:
+                try:
+                    val = class_sims.compressed().mean()
+                except FloatingPointError:
+                    # mean of empty slice raises floating point error
+                    val = np.nan
+                class_siml_means.append( val )
+
+            class_siml_means = np.array( class_siml_means )
+            if not np.any( np.isnan( class_siml_means ) ):
+                result.normalization_factor = class_siml_means.sum()
+                result.marginal_probabilities = \
+                    class_siml_means / result.normalization_factor
+                result.predicted_label = \
+                    training_set.class_names[ result.marginal_probabilities.argmax() ]
+
+            result.sample_group_id = test_set._contiguous_sample_group_ids[ test_samp_index ]
+            # FIXME: better to explicitly set s_seq_ids rather than trust the user to set it
+            result.sample_sequence_id = test_set._contiguous_sample_group_ids[ test_samp_index ]
+            result.source_filepath = test_set._contiguous_sample_names[ test_samp_index ]
+            result.ground_truth_label = test_set._contiguous_ground_truth_labels[ test_samp_index ]
+            result.ground_truth_value = test_set._contiguous_ground_truth_values[ test_samp_index ]
+            result.split_number = split_number
+            result.name = name
+            split_result.individual_results.append( result )
+            if not quiet:
+                result.Print( line_item=True, include_col_header=first_time_through,
+                        training_set_class_names=training_set.class_names )
+            first_time_through = False
+
+        # Predicted value via class coefficients, if applicable
+        if training_set.interpolation_coefficients is not None:
+            predicted_values = []
+            ground_truth_values = []
+            for result in split_result.individual_results:
+                if result.marginal_probabilities is not None:
+                    result.predicted_value = np.sum( result.marginal_probabilities * \
+                                                 training_set.interpolation_coefficients )
+                    predicted_values.append( result.predicted_value )
+                    ground_truth_values.append( result.ground_truth_value )
+            if predicted_values:
+                split_result.predicted_values = predicted_values
+                split_result.ground_truth_values = ground_truth_values
+
+        # TILING SECTION:
+        # Create a whole image classification result that
+        # is the average of all the calls from all the tiles
+        if test_set.num_samples_per_group > 1:
+            split_result.averaged_results = []
+            averaged_predicted_values = []
+            averaged_ground_truth_values = []
+            for start_index in xrange( 0, test_set.num_samples, test_set.num_samples_per_group ):
+                end_index = start_index + test_set.num_samples_per_group
+                tiles = split_result.individual_results[ start_index: end_index ]
+                avg_result = AveragedSingleSamplePrediction( tiles, training_set.class_names )
+
+                if avg_result.predicted_value is not None:
+                    averaged_predicted_values.append( avg_result.predicted_value )
+                    averaged_ground_truth_values.append( avg_result.ground_truth_value )
+
+                split_result.averaged_results.append( avg_result )
+                if not quiet:
+                    avg_result.Print( line_item=True )
+            if averaged_predicted_values:
+                split_result.averaged_predicted_values = averaged_predicted_values
+                split_result.averaged_ground_truth_values = averaged_ground_truth_values
+
+        np.seterr (all='raise')
+        return split_result
+
+    #==============================================================
+    @classmethod
+    @output_railroad_switch
+    def NewWND5_OLD( cls, training_set, test_set, feature_weights, name=None, split_number=None,
                 quiet=False, norm_factor_threshold=None, error_bars=False ):
         """The equivalent of the "wndcharm classify" command in the command line implementation
         of WND-CHARM. Input a training set, a test set, and feature weights, and returns a
@@ -695,6 +859,7 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
             split_result.ground_truth_values = []
 
         first_time_through = True
+
         for test_class_index in range( test_set.num_classes ):
             num_class_imgs, num_class_features = test_set.data_list[ test_class_index ].shape
 
@@ -704,7 +869,7 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
 
             for test_image_index in range( num_class_imgs ):
                 one_image_features = test_set.data_list[ test_class_index ][ test_image_index,: ]
-                result = SingleSampleClassification._WND5( training_set, one_image_features, feature_weights.values )
+                result = SingleSampleClassification._WND5_REFERENCE_ONLY( training_set, one_image_features, feature_weights.values )
                 
                 if norm_factor_threshold and (result.normalization_factor > norm_factor_threshold):
                     continue

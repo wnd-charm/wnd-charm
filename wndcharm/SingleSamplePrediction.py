@@ -211,6 +211,9 @@ class SingleSampleClassification( _SingleSamplePrediction ):
     """Classification result for a single image/ROI (a.k.a "sample"),
     which includes predicted class, marginal probabilities, etc."""
 
+    import numpy as np
+    epsilon = np.finfo( np.float ).eps
+
     def __init__( self ):
         super( SingleSampleClassification, self ).__init__()
 
@@ -243,66 +246,54 @@ class SingleSampleClassification( _SingleSamplePrediction ):
 
     #==============================================================
     @classmethod
-    def _WND5( cls, trainingset, testimg, feature_weights ):
+    def _WND5_REFERENCE_ONLY( cls, feature_space, test_samp_feats, feature_weights ):
         """
-        Don't call this function directly, use the wrapper functions 
-        FeatureSpaceClassification.New() (for FeatureSets) or
-        SingleSampleClassification.NewWND5() (for single images/ROIs).
-        Both of these functions have dummyproofing.
+        Don't use this function anymore - it's only here as a reference for how
+        the WND5 algorithm works. Use FeatureSpaceClassification.NewWND5 instead.
 
-        For N images and M features:
-            trainingset is list of length L of N x M numpy matrices
-            testtile is a 1 x M list of feature values
-        NOTE: the trainingset and test image must have the same number of features!!!
-        AND: the features must be in the same order!!
-        Returns an instance of the class SingleSampleClassification
-        """
+        feature_space - FeatureSpace
+        test_samp_feats - numpy.ndarray
+        feature_weights - list of floats or numpy.ndarray"""
 
-        #print "classifying..."
-        epsilon = np.finfo( np.float ).eps
-
-        num_features_in_testimg = len( testimg ) 
         weights_squared = np.square( feature_weights )
 
         # initialize
-        class_similarities = [0] * trainingset.num_classes
+        class_similarities = [0] * feature_space.num_classes
 
-        for class_index in range( trainingset.num_classes ):
-            #print "Calculating distances to class {0}".format( class_index )
-            num_tiles, num_features = trainingset.data_list[ class_index ].shape
-            assert num_features_in_testimg == num_features,\
-            "num features {0}, num features in test img {1}".format( num_features, num_test_img_features )
+        for class_index, class_feat_space in enumerate( feature_space.data_list ):
+            n_class_samples, n_features = class_feat_space.shape
+            WND_sum = 0
+            n_collisions = 0
 
-            # create a view
-            sig_matrix = trainingset.data_list[ class_index ]
-            wnd_sum = 0
-            num_collisions = 0
-
-            #print "num tiles: {0}, num_test_img_features {1}".format( num_tiles, num_test_img_features )
-            for tile_index in range( num_tiles ):
+            for samp_index, train_samp_feats in enumerate( class_feat_space ):
                 # epsilon checking for each feature is too expensive
                 # FIXME: Do quick and dirty summation check until we can figure something else out
-                dists = np.absolute( sig_matrix[ tile_index ] - testimg )
-                w_dist = np.sum( dists )
-#                print "train img {0} dist : {1}".format( tile_index, w_dist )
-#                if (np.isinf(w_dist)):
-#                    print "dists: "+str(dists)
-                if w_dist < epsilon:
-                    num_collisions += 1
-                    continue
-                dists = np.multiply( weights_squared, np.square( dists ) )
-                w_dist = np.sum( dists )
+                difference_vector = np.absolute( train_samp_feats - test_samp_feats )
+                smoke_test_sum = difference_vector.sum()
+                pairwise_wghtd_eucld_dist_squared = \
+                        ( weights_squared * np.square( difference_vector ) ).sum()
+                #print "class {0}, samp {1}, dist {2}".format( class_index, samp_index,\
+                #        pairwise_wghtd_eucld_dist_squared )
                 # The exponent -5 is the "5" in "WND5"
-                class_similarities[ class_index ] += w_dist ** -5
-            #print "\n"
+                # Similarity is the inverse of the distance raised to the
+                # 5th power, there for the shorter the distance, the
+                # greater the similarity.
+                try:
+                    similarity = pairwise_wghtd_eucld_dist_squared ** -5
+                except FloatingPointError:
+                    similarity = np.nan
 
-            denom = num_tiles - num_collisions
+                if smoke_test_sum < cls.epsilon:
+                    n_collisions += 1
+                    continue
+                WND_sum += similarity
+
+            denom = n_class_samples - n_collisions
             if denom == 0:
                 # This sample collided with every sample in the test set
                 # return a non-call
                 return cls()
-            class_similarities[ class_index ] /= denom
-#            print "class_similarities: "+str(class_similarities)
+            class_similarities[ class_index ] = WND_sum / denom
 
         result = cls()
         norm_factor = sum( class_similarities )
@@ -312,63 +303,15 @@ class SingleSampleClassification( _SingleSamplePrediction ):
 
     #=================================================================================
     @classmethod
-    def NewWND5( cls, training_set, feature_weights, test_samp, quiet = False ):
-        """@brief: A wrapper function for _ClassifyOneImageWND5 that does dummyproofing
-        @return: An instance of a FeatureSpaceClassification"""
+    def NewWND5( cls, training_set, feature_weights, test_samp, quiet=False ):
+        """training_set - FeatureSpace
+        feature_weights - FeatureWeights
+        test_samp - FeatureVector"""
 
-        if not isinstance( training_set, FeatureSpace ):
-            raise ValueError( 'First argument to NewWND5 must be of type "FeatureSpace", you gave a {0}'.format( type( training_set ).__name__ ) )
-        
-        if not isinstance( feature_weights, FeatureWeights ):
-            raise ValueError( 'Second argument to NewWND5 must be of type "FeatureWeights" or derived class, you gave a {0}'.format( type( feature_weights ).__name__ ) )
-
-        if not isinstance( test_samp, FeatureVector ):
-            raise ValueError( 'Third argument to NewWND5 must be of type "FeatureVector", you gave a {0}'.format( type( test_samp ).__name__ ) )
-
-        train_set_len = len( training_set.feature_names )
-        test_set_len = len( test_samp.feature_names )
-        feature_weights_len = len( feature_weights.feature_names )
-
-        if test_samp.feature_names != feature_weights.feature_names:
-            raise ValueError("Can't classify, features in signature don't match features in weights." )
-
-        if test_samp.feature_names != training_set.feature_names:
-            raise ValueError("Can't classify, features in signature don't match features in training_set." )
-
-        if not quiet:
-            print "Classifying image '{0}' ({1} features) against test set '{2}' ({3} features)".\
-             format( test_samp.name, train_set_len, training_set.name, test_set_len )
-
-        result = cls._WND5( training_set, test_samp.values, feature_weights.values )
-
-        if isinstance( test_samp.source_filepath, wndcharm.ImageMatrix ) and \
-                test_samp.source_filepath.source:
-            result.source_filepath = test_samp.source_filepath.source
-        else:
-            result.source_filepath = test_samp.name
-
-        if test_samp.sample_group_id is not None:
-            result.sample_group_id = test_samp.sample_group_id
-        if test_samp.sample_sequence_id is not None:
-            result.sample_sequence_id = test_samp.sample_sequence_id
-
-        marg_probs = np.array( result.marginal_probabilities )
-        result.predicted_label = training_set.class_names[ marg_probs.argmax() ]
-        # interpolated value, if applicable
-
-        if training_set.interpolation_coefficients is not None and \
-                len( training_set.interpolation_coefficients ) == len( marg_probs ):
-            interp_val = np.sum( marg_probs * training_set.interpolation_coefficients )
-            result.predicted_value = interp_val
-
-        if not quiet:
-            column_header = "image\tnorm. fact.\t"
-            column_header +=\
-             "".join( [ "p(" + class_name + ")\t" for class_name in training_set.class_names ] )
-            column_header += "act. class\tpred. class\tpred. val."
-            print column_header
-            result.Print( line_item=True )
-        return result
+        test_set = FeatureSpace.NewFromFeatureVector( test_samp )
+        from .FeatureSpacePrediction import FeatureSpaceClassification
+        split = FeatureSpaceClassification.NewWND5( training_set, test_set, feature_weights, quiet=quiet )
+        return split.individual_results[0]
 
 #=================================================================================
 class SingleSampleRegression( _SingleSamplePrediction ):
@@ -465,7 +408,7 @@ class AveragedSingleSamplePrediction( _SingleSamplePrediction ):
             # To take per-class averages of marginal probabilities,
             # collect all m.p.'s in a long list, reshape, and do a numpy per-column mean.
             mp_list_of_lists = [ res.marginal_probabilities for res in reslist \
-                                                if res.marginal_probabilities  ]
+                                                if res.marginal_probabilities is not None ]
 
             self.num_samples_in_group = n_res = len( mp_list_of_lists )
             mp_reject_count = len( reslist ) - len( mp_list_of_lists )

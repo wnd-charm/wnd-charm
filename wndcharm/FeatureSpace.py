@@ -192,18 +192,20 @@ class FeatureSpace( object ):
         self.feature_minima = None
 
         ### Now initialize array-like members if possible:
-        if self.num_samples and self.num_features:
+        # It's ok if num_samples == 0 or num_features == 0
+        # That's how you initialize the empty lists and use AddSample
+        if self.num_samples is not None and self.num_features is not None:
             self.shape = ( self.num_samples, self.num_features )
             self.data_matrix = np.empty( self.shape, dtype='double' )
 
-        if self.num_samples:
+        if self.num_samples is not None:
             self._contiguous_sample_names = [None] * self.num_samples
             self._contiguous_sample_group_ids = [None] * self.num_samples
             self._contiguous_sample_sequence_ids = [None] * self.num_samples
             self._contiguous_ground_truth_values = [None] * self.num_samples
             self._contiguous_ground_truth_labels = [None] * self.num_samples
 
-        if self.num_features and not self.feature_names:
+        if self.num_features is not None and not self.feature_names:
             self.feature_names = [None] * self.num_features
 
     #==============================================================
@@ -253,6 +255,30 @@ class FeatureSpace( object ):
     def __deepcopy__( self, memo ):
         """Make a deepcopy of this FeatureSpace"""
         return self.Derive()
+
+    #==============================================================
+    def AddSample( self, fv ):
+        """Concatenate/append sample at the end, WITHOUT Sort() or RebuildViews
+        Instance attribs need to be initialized first so all the .appends/vstack works
+        To create new featureSpace
+        fv - wndcharm.FeatureVector"""
+
+        if self.feature_names != fv.feature_names:
+            raise ValueError( "feature names don't match" )
+
+        self.data_matrix = np.vstack( (self.data_matrix, fv.values) )
+        self._contiguous_sample_names.append( fv.name )
+        self._contiguous_ground_truth_values.append( fv.ground_truth_value )
+        self._contiguous_ground_truth_labels.append( fv.ground_truth_label )
+        self._contiguous_sample_group_ids.append( fv.sample_group_id )
+        self._contiguous_sample_sequence_ids.append( fv.sample_sequence_id )
+        return self
+
+    #==============================================================
+    @classmethod
+    def NewFromFeatureVector( cls, fv ):
+        fs = cls( num_samples=0, feature_names=fv.feature_names )
+        return fs.AddSample( fv )
 
     #==============================================================
     @output_railroad_switch
@@ -516,7 +542,8 @@ class FeatureSpace( object ):
         a, b, c, d, e = zip( *sorted( sample_data, key=sortfunc ) )
 
         newdata = {}
-        newdata['name'] = self.name + " (sorted)"
+        if self.name:
+            newdata['name'] = self.name + " (sorted)"
         newdata['_contiguous_ground_truth_labels'] = list(a)
         newdata['_contiguous_ground_truth_values'] = list(b)
         newdata['data_matrix'] = np.array(c)
@@ -1621,7 +1648,9 @@ class FeatureSpace( object ):
     def SamplesUnion( self, other_fs, inplace=False, override=False, quiet=False ):
         """Concatenate two FeatureSpaces along the samples (rows) axis.
         The two FeatureSpaces need to have the same number of features.
-        New sample group ids are assigned."""
+        New sample group ids are assigned.
+        
+        override - bool - add fs even if it's immutable (features are normalized)."""
 
         if type( other_fs ) is not FeatureSpace:
             raise ValueError( 'Arg other_fs needs to be of type "FeatureSpace", was a {0}'.format( 
@@ -1642,7 +1671,8 @@ class FeatureSpace( object ):
 
         # initialize
         kwargs = {}
-        kwargs['name'] = self.name + ' | ' + other_fs.name
+        # Names could be None
+        kwargs['name'] = str( self.name ) + ' | ' + str( other_fs.name )
         kwargs['num_samples'] = new_num_samples = self.num_samples + other_fs.num_samples
         kwargs['shape'] = ( new_num_samples, self.num_features )
 

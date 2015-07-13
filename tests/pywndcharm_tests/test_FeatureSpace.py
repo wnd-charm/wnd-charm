@@ -148,16 +148,6 @@ class TestFeatureSet( unittest.TestCase ):
         train.FeatureReduce( fw, inplace=True )
         test.FeatureReduce( fw, inplace=True ).Normalize( train, inplace=True, quiet=True )
 
-    def test_FitOnFitClassification( self ):
-
-        fitfile_path = wndchrm_test_dir + sep + 'test-l.fit'
-        #fs = FeatureSet.NewFromFitFile( fitfile_path )
-        fs = FeatureSpace.NewFromFitFile( fitfile_path )
-        fs.Normalize( inplace=True, quiet=True )
-        fw = FisherFeatureWeights.NewFromFeatureSpace( fs ).Threshold()
-        fs.FeatureReduce( fw, inplace=True )
-        batch_result = FeatureSpaceClassification.NewWND5( fs, fs, fw, quiet=True )
-        # FIXME: compare result to something
 
     @unittest.skip('Write this test immediately!')
     def test_TileOptions( self ):
@@ -637,12 +627,30 @@ class TestFeatureSet( unittest.TestCase ):
         #    assert_allclose( result_fs.data_matrix, target_fs.data_matrix )
 
     # --------------------------------------------------------------------------
-    def test_ClassSortingFunctionality( self ):
-        """FOF order, and adding FeatureSets"""
+    def test_ClassSortSamplesByGroundTruth( self ):
+        """If class names have interpolatable value, sort by that value,
+        otherwise by class name alphabetical order"""
 
-        from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
-        fs1 = CreateArtificialFeatureSpace_Discrete()
-        fs2 = CreateArtificialFeatureSpace_Discrete()
+        fs = FeatureSpace( name='training set', num_samples=4, num_features=5)
+        for i in (1,2,3,4,):
+            fs.data_matrix[i-1].fill(i)
+        fs.feature_names = [ "feat" + char for char in "ABCDE" ]
+        fs._contiguous_sample_group_ids = range(4)
+        fs._contiguous_sample_sequence_ids = [1]*4
+        fs._contiguous_sample_names = ['ones', 'twos', 'threes', 'fours']
+        fs._contiguous_ground_truth_labels = ['ones', 'twos', 'threes', 'fours']
+        fs._contiguous_ground_truth_values = [1,2,3,4,]
+        fs.num_classes = 4
+        fs.class_names = ['ones', 'twos', 'threes', 'fours']
+        fs.interpolation_coefficients = [1,2,3,4] # the call hinges on this not being None
+        fs.SortSamplesByGroundTruth(inplace=True)
+
+        # i.e., not ['fours', 'ones', 'threes', 'twos']
+        # aka, class alphabetical order
+        self.assertEqual( fs.class_names, ['ones', 'twos', 'threes', 'fours'] )
+        fs.interpolation_coefficients = None
+        fs.SortSamplesByGroundTruth(inplace=True)
+        self.assertEqual( fs.class_names, ['fours', 'ones', 'threes', 'twos'] )
 
 
 
