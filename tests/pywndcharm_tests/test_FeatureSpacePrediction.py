@@ -49,6 +49,33 @@ class TestFeatureSpaceClassification( unittest.TestCase ):
     """
     Test the classification functionality
     """
+
+    def test_FitOnFitClassification( self ):
+
+        fitfile_path = wndchrm_test_dir + sep + 'test-l.fit'
+        #fs = FeatureSet.NewFromFitFile( fitfile_path )
+        fs = FeatureSpace.NewFromFitFile( fitfile_path )
+        fs.Normalize( inplace=True, quiet=True )
+        fw = FisherFeatureWeights.NewFromFeatureSpace( fs ).Threshold(438)
+        fw.Print(50)
+        fs.FeatureReduce( fw, inplace=True )
+        pychrm_split = FeatureSpaceClassification.NewWND5( fs, fs, fw, quiet=False )
+        pychrm_split = FeatureSpaceClassification.NewWND5_OLD( fs, fs, fw, quiet=False )
+
+        from wndcharm.FeatureSpacePredictionExperiment import FeatureSpaceClassificationExperiment
+        html_path = pychrm_test_dir + sep + 'test-l_training_error_result.html'
+        html_exp = FeatureSpaceClassificationExperiment.NewFromHTMLReport( html_path, quiet=False )
+        # single split in this html
+        html_split = html_exp.individual_results[0]
+        for i, (html_result, pychrm_result) in enumerate( zip( html_split.individual_results,\
+                pychrm_split.individual_results ) ):
+            try:
+                self.assertEqual( html_result, pychrm_result )
+            except:
+                outstr = "Error in comparison # {0}:\n".format( i )
+                outstr += "HTML result:\n{0}\n Python API res:\n{1}".format( html_result, pychrm_result)
+                raise
+
     def test_FitOnFit( self ):
         """Uses a curated subset of the IICBU 2008 Lymphoma dataset, preprocessed as follows:
         auto-deconvolved, eosin channel only, tiled 5x6, 3 classes, 10 imgs per class,
