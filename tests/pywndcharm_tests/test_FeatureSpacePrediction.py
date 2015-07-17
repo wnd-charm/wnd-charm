@@ -60,7 +60,6 @@ class TestFeatureSpaceClassification( unittest.TestCase ):
         fw.Print(50)
         fs.FeatureReduce( fw, inplace=True )
         pychrm_split = FeatureSpaceClassification.NewWND5( fs, fs, fw, quiet=False )
-        pychrm_split = FeatureSpaceClassification.NewWND5_OLD( fs, fs, fw, quiet=False )
 
         from wndcharm.FeatureSpacePredictionExperiment import FeatureSpaceClassificationExperiment
         html_path = pychrm_test_dir + sep + 'test-l_training_error_result.html'

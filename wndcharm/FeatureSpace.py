@@ -965,9 +965,9 @@ class FeatureSpace( object ):
                 premsg = "Error processing file {0}, line {1}".format( pathname, line_num+1, )
                 postmsg = "Can you spot an error in this line?:\n{0}".format( line )
                 if e.args:
-                    e.args = tuple( [errmsg] + list( e.args ) + [postmsg] )
+                    e.args = tuple( [premsg] + list( e.args ) + [postmsg] )
                 else:
-                    e.args = tuple( [errmsg + ' ' + postmsg] )
+                    e.args = tuple( [premsg + ' ' + postmsg] )
                 raise
         from operator import itemgetter
         # sort on ground truth column, i.e., column index 1
