@@ -244,63 +244,6 @@ class SingleSampleClassification( _SingleSamplePrediction ):
     def __ne__( self, other ):
         return not self == other
 
-    #==============================================================
-    @classmethod
-    def _WND5_REFERENCE_ONLY( cls, feature_space, test_samp_feats, feature_weights ):
-        """
-        Don't use this function anymore - it's only here as a reference for how
-        the WND5 algorithm works. Use FeatureSpaceClassification.NewWND5 instead.
-
-        feature_space - FeatureSpace
-        test_samp_feats - numpy.ndarray
-        feature_weights - list of floats or numpy.ndarray"""
-
-        weights_squared = np.square( feature_weights )
-
-        # initialize
-        class_similarities = [0] * feature_space.num_classes
-
-        for class_index, class_feat_space in enumerate( feature_space.data_list ):
-            n_class_samples, n_features = class_feat_space.shape
-            WND_sum = 0
-            n_collisions = 0
-
-            for samp_index, train_samp_feats in enumerate( class_feat_space ):
-                # epsilon checking for each feature is too expensive
-                # FIXME: Do quick and dirty summation check until we can figure something else out
-                difference_vector = np.absolute( train_samp_feats - test_samp_feats )
-                smoke_test_sum = difference_vector.sum()
-                pairwise_wghtd_eucld_dist_squared = \
-                        ( weights_squared * np.square( difference_vector ) ).sum()
-                #print "class {0}, samp {1}, dist {2}".format( class_index, samp_index,\
-                #        pairwise_wghtd_eucld_dist_squared )
-                # The exponent -5 is the "5" in "WND5"
-                # Similarity is the inverse of the distance raised to the
-                # 5th power, there for the shorter the distance, the
-                # greater the similarity.
-                try:
-                    similarity = pairwise_wghtd_eucld_dist_squared ** -5
-                except FloatingPointError:
-                    similarity = np.nan
-
-                if smoke_test_sum < cls.epsilon:
-                    n_collisions += 1
-                    continue
-                WND_sum += similarity
-
-            denom = n_class_samples - n_collisions
-            if denom == 0:
-                # This sample collided with every sample in the test set
-                # return a non-call
-                return cls()
-            class_similarities[ class_index ] = WND_sum / denom
-
-        result = cls()
-        norm_factor = sum( class_similarities )
-        result.normalization_factor = norm_factor 
-        result.marginal_probabilities = [ x / norm_factor for x in class_similarities ]
-        return result
-
     #=================================================================================
     @classmethod
     def NewWND5( cls, training_set, feature_weights, test_samp, quiet=False ):

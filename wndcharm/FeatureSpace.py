@@ -123,6 +123,15 @@ class FeatureSpace( object ):
         #: shape - supposed to work like numpy.ndarray.shape
         self.shape = None
 
+        #: If package sklearn is available, an optional instance of sklearn.lda.LDA
+        self.lda_fitter = None
+
+        #: type: FeatureSpace, or string containing 'self'
+        #: Reference to self or another FeatureSpace, indicating source FeatureSpace
+        #: that self was transformed against.
+        self.transformed_against = None
+        self.pretransformed_feature_names = None
+
         # SAMPLE METADATA DATA MEMBERS
         # N.B. Here data members are grouped into sets of two, the first being the "_contiguous"
         # version which is a simple list of length S, and the second being compound lists of lists,
@@ -629,6 +638,81 @@ class FeatureSpace( object ):
         return retval
 
     #==============================================================
+    def LDATransform( self, reference_features=None, n_components=None, inplace=True, quiet=False ):
+        """Use sklearn.lda.LDA to transform a feature space.
+        reference_features - None, or wndcharm.FeatureSpace object.
+            - If None, fits LDA model to self.data_matrix and transforms it.
+            - If not None, takes the fitted model from arg reference_features and 
+                transforms self.data_matrix based on that. Updates self's feature metadata to
+                reflect reduced dimensionality.
+        n_components - int - passed trhough as argument to LDA fitter.
+
+        N.B. Use this method like you would for FeatureWeights, transforming self against self
+        for training set, then transforming the test set against self before proceeding with 
+        classification."""
+
+        from sklearn.lda import LDA
+
+        if self.transformed_against:
+            # I've already been transformed, and you want to transform me again?
+            raise ValueError( "{0} \"{1}\" has already been transformed against {2}.".format (
+                self.__class__.__name__, self.name, self.transformed_against ) )
+
+        newdata = {}
+        fitter = None
+
+        if not reference_features:
+            # transform my feature space by fitting and LDA model to my features
+            # and transforming self.data_matrix using that model.
+            newdata['transformed_against'] = 'self'
+            if n_components != None:
+                self.lda_fitter = LDA( n_components )
+            else:
+                self.lda_fitter = LDA()
+
+            self.lda_fitter.fit( self.data_matrix, self._contiguous_ground_truth_labels)
+            fitter = self.lda_fitter
+        else:
+            # Recalculate my feature space according to fitted model in reference_features
+            # Dummyproofing:
+            # 1. Can't proceed if reference_features does not have an LDA model fitted already:
+            if reference_features.lda_fitter == None or\
+                    reference_features.pretransformed_feature_names == None:
+                err_str = "Can't transform {0} \"{1}\" against {2} \"{3}\": ".format(
+                    self.__class__.__name__, self.name,
+                    reference_features.__class__.__name__, reference_features.name )
+                err_str += "Reference features haven't been LDA transformed yet"
+                raise ValueError( err_str )
+            # 2. Can't proceed if self's current feature space dimensionality isn't
+            # compatible with reference_features pre-transformed feature space:
+            if reference_features.pretransformed_feature_names != self.feature_names:
+                err_str = "Can't transform {0} \"{1}\" against {2} \"{3}\": Features don't match.".format(
+                  self.__class__.__name__, self.name,
+                    reference_features.__class__.__name__, reference_features.name )
+                raise ValueError( err_str )
+            fitter = reference_features.lda_fitter
+
+        newdata[ 'pretransformed_feature_names' ] = self.feature_names
+        newdata[ 'data_matrix' ] = fitter.transform( self.data_matrix )
+        newdata[ 'shape' ] = newdata[ 'data_matrix' ].shape
+        newdata[ 'num_features' ] = newdata[ 'shape' ][1]
+        newdata[ 'feature_names' ] = [ 'LDAcomponent' + str(i)
+                for i in xrange( 1, newdata[ 'num_features' ] + 1) ]
+
+        if inplace:
+            retval = self.Update( **newdata )._RebuildViews( recalculate_class_metadata=False )
+        else:
+            retval = self.Derive( **newdata )
+
+        if not quiet:
+            if not reference_features:
+                print "LDA TRANSFORMED SELF'S FEATURE SPACE:", str( retval )
+            else:
+                print "LDA TRANSFORMED SELF'S FEATURE SPACE AGAINST {0}, RESULT: {1}".format(
+                    reference_features, retval )
+        return retval
+
+    #==============================================================
     @classmethod
     def NewFromFitFile( cls, pathname, discrete=True, quiet=False,
             global_sampling_options=None, **kwargs ):
@@ -965,9 +1049,9 @@ class FeatureSpace( object ):
                 premsg = "Error processing file {0}, line {1}".format( pathname, line_num+1, )
                 postmsg = "Can you spot an error in this line?:\n{0}".format( line )
                 if e.args:
-                    e.args = tuple( [errmsg] + list( e.args ) + [postmsg] )
+                    e.args = tuple( [premsg] + list( e.args ) + [postmsg] )
                 else:
-                    e.args = tuple( [errmsg + ' ' + postmsg] )
+                    e.args = tuple( [premsg + ' ' + postmsg] )
                 raise
         from operator import itemgetter
         # sort on ground truth column, i.e., column index 1

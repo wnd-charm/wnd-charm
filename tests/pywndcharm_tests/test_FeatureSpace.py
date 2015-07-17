@@ -46,7 +46,7 @@ from wndcharm.FeatureSpacePrediction import FeatureSpaceClassification, \
 from wndcharm.utils import compare
 from wndcharm.FeatureVector import FeatureVector
 
-class TestFeatureSet( unittest.TestCase ):
+class TestFeatureSpace( unittest.TestCase ):
     """
     The FeatureSet is the workhorse object in WND-CHARM.
     """
@@ -54,6 +54,7 @@ class TestFeatureSet( unittest.TestCase ):
     test_fit_path = join( wndchrm_test_dir,'test-l.fit' )
     test_normalized_fit_path = join( wndchrm_test_dir, 'test_fit-l-normalized.fit' )
 
+    # --------------------------------------------------------------------------
     def test_ContinuousFitOnFit( self ):
         from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
@@ -78,6 +79,7 @@ class TestFeatureSet( unittest.TestCase ):
         finally:
           rmtree( tempdir )
 
+    # --------------------------------------------------------------------------
     def test_DiscreteTrainTestSplitNoTiling( self ):
         """Uses binucleate test set"""
 
@@ -98,6 +100,7 @@ class TestFeatureSet( unittest.TestCase ):
             reduced_test, reduced_fw, quiet=True )
 
 
+    # --------------------------------------------------------------------------
     def test_DiscreteTrainTestSplitWithTiling( self ):
         """Uses a curated subset of the IICBU 2008 Lymphoma dataset, preprocessed as follows:
         auto-deconvolved, eosin channel only, tiled 5x6, 3 classes, 10 imgs per class,
@@ -126,6 +129,7 @@ class TestFeatureSet( unittest.TestCase ):
         finally:
             rmtree( tempdir )
 
+    # --------------------------------------------------------------------------
     def test_ContinuousTrainTestSplitWithTiling( self ):
         """Uses a synthetic preprocessed as follows: 500 total samples, 25 tiles per group
         240 total features"""
@@ -149,6 +153,7 @@ class TestFeatureSet( unittest.TestCase ):
         test.FeatureReduce( fw, inplace=True ).Normalize( train, inplace=True, quiet=True )
 
 
+    # --------------------------------------------------------------------------
     @unittest.skip('Write this test immediately!')
     def test_TileOptions( self ):
 
@@ -159,6 +164,7 @@ class TestFeatureSet( unittest.TestCase ):
         # pass a None
         # Wht if tile options passed doesn't match fit file?
 
+    # --------------------------------------------------------------------------
     def test_SplitOptions( self ):
         from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
@@ -191,6 +197,7 @@ class TestFeatureSet( unittest.TestCase ):
         self.assertRaises( ValueError, fs_class_2_and_7_smaller.Split, train_size=80,
                            test_size=20 )
 
+    # --------------------------------------------------------------------------
     def test_SampleReduce( self ):
         from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
@@ -324,6 +331,7 @@ class TestFeatureSet( unittest.TestCase ):
         self.assertEqual( L.num_samples, fs_cont.num_samples - num_tiles  )
         del L
 
+    # --------------------------------------------------------------------------
     def test_RemoveClass( self ):
         from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
@@ -356,6 +364,7 @@ class TestFeatureSet( unittest.TestCase ):
         self.assertRaises( ValueError, fs.RemoveClass, class_token='trash' )
         self.assertRaises( IndexError, fs.RemoveClass, class_token=10 )
 
+    # --------------------------------------------------------------------------
     def test_SamplesUnion( self ):
         from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
@@ -377,6 +386,7 @@ class TestFeatureSet( unittest.TestCase ):
 
         self.assertEqual( n_classes, joined_fs.num_classes )
 
+    # --------------------------------------------------------------------------
     def test_NewFromFileOfFiles( self ):
         """Pulls in the lymphoma eosin histology 5x6 tiled featureset via .sig files."""
 
@@ -625,6 +635,42 @@ class TestFeatureSet( unittest.TestCase ):
         #    # actually, the one good thing about "allclose" is the error reporting
         #    from numpy.testing import assert_allclose
         #    assert_allclose( result_fs.data_matrix, target_fs.data_matrix )
+
+
+    # --------------------------------------------------------------------------
+    def test_LDATransform( self ):
+	"""LDA transform"""
+
+        tempdir = mkdtemp()
+        import zipfile
+        zf = zipfile.ZipFile( pychrm_test_dir + sep + 'lymphoma_iicbu2008_subset_EOSIN_ONLY_t5x6_v3.2features.fit.zip', mode='r')
+        zf.extractall( tempdir )
+        fitfile_path = tempdir + sep + 'lymphoma_iicbu2008_subset_eosin_t5x6_v3.2features.fit'
+        try:
+            kwargs = {}
+            kwargs['pathname'] = fitfile_path
+            kwargs['quiet'] = True
+            # sampling opts: -l -t5x6 implies 5 columns and 6 rows ... I know it's weird.
+            kwargs['long'] = True
+            kwargs['tile_num_rows'] = 6
+            kwargs['tile_num_cols'] = 5
+
+            # against self:
+            fs = FeatureSpace.NewFromFitFile( **kwargs )
+            self_transformed = fs.LDATransform( reference_features=None, inplace=False )
+
+            fit_on_fit_LDA_result = FeatureSpaceClassification.NewWND5(
+                    self_transformed, self_transformed, feature_weights=None )
+
+            # against other:
+            train, test = fs.Split()
+            train.LDATransform( reference_features=None, inplace=True )
+            test.LDATransform( reference_features=train, inplace=True )
+
+            fit_on_fit_LDA_result = FeatureSpaceClassification.NewWND5(
+                    train, test, feature_weights=None )
+        finally:
+            rmtree( tempdir )
 
     # --------------------------------------------------------------------------
     def test_ClassSortSamplesByGroundTruth( self ):
