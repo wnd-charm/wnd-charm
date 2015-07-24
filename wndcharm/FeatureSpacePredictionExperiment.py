@@ -107,6 +107,33 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
         if lists_of_predicted_values:
             self.predicted_values = list( chain( *lists_of_predicted_values ) )
 
+        if self.ground_truth_values and self.predicted_values and \
+                len(self.ground_truth_values) > 1:
+            # no point in doing regression stuff if there's only 1 individual result:
+            assert( len(self.ground_truth_values) == len(self.predicted_values) )
+
+            gt = np.array( self.ground_truth_values )
+            pv = np.array( self.predicted_values )
+            diffs = gt - pv
+            diffs = np.square( diffs )
+            err_sum = np.sum( diffs )
+
+            from math import sqrt
+            self.std_err = sqrt( err_sum / self.num_classifications )
+
+            from scipy.stats import linregress, spearmanr
+            # For now, ignore "FloatingPointError: 'underflow encountered in stdtr'"
+            np.seterr( under='ignore' )
+            slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
+                     linregress( gt, pv )
+            try:
+                self.spearman_coeff, self.spearman_p_value = spearmanr( gt, pv )
+            except FloatingPointError:
+                # to avoid: "FloatingPointError: invalid value encountered in true_divide"
+                self.spearman_coeff, self.spearman_p_value = ( 0, 1 )
+
+            np.seterr( all='raise' )
+
         # Aggregate feature weight statistics across splits, if any:
         feature_weight_lists = {}
         for split_result in self.individual_results:
@@ -524,6 +551,15 @@ class FeatureSpaceClassificationExperiment( _FeatureSpacePredictionExperiment ):
                 outstr += " ({0:0.2f} +/- {1:0.2f}% w/ 95% conf. (Wilson score interval))".format(
                         acc * 100, conf_interval * 100)
                 print outstr
+
+        if self.std_err is not None:
+            print "Standard Error: {0:0.4f}".format( self.std_err)
+        if self.pearson_coeff is not None:
+            print "Pearson Corellation Coefficient (r): {0:0.4f}".format( self.pearson_coeff )
+            print "Coefficient of Determination (r^2): {0:0.4f}".format( self.pearson_coeff ** 2 )
+        if self.spearman_coeff is not None:
+            print "Spearman Coefficient: {0:0.4f}".format( self.spearman_coeff )
+        print "\n"
 
         print self.ConfusionMatrix(), '\n'
         print self.SimilarityMatrix(), '\n'

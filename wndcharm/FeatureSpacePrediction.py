@@ -545,6 +545,7 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
             print "Standard Error: {0:0.4f}".format( self.std_err)
         if self.pearson_coeff is not None:
             print "Pearson Coefficient: {0:0.4f}".format( self.pearson_coeff )
+            print "Coefficient of Determination (r^2): {0:0.4f}".format( self.pearson_coeff ** 2 )
         if self.spearman_coeff is not None:
             print "Spearman Coefficient: {0:0.4f}".format( self.spearman_coeff )
         print "\n"
