@@ -35,14 +35,19 @@ def CheckIfClassNamesAreInterpolatable( class_names ):
     import re
     p = re.compile( r'(-?\d*\.?\d+)' )
     interp_coeffs = []
-    for class_name in class_names:
-        m = p.search( class_name )
-        if m:
-            interp_coeffs.append( float( m.group(1) ) )
-        else:
-            interp_coeffs = None
-            break
-    return interp_coeffs
+    try:
+        for class_name in class_names:
+            m = p.search( class_name )
+            if m:
+                interp_coeffs.append( float( m.group(1) ) )
+            else:
+                interp_coeffs = None
+                break
+        return interp_coeffs
+    except:
+        pass
+
+    return None
 
 #############################################################################
 # class definition of FeatureSpace
@@ -61,7 +66,8 @@ class FeatureSpace( object ):
     # Used for parsing "File of Files" definition of FeatureSpace
     import re
     channel_col_finder = re.compile(r'(?P<path>.*?)?\{(?P<opts>.*?)?\}')
-    channel_opt_finder = re.compile(r'(?:(?P<key>.+?)=)?(?P<value>.+)')
+    # Note sample options are separated by semicolons (';') within the channel braces ('{}')
+    sample_opt_finder = re.compile(r'(?:(?P<key>.+?)=)?(?P<value>.+)')
 
     # Don't bother copying these "view" members which are rebuilt by self._RebuildViews()
     # Used for Derive, pickling operations, etc.
@@ -113,8 +119,8 @@ class FeatureSpace( object ):
         #: An instance of a FeatureVector which contains the global sampling
         #: options for samples in this space.
         self.feature_options = None
-        self.tile_rows = None
-        self.tile_cols = None
+        self.tile_num_rows = None
+        self.tile_num_cols = None
 
         #: Do the samples belong to discrete classes for supervised learning, or not
         #: (regression, clustering)
@@ -469,7 +475,7 @@ class FeatureSpace( object ):
                 self.num_classes, self.class_sizes, and self.interpolation_coefficients."""
 
         if not self.samples_sorted_by_ground_truth:
-            self.SortSamplesByGroundTruth( inplace=True )
+            self.SortSamplesByGroundTruth( inplace=True, rebuild_views=False )
 
         if self.discrete is None:
             errmsg = 'FeatureSpace {0} "discrete" member hasn\'t been set. '.format( self )
@@ -540,11 +546,18 @@ class FeatureSpace( object ):
             self._contiguous_sample_names, self._contiguous_sample_sequence_ids )
 
         from operator import itemgetter
-        if self.discrete and self.interpolation_coefficients is None:
-            # sort by the labels
-            sortfunc = itemgetter(0)
+        if self.discrete:
+            # interpolation coefficients get set later, just do a check on our own
+            # to see if we can sort by int/float value:
+            unsorted_class_names = set(self._contiguous_ground_truth_labels )
+            if CheckIfClassNamesAreInterpolatable( unsorted_class_names ):
+                # sort by the numeric values
+                sortfunc = itemgetter(1)
+            else:
+                # sort by the labels
+                sortfunc = itemgetter(0)
         else:
-            # sort by the numeric values
+            # Not discrete? Sort by the numeric values.
             sortfunc = itemgetter(1)
 
         # These are all tuples:
@@ -742,9 +755,15 @@ class FeatureSpace( object ):
         name_line = False
         sample_count = 0
 
-        new_fs.tile_rows = global_sampling_options.tile_num_rows
-        new_fs.tile_cols = global_sampling_options.tile_num_cols
-        new_fs.num_samples_per_group = new_fs.tile_rows * new_fs.tile_cols
+        if global_sampling_options.tile_num_rows is not None:
+            new_fs.tile_num_rows = global_sampling_options.tile_num_rows
+        else:
+            new_fs.tile_num_rows = 1
+        if global_sampling_options.tile_num_cols:
+            new_fs.tile_num_cols = global_sampling_options.tile_num_cols
+        else:
+            new_fs.tile_num_cols = 1
+        new_fs.num_samples_per_group = new_fs.tile_num_rows * new_fs.tile_num_cols
         new_fs.global_sampling_options = global_sampling_options
         new_fs.samples_sorted_by_ground_truth = True
 
@@ -873,9 +892,13 @@ class FeatureSpace( object ):
         if not path.endswith('.fit'):
             path += '.fit'
 
-        # C++ WNDCHARM only likes to read classes if their class labes are in sort order
+        # C++ WNDCHARM only likes to read classes if their class labels are in sort order
         if not self.samples_sorted_by_ground_truth:
-            temp_fs = self.SortSamplesByGroundTruth( inplace=False, rebuild_views=False )
+            from copy import deepcopy
+            tempfs = deepcopy(self)
+            # Sort by labels only:
+            tempfs.interpolation_coefficients = None
+            temp_fs.SortSamplesByGroundTruth( inplace=True, rebuild_views=False )
         else:
             temp_fs = self
 
@@ -930,8 +953,14 @@ class FeatureSpace( object ):
             print "Creating Training Set from directories of images {0}".format( top_level_dir_path )
 
         feature_vector_list = []
-        tile_num_rows = global_sampling_options.tile_num_rows
-        tile_num_cols = global_sampling_options.tile_num_cols
+        if global_sampling_options.tile_num_rows is not None:
+            tile_num_rows = global_sampling_options.tile_num_rows
+        else:
+            tile_num_rows = 1
+        if global_sampling_options.tile_num_cols:
+            tile_num_cols = global_sampling_options.tile_num_cols
+        else:
+            tile_num_cols = 1
 
         from copy import deepcopy
         from os import walk
@@ -947,16 +976,19 @@ class FeatureSpace( object ):
                               if _file.endswith(('.tif','.tiff','.TIF','.TIFF')) ]
             class_name = basename( realpath( dir_path ) )
             for _file in filelist:
+                ssid = 0
                 for col_index in xrange( tile_num_cols ):
                     for row_index in xrange( tile_num_rows ):
                         fv = deepcopy( global_sampling_options )
                         fv.source_filepath = _file
                         fv.ground_truth_label = class_name
                         fv.sample_group_id = sample_group_count
+                        fv.sample_sequence_id = ssid
                         fv.tile_row_index = row_index
                         fv.tile_col_index = col_index
                         fv.Update()
                         feature_vector_list.append( fv )
+                        ssid += 1
                 sample_group_count += 1
 
         root, dirs, files = walk( top_level_dir_path ).next()
@@ -988,7 +1020,7 @@ class FeatureSpace( object ):
 
     #==============================================================
     @classmethod
-    def NewFromFileOfFiles( cls, pathname, discrete=True, quiet=False,
+    def NewFromFileOfFiles( cls, pathname, num_samples_per_group=None, discrete=True, quiet=False,
              global_sampling_options=None, write_sig_files_to_disk=True, **kwargs ):
         """Create a FeatureSpace from a file of files.
 
@@ -1017,7 +1049,13 @@ class FeatureSpace( object ):
 
         tile_num_rows = global_sampling_options.tile_num_rows
         tile_num_cols = global_sampling_options.tile_num_cols
-        num_samples_per_group = tile_num_rows * tile_num_cols
+        # user may want fof specification to trump global defaults, entering None for
+        # tile_num_rows and tile_num_cols
+        if num_samples_per_group is None:
+            if tile_num_rows is not None and tile_num_cols is not None:
+                num_samples_per_group = tile_num_rows * tile_num_cols
+            else:
+                num_samples_per_group = 1
 
         # Keeps track of the sample names to help organize like
         # samples into sample groups
@@ -1028,40 +1066,52 @@ class FeatureSpace( object ):
                 samp_name_to_samp_group_id_dict[ name ] = len(samp_name_to_samp_group_id_dict)
             return samp_name_to_samp_group_id_dict[ name ]
 
-        # BEGIN SORT FOF LINES BY GROUND TRUTH:
-        # More efficient to slurp the whole file and sort the FOF lines by ground truth
-        # before starting to populate objects, giving sample groups a proper group id
-        # from the get go, rather than sorting & reassigning, etc
-        with open( pathname ) as fof:
-            lines = fof.read().splitlines()
-        splitlines = []
-        # If the parsing operation chokes on a specific line, tell the user what the
-        # problem line is:
-        for line_num, line in enumerate( lines ):
-            try:
-                # Allow user to comment out lines in file list:
-                if line.startswith('#'):
-                    continue
-                cols = line.strip().split('\t', 2)
-                splitlines.append( cols )
-            except Exception as e:
-                # Tell the user which line the parser choked on:
-                premsg = "Error processing file {0}, line {1}".format( pathname, line_num+1, )
-                postmsg = "Can you spot an error in this line?:\n{0}".format( line )
-                if e.args:
-                    e.args = tuple( [premsg] + list( e.args ) + [postmsg] )
-                else:
-                    e.args = tuple( [premsg + ' ' + postmsg] )
-                raise
-        from operator import itemgetter
-        # sort on ground truth column, i.e., column index 1
-        lines = sorted( splitlines, key=itemgetter(1) )
-        # END SORT FOF LINES BY GROUND TRUTH
+#        # BEGIN SORT FOF LINES BY GROUND TRUTH:
+#        # More efficient to slurp the whole file and sort the FOF lines by ground truth
+#        # before starting to populate objects, giving sample groups a proper group id
+#        # from the get go, rather than sorting & reassigning, etc
+#        with open( pathname ) as fof:
+#            lines = fof.read().splitlines()
+#        splitlines = []
+#        # If the parsing operation chokes on a specific line, tell the user what the
+#        # problem line is:
+#        n_preprocessed_cols = None
+#        for line_num, line in enumerate( lines ):
+#            try:
+#                # Allow user to comment out lines in file list:
+#                if line.startswith('#'):
+#                    continue
+#                # split() doesn't raise an error if it doesn't split as many times
+#                # as you ask it to, so we have to check for having a uniform number
+#                # of columns ourselves.
+#                cols = line.strip().split('\t', 2)
+#                if n_preprocessed_cols == None:
+#                    n_preprocessed_cols = len( cols )
+#                elif len( cols ) != n_preprocessed_cols:
+#                    raise ValueError( "Not the same number of tab-delimited columns as in previous lines." )
+#                splitlines.append( cols )
+#            except Exception as e:
+#                # Tell the user which line the parser choked on:
+#                premsg = "Error processing file {0}, line {1}".format( pathname, line_num+1, )
+#                postmsg = "Can you spot an error in this line?:\n{0}".format( line )
+#                if e.args:
+#                    e.args = tuple( [premsg] + list( e.args ) + [postmsg] )
+#                else:
+#                    e.args = tuple( [premsg + ' ' + postmsg] )
+#                raise
+#        from operator import itemgetter
+#        # sort on ground truth column, i.e., column index 1
+#        lines = sorted( splitlines, key=itemgetter(1) )
+#        # END SORT FOF LINES BY GROUND TRUTH
 
         # FeatureVector instances go in here:
         samples = []
 
-        for line_num, cols in enumerate( lines ):
+        fof = open( pathname )
+        for line_num, line in enumerate( fof ):
+            if line.startswith('#'):
+                continue
+            cols = line.strip().split('\t', 2)
             try:
                 # Classic two-column (pre-2015) FOF format
                 if len( cols ) < 3:
@@ -1109,11 +1159,17 @@ class FeatureSpace( object ):
                     else:
                         base_sample_opts.source_filepath = path_to_sample
                         base_sample_opts.sample_group_id = ReturnSampleGroupID( cols[0] )
-                        for col_index in xrange( tile_num_cols ):
-                            for row_index in xrange( tile_num_rows ):
-                                fv = deepcopy( base_sample_opts )
-                                fv.Update( tile_row_index=row_index, tile_col_index=col_index )
-                                samples.append( fv )
+                        if tile_num_cols is not None and tile_num_rows is not None:
+                            ssid = 0
+                            for col_index in xrange( tile_num_cols ):
+                                for row_index in xrange( tile_num_rows ):
+                                    fv = deepcopy( base_sample_opts )
+                                    fv.Update( tile_row_index=row_index, tile_col_index=col_index,
+                                            sample_sequence_id=ssid )
+                                    ssid += 1
+                                    samples.append( fv )
+                        else:
+                            samples.append( base_sample_opts )
                     # By now (after perhaps needing to load sig file) we know how many features in this sample
                     num_feats_in_this_row = base_sample_opts.num_features
                     if feature_set_version is None:
@@ -1148,7 +1204,7 @@ class FeatureSpace( object ):
                         opts_str = col_finder_dict['opts']
                         if opts_str:
                             col_opts = dict( [ mm.groups() for opt in opts_str.split(';') \
-                                                for mm in cls.channel_opt_finder.finditer( opt ) ] )
+                                                for mm in cls.sample_opt_finder.finditer( opt ) ] )
                             if None in col_opts:
                                 # value given without key is taken to be default channel
                                 col_opts['channel'] = col_opts[None]
@@ -1181,11 +1237,19 @@ class FeatureSpace( object ):
                             samples.append( base_sample_opts )
                         else:
                             base_sample_opts.source_filepath = path
-                            for col_index in xrange( tile_num_cols ):
-                                for row_index in xrange( tile_num_rows ):
-                                    fv = deepcopy( base_sample_opts )
-                                    fv.Update( tile_row_index=row_index, tile_col_index=col_index )
-                                    samples.append( fv )
+                            if tile_num_cols is not None and tile_num_rows is not None:
+                                # Don't overwrite the col/row index if user passes in None
+                                # for those options:
+                                ssid = 0
+                                for col_index in xrange( tile_num_cols ):
+                                    for row_index in xrange( tile_num_rows ):
+                                        fv = deepcopy( base_sample_opts )
+                                        fv.Update( tile_row_index=row_index, tile_col_index=col_index,
+                                                    sample_sequence_id=ssid )
+                                        ssid += 1
+                                        samples.append( fv )
+                            else:
+                                samples.append( base_sample_opts )
                         # By now (after perhaps needing to load sig file) we know how many features in this sample
                         num_feats_in_this_row += base_sample_opts.num_features
 
@@ -1227,10 +1291,12 @@ class FeatureSpace( object ):
                 else:
                     e.args = tuple( [premsg + ' ' + postmsg] )
                 raise
+        fof.close()
         # END iterating over lines in FOF
 
         # FIXME: Here's where the parallization magic can (will!) happen.
-        [ fv.GenerateFeatures( write_sig_files_to_disk, quiet ) for fv in samples ]
+        [ fv.GenerateFeatures( write_sig_files_to_disk, update_samp_opts_from_pathname=False, 
+            quiet=quiet ) for fv in samples ]
 
         assert num_features > 0
 
@@ -1298,8 +1364,8 @@ class FeatureSpace( object ):
             col_right_boundary_index = col_left_boundary_index + fv.num_features
             row_index = (fv.sample_group_id * num_samples_per_group) + fv.sample_sequence_id
 
-            #print "row", row_index, "left", col_left_boundary_index, "right", col_right_boundary_index
-
+            if not quiet:
+                print 'row index', row_index, "left", col_left_boundary_index, "right", col_right_boundary_index, str( fv )
             # Fill in column metadata if we've not seen a feature vector for this col before
             if fv.fs_col not in feature_set_col_offset:
                 feature_set_col_offset[ fv.fs_col ] = col_right_boundary_index
@@ -1311,7 +1377,6 @@ class FeatureSpace( object ):
                         fv.feature_names
             # Fill in row metadata with FeatureVector data from column 0 only
             if fv.fs_col == 0: # (fs_col member must be > 0 and cannot be None)
-                #print 'row index', row_index, str( fv )
                 new_fs._contiguous_sample_names[ row_index ] = fv.name
                 new_fs._contiguous_sample_group_ids[ row_index ] = fv.sample_group_id
                 new_fs._contiguous_sample_sequence_ids[ row_index ] = fv.sample_sequence_id

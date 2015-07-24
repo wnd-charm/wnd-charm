@@ -55,6 +55,7 @@ class TestFeatureSpace( unittest.TestCase ):
     test_normalized_fit_path = join( wndchrm_test_dir, 'test_fit-l-normalized.fit' )
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_ContinuousFitOnFit( self ):
         from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
@@ -80,6 +81,7 @@ class TestFeatureSpace( unittest.TestCase ):
           rmtree( tempdir )
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_DiscreteTrainTestSplitNoTiling( self ):
         """Uses binucleate test set"""
 
@@ -101,6 +103,7 @@ class TestFeatureSpace( unittest.TestCase ):
 
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_DiscreteTrainTestSplitWithTiling( self ):
         """Uses a curated subset of the IICBU 2008 Lymphoma dataset, preprocessed as follows:
         auto-deconvolved, eosin channel only, tiled 5x6, 3 classes, 10 imgs per class,
@@ -130,6 +133,7 @@ class TestFeatureSpace( unittest.TestCase ):
             rmtree( tempdir )
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_ContinuousTrainTestSplitWithTiling( self ):
         """Uses a synthetic preprocessed as follows: 500 total samples, 25 tiles per group
         240 total features"""
@@ -165,6 +169,7 @@ class TestFeatureSpace( unittest.TestCase ):
         # Wht if tile options passed doesn't match fit file?
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_SplitOptions( self ):
         from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
@@ -198,6 +203,7 @@ class TestFeatureSpace( unittest.TestCase ):
                            test_size=20 )
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_SampleReduce( self ):
         from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
@@ -332,6 +338,7 @@ class TestFeatureSpace( unittest.TestCase ):
         del L
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_RemoveClass( self ):
         from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
@@ -365,6 +372,7 @@ class TestFeatureSpace( unittest.TestCase ):
         self.assertRaises( IndexError, fs.RemoveClass, class_token=10 )
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_SamplesUnion( self ):
         from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
@@ -559,6 +567,7 @@ class TestFeatureSpace( unittest.TestCase ):
             rmtree( tempdir )
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_NewFromDirectory( self ):
         """"""
 
@@ -605,6 +614,7 @@ class TestFeatureSpace( unittest.TestCase ):
 #        pass
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_Normalize( self ):
 	"""Load unnormalized feature space, normalize,
         then compare to stored normalized feature space."""
@@ -638,6 +648,7 @@ class TestFeatureSpace( unittest.TestCase ):
 
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_LDATransform( self ):
 	"""LDA transform"""
 
