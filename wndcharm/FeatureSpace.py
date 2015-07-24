@@ -727,7 +727,7 @@ class FeatureSpace( object ):
 
     #==============================================================
     @classmethod
-    def NewFromFitFile( cls, pathname, discrete=True, quiet=False,
+    def NewFromFitFile( cls, pathname, discrete=True, quiet=False, num_samples_per_group=None,
             global_sampling_options=None, **kwargs ):
         """Helper function which reads in a c-chrm fit file.
 
@@ -763,7 +763,10 @@ class FeatureSpace( object ):
             new_fs.tile_num_cols = global_sampling_options.tile_num_cols
         else:
             new_fs.tile_num_cols = 1
-        new_fs.num_samples_per_group = new_fs.tile_num_rows * new_fs.tile_num_cols
+        if num_samples_per_group is not None:
+            new_fs.num_samples_per_group = num_samples_per_group
+        else:
+            new_fs.num_samples_per_group = new_fs.tile_num_rows * new_fs.tile_num_cols
         new_fs.global_sampling_options = global_sampling_options
         new_fs.samples_sorted_by_ground_truth = True
 
