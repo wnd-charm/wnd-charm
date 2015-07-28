@@ -206,6 +206,10 @@ class FeatureSpace( object ):
         #: FeatureSpaces can be transformed.
         self.feature_minima = None
 
+        # For performing z-score transform
+        self.feature_means = None
+        self.feature_stdevs = None
+
         ### Now initialize array-like members if possible:
         # It's ok if num_samples == 0 or num_features == 0
         # That's how you initialize the empty lists and use AddSample
@@ -595,7 +599,8 @@ class FeatureSpace( object ):
         return retval
 
     #==============================================================
-    def Normalize( self, reference_features=None, inplace=True, quiet=False ):
+    def Normalize( self, reference_features=None, inplace=True, zscore=False,
+            non_real_check=True, quiet=False ):
         """By convention, the range of feature values in the WND-CHARM algorithm are
         normalized on the interval [0,100]. Normalizing is useful in making the variation
         of features human readable. Normalized samples are only comprable if they've been
@@ -607,11 +612,13 @@ class FeatureSpace( object ):
                 self.__class__.__name__, self.name, self.normalized_against ) )
 
         newdata = {}
+        mins = None
+        maxs = None
+        means = None
+        stdevs = None
 
         if not reference_features:
             # Recalculate my feature space using my own maxima/minima
-            mins = None
-            maxs = None
             newdata['normalized_against'] = 'self'
         else:
             # Recalculate my feature space according to maxima/minima in reference_features
@@ -627,15 +634,27 @@ class FeatureSpace( object ):
 
             # Need to make sure there are feature minima/maxima to normalize against:
             if not reference_features.normalized_against:
-                reference_features.Normalize( quiet=quiet )
+                reference_features.Normalize( quiet=quiet, zscore=zscore,
+                        non_real_check=non_real_check )
 
-            mins = reference_features.feature_minima
-            maxs = reference_features.feature_maxima
             newdata['normalized_against'] = reference_features
 
-        newdata['data_matrix'] = np.copy( self.data_matrix )
-        newdata['feature_minima'], newdata['feature_maxima'] = \
-            normalize_by_columns( newdata['data_matrix'], mins, maxs )
+            if not zscore:
+                mins = reference_features.feature_minima
+                maxs = reference_features.feature_maxima
+            else:
+                means = reference_features.feature_means
+                stdevs = reference_features.feature_stdevs
+
+        if inplace:
+            fs = self.data_matrix
+        else:
+            fs = np.copy( self.data_matrix )
+
+        r = normalize_by_columns( fs, mins, maxs, means, stdevs, zscore, non_real_check )
+        newdata['data_matrix'] = fs
+        newdata['feature_minima'], newdata['feature_maxima'],\
+                newdata['feature_means'], newdata['feature_stdevs'] = r
 
         if inplace:
             retval = self.Update( **newdata )._RebuildViews( recalculate_class_metadata=False)

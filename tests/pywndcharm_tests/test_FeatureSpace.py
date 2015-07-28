@@ -619,19 +619,16 @@ class TestFeatureSpace( unittest.TestCase ):
 	"""Load unnormalized feature space, normalize,
         then compare to stored normalized feature space."""
 
-        from wndcharm.utils import compare
         result_fs = FeatureSpace.NewFromFitFile( self.test_fit_path ).Normalize( inplace=True )
         target_fs = FeatureSpace.NewFromFitFile( self.test_normalized_fit_path )
 
         from numpy.testing import assert_allclose
         assert_allclose( result_fs.data_matrix, target_fs.data_matrix, rtol=1e-05 )
 
+
         # See the problem with using all close...?
-
-
         # AssertionError: 
         # Not equal to tolerance rtol=1e-07, atol=0
-
         # (mismatch 100.0%)
         # x: array([[  18.540434,   44.441657,   30.894861, ...,    0.      ,
         #          56.162296,   48.702817],
@@ -641,6 +638,7 @@ class TestFeatureSpace( unittest.TestCase ):
         #       [   0.      ,    0.      ,   63.5766  , ...,    0.669004,...
 
 
+        #from wndcharm.utils import compare
         #if not compare( result_fs.data_matrix, target_fs.data_matrix ):
         #    # actually, the one good thing about "allclose" is the error reporting
         #    from numpy.testing import assert_allclose
@@ -708,8 +706,6 @@ class TestFeatureSpace( unittest.TestCase ):
         fs.interpolation_coefficients = None
         fs.SortSamplesByGroundTruth(inplace=True)
         self.assertEqual( fs.class_names, ['fours', 'ones', 'threes', 'twos'] )
-
-
 
 if __name__ == '__main__':
     unittest.main()

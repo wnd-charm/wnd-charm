@@ -120,51 +120,122 @@ def output_railroad_switch( method_that_prints_output ):
     return print_method_wrapper
 
 # ============================================================
-def normalize_by_columns( full_stack, mins=None, maxs=None ):
-    """This is a global function to normalize a matrix by columns.
-    If numpy 1D arrays of mins and maxs are provided, the matrix will be normalized against these ranges
-    Otherwise, the mins and maxs will be determined from the matrix, and the matrix will be normalized
-    against itself. The mins and maxs will be returned as a tuple.
-    Out of range matrix values will be clipped to min and max (including +/- INF)
-    zero-range columns will be set to 0.
-    NANs in the columns will be set to 0.
-    The normalized output range is hard-coded to 0-100
-    """
-# Edge cases to deal with:
-#   Range determination:
-#     1. features that are nan, inf, -inf
-#        max and min determination must ignore invalid numbers
-#        nan -> 0, inf -> max, -inf -> min
-#   Normalization:
-#     2. feature values outside of range
-#        values clipped to range (-inf to min -> min, max to inf -> max) - leaves nan as nan
-#     3. feature ranges that are 0 result in nan feature values
-#     4. all nan feature values set to 0
+def ReplaceNonReal( feature_matrix, mins=None, maxs=None ):
+    """Useful for cross-validation, so you don't have to check for NaNs/INFs every split.
+    Will clip to mins maxs if passed.
 
-# Turn off numpy warnings, since we're taking care of invalid values explicitly
-    oldsettings = np.seterr(all='ignore')
-    if (mins is None or maxs is None):
-        # mask out NANs and +/-INFs to compute min/max
-        full_stack_m = np.ma.masked_invalid (full_stack, copy=False)
-        maxs = full_stack_m.max (axis=0)
-        mins = full_stack_m.min (axis=0)
+    Args:
+        feature_matrix - numpy.ndarray
+            matrix shape = NxM, where N = num samples, M = num features
+        mins - numpy.ndarray, shape 1xM
+        maxs - numpy.ndarray, shape 1xM
+            use these to clip/set in max if PINF/NINF exists
+    Returns:
+        False if no modifications, True if modified
 
+    Will clip to mins/maxs if passed as aruguments.
+    NANs in the columns will be set to 0."""
+
+    # Edge cases to deal with:
+    #   Range determination:
+    #     1. features that are nan, inf, -inf
+    #        max and min determination must ignore invalid numbers
+    #        nan -> 0, inf -> max, -inf -> min
+    #   Normalization:
+    #     2. feature values outside of range
+    #        values clipped to range (-inf to min -> min, max to inf -> max) - leaves nan as nan
+    #     3. feature ranges that are 0 result in nan feature values
+    #     4. all nan feature values set to 0
+
+    feature_matrix_m = np.ma.masked_invalid( feature_matrix, copy=False )
+    # Masked cells are True, unmasked are False
+    if not np.any( feature_matrix_m.mask ):
+        # Nothing to do, no masked cells.
+        return False
+
+    # First take care of INFs:
+    # NANs and +/-INFs have been masked above to facilitate computation of min/max
+    if mins is None:
+        maxs = feature_matrix_m.max( axis=0 )
+    if maxs is None:
+        mins = feature_matrix_m.min( axis=0 )
     # clip the values to the min-max range (NANs are left, but +/- INFs are taken care of)
-    full_stack.clip (mins, maxs, full_stack)
-    # remake a mask to account for NANs and divide-by-zero from max == min
-    full_stack_m = np.ma.masked_invalid (full_stack, copy=False)
+    feature_matrix.clip( mins, maxs, feature_matrix )
 
-    # Normalize
-    full_stack_m -= mins
-    full_stack_m /= (maxs - mins)
-    # Left over NANs and divide-by-zero from max == min become 0
-    # Note the deep copy to change the numpy parameter in-place.
-    full_stack[:] = full_stack_m.filled (0) * 100.0
+    # Finally take care of NaNs
+    feature_matrix[ np.isnan( feature_matrix ) ] = 0
+    return True
+
+# ============================================================
+def normalize_by_columns( feature_matrix, mins=None, maxs=None, means=None, stdevs=None,
+        zscore=False, non_real_check=True ):
+    """Performs feature scaling/normalization in-place on input arg feature_matrix.
+
+    Args:
+        feature_matrix - numpy.ndarray
+            matrix shape = NxM, where N = num samples, M = num features
+        mins - numpy.ndarray, shape 1xM
+        maxs - numpy.ndarray, shape 1xM
+        means - numpy.ndarray, shape 1xM
+        stdevs - numpy.ndarray, shape 1xM
+            Reference vales to transform this feature space if passed, Must not contain NaNs/INFs
+        zscore - bool
+            If False, min max scaling to interval 0-100, else Z-score standardization
+        non_real_check - bool
+            Comb through matrix and replace non-real numbers in accordance with prior
+            WND-CHARM convention (calls ReplaceNonReal)
+    Returns:
+        (mins, maxs, means, stdevs) - 2-tuple of numpy.ndarrays w/ shape 1xM
+            Vals may be None if it wasn't pased, derived as part of running this function.
+
+    Notes:
+        zero-range columns will be set to 0.
+        The normalized output range is hard-coded to 0-100."""
+
+    # Step 1: if requested, replace NaN's/INFs
+    if non_real_check:
+        replaced = ReplaceNonReal( feature_matrix, mins, maxs )
+        if (mins is not None or maxs is not None) and replaced == False:
+            # This means there was no NaNs/INFs to replace, but feature_matrix still
+            # needs to be clipped.
+            feature_matrix.clip( mins, maxs, feature_matrix )
+    # Step 2: make sure feature space has been clipped if it wasn't done in previous step.
+    elif mins is not None or maxs is not None:
+        feature_matrix.clip( mins, maxs, feature_matrix )
+
+    # Turn off numpy warnings, since we're taking care of invalid values explicitly
+    oldsettings = np.seterr( all='ignore' )
+
+    if not zscore:
+        # Do min-max scaling to interval 0-100
+        if mins is None:
+            mins = feature_matrix.min( axis=0 )
+        if maxs is None:
+            maxs = feature_matrix.max( axis=0 )
+        feature_matrix -= mins
+        feature_matrix /= (maxs - mins)
+        feature_matrix *= 100
+        nan_cols = (maxs - mins) == 0
+    else:
+        # Perform z-score normalization on feature space
+        if means is None:
+            means = feature_matrix.mean( axis=0 )
+        if stdevs is None:
+            stdevs = feature_matrix.std( axis=0 )
+        feature_matrix -= means
+        feature_matrix /= stdevs
+        nan_cols = stdevs == 0
+
+    # Selectively fill NaN cols created when dividing by 0
+    if len( feature_matrix.shape ) > 1:
+        feature_matrix[:, nan_cols ] = 0
+    else:
+        feature_matrix[ nan_cols ] = 0
 
     # return settings to original
-    np.seterr(**oldsettings)
+    np.seterr( **oldsettings )
 
-    return (mins,maxs)
+    return( mins, maxs, means, stdevs )
 
 # END: Initialize module level globals
 #===============================================================

@@ -237,8 +237,9 @@ class FeatureVector( object ):
         #: of FeatureReduce() and Normalize(), and CompatibleFeatureSetVersion()
         self.feature_maxima = None
         self.feature_minima = None
+        self.feature_means = None
+        self.feature_stdevs = None
         self.normalized_against = None
-
 
         self.sample_group_id = None
         self.channel = None
@@ -703,7 +704,8 @@ class FeatureVector( object ):
         return True
 
     #==============================================================
-    def Normalize( self, reference_features=None, inplace=True, quiet=False ):
+    def Normalize( self, reference_features=None, inplace=True, zscore=False,
+            non_real_check=True, quiet=False ):
         """By convention, the range of feature values in the WND-CHARM algorithm are
         normalized on the interval [0,100]. Normalizing is useful in making the variation 
         of features human readable. Normalized samples are only comprable if they've been 
@@ -715,6 +717,10 @@ class FeatureVector( object ):
                 self.__class__.__name__, self.name, self.normalized_against ) )
 
         newdata = {}
+        mins = None
+        maxs = None
+        means = None
+        stdevs = None
 
         if not reference_features:
             # Specific to FeatureVector implementation:
@@ -743,15 +749,27 @@ class FeatureVector( object ):
 
             # Need to make sure there are feature minima/maxima to normalize against:
             if not reference_features.normalized_against:
-                reference_features.Normalize( quiet=quiet )
+                reference_features.Normalize( quiet=quiet, zscore=zscore,
+                        non_real_check=non_real_check )
 
-            mins = reference_features.feature_minima
-            maxs = reference_features.feature_maxima
+            if not zscore:
+                mins = reference_features.feature_minima
+                maxs = reference_features.feature_maxima
+            else:
+                means = reference_features.feature_means
+                stdevs = reference_features.feature_stdevs
+
             newdata['normalized_against'] = reference_features
 
-        newdata['values'] = np.copy( self.values )
-        newdata['feature_minima'], newdata['feature_maxima'] = \
-            normalize_by_columns( newdata['values'], mins, maxs )
+        if inplace:
+            fv = self.values
+        else:
+            fv = np.copy( self.values )
+
+        retval = normalize_by_columns( fv, mins, maxs, means, stdevs, zscore, non_real_check )
+        newdata['values'] = fv
+        newdata['feature_minima'], newdata['feature_maxima'], \
+                newdata['feature_means'], newdata['feature_stdevs'] = retval
 
         if inplace:
             return self.Update( **newdata )
