@@ -724,6 +724,7 @@ class FeatureSpace( object ):
                 raise ValueError( err_str )
             fitter = reference_features.lda_fitter
 
+        newdata[ 'name' ] = self.name + ' (LDA transformed)'
         newdata[ 'pretransformed_feature_names' ] = self.feature_names
         newdata[ 'data_matrix' ] = fitter.transform( self.data_matrix )
         newdata[ 'shape' ] = newdata[ 'data_matrix' ].shape
@@ -738,10 +739,10 @@ class FeatureSpace( object ):
 
         if not quiet:
             if not reference_features:
-                print "LDA TRANSFORMED SELF'S FEATURE SPACE:", str( retval )
+                print "LDA TRANSFORMED FEATURE SPACE:", str( retval )
             else:
-                print "LDA TRANSFORMED SELF'S FEATURE SPACE AGAINST {0}, RESULT: {1}".format(
-                    reference_features, retval )
+                print "LDA TRANSFORMED FEATURE SPACE AGAINST {0}, RESULT: {1}".format(
+                    reference_features.name, retval )
         return retval
 
     #==============================================================
@@ -1453,9 +1454,10 @@ class FeatureSpace( object ):
 
         newdata = {}
         newdata[ 'shape' ] = shape
-        if self.source_filepath:
-            newdata[ 'source_filepath' ] = self.source_filepath + "(feature reduced)"
-        newdata[ 'name' ] = self.name + "(feature reduced)"
+        if self.source_filepath and type( self.source_filepath ) == str:
+            # A.K.A. not wndcharm.PyImageMatrix
+            newdata[ 'source_filepath' ] = self.source_filepath + " (feature reduced)"
+        newdata[ 'name' ] = self.name + " (feature reduced)"
         newdata[ 'feature_names' ] = requested_features
         newdata[ 'num_features' ] = num_features
         data_matrix = np.empty( shape , dtype='double' )
@@ -1480,6 +1482,10 @@ class FeatureSpace( object ):
             newdata[ 'feature_maxima' ] = self.feature_maxima[ new_order ]
         if self.feature_minima is not None:
             newdata[ 'feature_minima' ] = self.feature_minima[ new_order ]
+        if self.feature_means is not None:
+            newdata[ 'feature_means' ] = self.feature_means[ new_order ]
+        if self.feature_stdevs is not None:
+            newdata[ 'feature_stdevs' ] = self.feature_stdevs[ new_order ]
 
         # If the feature vectors sizes changed then they are no longer standard feature vectors.
         if self.feature_set_version is not None and num_features != self.num_features:

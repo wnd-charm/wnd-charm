@@ -826,6 +826,10 @@ class FeatureVector( object ):
             newdata[ 'feature_maxima' ] = self.feature_maxima[ new_order ]
         if self.feature_minima is not None:
             newdata[ 'feature_minima' ] = self.feature_minima[ new_order ]
+        if self.feature_means is not None:
+            newdata[ 'feature_means' ] = self.feature_means[ new_order ]
+        if self.feature_stdevs is not None:
+            newdata[ 'feature_stdevs' ] = self.feature_stdevs[ new_order ]
 
         # If the feature vectors sizes changed then they are no longer standard feature vectors.
         if self.feature_set_version is not None and num_features != self.num_features:

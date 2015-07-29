@@ -240,6 +240,9 @@ class TESTINGFeatureSpaceClassificationExperiment( unittest.TestCase ):
         ss_kwargs['test_size' ] = test_size = 2 # per-class
         ss_kwargs['random_state'] = 42
         exp = FeatureSpaceClassificationExperiment.NewShuffleSplit( fs, **ss_kwargs )
+
+        ss_kwargs['lda'] = True
+        exp = FeatureSpaceClassificationExperiment.NewShuffleSplit( fs, **ss_kwargs )
         #Print calls self.GenereateStats()
         #from os import devnull
         exp.Print( )#output_stream=devnull )
@@ -271,6 +274,9 @@ class TESTINGFeatureSpaceClassificationExperiment( unittest.TestCase ):
         ss_kwargs['train_size'] = train_size = 8 # per-class
         ss_kwargs['test_size' ] = test_size = 2 # per-class
         ss_kwargs['random_state'] = 42
+        exp = FeatureSpaceClassificationExperiment.NewShuffleSplit( fs, **ss_kwargs )
+
+        ss_kwargs['lda'] = True
         exp = FeatureSpaceClassificationExperiment.NewShuffleSplit( fs, **ss_kwargs )
         #Print calls self.GenereateStats()
         #from os import devnull

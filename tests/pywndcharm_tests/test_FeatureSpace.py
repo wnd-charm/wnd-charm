@@ -395,6 +395,7 @@ class TestFeatureSpace( unittest.TestCase ):
         self.assertEqual( n_classes, joined_fs.num_classes )
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_NewFromFileOfFiles( self ):
         """Pulls in the lymphoma eosin histology 5x6 tiled featureset via .sig files."""
 
@@ -619,12 +620,24 @@ class TestFeatureSpace( unittest.TestCase ):
 	"""Load unnormalized feature space, normalize,
         then compare to stored normalized feature space."""
 
-        result_fs = FeatureSpace.NewFromFitFile( self.test_fit_path ).Normalize( inplace=True )
+        raw_fs = FeatureSpace.NewFromFitFile( self.test_fit_path ) 
+        result_fs = raw_fs.Normalize( inplace=False )
         target_fs = FeatureSpace.NewFromFitFile( self.test_normalized_fit_path )
 
         from numpy.testing import assert_allclose
         assert_allclose( result_fs.data_matrix, target_fs.data_matrix, rtol=1e-05 )
 
+        # Create reference Z-score feature space
+        from scipy.stats.mstats import zscore
+        from wndcharm.utils import ReplaceNonReal
+        ReplaceNonReal( raw_fs.data_matrix )
+        oldsettings = np.seterr( all='ignore' )
+        target_fs = zscore( raw_fs.data_matrix )
+        target_fs[ np.isnan( target_fs) ] = 0
+        np.seterr( **oldsettings )
+
+        result_fs = raw_fs.Normalize( inplace=False, zscore=True )
+        assert_allclose( result_fs.data_matrix, target_fs )
 
         # See the problem with using all close...?
         # AssertionError: 
