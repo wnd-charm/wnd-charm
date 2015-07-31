@@ -542,30 +542,37 @@ class FeatureSpace( object ):
         return self
 
     #==============================================================
-    def SortSamplesByGroundTruth( self, rebuild_views=True, inplace=False, quiet=False ):
-        """Sort sample rows in self to be in ground truth label/value order."""
+    def SortSamplesByGroundTruth( self, rebuild_views=True, inplace=False,
+            force_use_labels=False, quiet=False ):
+        """Sort sample rows in self to be in ground truth label/value order.
+
+        force_use_labels - bool
+            WND-CHARM command line implementation only takes fit files in label
+            alphanumeric sort order regardless if they can be interpreted as numerics.
+            Use this flag when creating a .fit file."""
 
         sample_data = zip( self._contiguous_ground_truth_labels,
             self._contiguous_ground_truth_values, self.data_matrix,
             self._contiguous_sample_names, self._contiguous_sample_sequence_ids )
 
         from operator import itemgetter
+        # first sort by sample name
+        sample_data.sort( key=itemgetter(3) )
+        # finally sort by ground truth
         if self.discrete:
-            # interpolation coefficients get set later, just do a check on our own
-            # to see if we can sort by int/float value:
-            unsorted_class_names = set(self._contiguous_ground_truth_labels )
-            if CheckIfClassNamesAreInterpolatable( unsorted_class_names ):
+            if not force_use_labels and self.interpolation_coefficients is not None:
                 # sort by the numeric values
                 sortfunc = itemgetter(1)
             else:
-                # sort by the labels
+                # sort by the alphanumeric labels
                 sortfunc = itemgetter(0)
         else:
             # Not discrete? Sort by the numeric values.
             sortfunc = itemgetter(1)
 
+        sample_data.sort( key=sortfunc )
         # These are all tuples:
-        a, b, c, d, e = zip( *sorted( sample_data, key=sortfunc ) )
+        a, b, c, d, e = zip( *sample_data )
 
         newdata = {}
         if self.name:
@@ -916,14 +923,12 @@ class FeatureSpace( object ):
             path += '.fit'
 
         # C++ WNDCHARM only likes to read classes if their class labels are in sort order
-        if not self.samples_sorted_by_ground_truth:
-            from copy import deepcopy
-            tempfs = deepcopy(self)
-            # Sort by labels only:
-            tempfs.interpolation_coefficients = None
-            temp_fs.SortSamplesByGroundTruth( inplace=True, rebuild_views=False )
-        else:
-            temp_fs = self
+        #from copy import deepcopy
+        #tempfs = deepcopy(self)
+        temp_fs = self.Derive()
+        # Sort by labels only:
+        temp_fs.SortSamplesByGroundTruth( inplace=True, rebuild_views=True,
+                force_use_labels=True )
 
         fit = open( path, 'w' )
 

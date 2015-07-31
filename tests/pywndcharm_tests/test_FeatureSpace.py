@@ -156,18 +156,6 @@ class TestFeatureSpace( unittest.TestCase ):
         train.FeatureReduce( fw, inplace=True )
         test.FeatureReduce( fw, inplace=True ).Normalize( train, inplace=True, quiet=True )
 
-
-    # --------------------------------------------------------------------------
-    @unittest.skip('Write this test immediately!')
-    def test_TileOptions( self ):
-
-        fs = FeatureSpace.NewFromFitFile( wndchrm_test_dir + sep + 'test-l.fit', tile_options  )
-
-        # pass an int
-        # pass a tuple
-        # pass a None
-        # Wht if tile options passed doesn't match fit file?
-
     # --------------------------------------------------------------------------
     #@unittest.skip('')
     def test_SplitOptions( self ):
@@ -564,6 +552,41 @@ class TestFeatureSpace( unittest.TestCase ):
                     print "FIT: ", fs_fit._contiguous_sample_names[row_num], "FOF", fs_fof._contiguous_sample_names[row_num]
                 self.assertTrue( retval )
 
+
+            # Test sorting; scramble the FOF then load and check:
+
+            sorted_fof = tempdir + sep + \
+                    'lymphoma_iicbu2008_subset_EOSIN_ONLY_sigfiles_t5x6-l.fof.tsv'
+
+            with open( sorted_fof) as fof:
+                lines = fof.readlines()
+
+            from random import shuffle
+            shuffle(lines)
+
+            unsorted_fof = tempdir + sep + \
+                    'lymphoma_iicbu2008_subset_EOSIN_ONLY_sigfiles_t5x6-l_UNSORTED.fof.tsv'
+
+            with open( unsorted_fof, 'w' ) as fof:
+                for line in lines:
+                    fof.write( line )
+
+            kwargs = {}
+            kwargs['pathname'] = unsorted_fof
+            kwargs['quiet'] = True
+            # sampling opts: -l -t5x6 implies 5 columns and 6 rows ... I know it's weird.
+            kwargs['long'] = True
+            kwargs['tile_num_rows'] = 6
+            kwargs['tile_num_cols'] = 5
+            fs_fof = FeatureSpace.NewFromFileOfFiles( **kwargs )
+            # Check again
+            for row_num, (fit_row, fof_row) in enumerate( zip( fs_fit.data_matrix, fs_fof.data_matrix )):
+                retval = compare( fit_row, fof_row )
+                if retval == False:
+                    print "error in sample row", row_num
+                    print "FIT: ", fs_fit._contiguous_sample_names[row_num], "FOF", fs_fof._contiguous_sample_names[row_num]
+                self.assertTrue( retval )
+
         finally:
             rmtree( tempdir )
 
@@ -706,19 +729,20 @@ class TestFeatureSpace( unittest.TestCase ):
         fs._contiguous_sample_group_ids = range(4)
         fs._contiguous_sample_sequence_ids = [1]*4
         fs._contiguous_sample_names = ['ones', 'twos', 'threes', 'fours']
-        fs._contiguous_ground_truth_labels = ['ones', 'twos', 'threes', 'fours']
+        fs._contiguous_ground_truth_labels = ['ones_1.0', 'twos_2.0', 'threes_3.0', 'fours_4.0']
         fs._contiguous_ground_truth_values = [1,2,3,4,]
         fs.num_classes = 4
-        fs.class_names = ['ones', 'twos', 'threes', 'fours']
-        fs.interpolation_coefficients = [1,2,3,4] # the call hinges on this not being None
+        fs.class_names = ['ones_1.0', 'twos_2.0', 'threes_3.0', 'fours_4.0']
+        fs.interpolation_coefficients = [1.0,2.0,3.0,4.0]
         fs.SortSamplesByGroundTruth(inplace=True)
 
         # i.e., not ['fours', 'ones', 'threes', 'twos']
         # aka, class alphabetical order
-        self.assertEqual( fs.class_names, ['ones', 'twos', 'threes', 'fours'] )
-        fs.interpolation_coefficients = None
-        fs.SortSamplesByGroundTruth(inplace=True)
-        self.assertEqual( fs.class_names, ['fours', 'ones', 'threes', 'twos'] )
+        self.assertEqual( fs.class_names, ['ones_1.0', 'twos_2.0', 'threes_3.0', 'fours_4.0'] )
+        fs.SortSamplesByGroundTruth(inplace=True, force_use_labels=True)
+        self.assertEqual( fs.class_names, ['fours_4.0', 'ones_1.0', 'threes_3.0', 'twos_2.0'] )
+
+
 
 if __name__ == '__main__':
     unittest.main()
