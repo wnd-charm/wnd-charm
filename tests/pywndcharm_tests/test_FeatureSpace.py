@@ -587,6 +587,38 @@ class TestFeatureSpace( unittest.TestCase ):
                     print "FIT: ", fs_fit._contiguous_sample_names[row_num], "FOF", fs_fof._contiguous_sample_names[row_num]
                 self.assertTrue( retval )
 
+            # TESTING TAKE TILES:
+            self.assertRaises( ValueError, fs_fof.TakeTiles, tuple() )
+            self.assertRaises( ValueError, fs_fof.TakeTiles, (45, 46, 47,) )
+            self.assertRaises( TypeError, fs_fof.TakeTiles, 'crap' )
+
+            # take middle 4
+            wanted_tiles = ( 14, 15, 20, 21 )
+
+            took = fs_fof.TakeTiles( wanted_tiles, inplace=False )
+            num_sample_groups = len( set( fs_fof._contiguous_sample_group_ids ) )
+            self.assertEqual( took.num_samples_per_group, len( wanted_tiles ) )
+            self.assertEqual( took.num_samples, len( wanted_tiles ) * num_sample_groups )
+
+#            mid4 = 'lymphoma_iicbu2008_subset_EOSIN_ONLY_sigfiles_MIDDLE_4_TILES_t5x6-l.fof.tsv'
+#            # fake out wndcharm by putting empty tiffs in the temp dir
+#            # we don't need them, the sigs are in there already.
+#            with open( mid4) as fof:
+#                lines = fof.readlines()
+#                names, classes, paths, opts = zip( *[ _.split('\t') for _ in lines ] )
+#                for _path in paths:
+#                    with open( tempdir + sep + _path, 'w' ):
+#                        pass
+#            took_via_fof = FeatureSpace.NewFromFileOfFiles( mid4, num_samples_per_group=4 )
+#
+#            for row_num, (fit_row, fof_row) in enumerate( zip( took.data_matrix, took_via_fof.data_matrix )):
+#                retval = compare( fit_row, fof_row )
+#                if retval == False:
+#                    print "error in sample row", row_num
+#                    print "FIT: ", took._contiguous_sample_names[row_num], "FOF", took_via_fof._contiguous_sample_names[row_num]
+#                self.assertTrue( retval )
+
+
         finally:
             rmtree( tempdir )
 
@@ -712,12 +744,13 @@ class TestFeatureSpace( unittest.TestCase ):
             train.LDATransform( reference_features=None, inplace=True )
             test.LDATransform( reference_features=train, inplace=True )
 
-            fit_on_fit_LDA_result = FeatureSpaceClassification.NewWND5(
+            split_LDA_result = FeatureSpaceClassification.NewWND5(
                     train, test, feature_weights=None )
         finally:
             rmtree( tempdir )
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_ClassSortSamplesByGroundTruth( self ):
         """If class names have interpolatable value, sort by that value,
         otherwise by class name alphabetical order"""

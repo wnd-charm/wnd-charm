@@ -698,23 +698,13 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
         if training_set is test_set:
             from scipy.spatial.distance import pdist
             from scipy.spatial.distance import squareform
-            # collisions defined by L1 norm, aka taxicab, aka Manhattan, aka cityblock
-            # in UNWEIGHTED FEATURE SPACE
-            L1_dists = np.absolute( squareform( pdist( training_set.data_matrix, 'cityblock' ) ) )
-            L1_dists_ma = ma.masked_less_equal( L1_dists, epsilon, False )
-            # distances use L2 norm
             raw_dist_mat = squareform( pdist( w_train_featspace, 'sqeuclidean' ) )
-            dist_mat = ma.masked_array( raw_dist_mat, mask=L1_dists_ma.mask)
+            dist_mat = ma.masked_less_equal( raw_dist_mat, epsilon, False )
         else:
             from scipy.spatial.distance import cdist
             w_test_featspace = test_set.data_matrix * wts
-            # collisions defined by L1 norm, aka taxicab, aka Manhattan, aka cityblock
-            # in UNWEIGHTED FEATURE SPACE
-            L1_dists = np.absolute( cdist( training_set.data_matrix, test_set.data_matrix, 'cityblock' ) )
-            L1_dists_ma = ma.masked_less_equal( L1_dists, epsilon, False )
-            # distances use L2 norm
             raw_dist_mat = cdist( w_train_featspace, w_test_featspace, 'sqeuclidean' )
-            dist_mat = ma.masked_array( raw_dist_mat, mask=L1_dists_ma.mask )
+            dist_mat = ma.masked_less_equal( raw_dist_mat, epsilon, False )
 
         # Create marginal probabilities from distance matrix:
         similarity_mat = np.power( dist_mat, -5 )

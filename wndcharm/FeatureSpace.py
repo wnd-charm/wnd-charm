@@ -998,7 +998,6 @@ class FeatureSpace( object ):
 
         def InstantiateFeatureVectorsForDirectory( dir_path ):
             global sample_group_count
-            #global feature_vector_list
             root, dirs, files = walk( dir_path ).next()
             filelist = [ join( root, _file ) for _file in files \
                               if _file.endswith(('.tif','.tiff','.TIF','.TIFF')) ]
@@ -1093,44 +1092,6 @@ class FeatureSpace( object ):
             if name not in samp_name_to_samp_group_id_dict:
                 samp_name_to_samp_group_id_dict[ name ] = len(samp_name_to_samp_group_id_dict)
             return samp_name_to_samp_group_id_dict[ name ]
-
-#        # BEGIN SORT FOF LINES BY GROUND TRUTH:
-#        # More efficient to slurp the whole file and sort the FOF lines by ground truth
-#        # before starting to populate objects, giving sample groups a proper group id
-#        # from the get go, rather than sorting & reassigning, etc
-#        with open( pathname ) as fof:
-#            lines = fof.read().splitlines()
-#        splitlines = []
-#        # If the parsing operation chokes on a specific line, tell the user what the
-#        # problem line is:
-#        n_preprocessed_cols = None
-#        for line_num, line in enumerate( lines ):
-#            try:
-#                # Allow user to comment out lines in file list:
-#                if line.startswith('#'):
-#                    continue
-#                # split() doesn't raise an error if it doesn't split as many times
-#                # as you ask it to, so we have to check for having a uniform number
-#                # of columns ourselves.
-#                cols = line.strip().split('\t', 2)
-#                if n_preprocessed_cols == None:
-#                    n_preprocessed_cols = len( cols )
-#                elif len( cols ) != n_preprocessed_cols:
-#                    raise ValueError( "Not the same number of tab-delimited columns as in previous lines." )
-#                splitlines.append( cols )
-#            except Exception as e:
-#                # Tell the user which line the parser choked on:
-#                premsg = "Error processing file {0}, line {1}".format( pathname, line_num+1, )
-#                postmsg = "Can you spot an error in this line?:\n{0}".format( line )
-#                if e.args:
-#                    e.args = tuple( [premsg] + list( e.args ) + [postmsg] )
-#                else:
-#                    e.args = tuple( [premsg + ' ' + postmsg] )
-#                raise
-#        from operator import itemgetter
-#        # sort on ground truth column, i.e., column index 1
-#        lines = sorted( splitlines, key=itemgetter(1) )
-#        # END SORT FOF LINES BY GROUND TRUTH
 
         # FeatureVector instances go in here:
         samples = []
@@ -1826,6 +1787,38 @@ class FeatureSpace( object ):
             print "REMOVED CLASS {0}, RESULTANT FEATURE SPACE: {1}".format( class_token, retval )
         return retval
 
+    #==============================================================
+    def TakeTiles( self, wanted_tiles, inplace=False, quiet=False ):
+        """"""
+
+        if type( wanted_tiles ) == int:
+            wanted_tiles = list( (wanted_tiles,) )
+
+        wanted_indices = [ i for i in xrange( self.num_samples ) \
+                if self._contiguous_sample_sequence_ids[i] in wanted_tiles ]
+
+        if len( wanted_indices ) == 0:
+            raise ValueError( "No tiles with id {" + str( wanted_tiles ) + "}" )
+
+        new_sg_list = [ self._contiguous_sample_group_ids[i] for i in wanted_indices ]
+
+        # temp:
+        self.num_samples_per_group = 1
+        if not inplace:
+            old_sg_ids = self._contiguous_sample_group_ids
+        self._contiguous_sample_group_ids = range( self.num_samples )
+
+        retval = self.SampleReduce( leave_in_sample_group_ids=wanted_indices, \
+                inplace=inplace, quiet=True )
+        retval._contiguous_sample_group_ids = new_sg_list
+        retval.num_samples_per_group = len( wanted_tiles )
+
+        if not inplace:
+            self._contiguous_sample_group_ids = old_sg_ids
+
+        if not quiet:
+            print "TOOK TILES {0}, RESULTANT FEATURE SPACE: {1}".format( wanted_tiles, retval )
+        return retval
     #==============================================================
     def SamplesUnion( self, other_fs, inplace=False, override=False, quiet=False ):
         """Concatenate two FeatureSpaces along the samples (rows) axis.
