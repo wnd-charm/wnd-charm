@@ -35,14 +35,19 @@ def CheckIfClassNamesAreInterpolatable( class_names ):
     import re
     p = re.compile( r'(-?\d*\.?\d+)' )
     interp_coeffs = []
-    for class_name in class_names:
-        m = p.search( class_name )
-        if m:
-            interp_coeffs.append( float( m.group(1) ) )
-        else:
-            interp_coeffs = None
-            break
-    return interp_coeffs
+    try:
+        for class_name in class_names:
+            m = p.search( class_name )
+            if m:
+                interp_coeffs.append( float( m.group(1) ) )
+            else:
+                interp_coeffs = None
+                break
+        return interp_coeffs
+    except:
+        pass
+
+    return None
 
 #############################################################################
 # class definition of FeatureSpace
@@ -61,7 +66,8 @@ class FeatureSpace( object ):
     # Used for parsing "File of Files" definition of FeatureSpace
     import re
     channel_col_finder = re.compile(r'(?P<path>.*?)?\{(?P<opts>.*?)?\}')
-    channel_opt_finder = re.compile(r'(?:(?P<key>.+?)=)?(?P<value>.+)')
+    # Note sample options are separated by semicolons (';') within the channel braces ('{}')
+    sample_opt_finder = re.compile(r'(?:(?P<key>.+?)=)?(?P<value>.+)')
 
     # Don't bother copying these "view" members which are rebuilt by self._RebuildViews()
     # Used for Derive, pickling operations, etc.
@@ -113,8 +119,8 @@ class FeatureSpace( object ):
         #: An instance of a FeatureVector which contains the global sampling
         #: options for samples in this space.
         self.feature_options = None
-        self.tile_rows = None
-        self.tile_cols = None
+        self.tile_num_rows = None
+        self.tile_num_cols = None
 
         #: Do the samples belong to discrete classes for supervised learning, or not
         #: (regression, clustering)
@@ -199,6 +205,10 @@ class FeatureSpace( object ):
         #: Contains pre-normalized feature minima so feature space of this or other
         #: FeatureSpaces can be transformed.
         self.feature_minima = None
+
+        # For performing z-score transform
+        self.feature_means = None
+        self.feature_stdevs = None
 
         ### Now initialize array-like members if possible:
         # It's ok if num_samples == 0 or num_features == 0
@@ -469,7 +479,7 @@ class FeatureSpace( object ):
                 self.num_classes, self.class_sizes, and self.interpolation_coefficients."""
 
         if not self.samples_sorted_by_ground_truth:
-            self.SortSamplesByGroundTruth( inplace=True )
+            self.SortSamplesByGroundTruth( inplace=True, rebuild_views=False )
 
         if self.discrete is None:
             errmsg = 'FeatureSpace {0} "discrete" member hasn\'t been set. '.format( self )
@@ -532,23 +542,37 @@ class FeatureSpace( object ):
         return self
 
     #==============================================================
-    def SortSamplesByGroundTruth( self, rebuild_views=True, inplace=False, quiet=False ):
-        """Sort sample rows in self to be in ground truth label/value order."""
+    def SortSamplesByGroundTruth( self, rebuild_views=True, inplace=False,
+            force_use_labels=False, quiet=False ):
+        """Sort sample rows in self to be in ground truth label/value order.
+
+        force_use_labels - bool
+            WND-CHARM command line implementation only takes fit files in label
+            alphanumeric sort order regardless if they can be interpreted as numerics.
+            Use this flag when creating a .fit file."""
 
         sample_data = zip( self._contiguous_ground_truth_labels,
             self._contiguous_ground_truth_values, self.data_matrix,
             self._contiguous_sample_names, self._contiguous_sample_sequence_ids )
 
         from operator import itemgetter
-        if self.discrete and self.interpolation_coefficients is None:
-            # sort by the labels
-            sortfunc = itemgetter(0)
+        # first sort by sample name
+        sample_data.sort( key=itemgetter(3) )
+        # finally sort by ground truth
+        if self.discrete:
+            if not force_use_labels and self.interpolation_coefficients is not None:
+                # sort by the numeric values
+                sortfunc = itemgetter(1)
+            else:
+                # sort by the alphanumeric labels
+                sortfunc = itemgetter(0)
         else:
-            # sort by the numeric values
+            # Not discrete? Sort by the numeric values.
             sortfunc = itemgetter(1)
 
+        sample_data.sort( key=sortfunc )
         # These are all tuples:
-        a, b, c, d, e = zip( *sorted( sample_data, key=sortfunc ) )
+        a, b, c, d, e = zip( *sample_data )
 
         newdata = {}
         if self.name:
@@ -582,7 +606,8 @@ class FeatureSpace( object ):
         return retval
 
     #==============================================================
-    def Normalize( self, reference_features=None, inplace=True, quiet=False ):
+    def Normalize( self, reference_features=None, inplace=True, zscore=False,
+            non_real_check=True, quiet=False ):
         """By convention, the range of feature values in the WND-CHARM algorithm are
         normalized on the interval [0,100]. Normalizing is useful in making the variation
         of features human readable. Normalized samples are only comprable if they've been
@@ -594,11 +619,13 @@ class FeatureSpace( object ):
                 self.__class__.__name__, self.name, self.normalized_against ) )
 
         newdata = {}
+        mins = None
+        maxs = None
+        means = None
+        stdevs = None
 
         if not reference_features:
             # Recalculate my feature space using my own maxima/minima
-            mins = None
-            maxs = None
             newdata['normalized_against'] = 'self'
         else:
             # Recalculate my feature space according to maxima/minima in reference_features
@@ -614,15 +641,27 @@ class FeatureSpace( object ):
 
             # Need to make sure there are feature minima/maxima to normalize against:
             if not reference_features.normalized_against:
-                reference_features.Normalize( quiet=quiet )
+                reference_features.Normalize( quiet=quiet, zscore=zscore,
+                        non_real_check=non_real_check )
 
-            mins = reference_features.feature_minima
-            maxs = reference_features.feature_maxima
             newdata['normalized_against'] = reference_features
 
-        newdata['data_matrix'] = np.copy( self.data_matrix )
-        newdata['feature_minima'], newdata['feature_maxima'] = \
-            normalize_by_columns( newdata['data_matrix'], mins, maxs )
+            if not zscore:
+                mins = reference_features.feature_minima
+                maxs = reference_features.feature_maxima
+            else:
+                means = reference_features.feature_means
+                stdevs = reference_features.feature_stdevs
+
+        if inplace:
+            fs = self.data_matrix
+        else:
+            fs = np.copy( self.data_matrix )
+
+        r = normalize_by_columns( fs, mins, maxs, means, stdevs, zscore, non_real_check )
+        newdata['data_matrix'] = fs
+        newdata['feature_minima'], newdata['feature_maxima'],\
+                newdata['feature_means'], newdata['feature_stdevs'] = r
 
         if inplace:
             retval = self.Update( **newdata )._RebuildViews( recalculate_class_metadata=False)
@@ -692,6 +731,7 @@ class FeatureSpace( object ):
                 raise ValueError( err_str )
             fitter = reference_features.lda_fitter
 
+        newdata[ 'name' ] = self.name + ' (LDA transformed)'
         newdata[ 'pretransformed_feature_names' ] = self.feature_names
         newdata[ 'data_matrix' ] = fitter.transform( self.data_matrix )
         newdata[ 'shape' ] = newdata[ 'data_matrix' ].shape
@@ -706,15 +746,15 @@ class FeatureSpace( object ):
 
         if not quiet:
             if not reference_features:
-                print "LDA TRANSFORMED SELF'S FEATURE SPACE:", str( retval )
+                print "LDA TRANSFORMED FEATURE SPACE:", str( retval )
             else:
-                print "LDA TRANSFORMED SELF'S FEATURE SPACE AGAINST {0}, RESULT: {1}".format(
-                    reference_features, retval )
+                print "LDA TRANSFORMED FEATURE SPACE AGAINST {0}, RESULT: {1}".format(
+                    reference_features.name, retval )
         return retval
 
     #==============================================================
     @classmethod
-    def NewFromFitFile( cls, pathname, discrete=True, quiet=False,
+    def NewFromFitFile( cls, pathname, discrete=True, quiet=False, num_samples_per_group=None,
             global_sampling_options=None, **kwargs ):
         """Helper function which reads in a c-chrm fit file.
 
@@ -742,9 +782,18 @@ class FeatureSpace( object ):
         name_line = False
         sample_count = 0
 
-        new_fs.tile_rows = global_sampling_options.tile_num_rows
-        new_fs.tile_cols = global_sampling_options.tile_num_cols
-        new_fs.num_samples_per_group = new_fs.tile_rows * new_fs.tile_cols
+        if global_sampling_options.tile_num_rows is not None:
+            new_fs.tile_num_rows = global_sampling_options.tile_num_rows
+        else:
+            new_fs.tile_num_rows = 1
+        if global_sampling_options.tile_num_cols:
+            new_fs.tile_num_cols = global_sampling_options.tile_num_cols
+        else:
+            new_fs.tile_num_cols = 1
+        if num_samples_per_group is not None:
+            new_fs.num_samples_per_group = num_samples_per_group
+        else:
+            new_fs.num_samples_per_group = new_fs.tile_num_rows * new_fs.tile_num_cols
         new_fs.global_sampling_options = global_sampling_options
         new_fs.samples_sorted_by_ground_truth = True
 
@@ -873,11 +922,13 @@ class FeatureSpace( object ):
         if not path.endswith('.fit'):
             path += '.fit'
 
-        # C++ WNDCHARM only likes to read classes if their class labes are in sort order
-        if not self.samples_sorted_by_ground_truth:
-            temp_fs = self.SortSamplesByGroundTruth( inplace=False, rebuild_views=False )
-        else:
-            temp_fs = self
+        # C++ WNDCHARM only likes to read classes if their class labels are in sort order
+        #from copy import deepcopy
+        #tempfs = deepcopy(self)
+        temp_fs = self.Derive()
+        # Sort by labels only:
+        temp_fs.SortSamplesByGroundTruth( inplace=True, rebuild_views=True,
+                force_use_labels=True )
 
         fit = open( path, 'w' )
 
@@ -930,8 +981,14 @@ class FeatureSpace( object ):
             print "Creating Training Set from directories of images {0}".format( top_level_dir_path )
 
         feature_vector_list = []
-        tile_num_rows = global_sampling_options.tile_num_rows
-        tile_num_cols = global_sampling_options.tile_num_cols
+        if global_sampling_options.tile_num_rows is not None:
+            tile_num_rows = global_sampling_options.tile_num_rows
+        else:
+            tile_num_rows = 1
+        if global_sampling_options.tile_num_cols:
+            tile_num_cols = global_sampling_options.tile_num_cols
+        else:
+            tile_num_cols = 1
 
         from copy import deepcopy
         from os import walk
@@ -941,22 +998,24 @@ class FeatureSpace( object ):
 
         def InstantiateFeatureVectorsForDirectory( dir_path ):
             global sample_group_count
-            #global feature_vector_list
             root, dirs, files = walk( dir_path ).next()
             filelist = [ join( root, _file ) for _file in files \
                               if _file.endswith(('.tif','.tiff','.TIF','.TIFF')) ]
             class_name = basename( realpath( dir_path ) )
             for _file in filelist:
+                ssid = 0
                 for col_index in xrange( tile_num_cols ):
                     for row_index in xrange( tile_num_rows ):
                         fv = deepcopy( global_sampling_options )
                         fv.source_filepath = _file
                         fv.ground_truth_label = class_name
                         fv.sample_group_id = sample_group_count
+                        fv.sample_sequence_id = ssid
                         fv.tile_row_index = row_index
                         fv.tile_col_index = col_index
                         fv.Update()
                         feature_vector_list.append( fv )
+                        ssid += 1
                 sample_group_count += 1
 
         root, dirs, files = walk( top_level_dir_path ).next()
@@ -988,7 +1047,7 @@ class FeatureSpace( object ):
 
     #==============================================================
     @classmethod
-    def NewFromFileOfFiles( cls, pathname, discrete=True, quiet=False,
+    def NewFromFileOfFiles( cls, pathname, num_samples_per_group=None, discrete=True, quiet=False,
              global_sampling_options=None, write_sig_files_to_disk=True, **kwargs ):
         """Create a FeatureSpace from a file of files.
 
@@ -1017,7 +1076,13 @@ class FeatureSpace( object ):
 
         tile_num_rows = global_sampling_options.tile_num_rows
         tile_num_cols = global_sampling_options.tile_num_cols
-        num_samples_per_group = tile_num_rows * tile_num_cols
+        # user may want fof specification to trump global defaults, entering None for
+        # tile_num_rows and tile_num_cols
+        if num_samples_per_group is None:
+            if tile_num_rows is not None and tile_num_cols is not None:
+                num_samples_per_group = tile_num_rows * tile_num_cols
+            else:
+                num_samples_per_group = 1
 
         # Keeps track of the sample names to help organize like
         # samples into sample groups
@@ -1028,40 +1093,14 @@ class FeatureSpace( object ):
                 samp_name_to_samp_group_id_dict[ name ] = len(samp_name_to_samp_group_id_dict)
             return samp_name_to_samp_group_id_dict[ name ]
 
-        # BEGIN SORT FOF LINES BY GROUND TRUTH:
-        # More efficient to slurp the whole file and sort the FOF lines by ground truth
-        # before starting to populate objects, giving sample groups a proper group id
-        # from the get go, rather than sorting & reassigning, etc
-        with open( pathname ) as fof:
-            lines = fof.read().splitlines()
-        splitlines = []
-        # If the parsing operation chokes on a specific line, tell the user what the
-        # problem line is:
-        for line_num, line in enumerate( lines ):
-            try:
-                # Allow user to comment out lines in file list:
-                if line.startswith('#'):
-                    continue
-                cols = line.strip().split('\t', 2)
-                splitlines.append( cols )
-            except Exception as e:
-                # Tell the user which line the parser choked on:
-                premsg = "Error processing file {0}, line {1}".format( pathname, line_num+1, )
-                postmsg = "Can you spot an error in this line?:\n{0}".format( line )
-                if e.args:
-                    e.args = tuple( [premsg] + list( e.args ) + [postmsg] )
-                else:
-                    e.args = tuple( [premsg + ' ' + postmsg] )
-                raise
-        from operator import itemgetter
-        # sort on ground truth column, i.e., column index 1
-        lines = sorted( splitlines, key=itemgetter(1) )
-        # END SORT FOF LINES BY GROUND TRUTH
-
         # FeatureVector instances go in here:
         samples = []
 
-        for line_num, cols in enumerate( lines ):
+        fof = open( pathname )
+        for line_num, line in enumerate( fof ):
+            if line.startswith('#'):
+                continue
+            cols = line.strip().split('\t', 2)
             try:
                 # Classic two-column (pre-2015) FOF format
                 if len( cols ) < 3:
@@ -1109,11 +1148,17 @@ class FeatureSpace( object ):
                     else:
                         base_sample_opts.source_filepath = path_to_sample
                         base_sample_opts.sample_group_id = ReturnSampleGroupID( cols[0] )
-                        for col_index in xrange( tile_num_cols ):
-                            for row_index in xrange( tile_num_rows ):
-                                fv = deepcopy( base_sample_opts )
-                                fv.Update( tile_row_index=row_index, tile_col_index=col_index )
-                                samples.append( fv )
+                        if tile_num_cols is not None and tile_num_rows is not None:
+                            ssid = 0
+                            for col_index in xrange( tile_num_cols ):
+                                for row_index in xrange( tile_num_rows ):
+                                    fv = deepcopy( base_sample_opts )
+                                    fv.Update( tile_row_index=row_index, tile_col_index=col_index,
+                                            sample_sequence_id=ssid )
+                                    ssid += 1
+                                    samples.append( fv )
+                        else:
+                            samples.append( base_sample_opts )
                     # By now (after perhaps needing to load sig file) we know how many features in this sample
                     num_feats_in_this_row = base_sample_opts.num_features
                     if feature_set_version is None:
@@ -1148,7 +1193,7 @@ class FeatureSpace( object ):
                         opts_str = col_finder_dict['opts']
                         if opts_str:
                             col_opts = dict( [ mm.groups() for opt in opts_str.split(';') \
-                                                for mm in cls.channel_opt_finder.finditer( opt ) ] )
+                                                for mm in cls.sample_opt_finder.finditer( opt ) ] )
                             if None in col_opts:
                                 # value given without key is taken to be default channel
                                 col_opts['channel'] = col_opts[None]
@@ -1181,11 +1226,19 @@ class FeatureSpace( object ):
                             samples.append( base_sample_opts )
                         else:
                             base_sample_opts.source_filepath = path
-                            for col_index in xrange( tile_num_cols ):
-                                for row_index in xrange( tile_num_rows ):
-                                    fv = deepcopy( base_sample_opts )
-                                    fv.Update( tile_row_index=row_index, tile_col_index=col_index )
-                                    samples.append( fv )
+                            if tile_num_cols is not None and tile_num_rows is not None:
+                                # Don't overwrite the col/row index if user passes in None
+                                # for those options:
+                                ssid = 0
+                                for col_index in xrange( tile_num_cols ):
+                                    for row_index in xrange( tile_num_rows ):
+                                        fv = deepcopy( base_sample_opts )
+                                        fv.Update( tile_row_index=row_index, tile_col_index=col_index,
+                                                    sample_sequence_id=ssid )
+                                        ssid += 1
+                                        samples.append( fv )
+                            else:
+                                samples.append( base_sample_opts )
                         # By now (after perhaps needing to load sig file) we know how many features in this sample
                         num_feats_in_this_row += base_sample_opts.num_features
 
@@ -1227,10 +1280,12 @@ class FeatureSpace( object ):
                 else:
                     e.args = tuple( [premsg + ' ' + postmsg] )
                 raise
+        fof.close()
         # END iterating over lines in FOF
 
         # FIXME: Here's where the parallization magic can (will!) happen.
-        [ fv.GenerateFeatures( write_sig_files_to_disk, quiet ) for fv in samples ]
+        [ fv.GenerateFeatures( write_sig_files_to_disk, update_samp_opts_from_pathname=False, 
+            quiet=quiet ) for fv in samples ]
 
         assert num_features > 0
 
@@ -1298,8 +1353,8 @@ class FeatureSpace( object ):
             col_right_boundary_index = col_left_boundary_index + fv.num_features
             row_index = (fv.sample_group_id * num_samples_per_group) + fv.sample_sequence_id
 
-            #print "row", row_index, "left", col_left_boundary_index, "right", col_right_boundary_index
-
+            if not quiet:
+                print 'row index', row_index, "left", col_left_boundary_index, "right", col_right_boundary_index, str( fv )
             # Fill in column metadata if we've not seen a feature vector for this col before
             if fv.fs_col not in feature_set_col_offset:
                 feature_set_col_offset[ fv.fs_col ] = col_right_boundary_index
@@ -1311,7 +1366,6 @@ class FeatureSpace( object ):
                         fv.feature_names
             # Fill in row metadata with FeatureVector data from column 0 only
             if fv.fs_col == 0: # (fs_col member must be > 0 and cannot be None)
-                #print 'row index', row_index, str( fv )
                 new_fs._contiguous_sample_names[ row_index ] = fv.name
                 new_fs._contiguous_sample_group_ids[ row_index ] = fv.sample_group_id
                 new_fs._contiguous_sample_sequence_ids[ row_index ] = fv.sample_sequence_id
@@ -1366,9 +1420,10 @@ class FeatureSpace( object ):
 
         newdata = {}
         newdata[ 'shape' ] = shape
-        if self.source_filepath:
-            newdata[ 'source_filepath' ] = self.source_filepath + "(feature reduced)"
-        newdata[ 'name' ] = self.name + "(feature reduced)"
+        if self.source_filepath and type( self.source_filepath ) == str:
+            # A.K.A. not wndcharm.PyImageMatrix
+            newdata[ 'source_filepath' ] = self.source_filepath + " (feature reduced)"
+        newdata[ 'name' ] = self.name + " (feature reduced)"
         newdata[ 'feature_names' ] = requested_features
         newdata[ 'num_features' ] = num_features
         data_matrix = np.empty( shape , dtype='double' )
@@ -1393,6 +1448,10 @@ class FeatureSpace( object ):
             newdata[ 'feature_maxima' ] = self.feature_maxima[ new_order ]
         if self.feature_minima is not None:
             newdata[ 'feature_minima' ] = self.feature_minima[ new_order ]
+        if self.feature_means is not None:
+            newdata[ 'feature_means' ] = self.feature_means[ new_order ]
+        if self.feature_stdevs is not None:
+            newdata[ 'feature_stdevs' ] = self.feature_stdevs[ new_order ]
 
         # If the feature vectors sizes changed then they are no longer standard feature vectors.
         if self.feature_set_version is not None and num_features != self.num_features:
@@ -1728,6 +1787,38 @@ class FeatureSpace( object ):
             print "REMOVED CLASS {0}, RESULTANT FEATURE SPACE: {1}".format( class_token, retval )
         return retval
 
+    #==============================================================
+    def TakeTiles( self, wanted_tiles, inplace=False, quiet=False ):
+        """"""
+
+        if type( wanted_tiles ) == int:
+            wanted_tiles = list( (wanted_tiles,) )
+
+        wanted_indices = [ i for i in xrange( self.num_samples ) \
+                if self._contiguous_sample_sequence_ids[i] in wanted_tiles ]
+
+        if len( wanted_indices ) == 0:
+            raise ValueError( "No tiles with id {" + str( wanted_tiles ) + "}" )
+
+        new_sg_list = [ self._contiguous_sample_group_ids[i] for i in wanted_indices ]
+
+        # temp:
+        self.num_samples_per_group = 1
+        if not inplace:
+            old_sg_ids = self._contiguous_sample_group_ids
+        self._contiguous_sample_group_ids = range( self.num_samples )
+
+        retval = self.SampleReduce( leave_in_sample_group_ids=wanted_indices, \
+                inplace=inplace, quiet=True )
+        retval._contiguous_sample_group_ids = new_sg_list
+        retval.num_samples_per_group = len( wanted_tiles )
+
+        if not inplace:
+            self._contiguous_sample_group_ids = old_sg_ids
+
+        if not quiet:
+            print "TOOK TILES {0}, RESULTANT FEATURE SPACE: {1}".format( wanted_tiles, retval )
+        return retval
     #==============================================================
     def SamplesUnion( self, other_fs, inplace=False, override=False, quiet=False ):
         """Concatenate two FeatureSpaces along the samples (rows) axis.

@@ -107,6 +107,33 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
         if lists_of_predicted_values:
             self.predicted_values = list( chain( *lists_of_predicted_values ) )
 
+        if self.ground_truth_values and self.predicted_values and \
+                len(self.ground_truth_values) > 1:
+            # no point in doing regression stuff if there's only 1 individual result:
+            assert( len(self.ground_truth_values) == len(self.predicted_values) )
+
+            gt = np.array( self.ground_truth_values )
+            pv = np.array( self.predicted_values )
+            diffs = gt - pv
+            diffs = np.square( diffs )
+            err_sum = np.sum( diffs )
+
+            from math import sqrt
+            self.std_err = sqrt( err_sum / self.num_classifications )
+
+            from scipy.stats import linregress, spearmanr
+            # For now, ignore "FloatingPointError: 'underflow encountered in stdtr'"
+            np.seterr( under='ignore' )
+            slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
+                     linregress( gt, pv )
+            try:
+                self.spearman_coeff, self.spearman_p_value = spearmanr( gt, pv )
+            except FloatingPointError:
+                # to avoid: "FloatingPointError: invalid value encountered in true_divide"
+                self.spearman_coeff, self.spearman_p_value = ( 0, 1 )
+
+            np.seterr( all='raise' )
+
         # Aggregate feature weight statistics across splits, if any:
         feature_weight_lists = {}
         for split_result in self.individual_results:
@@ -194,14 +221,19 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
     @classmethod
     def NewShuffleSplit( cls, feature_space, n_iter=5, name=None, features_size=0.15,
                            train_size=None, test_size=None, random_state=True, classifier=None,
-                           quiet=False, display=15 ):
+                           lda=False, quiet=True, display=15, conserve_mem=False, progress=True ):
         """args train_size, test_size, and random_state are all passed through to Split()
         feature_size if a float is feature usage fraction, if in is top n features."""
 
         # Splitting will result in a call to _RebuildViews and SortSamplesByGroundTruth
         # so we have to make sure that the input FeatureSpace is sorted too
+        # if conserve_mem, allow inplace sort on input feature_space obj
         feature_space = feature_space.SortSamplesByGroundTruth( \
-                rebuild_views=True, inplace=False, quiet=True )
+                rebuild_views=True, inplace=conserve_mem, quiet=True )
+
+        # Can't do Linear Discriminant Analysis on a regression problem
+        if not feature_space.discrete:
+            lda = False
 
         if not name:
             name = feature_space.name
@@ -220,6 +252,16 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
 
         if not quiet:
             print "using top " + str( num_features ) + " features"
+
+        if not quiet:
+            progress = False
+        if progress:
+            from sys import stdout
+            stdout.write( "iter\t" )
+            if feature_space.discrete:
+                stdout.write( "split class acc.\n" )
+            else:
+                stdout.write( "corr coeff.\n" )
 
         # If you passed the same random_state into Split, you'd get the same exact split for
         # all n_iter. Therefore use the seed passed in here to predictably generate seeds
@@ -244,14 +286,23 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
             randint = lambda: None
             experiment.use_error_bars = False
 
+        # Do the NaN and INF checking NOW so you don't have to do it again for every split
+        from .utils import ReplaceNonReal
+        ReplaceNonReal( feature_space.data_matrix )
+
         for split_index in range( n_iter ):
             if not quiet:
-                print "=========================================="
+                print "\n\n=========================================="
                 print "SHUFFLE SPLIT ITERATION", str( split_index )
+            if progress:
+                stdout.write( str( split_index ) + '\t' )
+
             train_set, test_set = feature_space.Split(
                 train_size, test_size, random_state=randint(), quiet=quiet )
-            train_set.Normalize( quiet=quiet )
             
+            # Normalize features using zscores if lda
+            train_set.Normalize( quiet=quiet, inplace=True, non_real_check=False, zscore=lda )
+
             if feature_space.discrete:
                 weights = \
                   FisherFeatureWeights.NewFromFeatureSpace( train_set ).Threshold( num_features )
@@ -261,25 +312,38 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
 
             if not quiet:
                 weights.Print( display=display )
-            reduced_train_set = train_set.FeatureReduce( weights, quiet=quiet )
-            reduced_test_set = test_set.FeatureReduce( weights, quiet=quiet )
-            reduced_test_set.Normalize( reduced_train_set, quiet=quiet )
+            train_set.FeatureReduce( weights, quiet=quiet, inplace=True )
+            test_set.FeatureReduce( weights, quiet=quiet, inplace=True )
+            test_set.Normalize( train_set, quiet=quiet, inplace=True,
+                    non_real_check=False, zscore=lda )
 
             if feature_space.discrete:
-                split_result = FeatureSpaceClassification.NewWND5( reduced_train_set, \
-                 reduced_test_set, weights, split_number=split_index, quiet=quiet,\
+                if lda:
+                    # Don't Fisher weight the LDA transformed feature space
+                    weights = None
+                    train_set.LDATransform( inplace=True, quiet=quiet )
+                    test_set.LDATransform( train_set, inplace=True, quiet=quiet )
+
+                split_result = FeatureSpaceClassification.NewWND5( train_set, \
+                 test_set, weights, split_number=split_index, quiet=quiet,\
                  error_bars=experiment.use_error_bars )
             else:
                 if classifier == 'linear':
                     split_result = FeatureSpaceRegression.NewMultivariateLinear(
-                            reduced_train_set, weights, split_number=split_index, quiet=quiet )
+                            train_set, weights, split_number=split_index, quiet=quiet )
                 else: # default classifier == 'lstsq':
                     split_result = FeatureSpaceRegression.NewLeastSquares(
-                        reduced_train_set, reduced_test_set, weights, split_number=split_index, quiet=quiet )
+                        train_set, test_set, weights, split_number=split_index, quiet=quiet )
 
             split_result.GenerateStats()
             if not quiet:
                 split_result.Print()
+
+            if progress:
+                if feature_space.discrete:
+                    stdout.write( str( split_result.classification_accuracy ) + '\n' )
+                else:
+                    stdout.write( str( split_result.pearson_coeff ) + '\n' )
 
             experiment.individual_results.append( split_result )
 
@@ -524,6 +588,15 @@ class FeatureSpaceClassificationExperiment( _FeatureSpacePredictionExperiment ):
                 outstr += " ({0:0.2f} +/- {1:0.2f}% w/ 95% conf. (Wilson score interval))".format(
                         acc * 100, conf_interval * 100)
                 print outstr
+
+        if self.std_err is not None:
+            print "Standard Error: {0:0.4f}".format( self.std_err)
+        if self.pearson_coeff is not None:
+            print "Pearson Corellation Coefficient (r): {0:0.4f}".format( self.pearson_coeff )
+            print "Coefficient of Determination (r^2): {0:0.4f}".format( self.pearson_coeff ** 2 )
+        if self.spearman_coeff is not None:
+            print "Spearman Coefficient: {0:0.4f}".format( self.spearman_coeff )
+        print "\n"
 
         print self.ConfusionMatrix(), '\n'
         print self.SimilarityMatrix(), '\n'

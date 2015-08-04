@@ -545,6 +545,7 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
             print "Standard Error: {0:0.4f}".format( self.std_err)
         if self.pearson_coeff is not None:
             print "Pearson Coefficient: {0:0.4f}".format( self.pearson_coeff )
+            print "Coefficient of Determination (r^2): {0:0.4f}".format( self.pearson_coeff ** 2 )
         if self.spearman_coeff is not None:
             print "Spearman Coefficient: {0:0.4f}".format( self.spearman_coeff )
         print "\n"
@@ -697,28 +698,17 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
         if training_set is test_set:
             from scipy.spatial.distance import pdist
             from scipy.spatial.distance import squareform
-            # collisions defined by L1 norm, aka taxicab, aka Manhattan, aka cityblock
-            # in UNWEIGHTED FEATURE SPACE
-            L1_dists = np.absolute( squareform( pdist( training_set.data_matrix, 'cityblock' ) ) )
-            L1_dists_ma = ma.masked_less_equal( L1_dists, epsilon, False )
-            # distances use L2 norm
             raw_dist_mat = squareform( pdist( w_train_featspace, 'sqeuclidean' ) )
-            dist_mat = ma.masked_array( raw_dist_mat, mask=L1_dists_ma.mask)
+            dist_mat = ma.masked_less_equal( raw_dist_mat, epsilon, False )
         else:
             from scipy.spatial.distance import cdist
             w_test_featspace = test_set.data_matrix * wts
-            # collisions defined by L1 norm, aka taxicab, aka Manhattan, aka cityblock
-            # in UNWEIGHTED FEATURE SPACE
-            L1_dists = np.absolute( cdist( training_set.data_matrix, test_set.data_matrix, 'cityblock' ) )
-            L1_dists_ma = ma.masked_less_equal( L1_dists, epsilon, False )
-            # distances use L2 norm
             raw_dist_mat = cdist( w_train_featspace, w_test_featspace, 'sqeuclidean' )
-            dist_mat = ma.masked_array( raw_dist_mat, mask=L1_dists_ma.mask )
+            dist_mat = ma.masked_less_equal( raw_dist_mat, epsilon, False )
 
         # Create marginal probabilities from distance matrix:
         similarity_mat = np.power( dist_mat, -5 )
 
-        first_time_through = True
         for test_samp_index, test_samp_sims in enumerate( similarity_mat.T ):
             result = SingleSampleClassification()
             per_class_sims_list = [ test_samp_sims[ class_slice ] \
@@ -741,18 +731,14 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
                     training_set.class_names[ result.marginal_probabilities.argmax() ]
 
             result.sample_group_id = test_set._contiguous_sample_group_ids[ test_samp_index ]
-            # FIXME: better to explicitly set s_seq_ids rather than trust the user to set it
-            result.sample_sequence_id = test_set._contiguous_sample_group_ids[ test_samp_index ]
+            result.sample_sequence_id = test_set._contiguous_sample_sequence_ids[ test_samp_index ]
+            result.num_samples_in_group = test_set.num_samples_per_group
             result.source_filepath = test_set._contiguous_sample_names[ test_samp_index ]
             result.ground_truth_label = test_set._contiguous_ground_truth_labels[ test_samp_index ]
             result.ground_truth_value = test_set._contiguous_ground_truth_values[ test_samp_index ]
             result.split_number = split_number
             result.name = name
             split_result.individual_results.append( result )
-            if not quiet:
-                result.Print( line_item=True, include_col_header=first_time_through,
-                        training_set_class_names=training_set.class_names )
-            first_time_through = False
 
         # Predicted value via class coefficients, if applicable
         if training_set.interpolation_coefficients is not None:
@@ -785,11 +771,24 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
                     averaged_ground_truth_values.append( avg_result.ground_truth_value )
 
                 split_result.averaged_results.append( avg_result )
-                if not quiet:
-                    avg_result.Print( line_item=True )
             if averaged_predicted_values:
                 split_result.averaged_predicted_values = averaged_predicted_values
                 split_result.averaged_ground_truth_values = averaged_ground_truth_values
+
+        if not quiet:
+            first_time_through = True
+            if test_set.num_samples_per_group > 1:
+                for avg_res in split_result.averaged_results:
+                    for indiv_res in avg_res.individual_results:
+                        indiv_res.Print( line_item=True, include_col_header=first_time_through,
+                            training_set_class_names=training_set.class_names )
+                        first_time_through = False
+                    avg_res.Print( line_item=True )
+            else:
+                for indiv_res in split_result.individual_results:
+                    indiv_res.Print( line_item=True, include_col_header=first_time_through,
+                            training_set_class_names=training_set.class_names )
+                    first_time_through = False
 
         np.seterr (all='raise')
         return split_result

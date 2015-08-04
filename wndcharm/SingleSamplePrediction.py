@@ -129,7 +129,7 @@ class _SingleSamplePrediction( object ):
             if self.sample_sequence_id == 'AVG':
                 outstr += "(AVG)"
             elif self.num_samples_in_group != 1:
-                outstr += "({0}/{1})".format( self.sample_sequence_id + 1, self.num_samples_in_group )
+                outstr += "(t{0}/{1})".format( self.sample_sequence_id + 1, self.num_samples_in_group )
             outstr += '\t'
             if include_col_header:
                 col_header += "ROI Index\t"

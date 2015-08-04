@@ -55,6 +55,7 @@ class TestFeatureSpace( unittest.TestCase ):
     test_normalized_fit_path = join( wndchrm_test_dir, 'test_fit-l-normalized.fit' )
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_ContinuousFitOnFit( self ):
         from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
@@ -80,6 +81,7 @@ class TestFeatureSpace( unittest.TestCase ):
           rmtree( tempdir )
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_DiscreteTrainTestSplitNoTiling( self ):
         """Uses binucleate test set"""
 
@@ -101,6 +103,7 @@ class TestFeatureSpace( unittest.TestCase ):
 
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_DiscreteTrainTestSplitWithTiling( self ):
         """Uses a curated subset of the IICBU 2008 Lymphoma dataset, preprocessed as follows:
         auto-deconvolved, eosin channel only, tiled 5x6, 3 classes, 10 imgs per class,
@@ -130,6 +133,7 @@ class TestFeatureSpace( unittest.TestCase ):
             rmtree( tempdir )
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_ContinuousTrainTestSplitWithTiling( self ):
         """Uses a synthetic preprocessed as follows: 500 total samples, 25 tiles per group
         240 total features"""
@@ -152,19 +156,8 @@ class TestFeatureSpace( unittest.TestCase ):
         train.FeatureReduce( fw, inplace=True )
         test.FeatureReduce( fw, inplace=True ).Normalize( train, inplace=True, quiet=True )
 
-
     # --------------------------------------------------------------------------
-    @unittest.skip('Write this test immediately!')
-    def test_TileOptions( self ):
-
-        fs = FeatureSpace.NewFromFitFile( wndchrm_test_dir + sep + 'test-l.fit', tile_options  )
-
-        # pass an int
-        # pass a tuple
-        # pass a None
-        # Wht if tile options passed doesn't match fit file?
-
-    # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_SplitOptions( self ):
         from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
@@ -198,6 +191,7 @@ class TestFeatureSpace( unittest.TestCase ):
                            test_size=20 )
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_SampleReduce( self ):
         from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
@@ -332,6 +326,7 @@ class TestFeatureSpace( unittest.TestCase ):
         del L
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_RemoveClass( self ):
         from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
@@ -365,6 +360,7 @@ class TestFeatureSpace( unittest.TestCase ):
         self.assertRaises( IndexError, fs.RemoveClass, class_token=10 )
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_SamplesUnion( self ):
         from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 
@@ -387,6 +383,7 @@ class TestFeatureSpace( unittest.TestCase ):
         self.assertEqual( n_classes, joined_fs.num_classes )
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_NewFromFileOfFiles( self ):
         """Pulls in the lymphoma eosin histology 5x6 tiled featureset via .sig files."""
 
@@ -555,10 +552,78 @@ class TestFeatureSpace( unittest.TestCase ):
                     print "FIT: ", fs_fit._contiguous_sample_names[row_num], "FOF", fs_fof._contiguous_sample_names[row_num]
                 self.assertTrue( retval )
 
+
+            # Test sorting; scramble the FOF then load and check:
+
+            sorted_fof = tempdir + sep + \
+                    'lymphoma_iicbu2008_subset_EOSIN_ONLY_sigfiles_t5x6-l.fof.tsv'
+
+            with open( sorted_fof) as fof:
+                lines = fof.readlines()
+
+            from random import shuffle
+            shuffle(lines)
+
+            unsorted_fof = tempdir + sep + \
+                    'lymphoma_iicbu2008_subset_EOSIN_ONLY_sigfiles_t5x6-l_UNSORTED.fof.tsv'
+
+            with open( unsorted_fof, 'w' ) as fof:
+                for line in lines:
+                    fof.write( line )
+
+            kwargs = {}
+            kwargs['pathname'] = unsorted_fof
+            kwargs['quiet'] = True
+            # sampling opts: -l -t5x6 implies 5 columns and 6 rows ... I know it's weird.
+            kwargs['long'] = True
+            kwargs['tile_num_rows'] = 6
+            kwargs['tile_num_cols'] = 5
+            fs_fof = FeatureSpace.NewFromFileOfFiles( **kwargs )
+            # Check again
+            for row_num, (fit_row, fof_row) in enumerate( zip( fs_fit.data_matrix, fs_fof.data_matrix )):
+                retval = compare( fit_row, fof_row )
+                if retval == False:
+                    print "error in sample row", row_num
+                    print "FIT: ", fs_fit._contiguous_sample_names[row_num], "FOF", fs_fof._contiguous_sample_names[row_num]
+                self.assertTrue( retval )
+
+            # TESTING TAKE TILES:
+            self.assertRaises( ValueError, fs_fof.TakeTiles, tuple() )
+            self.assertRaises( ValueError, fs_fof.TakeTiles, (45, 46, 47,) )
+            self.assertRaises( TypeError, fs_fof.TakeTiles, 'crap' )
+
+            # take middle 4
+            wanted_tiles = ( 14, 15, 20, 21 )
+
+            took = fs_fof.TakeTiles( wanted_tiles, inplace=False )
+            num_sample_groups = len( set( fs_fof._contiguous_sample_group_ids ) )
+            self.assertEqual( took.num_samples_per_group, len( wanted_tiles ) )
+            self.assertEqual( took.num_samples, len( wanted_tiles ) * num_sample_groups )
+
+#            mid4 = 'lymphoma_iicbu2008_subset_EOSIN_ONLY_sigfiles_MIDDLE_4_TILES_t5x6-l.fof.tsv'
+#            # fake out wndcharm by putting empty tiffs in the temp dir
+#            # we don't need them, the sigs are in there already.
+#            with open( mid4) as fof:
+#                lines = fof.readlines()
+#                names, classes, paths, opts = zip( *[ _.split('\t') for _ in lines ] )
+#                for _path in paths:
+#                    with open( tempdir + sep + _path, 'w' ):
+#                        pass
+#            took_via_fof = FeatureSpace.NewFromFileOfFiles( mid4, num_samples_per_group=4 )
+#
+#            for row_num, (fit_row, fof_row) in enumerate( zip( took.data_matrix, took_via_fof.data_matrix )):
+#                retval = compare( fit_row, fof_row )
+#                if retval == False:
+#                    print "error in sample row", row_num
+#                    print "FIT: ", took._contiguous_sample_names[row_num], "FOF", took_via_fof._contiguous_sample_names[row_num]
+#                self.assertTrue( retval )
+
+
         finally:
             rmtree( tempdir )
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_NewFromDirectory( self ):
         """"""
 
@@ -605,23 +670,33 @@ class TestFeatureSpace( unittest.TestCase ):
 #        pass
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_Normalize( self ):
 	"""Load unnormalized feature space, normalize,
         then compare to stored normalized feature space."""
 
-        from wndcharm.utils import compare
-        result_fs = FeatureSpace.NewFromFitFile( self.test_fit_path ).Normalize( inplace=True )
+        raw_fs = FeatureSpace.NewFromFitFile( self.test_fit_path ) 
+        result_fs = raw_fs.Normalize( inplace=False )
         target_fs = FeatureSpace.NewFromFitFile( self.test_normalized_fit_path )
 
         from numpy.testing import assert_allclose
         assert_allclose( result_fs.data_matrix, target_fs.data_matrix, rtol=1e-05 )
 
+        # Create reference Z-score feature space
+        from scipy.stats.mstats import zscore
+        from wndcharm.utils import ReplaceNonReal
+        ReplaceNonReal( raw_fs.data_matrix )
+        oldsettings = np.seterr( all='ignore' )
+        target_fs = zscore( raw_fs.data_matrix )
+        target_fs[ np.isnan( target_fs) ] = 0
+        np.seterr( **oldsettings )
+
+        result_fs = raw_fs.Normalize( inplace=False, zscore=True )
+        assert_allclose( result_fs.data_matrix, target_fs )
+
         # See the problem with using all close...?
-
-
         # AssertionError: 
         # Not equal to tolerance rtol=1e-07, atol=0
-
         # (mismatch 100.0%)
         # x: array([[  18.540434,   44.441657,   30.894861, ...,    0.      ,
         #          56.162296,   48.702817],
@@ -631,6 +706,7 @@ class TestFeatureSpace( unittest.TestCase ):
         #       [   0.      ,    0.      ,   63.5766  , ...,    0.669004,...
 
 
+        #from wndcharm.utils import compare
         #if not compare( result_fs.data_matrix, target_fs.data_matrix ):
         #    # actually, the one good thing about "allclose" is the error reporting
         #    from numpy.testing import assert_allclose
@@ -638,6 +714,7 @@ class TestFeatureSpace( unittest.TestCase ):
 
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_LDATransform( self ):
 	"""LDA transform"""
 
@@ -667,12 +744,13 @@ class TestFeatureSpace( unittest.TestCase ):
             train.LDATransform( reference_features=None, inplace=True )
             test.LDATransform( reference_features=train, inplace=True )
 
-            fit_on_fit_LDA_result = FeatureSpaceClassification.NewWND5(
+            split_LDA_result = FeatureSpaceClassification.NewWND5(
                     train, test, feature_weights=None )
         finally:
             rmtree( tempdir )
 
     # --------------------------------------------------------------------------
+    #@unittest.skip('')
     def test_ClassSortSamplesByGroundTruth( self ):
         """If class names have interpolatable value, sort by that value,
         otherwise by class name alphabetical order"""
@@ -684,19 +762,18 @@ class TestFeatureSpace( unittest.TestCase ):
         fs._contiguous_sample_group_ids = range(4)
         fs._contiguous_sample_sequence_ids = [1]*4
         fs._contiguous_sample_names = ['ones', 'twos', 'threes', 'fours']
-        fs._contiguous_ground_truth_labels = ['ones', 'twos', 'threes', 'fours']
+        fs._contiguous_ground_truth_labels = ['ones_1.0', 'twos_2.0', 'threes_3.0', 'fours_4.0']
         fs._contiguous_ground_truth_values = [1,2,3,4,]
         fs.num_classes = 4
-        fs.class_names = ['ones', 'twos', 'threes', 'fours']
-        fs.interpolation_coefficients = [1,2,3,4] # the call hinges on this not being None
+        fs.class_names = ['ones_1.0', 'twos_2.0', 'threes_3.0', 'fours_4.0']
+        fs.interpolation_coefficients = [1.0,2.0,3.0,4.0]
         fs.SortSamplesByGroundTruth(inplace=True)
 
         # i.e., not ['fours', 'ones', 'threes', 'twos']
         # aka, class alphabetical order
-        self.assertEqual( fs.class_names, ['ones', 'twos', 'threes', 'fours'] )
-        fs.interpolation_coefficients = None
-        fs.SortSamplesByGroundTruth(inplace=True)
-        self.assertEqual( fs.class_names, ['fours', 'ones', 'threes', 'twos'] )
+        self.assertEqual( fs.class_names, ['ones_1.0', 'twos_2.0', 'threes_3.0', 'fours_4.0'] )
+        fs.SortSamplesByGroundTruth(inplace=True, force_use_labels=True)
+        self.assertEqual( fs.class_names, ['fours_4.0', 'ones_1.0', 'threes_3.0', 'twos_2.0'] )
 
 
 

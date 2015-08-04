@@ -237,20 +237,21 @@ class FeatureVector( object ):
         #: of FeatureReduce() and Normalize(), and CompatibleFeatureSetVersion()
         self.feature_maxima = None
         self.feature_minima = None
+        self.feature_means = None
+        self.feature_stdevs = None
         self.normalized_against = None
-
 
         self.sample_group_id = None
         self.channel = None
         self.time_index = None
         self.tiling_scheme = None
         #: If no ROI image subsample, whole image is tile 1 of 1 in this sample group.
-        self.tile_num_rows = 1
-        self.tile_num_cols = 1
+        self.tile_num_rows = None
+        self.tile_num_cols = None
         #: indices count from 0
-        self.tile_row_index = 0
-        self.tile_col_index = 0
-        self.sample_sequence_id = 0
+        self.tile_row_index = None
+        self.tile_col_index = None
+        self.sample_sequence_id = None
         #: downsample (in percents)
         self.downsample = 0
         self.pixel_intensity_mean = None
@@ -341,44 +342,40 @@ class FeatureVector( object ):
 
         # FIXME: feature_set_version refers to WND-CHARM specific feature set specifications.
         # Want to be able to handle other feature sets from other labs in the future.
-        if self.feature_set_version == None:
-            major = feature_vector_major_version
+        major = feature_vector_major_version # global
 
-            # The feature_set_version helps describe what features contained in the set.
-            # Major version has to do with fixing bugs in the WND_CHARM algorithm code base.
-            # The minor version describes the composition of features in the feature set.
-            # Minor versions 1-4 have specific combination of WND-CHARM features.
-            # Minor version 0 refers to user-defined combination of features.
+        # The feature_set_version helps describe what features contained in the set.
+        # Major version has to do with fixing bugs in the WND_CHARM algorithm code base.
+        # The minor version describes the composition of features in the feature set.
+        # Minor versions 1-4 have specific combination of WND-CHARM features.
+        # Minor version 0 refers to user-defined combination of features.
 
-            # Check to see if there is a user-defined set of features for this feature vector:
-            if self.feature_computation_plan or self.feature_names:
-                # set num_features
-                if self.feature_names:
-                    self.num_features = len( self.feature_names )
-                else:
-                    self.num_features = self.feature_computation_plan.n_features
-
-                if self.num_features not in feature_vector_minor_version_from_num_features:
-                    minor = 0
-                else:
-                    # FIXME: If features are out of order, should have a minor version of 0
-                    minor = feature_vector_minor_version_from_num_features[ len( self.feature_names ) ]
+        # Check to see if there is a user-defined set of features for this feature vector:
+        if self.feature_computation_plan or self.feature_names:
+            # set num_features
+            if self.feature_names:
+                self.num_features = len( self.feature_names )
             else:
-                if not self.long:
-                    if not self.color:
-                        minor = 1
-                    else:
-                        minor = 3
-                else:
-                    if not self.color:
-                        minor = 2
-                    else:
-                        minor = 4
-                self.num_features = ReturnNumFeaturesBasedOnMinorFeatureVectorVersion( minor )
-            self.feature_set_version = '{0}.{1}'.format( major, minor )
+                self.num_features = self.feature_computation_plan.n_features
+
+            if self.num_features not in feature_vector_minor_version_from_num_features:
+                minor = 0
+            else:
+                # FIXME: If features are out of order, should have a minor version of 0
+                minor = feature_vector_minor_version_from_num_features[ len( self.feature_names ) ]
         else:
-            major, minor = [ int( val ) for val in self.feature_set_version.split('.') ]
+            if not self.long:
+                if not self.color:
+                    minor = 1
+                else:
+                    minor = 3
+            else:
+                if not self.color:
+                    minor = 2
+                else:
+                    minor = 4
             self.num_features = ReturnNumFeaturesBasedOnMinorFeatureVectorVersion( minor )
+        self.feature_set_version = '{0}.{1}'.format( major, minor )
 
         # When reading in sampling opts from the path, they get pulled out as strings
         # instead of ints:
@@ -391,13 +388,18 @@ class FeatureVector( object ):
         if self.tile_num_cols is not None and type( self.tile_num_cols ) != int:
             self.tile_num_cols = int( self.tile_num_cols )
         if self.sample_group_id is not None and type( self.sample_group_id ) != int:
-            self.sample_group_id = int( self.tile_num_cols )
+            self.sample_group_id = int( self.sample_group_id )
+        if self.sample_sequence_id is not None and type( self.sample_sequence_id ) != int:
+            self.sample_sequence_id = int( self.sample_sequence_id )
 
         # sequence order has historically been (e.g. 3x3):
         # 0 3 6
         # 1 4 7
         # 2 5 8
-        self.sample_sequence_id = (self.tile_col_index * self.tile_num_rows ) + self.tile_row_index
+        if self.sample_sequence_id is None and self.tile_col_index is not None \
+                and self.tile_num_rows is not None and self.tile_row_index is not None:
+            self.sample_sequence_id = \
+                    (self.tile_col_index * self.tile_num_rows ) + self.tile_row_index
         return self
 
     #==============================================================
@@ -473,7 +475,9 @@ class FeatureVector( object ):
         # the historical tile notation order is: num_cols, num_rows, col index, row_index
         if self.tile_num_cols and self.tile_num_cols != 1:
             base += "-t" + str(self.tile_num_cols)
-            if self.tile_num_rows and self.tile_num_rows != 1:
+            if self.tile_num_rows and self.tile_num_rows != 1 \
+                    and self.tile_num_rows != self.tile_num_cols:
+                # 6x6 tiling scheme is simply represented as -t6
                 base +="x" + str(self.tile_num_rows)
             if self.tile_col_index is not None and self.tile_row_index is not None:
                 base += "_{0}_{1}".format( self.tile_col_index, self.tile_row_index )
@@ -487,11 +491,14 @@ class FeatureVector( object ):
         return base + '.sig'
 
     #================================================================
-    def GenerateFeatures( self, write_to_disk=True, quiet=True ):
+    def GenerateFeatures( self, write_to_disk=True, update_samp_opts_from_pathname=None,
+            quiet=True ):
         """@brief Loads precalculated features, or calculates new ones, based on which instance
         attributes have been set, and what their values are.
 
         write_to_disk (bool) - save features to text file which by convention has extension ".sig"
+        update_samp_opts_from_pathname (bool) - If a .sig file exists, don't overwrite
+            self's sampling options from the sampling options in the .sig file pathname.
         
         Returns self for convenience."""
 
@@ -505,12 +512,10 @@ class FeatureVector( object ):
         if self.values is not None and len( self.values ) != 0:
             return self
 
-        # Make sure Feature Vector version string is correct, etc:
-        #self.Update()
-
         partial_load = False
         try:
-            self.LoadSigFile( quiet=quiet )
+            self.LoadSigFile( quiet=quiet, \
+                    update_samp_opts_from_pathname=update_samp_opts_from_pathname )
             # FIXME: Here's where you'd calculate a small subset of features
             # and see if they match what was loaded from file. The file could be corrupted
             # incomplete, or calculated with different options, e.g., -S1441
@@ -531,7 +536,7 @@ class FeatureVector( object ):
 
         # All hope is lost, calculate features.
 
-        # Use user-assigned feature computation plan, if provided:
+        # Use user-assigned feature computation plan, if provided=quiet:
         if self.feature_computation_plan != None:
             comp_plan = self.feature_computation_plan
 
@@ -619,6 +624,8 @@ class FeatureVector( object ):
 
         # Get an executor for this plan and run it
         plan_exec = wndcharm.FeatureComputationPlanExecutor( comp_plan )
+        if not quiet:
+            print "CALCULATING FEATURES FROM", self.source_filepath, self
         plan_exec.run( the_tiff, tmp_vec, 0 )
 
         # get the feature names from the plan
@@ -697,7 +704,8 @@ class FeatureVector( object ):
         return True
 
     #==============================================================
-    def Normalize( self, reference_features=None, inplace=True, quiet=False ):
+    def Normalize( self, reference_features=None, inplace=True, zscore=False,
+            non_real_check=True, quiet=False ):
         """By convention, the range of feature values in the WND-CHARM algorithm are
         normalized on the interval [0,100]. Normalizing is useful in making the variation 
         of features human readable. Normalized samples are only comprable if they've been 
@@ -709,6 +717,10 @@ class FeatureVector( object ):
                 self.__class__.__name__, self.name, self.normalized_against ) )
 
         newdata = {}
+        mins = None
+        maxs = None
+        means = None
+        stdevs = None
 
         if not reference_features:
             # Specific to FeatureVector implementation:
@@ -737,15 +749,27 @@ class FeatureVector( object ):
 
             # Need to make sure there are feature minima/maxima to normalize against:
             if not reference_features.normalized_against:
-                reference_features.Normalize( quiet=quiet )
+                reference_features.Normalize( quiet=quiet, zscore=zscore,
+                        non_real_check=non_real_check )
 
-            mins = reference_features.feature_minima
-            maxs = reference_features.feature_maxima
+            if not zscore:
+                mins = reference_features.feature_minima
+                maxs = reference_features.feature_maxima
+            else:
+                means = reference_features.feature_means
+                stdevs = reference_features.feature_stdevs
+
             newdata['normalized_against'] = reference_features
 
-        newdata['values'] = np.copy( self.values )
-        newdata['feature_minima'], newdata['feature_maxima'] = \
-            normalize_by_columns( newdata['values'], mins, maxs )
+        if inplace:
+            fv = self.values
+        else:
+            fv = np.copy( self.values )
+
+        retval = normalize_by_columns( fv, mins, maxs, means, stdevs, zscore, non_real_check )
+        newdata['values'] = fv
+        newdata['feature_minima'], newdata['feature_maxima'], \
+                newdata['feature_means'], newdata['feature_stdevs'] = retval
 
         if inplace:
             return self.Update( **newdata )
@@ -802,6 +826,10 @@ class FeatureVector( object ):
             newdata[ 'feature_maxima' ] = self.feature_maxima[ new_order ]
         if self.feature_minima is not None:
             newdata[ 'feature_minima' ] = self.feature_minima[ new_order ]
+        if self.feature_means is not None:
+            newdata[ 'feature_means' ] = self.feature_means[ new_order ]
+        if self.feature_stdevs is not None:
+            newdata[ 'feature_stdevs' ] = self.feature_stdevs[ new_order ]
 
         # If the feature vectors sizes changed then they are no longer standard feature vectors.
         if self.feature_set_version is not None and num_features != self.num_features:
@@ -818,25 +846,31 @@ class FeatureVector( object ):
         return newfv
 
     #================================================================
-    def LoadSigFile( self, sigfile_path=None, quiet=False ):
+    def LoadSigFile( self, sigfile_path=None, update_samp_opts_from_pathname=None,
+            quiet=False ):
         """Load computed features from a sig file.
 
         Desired features indicated by strings currently in self.feature_names.
         Desired feature set version indicated self.feature_set_version.
 
-        Compare what got loaded from file with desired."""
+        Compare what got loaded from file with desired.
+
+        update_samp_opts_from_pathname (bool) - If a .sig file exists, don't overwrite
+            self's sampling options from the sampling options in the .sig file pathname"""
 
         import re
 
         if sigfile_path:
             path = sigfile_path
-            update_sampling_opts = True
+            if update_samp_opts_from_pathname is None:
+                update_samp_opts_from_pathname = True
         elif self.auxiliary_feature_storage:
             path = self.auxiliary_feature_storage
-            update_sampling_opts = True
+            if update_samp_opts_from_pathname is None:
+                update_samp_opts_from_pathname = True
         else:
             path = self.GenerateSigFilepath()
-            update_sampling_opts = False
+            update_samp_opts_from_pathname = False
 
         with open( path ) as infile:
 
@@ -935,10 +969,12 @@ class FeatureVector( object ):
         # Pull sampling options from filename
         path_removed = basename( path )
         self.name = path_removed
-        if update_sampling_opts:
+        if update_samp_opts_from_pathname:
             result = self.sig_filename_parser.search( path_removed )
             if result:
                 self.Update( **result.groupdict() )
+        else:
+            self.Update()
 
         if not quiet:
             print "LOADED ", str( self )

@@ -145,7 +145,7 @@ class TestFeatureSpaceClassification( unittest.TestCase ):
             num_samples_per_group = 30
             n_groups = fs.num_samples / num_samples_per_group
             new_sg_ids = [ i for i in xrange( n_groups ) for j in xrange( num_samples_per_group ) ]
-            fs.Update( tile_rows=5, tile_cols=6, num_samples_per_group=30,\
+            fs.Update( tile_num_rows=5, tile_num_cols=6, num_samples_per_group=30,\
                     _contiguous_sample_group_ids=new_sg_ids )._RebuildViews()
             with_tile_pychrm_result = FeatureSpaceClassification.NewWND5( fs, fs, fw )
             html_path = pychrm_test_dir + sep + 'lymphoma_iicbu2008_subset_eosin_t5x6_v3.2feats_REFERENCE_RESULTS_30_samples_tiled_TRAINING_ERROR.html' 
