@@ -173,11 +173,11 @@ class FeatureVector( object ):
         The following attributes are for calling out a single ROI within an image for
         feature extraction:
         self.x - int - xi
-        self.w - int - xf
+        self.w - int - delta x
         self.y - int - yi
-        self.h - int - yf
+        self.h - int - delta y
         self.z - int - zi
-        self.z_delta - int - zf
+        self.z_delta - int - delta z
         self.roi - str - string pulled out of the file name sampling options in the
             form of "-B<x>_<y>_<w>_<h>". Strong target for deprecation!
 
@@ -391,7 +391,20 @@ class FeatureVector( object ):
             self.sample_group_id = int( self.sample_group_id )
         if self.sample_sequence_id is not None and type( self.sample_sequence_id ) != int:
             self.sample_sequence_id = int( self.sample_sequence_id )
-
+        if self.x is not None and type( self.x ) != int:
+            self.x = int( self.x )
+        if self.y is not None and type( self.y ) != int:
+            self.y = int( self.y )
+        if self.w is not None and type( self.w ) != int:
+            self.w = int( self.w )
+        if self.h is not None and type( self.h ) != int:
+            self.h = int( self.h )
+        if self.z is not None and type( self.z ) != int:
+            self.h = int( self.z )
+        if self.z_delta is not None and type( self.z_delta ) != int:
+            self.z_delta = int( self.z_delta )
+        if self.downsample is not None and type( self.downsample ) != int:
+            self.downsample = int( self.downsample )
         # sequence order has historically been (e.g. 3x3):
         # 0 3 6
         # 1 4 7

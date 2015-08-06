@@ -1056,7 +1056,7 @@ class FeatureSpace( object ):
         columns specifying additional paths and preprocessing options for a more complex
         feature space."""
 
-        from os import getcwd
+        from os import getcwd, stat
         from os.path import split, splitext, isfile, join
         from copy import deepcopy
 
@@ -1095,6 +1095,9 @@ class FeatureSpace( object ):
 
         # FeatureVector instances go in here:
         samples = []
+
+        if stat( pathname ).st_size == 0:
+            raise ValueError( '{} is empty'.format( pathname ) )
 
         fof = open( pathname )
         for line_num, line in enumerate( fof ):
