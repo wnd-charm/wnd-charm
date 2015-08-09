@@ -1241,6 +1241,8 @@ class FeatureSpace( object ):
                                         ssid += 1
                                         samples.append( fv )
                             else:
+                                if base_sample_opts.sample_sequence_id == None:
+                                    base_sample_opts.sample_sequence_id = 0
                                 samples.append( base_sample_opts )
                         # By now (after perhaps needing to load sig file) we know how many features in this sample
                         num_feats_in_this_row += base_sample_opts.num_features
