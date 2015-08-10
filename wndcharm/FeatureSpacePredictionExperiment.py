@@ -219,7 +219,7 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
 
     #=====================================================================
     @classmethod
-    def NewShuffleSplit( cls, feature_space, n_iter=5, name=None, features_size=0.15,
+    def NewShuffleSplit( cls, feature_space, test_set=None, n_iter=5, name=None, features_size=0.15,
                            train_size=None, test_size=None, random_state=True, classifier=None,
                            lda=False, quiet=True, display=15, conserve_mem=False, progress=True ):
         """args train_size, test_size, and random_state are all passed through to Split()
@@ -238,7 +238,13 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
         if not name:
             name = feature_space.name
 
-        experiment = cls( training_set=feature_space, test_set=feature_space, name=name )
+        if test_set == None:
+            experiment = cls( training_set=feature_space, test_set=feature_space, name=name )
+            master_test_set = None
+        else:
+            experiment = cls( training_set=feature_space, test_set=test_set, name=name )
+            master_test_set = test_set
+
         if isinstance( features_size, float ):
             if features_size < 0 or features_size > 1.0:
                 raise ValueError('Arg "features_size" must be on interval [0,1] if a float.')
@@ -290,15 +296,24 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
         from .utils import ReplaceNonReal
         ReplaceNonReal( feature_space.data_matrix )
 
-        for split_index in range( n_iter ):
+        if master_test_set is not None:
+            ReplaceNonReal( master_test_set.data_matrix )
+
+        for split_index in xrange( n_iter ):
             if not quiet:
                 print "\n\n=========================================="
                 print "SHUFFLE SPLIT ITERATION", str( split_index )
             if progress:
                 stdout.write( str( split_index ) + '\t' )
-
-            train_set, test_set = feature_space.Split(
-                train_size, test_size, random_state=randint(), quiet=quiet )
+ 
+            if master_test_set == None:
+                train_set, test_set = feature_space.Split(
+                    train_size, test_size, random_state=randint(), quiet=quiet )
+            else:
+                train_set = feature_space.Split(
+                    train_size, 0, random_state=randint(), quiet=quiet )
+                test_set = master_test_set.Split(
+                        test_size, 0, random_state=randint(), quiet=quiet )
             
             # Normalize features using zscores if lda
             train_set.Normalize( quiet=quiet, inplace=True, non_real_check=False, zscore=lda )
