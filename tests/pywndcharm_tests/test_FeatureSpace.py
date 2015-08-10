@@ -170,6 +170,13 @@ class TestFeatureSpace( unittest.TestCase ):
         self.assertEqual( train_set.shape, (750, 600) )
         self.assertEqual( test_set.shape, (250, 600) )
 
+        # Supposed to only return single FeatureSpace instead of 2-tuple of FeatureSpace
+        # when setting test_size = 0
+        i = 50
+        retval = fs_discrete.Split( train_size=i, test_size=0, random_state=42, quiet=True )
+        self.assertEqual( type(retval), FeatureSpace )
+        self.assertEqual( retval.num_samples, i * fs_discrete.num_classes )
+
         # dummyproofing
 
         self.assertRaises( ValueError, fs_discrete.Split, train_size='trash' )

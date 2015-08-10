@@ -1746,9 +1746,10 @@ class FeatureSpace( object ):
                     raise
                 else:
                     train_groups.extend( class_train_groups )
-                    test_groups.extend( class_test_groups )
+                    if class_test_groups is not False:
+                        test_groups.extend( class_test_groups )
 
-            if not any( test_groups ):
+            if len( test_groups ) == 0:
                 training_set_only = True
 
         training_set = self.SampleReduce( train_groups, inplace=False, quiet=True )
