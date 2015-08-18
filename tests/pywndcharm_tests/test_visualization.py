@@ -44,7 +44,7 @@ from wndcharm.FeatureWeights import FisherFeatureWeights
 from wndcharm.FeatureSpacePrediction import FeatureSpaceClassification
 from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 from wndcharm.FeatureSpacePredictionExperiment import FeatureSpaceClassificationExperiment
-from wndcharm.visualization import PredictedValuesGraph
+from wndcharm.visualization import PredictedValuesGraph, AccuracyVersusNumFeaturesGraph
 try:
     import matplotlib
     HasMatplotlib = True
@@ -159,6 +159,7 @@ class TestGraphs( unittest.TestCase ):
         self.CompareGraphs( graph, testfilename )
 
     @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOT installed" )
+    #@unittest.skip('')
     def test_FromDiscreteClassificationExperimentResults( self ):
         """Rank Ordered Predicted values graph from an experiment result (multiple splits)"""
 
@@ -192,6 +193,38 @@ class TestGraphs( unittest.TestCase ):
         self.CompareGraphs( graph, testfilename )
 
     @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOT installed" )
+    def test_AccuracyVersusNumFeaturesGraph( self ):
+        """Accuracy vs. # features with and without LDA feature space transform"""
+
+        testfilename = 'test_graph_rank_ordered_experiment.npy'
+
+        # Make a smaller featureset to do multiple splits
+        fs_kwargs = {}
+        fs_kwargs['name'] = "DiscreteArtificialFS RANK ORDERED SHUFFLE SPLIT"
+        fs_kwargs['n_samples'] = 100 # smaller
+        fs_kwargs['n_classes'] = 5 # smaller, 20 samples per class
+        fs_kwargs['num_features_per_signal_type'] = 10 # smaller
+        fs_kwargs['initial_noise_sigma'] = 50
+        fs_kwargs['noise_gradient'] = 20
+        fs_kwargs['n_samples_per_group'] = 1
+        fs_kwargs['interpolatable'] = True
+        fs_kwargs['random_state'] = 42
+        fs_kwargs['singularity'] = False
+        fs_kwargs['clip'] = False
+
+        small_fs = CreateArtificialFeatureSpace_Discrete( **fs_kwargs )
+
+        ss_kwargs = {}
+        ss_kwargs['quiet'] = False
+        ss_kwargs['feature_space'] = small_fs
+        ss_kwargs['n_iter'] = n_iter = 10
+        ss_kwargs['train_size'] = train_size = 18 # per-class
+        ss_kwargs['test_size' ] = test_size = 2 # per-class
+        ss_kwargs['random_state'] = 42
+        graph = AccuracyVersusNumFeaturesGraph( **ss_kwargs )
+
+    @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOT installed" )
+    #@unittest.skip('')
     def test_FromHTML( self ):
         """Rank Ordered Predicted values graph from an experiment result (multiple splits)"""
 
@@ -215,6 +248,7 @@ class TestGraphs( unittest.TestCase ):
         self.CompareGraphs( graph, testfilename )
 
     @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOTinstalled" )
+    #@unittest.skip('')
     def test_IfNotInterpolatable( self ):
         """You can't graph predicted values if the classes aren't interpolatable."""
 

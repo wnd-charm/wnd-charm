@@ -167,30 +167,63 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
     #=====================================================================
     @classmethod
     @output_railroad_switch
-    def FeatureWeightsGridSearch( cls, start=None, stop=None, step=10, **kwargs ):
-        """Takes same args as NewShuffleSplit. Calls ShuffleSplit for varying number of features.
-        
-        Returns the instance of FeatureSpacePredictionExperiment that has best figure of merit."""
+    def FeatureWeightsGridSearch( cls, param_space=None, quiet=True, **kwargs ):
+        """Calls NewShuffleSplit for varying number of features
 
-        best_exp = None
-        max_classification_accuracy = 0
-        features_accuracy_dict = {}
+        Args:
+            param_space - iterable or int or None
+                iterable of ints specifying num features to be used each iteration
+                int - uses n intervals evenly spaced numbers along log scale from
+                    1 to kwargs['feature_space'].num_features
+                None - same as int above but specifying 20 intervals, results in param_space
+                    1, 2, 3, 4, 7, 10, 16, 24, 36, 54, 80, 119, 178, 266, ... 2918
+            **kwargs - passed directly through to NewShuffleSplit.
 
-        try:
-            for n_features in xrange( start, stop, step ):
-                exp = cls.NewShuffleSplit( **kwargs ).GenerateStats()
-                features_accuracy_dict[ n_features ] = exp.classification_accuracy
-                if exp.classification_accuracy > max_classification_accuracy:
-                    best_exp = exp
-                    max_classification_accuracy = exp.classification_accuracy
-        finally:
+        Return:
+            list of 2-tuples, with x-coord = n_features, and y-coord = figure of merit"""
+
+        max_n_feats = kwargs['feature_space'].num_features
+
+        def GenParamSpace( n_intervals=20 ):
+            from math import log, e
+            max_exp = log( max_n_feats )
+            interval = max_exp / n_intervals
+            return [ int( round( e ** (interval * i) ) ) for i in xrange( 1, n_intervals + 1 ) ]
+
+        if param_space is None:
+            param_space = GenParamSpace()
+        elif type( param_space ) is int:
+            param_space = GenParamSpace( param_space )
+        elif max( param_space ) > max_n_feats:
+            raise ValueError( "val in param_space ({}) is more features than feature space has ({})".format(
+                max( param_space ), kwargs['feature_space'].num_features ) )
+
+        if not quiet:
+            print "Using num features param space of :", param_space
+
+        results = []
+        kwargs['progress'] = False
+
+        if not quiet:
             print "==================================================="
-            for n_features in sorted( features_accuracy_dict.keys() ):
-                print n_features, ',' , features_accuracy_dict[ n_features ] 
-            print "==================================================="
-            best_exp.features_accuracy_dict = features_accuracy_dict
+            print "FEATURE WEIGHT GRID SEARCH RESULTS:"
+            print "n features\t figure of merit"
 
-        return best_exp
+        for n_features in param_space:
+            try:
+                exp = cls.NewShuffleSplit( quiet=True, features_size=n_features, **kwargs ).GenerateStats()
+                results.append( ( n_features, exp.figure_of_merit ) )
+                if not quiet:
+                    print "{}\t{}".format( n_features, exp.figure_of_merit )
+            except ValueError as e:
+                # Sometimes the features ranked above a certain number are all 0, e.g.,
+                #    ValueError: Can't reduce feature weights "None" to 2919 features.
+                #    Features ranked 2631 and below have a Fisher score of 0. Request
+                #    less features.
+                print "Skipping n_features={} and above due to feature reduction error"
+                break
+
+        return results
 
 #        print ""
 #        print "Aggregate feature weight analysis:"
@@ -536,6 +569,7 @@ class FeatureSpaceClassificationExperiment( _FeatureSpacePredictionExperiment ):
                     self.similarity_matrix[ row ][ col ] /= denom
 
         self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
+        self.figure_of_merit = self.classification_accuracy
         return self
 
     #=====================================================================
@@ -821,6 +855,8 @@ class FeatureSpaceRegressionExperiment( _FeatureSpacePredictionExperiment ):
                      spearmanr( self.ground_truth_values, self.predicted_values )
         except FloatingPointError:
             self.spearman_coeff, self.spearman_p_value = ( 0, 1 )
+
+        self.figure_of_merit = self.std_err
 
         np.seterr (all='raise')
         return self

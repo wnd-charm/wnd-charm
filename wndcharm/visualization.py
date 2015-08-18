@@ -267,114 +267,97 @@ class FeatureTimingVersusAccuracyGraph( _BaseGraph ):
 
 #============================================================================
 class AccuracyVersusNumFeaturesGraph( _BaseGraph ):
-    """Graphing the figure of merit a a function of number of features"""
+    """Hyper-parameter optimization of number of features.
+    Graphs the figure of merit as a function of number of top-ranked features."""
 
-    # FIXME: roll this class into FeatureTimingVersusAccuracyGraph, allowing
-    # both Discrete and continuous data
+    def __init__( self, param_space=None, param_scale='log', lda_comparison=True,
+            chart_title=None, figsize=(12, 8), y_min=None, y_max=None, quiet=True, **kwargs ):
+        """Creates graph for Classifier/Regressor figure of merit as a function of
+        number of top-ranked features used in classification.
 
-    def __init__( self, training_set, feature_weights, chart_title=None, min_num_features=1, max_num_features=None, step=5, y_min=None, y_max=None, quiet=False):
+        Calls wndcharm.FeatureSpacePredictionExperiment.FeatureWeightsGridSearch, which is
+        itself a wrapper for NewShuffleSplit, to which kwargs gets passed through.
 
-        from wndcharm.FeatureSpacePredictionExperiment import FeatureSpaceRegressionExperiment
-        from wndcharm.SingleSamplePrediction import SingleSampleRegression
-        from wndcharm.FeatureSpacePrediction import FeatureSpaceRegression
+        Args:
+            param_space - iterable or int or None
+                iterable of ints specifying num features to be used each iteration
+                int - uses n intervals evenly spaced numbers along log scale from
+                    1 to kwargs['feature_space'].num_features
+                None - same as int above but specifying 20 intervals, results in param_space
+                    1, 2, 3, 4, 7, 10, 16, 24, 36, 54, 80, 119, 178, 266, ... 2919
+            param_scale - {'log', 'linear' }, pass through to matplotlib.ax.set_xscale()
+            lda_comparison - bool - Do two runs with and without Linear Discriminant Analysis
+                and graph the results on the same axes.
+            y_min, y_max - float - chart param.
+            **kwargs - passed directly through to NewShuffleSplit()
+        """
 
-        ls_experiment = FeatureSpaceRegressionExperiment( training_set, training_set, feature_weights, name="Least Squares Regression Method")
-        voting_experiment = FeatureSpaceRegressionExperiment( training_set, training_set, feature_weights, name="Voting Method")
-        if max_num_features is None:
-            max_num_features = len( feature_weights )
+        if kwargs['feature_space'].discrete:
+            from .FeatureSpacePredictionExperiment import FeatureSpaceClassificationExperiment as Experiment
+        else:
+            from .FeatureSpacePredictionExperiment import FeatureSpaceRegressionExperiment as Experiment
 
-        x_vals = range( min_num_features, max_num_features + 1, step )
+        if lda_comparison and 'lda' in kwargs:
+            del kwargs['lda']
 
-        for number_of_features_to_use in x_vals:
-            reduced_fw = feature_weights.Threshold( number_of_features_to_use )
-            reduced_ts = training_set.FeatureReduce( reduced_fw )
-            if not quiet:
-                reduced_fw.Print()
-
-            ls_split_result = FeatureSpaceRegression.NewLeastSquares( reduced_ts, None, reduced_fw, split_number=number_of_features_to_use, quiet=my_quiet )
-            if not quiet:
-                ls_split_result.Print()
-            ls_experiment.individual_results.append( ls_split_result )
-
-            voting_split_result = FeatureSpaceRegression.NewMultivariateLinear( reduced_ts, reduced_fw, split_number=number_of_features_to_use )
-            if not quiet:
-                voting_split_result.Print()
-            voting_experiment.individual_results.append( voting_split_result )
+        if lda_comparison:
+            main_coords = Experiment.FeatureWeightsGridSearch( param_space=param_space,
+                    quiet=quiet, lda=False, **kwargs )
+            X, Y = zip( *main_coords )
+            lda_coords = Experiment.FeatureWeightsGridSearch( param_space=param_space,
+                    quiet=quiet, lda=True, **kwargs )
+            X_lda, Y_lda = zip( *lda_coords )
+            all_ys = Y + Y_lda
+            if y_min == None:
+                y_min = min( all_ys )
+            y_max = max( all_ys )
+        else:
+            main_coords = Experiment.FeatureWeightsGridSearch( param_space=param_space,
+                    quiet=quiet, **kwargs )
+            X, Y = zip( *main_coords )
+            if y_min == None:
+                y_min = min( Y )
+            y_max = max( Y )
 
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
 
-        self.figure = plt.figure( figsize=(12, 8) )
+        self.figure = plt.figure( figsize=figsize )
         self.main_axes = self.figure.add_subplot(111)
         if chart_title == None:
-            self.chart_title = "R vs. num features, two methods"
+            self.chart_title = "Feature Space Predicton figure of merit vs. # features"
         else:
             self.chart_title = chart_title
-
-        # need to make axes have same range
-        ls_yvals = [ split_result.std_err for split_result in ls_experiment.individual_results ]
-        voting_yvals = [ split_result.std_err for split_result in voting_experiment.individual_results ]
-
-        min_ls_yval = min(ls_yvals)
-        optimal_num_feats_ls = ls_yvals.index( min_ls_yval ) + 1 # count from 1, not 0
-        min_voting_yval = min(voting_yvals)
-        optimal_num_feats_voting = voting_yvals.index( min_voting_yval ) + 1 # count from 1, not 0
-
-        all_vals = ls_yvals + voting_yvals
-
-        if y_min is not None:
-            try:
-                y_min = float(y_min)
-            except:
-                raise ValueError( "Can't convert {0} to float".format(y_min))
-            _min = y_min
-        else:
-            _min = min( all_vals )
-        if y_max is not None:
-            try:
-                y_max = float(y_max)
-            except:
-                raise ValueError( "Can't convert {0} to float".format(y_max))
-            _max = y_max
-        else:
-            _max = max( all_vals )
-
-        # Plot least Squares Data
         self.main_axes.set_title( self.chart_title )
-        self.main_axes.set_xlabel( 'Number of features' )
-        self.main_axes.set_ylabel( 'RMS Least Squares Method', color='b' )
-        self.main_axes.set_ylim( [_min, _max ] )
-        self.main_axes.plot( x_vals, ls_yvals, color='b', marker='o', linestyle='--' )
+
+        self.main_axes.set_xlabel( '# top-ranked features' )
+        self.main_axes.set_xscale( param_scale )
+        self.main_axes.set_ylabel( 'Figure of Merit', color='b' )
+        self.main_axes.set_ylim( [ y_min, y_max ] )
+        self.main_axes.plot( X, Y, color='b', marker='o', linestyle='--' )
         for tl in self.main_axes.get_yticklabels():
             tl.set_color('b')
 
-        self.main_axes.annotate( 'min R={0:.3f} @ {1}'.format(min_ls_yval, optimal_num_feats_ls),
-        color='b',
-        xy=( optimal_num_feats_ls, min_ls_yval ),
-        xytext=( optimal_num_feats_ls, 0.8 * _max ),
-        arrowprops=dict(facecolor='black', shrink=0.05),
-        horizontalalignment='right' )
+#        self.main_axes.annotate( 'min R={0:.3f} @ {1}'.format(min_ls_yval, optimal_num_feats_ls),
+#        color='b',
+#        xy=( optimal_num_feats_ls, min_ls_yval ),
+#        xytext=( optimal_num_feats_ls, 0.8 * _max ),
+#        arrowprops=dict(facecolor='black', shrink=0.05),
+#        horizontalalignment='right' )
 
-        # Plot Voting method data
-        self.timing_axes = self.main_axes.twinx()
-        self.timing_axes.set_ylabel( 'RMS Voting Method', color='r' )
-        self.timing_axes.set_ylim( [_min, _max ] )
-        self.timing_axes.plot( x_vals, voting_yvals, color='r', marker='o', linestyle='--' )
-        for tl in self.timing_axes.get_yticklabels():
-            tl.set_color('r')
+        if lda_comparison:
+            self.lda_axes = self.main_axes.twinx()
+            self.lda_axes.set_xscale( param_scale )
+            self.lda_axes.set_ylabel( 'Figure of Merit WITH LDA', color='r' )
+            self.lda_axes.set_ylim( [ y_min, y_max ] )
+            self.lda_axes.plot( X_lda, Y_lda, color='r', marker='o', linestyle='--' )
+            for tl in self.lda_axes.get_yticklabels():
+                tl.set_color('r')
 
-        self.timing_axes.annotate( 'min R={0:.3f} @ {1}'.format(min_voting_yval, optimal_num_feats_voting),
-        color='r',
-        xy=( optimal_num_feats_voting, min_voting_yval ),
-        xytext=( optimal_num_feats_voting, 0.6 * _max ),
-        arrowprops=dict(facecolor='black', shrink=0.05),
-        horizontalalignment='right' )
-
-#============================================================================
-#class Dendrogram( object ):
-#    """Not implemented. In the future might use scipy.cluster (no unrooted dendrograms though!)
-#    or Biopython.Phylo to visualize. Perhaps could continue C++ implementation's use of PHYLIP's
-#    Fitch-Margoliash program "fitch" to generate Newick phylogeny, and visualize using
-#    native python tools."""
-#    pass
+#        self.lda_axes.annotate( 'min R={0:.3f} @ {1}'.format(min_voting_yval, optimal_num_feats_voting),
+#        color='r',
+#        xy=( optimal_num_feats_voting, min_voting_yval ),
+#        xytext=( optimal_num_feats_voting, 0.6 * _max ),
+#        arrowprops=dict(facecolor='black', shrink=0.05),
+#        horizontalalignment='right' )
