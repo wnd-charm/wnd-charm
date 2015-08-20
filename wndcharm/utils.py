@@ -419,6 +419,7 @@ def parallel_compute( samples, n_jobs=True ):
     https://en.wikipedia.org/wiki/Symmetric_multiprocessing"""
 
     from multiprocessing import cpu_count, Queue, Pool, log_to_stderr
+    import logging
     if n_jobs == True:
         n_jobs = cpu_count()
 
