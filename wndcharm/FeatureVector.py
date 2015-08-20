@@ -630,7 +630,10 @@ class FeatureVector( object ):
                     raise ValueError( 'Could not crop bounding box ({0},{1}),({2},{3}) from image "{4}"'.\
                     format( x1, y1, x2, y2, self.source_filepath.source ) )
         else:
-            raise ValueError("image parameter 'image_path_or_mat' is not a string or a wndcharm.ImageMatrix")
+            errmsg = "Could not load pixel plane required for calculating features: " + \
+                    'Attribute "source_filepath" of object {} is "{}", must be type str ' + \
+                    "or a wndcharm.ImageMatrix."
+            raise ValueError( errmsg.format( self, self.source_filepath ) )
 
         # pre-allocate space where the features will be stored (C++ std::vector<double>)
         tmp_vec = wndcharm.DoubleVector( comp_plan.n_features )
