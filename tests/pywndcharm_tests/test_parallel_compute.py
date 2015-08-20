@@ -55,8 +55,8 @@ class Test_parallel_compute( unittest.TestCase ):
         from shutil import copy
         from tempfile import NamedTemporaryFile
 
-        refdir = mkdtemp() 
-        targetdir = mkdtemp()
+        refdir = mkdtemp(prefix='ref') 
+        targetdir = mkdtemp(prefix='target')
 
         try:
             reference_feats = pychrm_test_dir + sep + 'lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E_t6x5_REFERENCE_SIGFILES.zip'
@@ -68,26 +68,26 @@ class Test_parallel_compute( unittest.TestCase ):
 
             # copy the tiff to the tempdir so the .sig files end up there too
             copy( orig_img_filepath, targetdir )
+            copy( orig_img_filepath, refdir )
             input_image_path = targetdir + sep + img_filename
 
-            fof_str = 'test_samp\ttest_class\t{}\t{{}}\n'.format( input_image_path )
-            with NamedTemporaryFile( mode='w', dir=targetdir, delete=False ) as temp:
-                target_fof = temp.name
-                temp.write( fof_str )
-            # use the same FOF to load the precalculated reference features
-            with NamedTemporaryFile( mode='w', dir=refdir, delete=False ) as temp:
+            with NamedTemporaryFile( mode='w', dir=refdir, prefix='ref', delete=False ) as temp:
                 ref_fof = temp.name
-                temp.write( fof_str )
+                temp.write( 'test_samp\ttest_class\t{}\t{{}}\n'.format( refdir + sep + img_filename ) )
+            with NamedTemporaryFile( mode='w', dir=targetdir, prefix='target', delete=False ) as temp:
+                target_fof = temp.name
+                temp.write( 'test_samp\ttest_class\t{}\t{{}}\n'.format( targetdir + sep + img_filename ) )
 
-            kwargs = {}
-            kwargs[ 'long' ] = True
-            kwargs[ 'tile_num_cols' ] = 6
-            kwargs[ 'tile_num_rows' ] = 5
-            kwargs[ 'quiet' ] = False
+            global_sampling_options = \
+                FeatureVector( long=True, tile_num_cols=6, tile_num_rows=5 )
 
             import pdb; pdb.set_trace()
-            ref_fs = FeatureSpace.NewFromFileOfFiles( ref_fof, **kwargs )
-            target_fs = FeatureSpace.NewFromFileOfFiles( target_fof, n_jobs=True, **kwargs )
+            # Should just load reference sigs
+            ref_fs = FeatureSpace.NewFromFileOfFiles( ref_fof, quiet=False,
+                 global_sampling_options=global_sampling_options )
+            target_fs = FeatureSpace.NewFromFileOfFiles( target_fof, n_jobs=True,
+                 quiet=False, global_sampling_options=global_sampling_options )
+
             from numpy.testing import assert_allclose
             self.assertTrue( assert_allclose( ref_fs.data_matrix, target_fs.data_matrix ) )
 

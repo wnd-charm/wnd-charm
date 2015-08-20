@@ -1064,7 +1064,7 @@ class FeatureSpace( object ):
         import re
         num_search = re.compile( r'(-?\d*\.?\d+)' )
 
-        if not global_sampling_options:
+        if global_sampling_options is None:
             global_sampling_options = FeatureVector( **kwargs )
 
         basepath, ext = splitext( pathname )
