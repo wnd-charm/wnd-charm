@@ -241,7 +241,9 @@ class TestSampleImageTiles( unittest.TestCase ):
         #   Rows/Strip: 5
         #   Planar Configuration: single image plane
 
-        # 5x6 tiling scheme => tile dims 208 x 231.33 each
+        # WND-CHARM command line specifies via -tCxR param
+        # where C is columns and R is rows, ergo 5 rows, 6 cols = -t6x5
+        # tile dims => w=1388/6 cols = 231.33px wide, h=1040/5 rows = 208 px tall
         scan_x = 231
         scan_y = 208
 

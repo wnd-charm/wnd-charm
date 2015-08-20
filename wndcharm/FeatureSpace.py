@@ -1048,7 +1048,8 @@ class FeatureSpace( object ):
     #==============================================================
     @classmethod
     def NewFromFileOfFiles( cls, pathname, num_samples_per_group=None, discrete=True, quiet=False,
-             global_sampling_options=None, write_sig_files_to_disk=True, **kwargs ):
+             global_sampling_options=None, write_sig_files_to_disk=True, n_jobs=None,
+             **kwargs ):
         """Create a FeatureSpace from a file of files.
 
         The original FOF format (pre-2015) was just two columns, a path and a ground truth
@@ -1288,9 +1289,12 @@ class FeatureSpace( object ):
         fof.close()
         # END iterating over lines in FOF
 
-        # FIXME: Here's where the parallization magic can (will!) happen.
-        [ fv.GenerateFeatures( write_sig_files_to_disk, update_samp_opts_from_pathname=False, 
-            quiet=quiet ) for fv in samples ]
+        if n_jobs is not None:
+            from .utils import parallel_compute
+            parallel_compute( samples, n_jobs )
+
+        [ fv.GenerateFeatures( write_sig_files_to_disk,
+                update_samp_opts_from_pathname=False, quiet=quiet ) for fv in samples ]
 
         assert num_features > 0
 

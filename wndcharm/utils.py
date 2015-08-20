@@ -411,3 +411,25 @@ def compare( a_list, b_list, atol=1e-7 ):
             continue
             #self.fail( errstr.format( count, a_raw, b_raw ) )
     return result
+
+# ============================================================
+
+def parallel_compute( samples, n_jobs=True ):
+    """WND-CHARM implementation of symmetric multiprocessing, see:
+    https://en.wikipedia.org/wiki/Symmetric_multiprocessing"""
+
+    from multiprocessing import cpu_count, Queue, Pool, log_to_stderr
+    if n_jobs == True:
+        n_jobs = cpu_count()
+
+    logger = log_to_stderr()
+    logger.setLevel(logging.INFO)
+    pool = Pool( processes=n_jobs )
+
+    def RunInProcess( fv ):
+        fv.GenerateFeatures( write_to_disk=True )
+
+    pool.imap_unordered( RunInProcess, samples, chunksize=1 )
+    pool.close()
+    pool.join()
+ 
