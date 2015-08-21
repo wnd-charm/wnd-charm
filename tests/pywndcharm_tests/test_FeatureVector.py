@@ -53,18 +53,18 @@ class TestFeatureCalculation( unittest.TestCase ):
     # test_tif = os.path.join (test_dir,'t1_s01_c05_ij.tif')
 
     # --------------------------------------------------------------------------
-#    def test_ProfileLargeFeatureSet( self ):
-#        """Profiling for calculating sigs"""
-#
-#        import cProfile
-#        import tempfile
-#        import pstats
-#        prof = tempfile.NamedTemporaryFile()
-#        cmd = 'FeatureVector( source_filepath="{0}", long=True ).GenerateFeatures()'.format( self.test_tif_path )
-#        cProfile.run( cmd, prof.name, 'time')
-#        p = pstats.Stats(prof.name)
-#        p.sort_stats('time').print_stats(5)
-#        prof.close()
+    def test_ProfileLargeFeatureSet( self ):
+        """Profiling for calculating sigs"""
+
+        import cProfile
+        import tempfile
+        import pstats
+        prof = tempfile.NamedTemporaryFile()
+        cmd = 'FeatureVector( source_filepath="{0}", long=True ).GenerateFeatures()'.format( self.test_tif_path )
+        cProfile.run( cmd, prof.name, 'time')
+        p = pstats.Stats(prof.name)
+        p.sort_stats('time').print_stats(5)
+        prof.close()
 
 #Loaded features from file /Users/chris/src/wnd-charm/tests/wndchrm_tests/010067_301x300-l_precalculated.sig
 #.Fri Jan 23 15:15:35 2015    /var/folders/cr/vsd9_15x6xbc3np6rvx12mqm0000gp/T/tmpf7Oof0
@@ -83,6 +83,7 @@ class TestFeatureCalculation( unittest.TestCase ):
         # FIXME: Actually do some checking of the profile results
 
     # --------------------------------------------------------------------------
+    @unittest.skip('')
     def test_LargeFeatureSetGrayscale( self ):
         """Large feature set, grayscale image"""
         reference_sample = FeatureVector.NewFromSigFile( self.sig_file_path,
@@ -102,6 +103,7 @@ class TestFeatureCalculation( unittest.TestCase ):
         self.assertTrue( compare( target_sample.values, reference_sample.values ) )
 
     # --------------------------------------------------------------------------
+    @unittest.skip('')
     def test_LoadSubsetFromFile( self ):
         """Calculate one feature family, store to sig, load sig, and use to create larger fs"""
 
@@ -149,6 +151,7 @@ class TestFeatureCalculation( unittest.TestCase ):
         finally:
             rmtree( tempdir )
 
+    @unittest.skip('')
     def test_FeatureComputationFromROI( self ):
         """Specify bounding box to FeatureVector, calc features, then compare
         with C++ implementation-calculated feats."""
