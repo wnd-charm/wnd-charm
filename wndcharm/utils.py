@@ -415,7 +415,7 @@ def compare( a_list, b_list, atol=1e-7 ):
 # ============================================================
 
 def RunInProcess( fv ):
-    print "**DEBUG row-{} col{}".format( fv.tile_row_index, fv.tile_col_index )
+    print "**DEBUG fv {} row-{} col{}".format( fv, fv.tile_row_index, fv.tile_col_index )
     fv.GenerateFeatures( write_to_disk=True )
     return True
 
@@ -430,10 +430,13 @@ def parallel_compute( samples, n_jobs=True ):
 
     logger = log_to_stderr()
     logger.setLevel(logging.INFO)
-    pool = Pool( processes=n_jobs )
-
-
-    pool.map( RunInProcess, samples, chunksize=1 )
-    pool.close()
-    pool.join()
+    try:
+        pool = Pool( processes=n_jobs )
+        pool.map( RunInProcess, samples, chunksize=1 )
+        pool.close()
+        pool.join()
+    except KeyboardInterrupt:
+        pool.terminate()
+        pool.join()
+        raise
  
