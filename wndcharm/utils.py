@@ -414,6 +414,11 @@ def compare( a_list, b_list, atol=1e-7 ):
 
 # ============================================================
 
+def RunInProcess( fv ):
+    print "**DEBUG row-{} col{}".format( fv.tile_row_index, fv.tile_col_index )
+    fv.GenerateFeatures( write_to_disk=True )
+    return True
+
 def parallel_compute( samples, n_jobs=True ):
     """WND-CHARM implementation of symmetric multiprocessing, see:
     https://en.wikipedia.org/wiki/Symmetric_multiprocessing"""
@@ -427,10 +432,8 @@ def parallel_compute( samples, n_jobs=True ):
     logger.setLevel(logging.INFO)
     pool = Pool( processes=n_jobs )
 
-    def RunInProcess( fv ):
-        fv.GenerateFeatures( write_to_disk=True )
 
-    pool.imap_unordered( RunInProcess, samples, chunksize=1 )
+    pool.map( RunInProcess, samples, chunksize=1 )
     pool.close()
     pool.join()
  
