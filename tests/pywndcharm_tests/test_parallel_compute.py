@@ -81,7 +81,6 @@ class Test_parallel_compute( unittest.TestCase ):
             global_sampling_options = \
                 FeatureVector( long=True, tile_num_cols=6, tile_num_rows=5 )
 
-            import pdb; pdb.set_trace()
             # Should just load reference sigs
             ref_fs = FeatureSpace.NewFromFileOfFiles( ref_fof, quiet=False,
                  global_sampling_options=global_sampling_options )
