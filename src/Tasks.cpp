@@ -34,6 +34,7 @@
 #include "FeatureAlgorithms.h"
 #include "cmatrix.h"
 
+#include "sys/time.h"
 
 // This file contains base classes for computation tasks, plans and executors.
 // Also an implementation of a feature calculation plan and executor.
@@ -204,6 +205,12 @@ void FeatureComputationPlanExecutor::execute_node (const ComputationTaskNode *ex
 	const ImageMatrix *IM_in = IM_map[exec_node->source_task->node_key];
 	assert (IM_in != NULL && "Attempt to execute a FeatureComputationPlan node with a NULL source ImageMatrix");
 
+    struct timeval tim;
+    double t1;
+    if( verbosity > 4 ){
+        gettimeofday(&tim, NULL);
+        t1=tim.tv_sec+(tim.tv_usec/1000000.0);
+    }
 	if (verbosity > 5) std::cout << "** executing node '" << exec_node->name << "' with " << exec_node->num_dependent_nodes << " total dependents. IM_in=" << IM_in;
 	switch (task->type) {
 		case ComputationTask::ImageTransformTask: {
@@ -238,6 +245,12 @@ void FeatureComputationPlanExecutor::execute_node (const ComputationTaskNode *ex
 			assert (false && "Attempt to execute a node with an undefined task type");
 		break;
 	}
+
+    if( verbosity > 4 ){
+        gettimeofday(&tim, NULL);
+        double t2=tim.tv_sec+(tim.tv_usec/1000000.0);
+        std::cout << "TIME\t" << exec_node->name << "\t" << (t2 - t1) << std::endl;
+    }
 }
 
 // FIXME: this can go into the base class (?) if its not specialized for task types
