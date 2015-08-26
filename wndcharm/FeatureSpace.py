@@ -1031,8 +1031,8 @@ class FeatureSpace( object ):
             raise ValueError( "Didn't find any image data in top level directory \"{0}\"".format(
                 top_level_dir_path ) )
 
-        # FIXME: Here's where the parallization magic can (will!) happen.
-        [ fv.GenerateFeatures( write_to_disk=write_sig_files_to_disk, quiet=quiet ) for fv in feature_vector_list ]
+        for fv in feature_vector_list:
+            fv.GenerateFeatures( write_to_disk=write_sig_files_to_disk, quiet=quiet )
 
         name = basename( top_level_dir_path )
         retval = cls.NewFromListOfFeatureVectors( feature_vector_list, name=name,
@@ -1293,8 +1293,9 @@ class FeatureSpace( object ):
             from .utils import parallel_compute
             parallel_compute( samples, n_jobs )
 
-        [ fv.GenerateFeatures( write_sig_files_to_disk,
-                update_samp_opts_from_pathname=False, quiet=quiet ) for fv in samples ]
+        for fv in samples:
+            fv.GenerateFeatures( write_sig_files_to_disk,
+                update_samp_opts_from_pathname=False, quiet=quiet )
 
         assert num_features > 0
 
