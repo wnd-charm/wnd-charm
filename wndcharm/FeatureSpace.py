@@ -1028,7 +1028,7 @@ class FeatureSpace( object ):
                 InstantiateFeatureVectorsForDirectory( subdir )
 
         if len( feature_vector_list ) == 0:
-            raise ValueError( "Didn't find any image data in top level directory \"{0}\"".format(
+            raise ValueError( "Didn't find any images within directory \"{0}\"".format(
                 top_level_dir_path ) )
 
         for fv in feature_vector_list:

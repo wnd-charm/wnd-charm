@@ -163,25 +163,47 @@ static inline double RGB2GRAY(const RGBcolor rgb) {
 
 class ImageMatrix {
 private:
-	pixData _pix_plane;                              // pixel plane data  
-	clrData _clr_plane;                              // 3-channel color data
+
+	// pixel plane data
+	pixData _pix_plane;
+
+	// 3-channel HSV color data stored as HSVHSVHSV, not separate pixel planes.
+	clrData _clr_plane;
 	bool _is_pix_writeable;
 	bool _is_clr_writeable;
 	double _median;
+
 public:
 
 	// N.B.: Re: ctor, see note in implementation
-	ImageMatrix () : _pix_plane (NULL,0,0), _clr_plane (NULL,0,0) {
-		init();
-	};
+	ImageMatrix () : _pix_plane (NULL,0,0), _clr_plane (NULL,0,0), downsampled(0),
+        norm_mean(0), norm_stdev(0) { init(); };
 	virtual ~ImageMatrix();
 
-	std::string source;                             // path of image source file
-	enum ColorModes ColorMode;                       // can be cmRGB, cmHSV or cmGRAY
-	unsigned short bits;                            // the number of intensity bits (8,16, etc)
-	unsigned int width,height;                               // width and height of the picture
-	Moments2 stats;        // min, max, mean, std computed in single pass, median in separate pass
-	bool has_median;                     // if the median has been computed
+	// path of image source file
+	std::string source;
+
+	// can be cmRGB, cmHSV or cmGRAY
+	enum ColorModes ColorMode;
+
+	// the number of intensity bits (8,16, etc)
+	unsigned short bits;
+
+	// width and height of the picture
+	unsigned int width, height;
+
+	// N percents, if user specified for pixel plane to be downsampled on open
+	unsigned short downsampled;
+
+	// if user specified for pixel plane to be normalized on open
+	double norm_mean, norm_stdev;
+
+	// min, max, mean, std computed in single pass, median in separate pass
+	Moments2 stats;
+
+	// if the median has been computed
+	bool has_median;
+
 	const double *data_ptr() const { return _pix_plane.data(); }
 	double *writable_data_ptr() { return _pix_plane.data(); }
 	inline writeablePixels WriteablePixels() {
@@ -218,11 +240,16 @@ public:
 	void WriteableColorsFinish () {
 		_is_clr_writeable = false;
 	}
-	int LoadTIFF(char *filename);                   // load from TIFF file
-	int SaveTiff(char *filename);                   // save a matrix in TIF format
-	virtual int OpenImage(char *image_file_name,            // load an image of any supported format
-		int downsample, rect *bounding_rect,
-		double mean, double stddev);
+	// load from TIFF file
+	int LoadTIFF(char *filename);
+
+	// FIXME: Currently saves this->_pix_plane to grayscale TIF, color info not included!
+	int SaveTiff(char *filename);
+
+	// load an image of any supported format
+	virtual int OpenImage( char *image_file_name, int downsample=0, rect *bounding_rect=NULL,
+		double mean=0, double stdev=0);
+
 	// constructor helpers
 	void init();
 	void remap_pix_plane (double *ptr, const unsigned int w, const unsigned int h);
@@ -236,7 +263,7 @@ public:
 
 	virtual void transform (const ImageMatrix &matrix_IN, const ImageTransform *transform);
 
-	void normalize(double min, double max, long range, double mean, double stddev); // normalized an image to either min/max or mean/stddev
+	void normalize(double min, double max, long range, double mean, double stdev); // normalized an image to either min/max or mean/stdev
 	void to8bits (const ImageMatrix &matrix_IN);
 	void flipV();                                   // flip an image around a vertical axis (left to right)
 	void flipH();                                   // flip an image around a horizontal axis (upside down)
@@ -276,7 +303,7 @@ public:
 	void ColorTransform(const ImageMatrix &matrix_IN);
 	void HueTransform(const ImageMatrix &matrix_IN);
 	void histogram(double *bins,unsigned short nbins, bool imhist = false, const Moments2 &in_stats = Moments2()) const; // by default, based on computed min and max.
-    double Otsu(bool dynamic_range=true) const;                                  /* Otsu grey threshold                  */
+	double Otsu(bool dynamic_range=true) const;                                  /* Otsu grey threshold                  */
 	void MultiScaleHistogram(double *out) const;
 	//   double AverageEdge();
 	void EdgeTransform(const ImageMatrix &matrix_IN);                           // gradient binarized using otsu threshold
@@ -306,7 +333,7 @@ public:
 
 	// disable the copy constructor
 private:
-    ImageMatrix(const ImageMatrix &matrix) : _pix_plane (NULL,0,0), _clr_plane (NULL,0,0) {
+	ImageMatrix(const ImageMatrix &matrix) : _pix_plane (NULL,0,0), _clr_plane (NULL,0,0) {
 		assert(false && "Attempt to use copy constructor");
 	};
 };
