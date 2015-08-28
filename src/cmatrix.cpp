@@ -249,7 +249,9 @@ int ImageMatrix::SaveTiff(char *filename) {
 	return(1);
 }
 
-int ImageMatrix::OpenImage(char *image_file_name, int downsample, rect *bounding_rect, double mean, double stddev) {  
+int ImageMatrix::OpenImage( char *image_file_name, int downsample, rect *bounding_rect,
+        double mean, double stdev )
+{
 	int res=0;
 
 	if( !strstr(image_file_name,".tif") && ! strstr(image_file_name,".TIF") )
@@ -269,12 +271,22 @@ int ImageMatrix::OpenImage(char *image_file_name, int downsample, rect *bounding
 	}
 
 	// add the image only if it was loaded properly
-	if (res) {
-		// compute features only from an area of the image
-		if (downsample>0 && downsample<100)  /* downsample by a given factor */
-			Downsample(*this, ((double)downsample)/100.0,((double)downsample)/100.0);   /* downsample the image */
-		if (mean>0)  /* normalize to a given mean and standard deviation */
-			normalize(-1,-1,-1,mean,stddev);
+	if( res )
+	{
+		if( downsample > 0 && downsample < 100)
+		{
+			// downsample by a given factor
+			Downsample(*this, ((double)downsample)/100.0,((double)downsample)/100.0);
+			// record the fact that you downsampled on the object
+			this->downsampled = downsample;
+		}
+		if( mean > 0 )
+		{
+			// normalize pixel intensities to a given mean and standard deviation
+			normalize(-1,-1,-1,mean,stdev);
+			this->norm_mean = mean;
+			this->norm_stdev = stdev;
+		}
 	}
 	if (! source.length() ) source = image_file_name;
 	finish();
@@ -369,6 +381,9 @@ void ImageMatrix::allocate (unsigned int w, unsigned int h) {
 void ImageMatrix::copyFields(const ImageMatrix &copy) {
 	width = copy.width;
 	height = copy.height;
+	downsampled = copy.downsampled;
+	norm_mean = copy.norm_mean;
+	norm_stdev = copy.norm_stdev;
 	stats  = copy.stats;
 	has_median = copy.has_median;
 	_median    = copy._median;
@@ -758,7 +773,7 @@ double ImageMatrix::get_median () const {
 
 	readOnlyPixels pix_plane = ReadablePixels();
 	for (size_t i = 0; i < num; i++) v[i] = pix_plane.array().coeff(i);
-    size_t half = num / 2;
+	size_t half = num / 2;
 	if (num % 2 == 0) {
 		nth_element(v.begin(), v.begin()+half, v.end());
 		median = v[half];
@@ -805,7 +820,7 @@ void ImageMatrix::GetStats (Moments2 &moments2) const {
    max -double- the max pixel value (ignored if <0)
    range -long- nominal dynamic range (ignored if <0)
    n_mean -double- the mean of the normalized image (ignored if <0)
-   n_std -double- the stddev of the normalized image (ignored if <0)
+   n_std -double- the stdev of the normalized image (ignored if <0)
 */
 void ImageMatrix::normalize(double n_min, double n_max, long n_range, double n_mean, double n_std) {
 	unsigned int x,y;
@@ -826,7 +841,7 @@ void ImageMatrix::normalize(double n_min, double n_max, long n_range, double n_m
 		}
 	}
 
-    /* normalize to n_mean and n_std */
+	/* normalize to n_mean and n_std */
 	if (n_mean > 0) {
 		double d_mean = mean() - n_mean, std_fact = (n_std > 0 ? n_std : 0)/std();
 		double max_range = pow((double)2,bits)-1;
@@ -839,7 +854,7 @@ void ImageMatrix::normalize(double n_min, double n_max, long n_range, double n_m
 				else if (val > max_range) val = max_range;
 				pix_plane (y,x) = stats.add (val);
 			}
-        }
+		}
 	}	   
 }
 
@@ -1418,14 +1433,14 @@ void ImageMatrix::RadonTransform2D(double *vec) const {
 	for (val_index = 0; val_index < output_size*num_angles; val_index++)
 		ptr[val_index] = 0;  /* initialize the output vector */
 
-    pixels=new double[width*height];
-    vec_index = 0;
+	pixels=new double[width*height];
+	vec_index = 0;
 
 	for (x = 0; x < width; x++)
 		for (y = 0; y < height; y++)
 			pixels[y+height*x] = pix_plane(y,x);
 
-    radon(ptr,pixels, theta, height, width, (width-1)/2, (height-1)/2, num_angles, rFirst, output_size);
+	radon(ptr,pixels, theta, height, width, (width-1)/2, (height-1)/2, num_angles, rFirst, output_size);
 
 	for (angle = 0; angle < num_angles; angle++) {
 		//radon(ptr,pixels, &theta, height, width, (width-1)/2, (height-1)/2, 1, rFirst, output_size);
@@ -1470,7 +1485,7 @@ double ImageMatrix::Otsu(bool dynamic_range) const {
 	double max_sigma, sigma[OTSU_LEVELS]; // inter-class variance
 	int i;
 	int threshold;
-    double min_val,max_val; // pixel range
+	double min_val,max_val; // pixel range
 
 	if (!dynamic_range) {
 		histogram(hist,OTSU_LEVELS,true);
