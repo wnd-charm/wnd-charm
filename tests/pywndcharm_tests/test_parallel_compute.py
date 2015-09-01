@@ -47,6 +47,7 @@ class Test_parallel_compute( unittest.TestCase ):
     maxDiff = None
 
     #@unittest.expectedFailure("")
+    @unittest.skip("")
     def test_ParallelTiling( self ):
         """Specify bounding box to FeatureVector, calc features, then compare
         with C++ implementation-calculated feats."""

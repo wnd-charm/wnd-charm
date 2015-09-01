@@ -53,6 +53,7 @@ class TestFeatureCalculation( unittest.TestCase ):
     # test_tif = os.path.join (test_dir,'t1_s01_c05_ij.tif')
 
     # --------------------------------------------------------------------------
+    @unittest.skip('')
     def test_ProfileLargeFeatureSet( self ):
         """Profiling for calculating sigs"""
 
@@ -80,7 +81,6 @@ class TestFeatureCalculation( unittest.TestCase ):
 #     2920    0.004    0.000    0.004    0.000 {_wndcharm.SwigPyIterator_next}
 #     2922    0.004    0.000    0.004    0.000 {method 'format' of 'str' objects}
 #        1    0.003    0.003   14.951   14.951 /Users/chris/src/wnd-charm/build/lib.macosx-10.9-x86_64-2.7/wndcharm/FeatureSet.py:1126(GenerateFeatures)
-        # FIXME: Actually do some checking of the profile results
 
     # --------------------------------------------------------------------------
     @unittest.skip('')
@@ -228,7 +228,7 @@ import numpy as np
 
 class TestSampleImageTiles( unittest.TestCase ):
 
-    @unittest.skip("SampleImageTiles.sample() isn't working quite right, just use ROI on FeatureVector")
+    #@unittest.skip("SampleImageTiles.sample() isn't working quite right, just use ROI on FeatureVector")
     def test_HeatMap_w_FeatureComputationPlan( self ):
         """Classification results using SampleImageTiles method and FOF should be the same.
         """
@@ -257,7 +257,7 @@ class TestSampleImageTiles( unittest.TestCase ):
         
         try:
             import zipfile
-            reference_sigs = pychrm_test_dir + sep + 'lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E_REFERENCE_SIGFILES.zip'
+            reference_sigs = pychrm_test_dir + sep + 'lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E_t6x5_REFERENCE_SIGFILES.zip'
             zf = zipfile.ZipFile( reference_sigs, mode='r' )
             zf.extractall( tempdir )
 
@@ -277,7 +277,7 @@ class TestSampleImageTiles( unittest.TestCase ):
             base, ext = splitext( input_image_path )
 
             # Just grab the first tile:
-            import pdb; pdb.set_trace()
+            #import pdb; pdb.set_trace()
             tile_cropped_px_plane = image_iter.sample()
 
             kwargs = {}
@@ -295,7 +295,7 @@ class TestSampleImageTiles( unittest.TestCase ):
 
             top_left_tile_feats = FeatureVector( **kwargs ).GenerateFeatures( quiet=False, write_to_disk=False )
 
-            top_left_tile_reference_feats = FeatureVector.NewFromSigFile( tempdir + sep + 'sj-05-3362-R2_001_E-t5x6_0_0-l.sig' ) 
+            top_left_tile_reference_feats = FeatureVector.NewFromSigFile( tempdir + sep + 'sj-05-3362-R2_001_E-t6x5_0_0-l.sig' )
 
             # Remember we're reading these values in from strings. and the ranges are so wide
             # you only have 6 sig figs. Better apples to apples comparison is to
