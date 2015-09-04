@@ -53,18 +53,19 @@ class TestFeatureCalculation( unittest.TestCase ):
     # test_tif = os.path.join (test_dir,'t1_s01_c05_ij.tif')
 
     # --------------------------------------------------------------------------
-#    def test_ProfileLargeFeatureSet( self ):
-#        """Profiling for calculating sigs"""
-#
-#        import cProfile
-#        import tempfile
-#        import pstats
-#        prof = tempfile.NamedTemporaryFile()
-#        cmd = 'FeatureVector( source_filepath="{0}", long=True ).GenerateFeatures()'.format( self.test_tif_path )
-#        cProfile.run( cmd, prof.name, 'time')
-#        p = pstats.Stats(prof.name)
-#        p.sort_stats('time').print_stats(5)
-#        prof.close()
+    @unittest.skip('')
+    def test_ProfileLargeFeatureSet( self ):
+        """Profiling for calculating sigs"""
+
+        import cProfile
+        import tempfile
+        import pstats
+        prof = tempfile.NamedTemporaryFile()
+        cmd = 'FeatureVector( source_filepath="{0}", long=True ).GenerateFeatures()'.format( self.test_tif_path )
+        cProfile.run( cmd, prof.name, 'time')
+        p = pstats.Stats(prof.name)
+        p.sort_stats('time').print_stats(5)
+        prof.close()
 
 #Loaded features from file /Users/chris/src/wnd-charm/tests/wndchrm_tests/010067_301x300-l_precalculated.sig
 #.Fri Jan 23 15:15:35 2015    /var/folders/cr/vsd9_15x6xbc3np6rvx12mqm0000gp/T/tmpf7Oof0
@@ -74,7 +75,6 @@ class TestFeatureCalculation( unittest.TestCase ):
 #   Ordered by: internal time
 #   List reduced from 55 to 5 due to restriction <5>
 #
-#   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
 #   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
 #        1   14.926   14.926   14.926   14.926 {_wndcharm.FeatureComputationPlanExecutor_run}
 #        1    0.005    0.005   14.956   14.956 <string>:1(<module>)
@@ -235,12 +235,17 @@ class TestSlidingWindow( unittest.TestCase ):
         # chris@NIA-LG-01778617 ~/src/wnd-charm/tests/pywndcharm_tests
         # $ tiffinfo lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E.tif
         # TIFF Directory at offset 0x18ea9c (1632924)
+        #   Image Width: 1388 Image Length: 1040
+        #   Bits/Sample: 8
+        #   Compression Scheme: LZW
         #   Photometric Interpretation: min-is-black
         #   Samples/Pixel: 1
         #   Rows/Strip: 5
         #   Planar Configuration: single image plane
 
-        # 5x6 tiling scheme => tile dims 208 x 231.33 each
+        # WND-CHARM command line specifies via -tCxR param
+        # where C is columns and R is rows, ergo 5 rows, 6 cols = -t6x5
+        # tile dims => w=1388/6 cols = 231.33px wide, h=1040/5 rows = 208 px tall
         scan_x = 231
         scan_y = 208
 
@@ -251,7 +256,7 @@ class TestSlidingWindow( unittest.TestCase ):
         
         try:
             import zipfile
-            reference_sigs = pychrm_test_dir + sep + 'lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E_REFERENCE_SIGFILES.zip'
+            reference_sigs = pychrm_test_dir + sep + 'lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E_t6x5_REFERENCE_SIGFILES.zip'
             zf = zipfile.ZipFile( reference_sigs, mode='r' )
             zf.extractall( tempdir )
 
@@ -289,7 +294,7 @@ class TestSlidingWindow( unittest.TestCase ):
 
             top_left_tile_feats = FeatureVector( **kwargs ).GenerateFeatures( quiet=False, write_to_disk=False )
 
-            top_left_tile_reference_feats = FeatureVector.NewFromSigFile( tempdir + sep + 'sj-05-3362-R2_001_E-t5x6_0_0-l.sig' ) 
+            top_left_tile_reference_feats = FeatureVector.NewFromSigFile( tempdir + sep + 'sj-05-3362-R2_001_E-t6x5_0_0-l.sig' )
 
             # Remember we're reading these values in from strings. and the ranges are so wide
             # you only have 6 sig figs. Better apples to apples comparison is to

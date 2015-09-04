@@ -694,7 +694,97 @@ class FeatureVector( object ):
         if self.rot is not None:
             raise NotImplementedError( "FIXME: Implement rotations." )
 
+<<<<<<< HEAD
         px_plane = self.GetPixelPlane()
+=======
+        from .PyImageMatrix import PyImageMatrix
+
+        # Open the tiff and get the FULL pixel plane first.
+        # Do all pixel plane manipulations (mean, ROI, etc ) explicitly after.
+        if isinstance( self.source_filepath, str ):
+            FULL_px_plane = PyImageMatrix()
+            retval = FULL_px_plane.OpenImage( self.source_filepath )
+            if 1 != retval:
+                errmsg = 'Could not build a wndchrm.PyImageMatrix from {0}, check the path.'
+                raise ValueError( errmsg.format( self.source_filepath ) )
+        elif isinstance( self.source_filepath, wndcharm.ImageMatrix ):
+            FULL_px_plane = self.source_filepath
+        else:
+            errmsg = "Could not load pixel plane required for calculating features: " + \
+                    'Attribute "source_filepath" of object {} is "{}", must be type str ' + \
+                    "or a wndcharm.ImageMatrix."
+            raise ValueError( errmsg.format( self, self.source_filepath ) )
+
+        # Next, submatrix for ROI/tiling
+        if self.x is not None and self.y is not None and self.w is not None and self.h is not None:
+            # For a bounding box:
+            if (self.tile_num_cols and self.tile_num_cols > 1) or \
+                    (self.tile_num_rows and self.tile_num_rows > 1 ):
+                # As of right now you can't specify a ROI bounding box and a tiling pattern
+                # simultaneously.
+                errmsg = "Specifing both ROI and tiling params currently not supported."
+                raise ValueError( errmsg )
+            x1 = self.x
+            y1 = self.y
+            x2 = x1 + self.w - 1
+            y2 = y1 + self.h - 1
+            # C++ API calls for copying desired pixels into empty ImageMatrix instance:
+            px_plane = PyImageMatrix()
+            retval = px_plane.submatrix( FULL_px_plane, x1, y1, x2, y2 )
+            if 1 != retval:
+                e = 'Error cropping bounding box ({},{}),({},{}) from image "{}" w={} h={}'
+                e = e.format( x1, y1, x2, y2, FULL_px_plane.source, FULL_px_plane.width,
+                                    FULL_px_plane.height )
+                raise ValueError( e )
+        elif( self.tile_num_cols and self.tile_num_cols > 1 ) or \
+                    ( self.tile_num_rows and self.tile_num_rows > 1 ):
+            # for tiling: figure out bounding box for this tile:
+            w = int( round( float( FULL_px_plane.width ) / self.tile_num_cols ) )
+            h = int( round( float( FULL_px_plane.height ) / self.tile_num_rows ) )
+            x1 = self.tile_col_index * w
+            x2 = ( ( self.tile_col_index + 1 ) * w ) - 1
+            y1 = self.tile_row_index + h
+            y2 = ( ( self.tile_row_index + 1 ) * h ) - 1
+            px_plane = PyImageMatrix()
+            retval = px_plane.submatrix( FULL_px_plane, x1, y1, x2, y2 )
+            if 1 != retval:
+                e = 'Error cropping tile (col {},row {}) with tiling scheme {}col X {}row '
+                e += 'with bounding box ({},{}),({},{}) from image "{}" w={} h={}'
+                e = e.format( self.tile_col_index, self.tile_row_index, self.tile_num_cols,
+                            self.tile_num_rows, x1, y1, x2, y2, FULL_px_plane.source,
+                            FULL_px_plane.width, FULL_px_plane.height )
+                raise ValueError( e )
+        else:
+            px_plane = FULL_px_plane
+
+        # Downsampling comes after cropping in order of operations, unless the source
+        # source is an instantiated ImageMatrix (not a str path) and it came pre-downsampled
+        if self.downsample:
+            if px_plane.downsampled and self.downsample != px_plane.downsampled:
+                e = "Can't downsample {} to {}, it's already been downsampled to {}."
+                raise ValueError( e.format( px_plane, self.downsample, px_plane.downsampled))
+            d = float( self.downsample ) / 100
+            # Do a copy to avoid possibly corrupting source FULL_px_plane
+            copy = PyImageMatrix()
+            copy.Downsample( px_plane, d, d )
+            px_plane = copy
+
+        # Similar to downsampling, if the source is a pixel plane that has already been
+        # normalized, that's ok, but prevent operation on px plane that's already
+        # been averaged
+        if self.pixel_intensity_mean:
+            # MEAN:
+            if px_plane.norm_mean and self.pixel_intensity_mean != px_plane.norm_mean:
+                e = "Can't normalize pixel intensities of {} to mean={}, it's already been normalized to mean={}."
+                raise ValueError( e.format( px_plane, self.pixel_intensity_mean, px_plane.norm_mean))
+            # STDEV (optional):
+            if px_plane.norm_stdev and self.pixel_intensity_stdev and \
+                    self.pixel_intensity_stdev != px_plane.norm_stdev:
+                e = "Can't normalize pixel intensities of {} to stdev={}, it's already been normalized to stdev={}."
+                raise ValueError( e.format( px_plane, self.pixel_intensity_stdev, px_plane.norm_stdev))
+            px_plane.normalize( -1, -1, -1,
+                self.pixel_intensity_mean, self.pixel_intensity_mean )
+>>>>>>> e8fbad4befd84927b831edf480fd80afe900c2aa
 
         # pre-allocate space where the features will be stored (C++ std::vector<double>)
         tmp_vec = wndcharm.DoubleVector( comp_plan.n_features )
