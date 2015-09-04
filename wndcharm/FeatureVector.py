@@ -108,8 +108,12 @@ class FeatureVector( object ):
     -------------------
 
         self.name - str - Sample (row) name, common across all channels
-        self.source_filepath - str or wndchrm.ImageMatrix - source pixel plane,
-            either filesystem path or instantiated wndcharm pixel plane obj.
+        self.source_filepath - str
+            Filesystem path or other handle, e.g. OMERO obj id
+        self.source_px_plane - wndcharm.ImageMatrix
+            Cached full image used for subsampling/tiling later
+        self.px_plane - wndcharm.ImageMatrix
+            Immediate substrate/local pixel plane upon which features will be calculated.
         self.auxiliary_feature_storage - str - Path to storage on file system,
             currently an ASCII text representation of data and metadata, written
             in a format used by the classic C++ WND-CHARM implementation. Has .sig
@@ -220,6 +224,12 @@ class FeatureVector( object ):
         self.name = None
         #: Can also be a reference to a wndchrm.ImageMatrix object
         self.source_filepath = None
+        #: instance of wndcharm.ImageMatrix - used to cache full image for
+        #: subsampling/tiling later.
+        self.source_px_plane = None
+        #: instance of wndcharm.ImageMatrix - the immediate substrate/local pixel plane
+        #: upon which features will be calculated.
+        self.px_plane = None
         #: Path to .sig file, in future hdf/sql file
         self.auxiliary_feature_storage = None
         #: the prefix string to which sampling options will be appended to form .sig filepath
@@ -504,89 +514,14 @@ class FeatureVector( object ):
         return base + '.sig'
 
     #================================================================
-    def GenerateFeatures( self, write_to_disk=True, update_samp_opts_from_pathname=None,
-            quiet=True ):
-        """@brief Loads precalculated features, or calculates new ones, based on which instance
-        attributes have been set, and what their values are.
+    def GetPixelPlane( self, save=False ):
 
-        write_to_disk (bool) - save features to text file which by convention has extension ".sig"
-        update_samp_opts_from_pathname (bool) - If a .sig file exists, don't overwrite
-            self's sampling options from the sampling options in the .sig file pathname.
-        
-        Returns self for convenience."""
-
-        # 0: What features does the user want?
-        # 1: are there features already calculated somewhere?
-        # 2: if so are they current/complete/expected/correct?
-        # 3: if not, what's left to calculate?
-        # 4: Calculate the rest
-        # 5: Reduce the features down to what the user asked for
-
-        if self.values is not None and len( self.values ) != 0:
-            return self
-
-        partial_load = False
-        try:
-            self.LoadSigFile( quiet=quiet, \
-                    update_samp_opts_from_pathname=update_samp_opts_from_pathname )
-            # FIXME: Here's where you'd calculate a small subset of features
-            # and see if they match what was loaded from file. The file could be corrupted
-            # incomplete, or calculated with different options, e.g., -S1441
-            return self
-        except IOError:
-            # File doesn't exist
-            pass
-        except WrongFeatureSetVersionError:
-            # File has different feature version than desired
-            pass
-        except IncompleteFeatureSetError:
-            # LoadSigFile should create a FeatureComputationPlan
-            if not quiet:
-                print 'Loaded {0} features from disk for sample "{1}"'.format(
-                        len( self.temp_names ), self.name )
-            partial_load = True
-            pass
-
-        # All hope is lost, calculate features.
-
-        # Use user-assigned feature computation plan, if provided=quiet:
-        if self.feature_computation_plan != None:
-            comp_plan = self.feature_computation_plan
-
-            # I Commented the following out because the computation plan may only reflect
-            # the subset of features that haven't been calculated yet:
-            # comp_plan.feature_vec_type seems to only contain the minor version
-            # i.e., number after the '.'. Assume major version is the latest.
-            #self.feature_set_version = '{0}.{1}'.format( 
-            #        feature_vector_major_version, comp_plan.feature_vec_type )
-        else:
-            major, minor = self.feature_set_version.split('.')
-            if minor == '0':
-                comp_plan = GenerateFeatureComputationPlan( self.feature_names )
-            elif minor == '1':
-                comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSet()
-            elif minor == '2':
-                comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSetLong()
-            elif minor == '3':
-                comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSetColor()
-            elif minor == '4':
-                comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSetColorLong()
-            else:
-                raise ValueError( "Not sure which features you want." )
-            self.feature_computation_plan = comp_plan
-
-        # Here are the ImageMatrix API calls:
-        # void normalize(double min, double max, long range, double mean, double stddev);
-        # int OpenImage(char *image_file_name, int downsample, rect *bounding_rect, double mean, double stddev);
-        # void Rotate (const ImageMatrix &matrix_IN, double angle);
-        # ImageMatrix::submatrix() has a funky signature:
-        #   void ImageMatrix::submatrix (const ImageMatrix &matrix, const unsigned int x1, const unsigned int y1, const unsigned int x2, const unsigned int y2);
-        #   where x2 and y2 are INCLUSIVE, i.e., must subtract 1 from both
-
-        if self.rot is not None:
-            raise NotImplementedError( "FIXME: Implement rotations." )
+        if self.px_plane is not None:
+            return self.px_plane
 
         from .PyImageMatrix import PyImageMatrix
+
+        if self.source_px_plane is 
 
         # Open the tiff and get the FULL pixel plane first.
         # Do all pixel plane manipulations (mean, ROI, etc ) explicitly after.
@@ -673,6 +608,93 @@ class FeatureVector( object ):
                 raise ValueError( e.format( px_plane, self.pixel_intensity_stdev, px_plane.norm_stdev))
             px_plane.normalize( -1, -1, -1,
                 self.pixel_intensity_mean, self.pixel_intensity_mean )
+
+        return px_plane
+
+    #================================================================
+    def GenerateFeatures( self, write_to_disk=True, update_samp_opts_from_pathname=None,
+            quiet=True ):
+        """@brief Loads precalculated features, or calculates new ones, based on which instance
+        attributes have been set, and what their values are.
+
+        write_to_disk (bool) - save features to text file which by convention has extension ".sig"
+        update_samp_opts_from_pathname (bool) - If a .sig file exists, don't overwrite
+            self's sampling options from the sampling options in the .sig file pathname.
+ 
+        Returns self for convenience."""
+
+        # 0: What features does the user want?
+        # 1: are there features already calculated somewhere?
+        # 2: if so are they current/complete/expected/correct?
+        # 3: if not, what's left to calculate?
+        # 4: Calculate the rest
+        # 5: Reduce the features down to what the user asked for
+
+        if self.values is not None and len( self.values ) != 0:
+            return self
+
+        partial_load = False
+        try:
+            self.LoadSigFile( quiet=quiet, \
+                    update_samp_opts_from_pathname=update_samp_opts_from_pathname )
+            # FIXME: Here's where you'd calculate a small subset of features
+            # and see if they match what was loaded from file. The file could be corrupted
+            # incomplete, or calculated with different options, e.g., -S1441
+            return self
+        except IOError:
+            # File doesn't exist
+            pass
+        except WrongFeatureSetVersionError:
+            # File has different feature version than desired
+            pass
+        except IncompleteFeatureSetError:
+            # LoadSigFile should create a FeatureComputationPlan
+            if not quiet:
+                print 'Loaded {0} features from disk for sample "{1}"'.format(
+                        len( self.temp_names ), self.name )
+            partial_load = True
+            pass
+
+        # All hope is lost, calculate features.
+
+        # Use user-assigned feature computation plan, if provided=quiet:
+        if self.feature_computation_plan != None:
+            comp_plan = self.feature_computation_plan
+
+            # I Commented the following out because the computation plan may only reflect
+            # the subset of features that haven't been calculated yet:
+            # comp_plan.feature_vec_type seems to only contain the minor version
+            # i.e., number after the '.'. Assume major version is the latest.
+            #self.feature_set_version = '{0}.{1}'.format( 
+            #        feature_vector_major_version, comp_plan.feature_vec_type )
+        else:
+            major, minor = self.feature_set_version.split('.')
+            if minor == '0':
+                comp_plan = GenerateFeatureComputationPlan( self.feature_names )
+            elif minor == '1':
+                comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSet()
+            elif minor == '2':
+                comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSetLong()
+            elif minor == '3':
+                comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSetColor()
+            elif minor == '4':
+                comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSetColorLong()
+            else:
+                raise ValueError( "Not sure which features you want." )
+            self.feature_computation_plan = comp_plan
+
+        # Here are the ImageMatrix API calls:
+        # void normalize(double min, double max, long range, double mean, double stddev);
+        # int OpenImage(char *image_file_name, int downsample, rect *bounding_rect, double mean, double stddev);
+        # void Rotate (const ImageMatrix &matrix_IN, double angle);
+        # ImageMatrix::submatrix() has a funky signature:
+        #   void ImageMatrix::submatrix (const ImageMatrix &matrix, const unsigned int x1, const unsigned int y1, const unsigned int x2, const unsigned int y2);
+        #   where x2 and y2 are INCLUSIVE, i.e., must subtract 1 from both
+
+        if self.rot is not None:
+            raise NotImplementedError( "FIXME: Implement rotations." )
+
+        px_plane = self.GetPixelPlane()
 
         # pre-allocate space where the features will be stored (C++ std::vector<double>)
         tmp_vec = wndcharm.DoubleVector( comp_plan.n_features )
@@ -1072,3 +1094,61 @@ class FeatureVector( object ):
                 out.write( "{0:0.6g} {1}\n".format( val, name ) )
 
 # end definition class FeatureVector
+
+#=============================================================================
+class SlidingWindow( FeatureVector ):
+    """Iterator object for sliding window-style image analysis/feature calculation.
+
+    Default behavior is to iterate over contiguous, non-overlapping tiles specified
+    by tile_num_rows & tile_num_cols. Overlapping/non-contiguous behavior enabled when
+    user specifies w, h, deltax and/or deltay.
+
+    Arguments:
+        deltax & deltay - int (default None)
+            Number of pixels to move scanning window vertically/horizontally."""
+
+    def __iter__( self ):
+        return self
+
+    def __init__( self, full_px_plane, deltax=None, deltay=None, *args, **kwargs ):
+
+        super( SlidingWindow, self ).__init__( *args, **kwargs )
+        self.full_px_plane = full_px_plane
+        self.deltax = deltax
+        self.deltay = deltay
+        self.current_row = 0
+        self.current_y = 0
+        self.current_col = 0
+        self.current_x = 0
+
+        if deltaxpx is not None:
+            self.tile_width = deltaxpx
+        else:
+            self.tile_width = int( float( self.image.width ) / num_cols ) )
+        if deltaypx is not None:
+            self.tile_height = deltaypx
+        else:
+            self.tile_height = int( float( self.image.height) / num_rows )
+
+
+        self.samples = self.tiles_x * self.tiles_y
+
+    def next( self ):
+        
+        width = self.tile_width
+        height = self.tile_height
+        max_x = self.image.width
+        max_y = self.image.height
+        original = self.image
+        while self.current_y + height <= max_y:
+            while self.current_x + width <= max_x:
+                new_px_plane = wndcharm.ImageMatrix()
+                bb = ( self.current_x, self.current_y,
+                        self.current_x + width - 1, self.current_y + height - 1 )
+                new_px_plane.submatrix( original, *bb ) # no retval
+                yield new_px_plane
+                self.current_x += width
+                self.current_col += 1
+            self.current_y += height
+            self.current_row += 1
+

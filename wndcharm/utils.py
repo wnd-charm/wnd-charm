@@ -240,84 +240,9 @@ def normalize_by_columns( feature_matrix, mins=None, maxs=None, means=None, stde
 # END: Initialize module level globals
 #===============================================================
 
-
-# BEGIN: Class definitions for WND-CHARM intermediate objects
-
-#############################################################################
-# class definition of SampleImageTiles
-#############################################################################
-
-class SampleImageTiles (object):
-    """SampleImageTiles is an image iterator wrapper (the iterator is the sample method).
-    The iterator is wrapped to provide additional information such as the number of samples that will
-    be extracted from the image, as well as information about each sample after calling the sample method.
-    Each call to sample returns the next wndcharm.ImageMatrix in the sample set.
-    The constructor has three required parameters.
-    The image parameter can be a path to an image file or a wndcharm.ImageMatrix
-    The x and y parameters can specify the number of non-overlapping samples in each dimension (is_fixed parameter is False),
-    or the dimentions of each sample (is_fixed parameter is True).
-    Example usage:
-        image_iter = SampleImageTiles (input_image, size_x, size_y, True)
-        print "Number of samples = "+str (image_iter.samples)
-        for sample in image_iter.sample():
-            print "({0},{1}) : ({2},{3})".format (
-                image_iter.current_x, image_iter.current_y, sample.width, sample.height)
-    """
-
-    downsample = 0
-    mean = 0
-    stddev = 0
-    def __init__( self, image_in, x, y, is_fixed=False ):
-
-        from os.path import exists
-        if isinstance( image_in, str ):
-            if not exists( image_in ):
-                raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( image_in ) )
-            self.image = wndcharm.ImageMatrix()
-            if 1 != self.image.OpenImage( image_in, 0, None, 0, 0 ):
-                raise ValueError( 'Could not build an ImageMatrix from {0}, check the file.'.format( image_in ) )
-        elif isinstance( image_in, wndcharm.ImageMatrix ):
-            self.image = image_in
-        else:
-            raise ValueError("image parameter 'image_in' is not a string or a wndcharm.ImageMatrix")
-
-        if (is_fixed):
-            self.tile_width = x
-            self.tile_height = y
-            self.tiles_x = int (self.image.width / x)
-            self.tiles_y = int (self.image.height / y)
-        else:
-            self.tile_width = int (self.image.width / x)
-            self.tile_height = int (self.image.height / y)
-            self.tiles_x = x
-            self.tiles_y = y
-
-        self.samples = self.tiles_x * self.tiles_y
-        self.current_row = 0
-        self.current_y = 0
-        self.current_col = 0
-        self.current_x = 0
-
-    def sample(self):
-        width = self.tile_width
-        height = self.tile_height
-        max_x = self.image.width
-        max_y = self.image.height
-        original = self.image
-        while self.current_y + height <= max_y:
-            while self.current_x + width <= max_x:
-                new_px_plane = wndcharm.ImageMatrix()
-                bb = ( self.current_x, self.current_y,
-                        self.current_x + width - 1, self.current_y + height - 1 )
-                new_px_plane.submatrix( original, *bb ) # no retval
-                yield new_px_plane
-                self.current_x += width
-                self.current_col += 1
-            self.current_y += height
-            self.current_row += 1
-
 initialize_module()
 
+# BEGIN: Helper functions
 def compare( a_list, b_list, atol=1e-7 ):
     """Helps to compare floating point values to values stored
     in text files (ala .fit and .sig files) where the number of
