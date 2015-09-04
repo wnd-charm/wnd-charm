@@ -185,10 +185,11 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
         max_n_feats = kwargs['feature_space'].num_features
 
         def GenParamSpace( n_intervals=20 ):
-            from math import log, e
-            max_exp = log( max_n_feats )
+            from math import log10
+            max_exp = log10( max_n_feats )
             interval = max_exp / n_intervals
-            return [ int( round( e ** (interval * i) ) ) for i in xrange( 1, n_intervals + 1 ) ]
+            feats = [ int( round( 10 ** (interval * i) ) ) for i in xrange( 1, n_intervals + 1 ) ]
+            return list( sorted( set( feats ) ) )
 
         if param_space is None:
             param_space = GenParamSpace()
@@ -220,7 +221,7 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
                 #    ValueError: Can't reduce feature weights "None" to 2919 features.
                 #    Features ranked 2631 and below have a Fisher score of 0. Request
                 #    less features.
-                print "Skipping n_features={} and above due to feature reduction error"
+                print "Skipping n_features={} and above due to feature reduction error".format( n_features)
                 break
 
         return results

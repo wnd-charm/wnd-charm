@@ -331,23 +331,32 @@ class AccuracyVersusNumFeaturesGraph( _BaseGraph ):
                 y_min = min( Y )
             y_max = max( Y )
 
+        horiz_buffer = 0.05 * ( y_max - y_min )
+        y_min -= horiz_buffer
+        y_max += horiz_buffer
+        total_n_feats = kwargs['feature_space'].num_features
+
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
 
-        self.figure = plt.figure( figsize=figsize )
+        self.figure = plt.figure( figsize=figsize, facecolor='white' )
         self.main_axes = self.figure.add_subplot(111)
         if chart_title == None:
             self.chart_title = "Feature Space Predicton figure of merit vs. # features"
         else:
             self.chart_title = chart_title
-        self.main_axes.set_title( self.chart_title )
+        self.main_axes.set_title( self.chart_title, size=18 )
 
-        self.main_axes.set_xlabel( '# top-ranked features' )
+        self.main_axes.set_xlabel( '# top-ranked features', size=16 )
         self.main_axes.set_xscale( param_scale )
-        self.main_axes.set_ylabel( 'Figure of Merit', color='b' )
+        self.main_axes.set_ylabel( 'Figure of Merit', color='b', size=16 )
         self.main_axes.set_ylim( [ y_min, y_max ] )
         self.main_axes.plot( X, Y, color='b', marker='o', linestyle='--' )
+        for x, y in zip( X, Y ):
+            text = '{:0.03} (n={}, frac={:0.3f})'.format( y, x, float(x)/total_n_feats )
+            self.main_axes.annotate( text, xy=(x,y), rotation=-30 )
+
         for tl in self.main_axes.get_yticklabels():
             tl.set_color('b')
 
@@ -361,7 +370,7 @@ class AccuracyVersusNumFeaturesGraph( _BaseGraph ):
         if lda_comparison:
             self.lda_axes = self.main_axes.twinx()
             self.lda_axes.set_xscale( param_scale )
-            self.lda_axes.set_ylabel( 'Figure of Merit WITH LDA', color='r' )
+            self.lda_axes.set_ylabel( 'Figure of Merit WITH LDA', color='r', size=16 )
             self.lda_axes.set_ylim( [ y_min, y_max ] )
             self.lda_axes.plot( X_lda, Y_lda, color='r', marker='o', linestyle='--' )
             for tl in self.lda_axes.get_yticklabels():
