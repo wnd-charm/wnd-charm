@@ -57,7 +57,7 @@ class PredictedValuesGraph( _BaseGraph ):
     from SingleSamplePrediction data stored in a FeatureSpacePrediction."""
 
     #=================================================================
-    def __init__( self, result, name=None, use_averaged_results=True ):
+    def __init__( self, result, name=None, use_averaged_results=True, figsize=(15, 10), fontsize=16, titlefontsize=18 ):
         """Constructor sorts ground truth values contained in FeatureSpacePrediction
         and loads them into self.grouped_coords
         
@@ -72,6 +72,9 @@ class PredictedValuesGraph( _BaseGraph ):
             name = result.name
 
         self.chart_title = name
+        self.figsize = figsize
+        self.fontsize = fontsize
+        self.titlefontsize = titlefontsize
 
         gt_vals, pred_vals = result.RankOrderSort( use_averaged_results=use_averaged_results )
         whole_list = zip( gt_vals, pred_vals )
@@ -98,17 +101,21 @@ class PredictedValuesGraph( _BaseGraph ):
         import matplotlib.pyplot as plt
         self.class_colors = plt.cm.jet( [ float(val -_min)/ampl for val in self.class_values ] )
 
+    #=================================================================
+    def show( self ):
+        self.figure.show()
+
     #=====================================================================
     @classmethod
     @output_railroad_switch
-    def NewFromHTMLReport( cls, filepath, use_averaged_results=True ):
+    def NewFromHTMLReport( cls, filepath, **kwargs):
         """Helper function to facilitate the fast generation of graphs from C++-generated
         HTML Report files."""
 
         exp = FeatureSpaceClassificationExperiment.NewFromHTMLReport( filepath )
         exp.GenerateStats()
         exp.PerSampleStatistics( quiet=True )
-        newgraphobj = cls( exp, use_averaged_results=use_averaged_results )
+        newgraphobj = cls( exp, **kwargs )
         return newgraphobj
 
     #=====================================================================
@@ -127,14 +134,14 @@ class PredictedValuesGraph( _BaseGraph ):
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
 
-        self.figure = plt.figure( figsize=(20,20) )
+        self.figure = plt.figure( figsize=self.figsize )
         self.main_axes = self.figure.add_subplot(111)
 
         if chart_title:
             self.chart_title = chart_title
-        self.main_axes.set_title( self.chart_title )
-        self.main_axes.set_xlabel( 'count' )
-        self.main_axes.set_ylabel( 'Predicted Value Scores' )
+        self.main_axes.set_title( self.chart_title, size=self.titlefontsize )
+        self.main_axes.set_xlabel( 'count', size=self.fontsize )
+        self.main_axes.set_ylabel( 'Predicted Value Scores', size=self.fontsize )
 
         abscissa_index = 1
 
@@ -142,12 +149,12 @@ class PredictedValuesGraph( _BaseGraph ):
             ground_truth_vals, predicted_vals = zip( *self.grouped_coords[ class_name ] )
             x_vals = [ i + abscissa_index for i in range( len( ground_truth_vals ) ) ]
             self.main_axes.scatter( x_vals, predicted_vals, c=class_color, marker='o',
-                    s=150, edgecolor='none', label=class_name )
+                    s=80, edgecolor='none', alpha=0.3, label=class_name )
             abscissa_index += len( ground_truth_vals )
 
         #self.main_axes.legend( loc = 'lower right')
-        self.main_axes.legend( loc = 'lower right')
-        return self.figure
+        self.main_axes.legend( loc = 'lower right', fontsize=self.fontsize )
+        return self
         
     #=====================================================================
     def KernelSmoothedDensityGraph( self, chart_title=None ):
@@ -163,16 +170,19 @@ class PredictedValuesGraph( _BaseGraph ):
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
 
-        self.figure = plt.figure( figsize=(20,20) )
+        self.figure = plt.figure( figsize=self.figsize )
         self.main_axes = self.figure.add_subplot(111)
         if chart_title:
             self.chart_title = chart_title
 
-        self.main_axes.set_title( self.chart_title )
-        self.main_axes.set_xlabel( 'Age score' )
-        self.main_axes.set_ylabel( 'Probability density' )
+        self.main_axes.set_title( self.chart_title, size=self.titlefontsize )
+        self.main_axes.set_xlabel( 'Age score', size=self.fontsize )
+        self.main_axes.set_ylabel( 'Probability density', size=self.fontsize )
 
         from scipy.stats import gaussian_kde
+
+        # For now, ignore "FloatingPointError: underflow encountered in exp'"
+        np.seterr( under='ignore' )
 
         for class_name, class_color in zip( self.class_names, self.class_colors ):
             ground_truth_vals, predicted_vals = zip( *self.grouped_coords[ class_name ] )
@@ -184,10 +194,12 @@ class PredictedValuesGraph( _BaseGraph ):
             intervals = np.mgrid[ lobound:hibound:100j ]
             density_estimates = kernel_smoother.evaluate( intervals )
             self.main_axes.plot( intervals, density_estimates, c=class_color,
-                linewidth=6, label=class_name )
+                linewidth=4, label=class_name )
 
-        self.main_axes.legend()
-        return self.figure
+        np.seterr( all='raise' )
+
+        self.main_axes.legend( fontsize=self.fontsize )
+        return self
 
 #============================================================================
 class FeatureTimingVersusAccuracyGraph( _BaseGraph ):
@@ -319,23 +331,32 @@ class AccuracyVersusNumFeaturesGraph( _BaseGraph ):
                 y_min = min( Y )
             y_max = max( Y )
 
+        horiz_buffer = 0.05 * ( y_max - y_min )
+        y_min -= horiz_buffer
+        y_max += horiz_buffer
+        total_n_feats = kwargs['feature_space'].num_features
+
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
 
-        self.figure = plt.figure( figsize=figsize )
+        self.figure = plt.figure( figsize=figsize, facecolor='white' )
         self.main_axes = self.figure.add_subplot(111)
         if chart_title == None:
             self.chart_title = "Feature Space Predicton figure of merit vs. # features"
         else:
             self.chart_title = chart_title
-        self.main_axes.set_title( self.chart_title )
+        self.main_axes.set_title( self.chart_title, size=18 )
 
-        self.main_axes.set_xlabel( '# top-ranked features' )
+        self.main_axes.set_xlabel( '# top-ranked features', size=16 )
         self.main_axes.set_xscale( param_scale )
-        self.main_axes.set_ylabel( 'Figure of Merit', color='b' )
+        self.main_axes.set_ylabel( 'Figure of Merit', color='b', size=16 )
         self.main_axes.set_ylim( [ y_min, y_max ] )
         self.main_axes.plot( X, Y, color='b', marker='o', linestyle='--' )
+        for x, y in zip( X, Y ):
+            text = '{:0.03} (n={}, frac={:0.3f})'.format( y, x, float(x)/total_n_feats )
+            self.main_axes.annotate( text, xy=(x,y), rotation=-30 )
+
         for tl in self.main_axes.get_yticklabels():
             tl.set_color('b')
 
@@ -349,7 +370,7 @@ class AccuracyVersusNumFeaturesGraph( _BaseGraph ):
         if lda_comparison:
             self.lda_axes = self.main_axes.twinx()
             self.lda_axes.set_xscale( param_scale )
-            self.lda_axes.set_ylabel( 'Figure of Merit WITH LDA', color='r' )
+            self.lda_axes.set_ylabel( 'Figure of Merit WITH LDA', color='r', size=16 )
             self.lda_axes.set_ylim( [ y_min, y_max ] )
             self.lda_axes.plot( X_lda, Y_lda, color='r', marker='o', linestyle='--' )
             for tl in self.lda_axes.get_yticklabels():
