@@ -110,8 +110,8 @@ class FeatureVector( object ):
         self.name - str - Sample (row) name, common across all channels
         self.source_filepath - str
             Filesystem path or other handle, e.g. OMERO obj id
-        self.source_px_plane - wndcharm.ImageMatrix
-            Cached full image used for subsampling/tiling later
+        self.raw_px_plane - wndcharm.ImageMatrix
+            Cached full image used for downstream subsampling/tiling/mean/std shift, etc.
         self.px_plane - wndcharm.ImageMatrix
             Immediate substrate/local pixel plane upon which features will be calculated.
         self.auxiliary_feature_storage - str - Path to storage on file system,
@@ -222,17 +222,21 @@ class FeatureVector( object ):
     def __init__( self, **kwargs ):
         #: Row name, common across all channels
         self.name = None
-        #: Can also be a reference to a wndchrm.ImageMatrix object
+        #: str - Filesystem path or other handle, e.g. OMERO obj id
         self.source_filepath = None
-        #: instance of wndcharm.ImageMatrix - used to cache full image for
-        #: subsampling/tiling later.
-        self.source_px_plane = None
-        #: instance of wndcharm.ImageMatrix - the immediate substrate/local pixel plane
+        #: wndcharm.ImageMatrix - Cached full image used for downstream 
+        #: subsampling/tiling/mean/std shift, etc
+        self.raw_px_plane = None
+        #: Keep separate track of raw px plane height width apart from width and height
+        #: members of wndcharm.ImageMatrix object in case the latter object isn't cached.
+        self.raw_px_plane_width = None
+        self.raw_px_plane_height = None
+        #: wndcharm.ImageMatrix - the immediate substrate/local pixel plane
         #: upon which features will be calculated.
         self.px_plane = None
-        #: Path to .sig file, in future hdf/sql file
+        #: str - Path to .sig file, in future hdf/sql file
         self.auxiliary_feature_storage = None
-        #: the prefix string to which sampling options will be appended to form .sig filepath
+        #: str - prefix string to which sampling options will be appended to form .sig filepath
         self.basename = None
         #: ground_truth_label is stringified ground truth
         self.ground_truth_label = None
@@ -514,40 +518,63 @@ class FeatureVector( object ):
         return base + '.sig'
 
     #================================================================
-    def GetPixelPlane( self, save=False ):
+    def GetRawPixelPlane( self, cache=False ):
+        """obtains raw source pixel plane without cropping/std shift etc."""
+
+        from .PyImageMatrix import PyImageMatrix
+
+        if self.raw_px_plane is not None:
+            return self.raw_px_plane
+
+        if self.source_filepath is not None:
+            # Load from disk
+            FULL_px_plane = PyImageMatrix()
+            retval = FULL_px_plane.OpenImage( self.source_filepath )
+            if 1 != retval:
+                errmsg = 'Could not build a wndchrm.PyImageMatrix from {0}, check the path.'
+                raise ValueError( errmsg.format( self.source_filepath ) )
+        else:
+            errmsg = "Could not load pixel plane required for calculating features: " + \
+                    'Neither members "source_filepath" or "raw_px_plane" are set.'
+            raise ValueError( errmsg )
+
+        self.raw_px_plane_width = FULL_px_plane.width
+        self.raw_px_plane_height = FULL_px_plane.height
+
+        if cache:
+            self.raw_px_plane = FULL_px_plane
+
+        return FULL_px_plane
+
+    #================================================================
+    def GetPixelPlane( self, cache=False ):
+        """obtains a pixel plane in accordance with 5D sampling options as prescribed
+        by instance atributes."""
+
+        # Here are the ImageMatrix API calls:
+        # void normalize(double min, double max, long range, double mean, double stddev);
+        # int OpenImage(char *image_file_name, int downsample, rect *bounding_rect, double mean, double stddev);
+        # void Rotate (const ImageMatrix &matrix_IN, double angle);
+        # ImageMatrix::submatrix() has a funky signature:
+        #   void ImageMatrix::submatrix (const ImageMatrix &matrix, const unsigned int x1, const unsigned int y1, const unsigned int x2, const unsigned int y2);
+        #   where x2 and y2 are INCLUSIVE, i.e., must subtract 1 from both
 
         if self.px_plane is not None:
             return self.px_plane
 
         from .PyImageMatrix import PyImageMatrix
 
-        if self.source_px_plane is 
-
-        # Open the tiff and get the FULL pixel plane first.
-        # Do all pixel plane manipulations (mean, ROI, etc ) explicitly after.
-        if isinstance( self.source_filepath, str ):
-            FULL_px_plane = PyImageMatrix()
-            retval = FULL_px_plane.OpenImage( self.source_filepath )
-            if 1 != retval:
-                errmsg = 'Could not build a wndchrm.PyImageMatrix from {0}, check the path.'
-                raise ValueError( errmsg.format( self.source_filepath ) )
-        elif isinstance( self.source_filepath, wndcharm.ImageMatrix ):
-            FULL_px_plane = self.source_filepath
-        else:
-            errmsg = "Could not load pixel plane required for calculating features: " + \
-                    'Attribute "source_filepath" of object {} is "{}", must be type str ' + \
-                    "or a wndcharm.ImageMatrix."
-            raise ValueError( errmsg.format( self, self.source_filepath ) )
+        FULL_px_plane = self.GetRawPixelPlane( cache=cache )
 
         # Next, submatrix for ROI/tiling
         if self.x is not None and self.y is not None and self.w is not None and self.h is not None:
             # For a bounding box:
             if (self.tile_num_cols and self.tile_num_cols > 1) or \
                     (self.tile_num_rows and self.tile_num_rows > 1 ):
-                # As of right now you can't specify a ROI bounding box and a tiling pattern
-                # simultaneously.
-                errmsg = "Specifing both ROI and tiling params currently not supported."
-                raise ValueError( errmsg )
+                # Tiling pattern params ignored if bounding box params specified.
+                #errmsg = "Specifing both ROI and tiling params currently not supported."
+                #raise ValueError( errmsg )
+                pass
             x1 = self.x
             y1 = self.y
             x2 = x1 + self.w - 1
@@ -609,6 +636,8 @@ class FeatureVector( object ):
             px_plane.normalize( -1, -1, -1,
                 self.pixel_intensity_mean, self.pixel_intensity_mean )
 
+        if cache:
+            self.px_plane = px_plane
         return px_plane
 
     #================================================================
@@ -683,108 +712,11 @@ class FeatureVector( object ):
                 raise ValueError( "Not sure which features you want." )
             self.feature_computation_plan = comp_plan
 
-        # Here are the ImageMatrix API calls:
-        # void normalize(double min, double max, long range, double mean, double stddev);
-        # int OpenImage(char *image_file_name, int downsample, rect *bounding_rect, double mean, double stddev);
-        # void Rotate (const ImageMatrix &matrix_IN, double angle);
-        # ImageMatrix::submatrix() has a funky signature:
-        #   void ImageMatrix::submatrix (const ImageMatrix &matrix, const unsigned int x1, const unsigned int y1, const unsigned int x2, const unsigned int y2);
-        #   where x2 and y2 are INCLUSIVE, i.e., must subtract 1 from both
 
         if self.rot is not None:
             raise NotImplementedError( "FIXME: Implement rotations." )
 
-<<<<<<< HEAD
         px_plane = self.GetPixelPlane()
-=======
-        from .PyImageMatrix import PyImageMatrix
-
-        # Open the tiff and get the FULL pixel plane first.
-        # Do all pixel plane manipulations (mean, ROI, etc ) explicitly after.
-        if isinstance( self.source_filepath, str ):
-            FULL_px_plane = PyImageMatrix()
-            retval = FULL_px_plane.OpenImage( self.source_filepath )
-            if 1 != retval:
-                errmsg = 'Could not build a wndchrm.PyImageMatrix from {0}, check the path.'
-                raise ValueError( errmsg.format( self.source_filepath ) )
-        elif isinstance( self.source_filepath, wndcharm.ImageMatrix ):
-            FULL_px_plane = self.source_filepath
-        else:
-            errmsg = "Could not load pixel plane required for calculating features: " + \
-                    'Attribute "source_filepath" of object {} is "{}", must be type str ' + \
-                    "or a wndcharm.ImageMatrix."
-            raise ValueError( errmsg.format( self, self.source_filepath ) )
-
-        # Next, submatrix for ROI/tiling
-        if self.x is not None and self.y is not None and self.w is not None and self.h is not None:
-            # For a bounding box:
-            if (self.tile_num_cols and self.tile_num_cols > 1) or \
-                    (self.tile_num_rows and self.tile_num_rows > 1 ):
-                # As of right now you can't specify a ROI bounding box and a tiling pattern
-                # simultaneously.
-                errmsg = "Specifing both ROI and tiling params currently not supported."
-                raise ValueError( errmsg )
-            x1 = self.x
-            y1 = self.y
-            x2 = x1 + self.w - 1
-            y2 = y1 + self.h - 1
-            # C++ API calls for copying desired pixels into empty ImageMatrix instance:
-            px_plane = PyImageMatrix()
-            retval = px_plane.submatrix( FULL_px_plane, x1, y1, x2, y2 )
-            if 1 != retval:
-                e = 'Error cropping bounding box ({},{}),({},{}) from image "{}" w={} h={}'
-                e = e.format( x1, y1, x2, y2, FULL_px_plane.source, FULL_px_plane.width,
-                                    FULL_px_plane.height )
-                raise ValueError( e )
-        elif( self.tile_num_cols and self.tile_num_cols > 1 ) or \
-                    ( self.tile_num_rows and self.tile_num_rows > 1 ):
-            # for tiling: figure out bounding box for this tile:
-            w = int( round( float( FULL_px_plane.width ) / self.tile_num_cols ) )
-            h = int( round( float( FULL_px_plane.height ) / self.tile_num_rows ) )
-            x1 = self.tile_col_index * w
-            x2 = ( ( self.tile_col_index + 1 ) * w ) - 1
-            y1 = self.tile_row_index + h
-            y2 = ( ( self.tile_row_index + 1 ) * h ) - 1
-            px_plane = PyImageMatrix()
-            retval = px_plane.submatrix( FULL_px_plane, x1, y1, x2, y2 )
-            if 1 != retval:
-                e = 'Error cropping tile (col {},row {}) with tiling scheme {}col X {}row '
-                e += 'with bounding box ({},{}),({},{}) from image "{}" w={} h={}'
-                e = e.format( self.tile_col_index, self.tile_row_index, self.tile_num_cols,
-                            self.tile_num_rows, x1, y1, x2, y2, FULL_px_plane.source,
-                            FULL_px_plane.width, FULL_px_plane.height )
-                raise ValueError( e )
-        else:
-            px_plane = FULL_px_plane
-
-        # Downsampling comes after cropping in order of operations, unless the source
-        # source is an instantiated ImageMatrix (not a str path) and it came pre-downsampled
-        if self.downsample:
-            if px_plane.downsampled and self.downsample != px_plane.downsampled:
-                e = "Can't downsample {} to {}, it's already been downsampled to {}."
-                raise ValueError( e.format( px_plane, self.downsample, px_plane.downsampled))
-            d = float( self.downsample ) / 100
-            # Do a copy to avoid possibly corrupting source FULL_px_plane
-            copy = PyImageMatrix()
-            copy.Downsample( px_plane, d, d )
-            px_plane = copy
-
-        # Similar to downsampling, if the source is a pixel plane that has already been
-        # normalized, that's ok, but prevent operation on px plane that's already
-        # been averaged
-        if self.pixel_intensity_mean:
-            # MEAN:
-            if px_plane.norm_mean and self.pixel_intensity_mean != px_plane.norm_mean:
-                e = "Can't normalize pixel intensities of {} to mean={}, it's already been normalized to mean={}."
-                raise ValueError( e.format( px_plane, self.pixel_intensity_mean, px_plane.norm_mean))
-            # STDEV (optional):
-            if px_plane.norm_stdev and self.pixel_intensity_stdev and \
-                    self.pixel_intensity_stdev != px_plane.norm_stdev:
-                e = "Can't normalize pixel intensities of {} to stdev={}, it's already been normalized to stdev={}."
-                raise ValueError( e.format( px_plane, self.pixel_intensity_stdev, px_plane.norm_stdev))
-            px_plane.normalize( -1, -1, -1,
-                self.pixel_intensity_mean, self.pixel_intensity_mean )
->>>>>>> e8fbad4befd84927b831edf480fd80afe900c2aa
 
         # pre-allocate space where the features will be stored (C++ std::vector<double>)
         tmp_vec = wndcharm.DoubleVector( comp_plan.n_features )
@@ -1191,54 +1123,66 @@ class SlidingWindow( FeatureVector ):
 
     Default behavior is to iterate over contiguous, non-overlapping tiles specified
     by tile_num_rows & tile_num_cols. Overlapping/non-contiguous behavior enabled when
-    user specifies w, h, deltax and/or deltay.
-
-    Arguments:
-        deltax & deltay - int (default None)
-            Number of pixels to move scanning window vertically/horizontally."""
+    user specifies w, h, deltax and/or deltay."""
 
     def __iter__( self ):
         return self
 
-    def __init__( self, full_px_plane, deltax=None, deltay=None, *args, **kwargs ):
+    def __init__( self, deltax=None, deltay=None, desired_positions=None, *args, **kwargs ):
+        """Will open source image to get dimensions to calculate number of window positions,
+        UNLESS using "classic" tiling, a.k.a. contiguous, non-overlapping tiles.
+
+        Arguments:
+            deltax & deltay - int (default None)
+                Number of pixels to move scanning window vertically/horizontally.
+            desired_positions - iterable (default None)
+                list of sample sequence ids with the current scanning pattern that this window
+                should stop at. Allows user to skip window positions, or delegate certain
+                window positions to different processors."""
 
         super( SlidingWindow, self ).__init__( *args, **kwargs )
-        self.full_px_plane = full_px_plane
         self.deltax = deltax
         self.deltay = deltay
-        self.current_row = 0
-        self.current_y = 0
-        self.current_col = 0
-        self.current_x = 0
+        self.desired_positions = desired_positions
+        self.num_positions = None
 
-        if deltaxpx is not None:
-            self.tile_width = deltaxpx
+        if self.tile_num_rows is not None and self.tile_num_cols is not None: 
+            # Case 1: Standard tiling. Sig files will use -tNxM_n_m notation.
+            self.standard_tiling = True
+
+        elif self.deltax is not None and self.deltay is not None and \
+                self.w is not None and self.h is not None:
+            self.standard_tiling = False
+            # Case 2: Potential overlaping/non-contiguous window locations.
+            # Sig files will use -B_x_y_w_h notation.
+            if not self.raw_px_plane_width or not self.raw_px_plane_height:
+                # No choice but to load raw pixel plane to get dimensions to derive num_positions.
+                # For multiprocessing purposes don't cache the raw pixel plane.
+                raw_img = self.GetRawPixelPlane( cache=False )
+                self.raw_px_plane_width = FULL_px_plane.width
+                self.raw_px_plane_height = FULL_px_plane.height
+
+            self.tile_num_cols = int( ( self.raw_px_plane_width - self.w ) / self.deltax )
+            self.tile_num_rows = int( ( self.raw_px_plane_height - self.h ) / self.deltay )
         else:
-            self.tile_width = int( float( self.image.width ) / num_cols ) )
-        if deltaypx is not None:
-            self.tile_height = deltaypx
-        else:
-            self.tile_height = int( float( self.image.height) / num_rows )
+            raise ValueError( "Could not obtain window/slide dimensions from instance atribute params provided." 
 
-
-        self.samples = self.tiles_x * self.tiles_y
+        self.num_positions = self.tile_num_rows * self.tile_num_cols
 
     def next( self ):
-        
-        width = self.tile_width
-        height = self.tile_height
-        max_x = self.image.width
-        max_y = self.image.height
-        original = self.image
-        while self.current_y + height <= max_y:
-            while self.current_x + width <= max_x:
-                new_px_plane = wndcharm.ImageMatrix()
-                bb = ( self.current_x, self.current_y,
-                        self.current_x + width - 1, self.current_y + height - 1 )
-                new_px_plane.submatrix( original, *bb ) # no retval
-                yield new_px_plane
-                self.current_x += width
-                self.current_col += 1
-            self.current_y += height
-            self.current_row += 1
 
+        self.sample_sequence_id = 0
+        if not self.standard_tiling:
+            self.x = 0
+            self.y = 0
+
+        for self.tile_col_index in xrange( self.tile_num_cols ):
+            for self.tile_row_index in xrange( self.tile_num_rows ):
+                yield self
+                self.sample_sequence_id += 1
+                if not self.standard_tiling:
+                    self.y += self.h
+            if not self.standard_tiling:
+                self.x += self.w
+
+        raise StopIteration

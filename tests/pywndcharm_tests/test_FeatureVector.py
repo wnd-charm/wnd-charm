@@ -229,8 +229,8 @@ import numpy as np
 class TestSlidingWindow( unittest.TestCase ):
 
     def test_HeatMap_w_FeatureComputationPlan( self ):
-        """Classification results using SampleImageTiles method and FOF should be the same.
-        """
+        """Classification results using SampleImageTiles method and FOF
+        should be the same."""
 
         # chris@NIA-LG-01778617 ~/src/wnd-charm/tests/pywndcharm_tests
         # $ tiffinfo lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E.tif
@@ -246,8 +246,8 @@ class TestSlidingWindow( unittest.TestCase ):
         # WND-CHARM command line specifies via -tCxR param
         # where C is columns and R is rows, ergo 5 rows, 6 cols = -t6x5
         # tile dims => w=1388/6 cols = 231.33px wide, h=1040/5 rows = 208 px tall
-        scan_x = 231
-        scan_y = 208
+        #scan_x = 231
+        #scan_y = 208
 
         #num_features = 200
 
@@ -269,37 +269,27 @@ class TestSlidingWindow( unittest.TestCase ):
             copy( orig_img_filepath, tempdir )
             input_image_path = tempdir + sep + img_filename
 
-            # create the tile image iterator
-            image_iter = SampleImageTiles( input_image_path, scan_x, scan_y, True)
-            print "Number of samples = " + str( image_iter.samples )
+            # Create sliding window that emulates 6x5 tiling:
+            kwargs = {}
+            kwargs[ 'source_filepath' ] = input_image_path
+            kwargs[ 'tile_num_cols' ] = 6
+            kwargs[ 'tile_num_rows' ] = 5
+            window = SlidingWindow( **kwargs )
+            print "Number of samples = " + str( window.num_positions )
 
             base, ext = splitext( input_image_path )
 
             # Just grab the first tile:
-            import pdb; pdb.set_trace()
-            tile_cropped_px_plane = image_iter.next()
-
-            kwargs = {}
-            kwargs[ 'name' ] = input_image_path
-            kwargs[ 'source_filepath' ] = tile_cropped_px_plane
-            #kwargs[ 'feature_names' ] = fw.feature_names
-            #kwargs[ 'feature_computation_plan' ] = comp_plan
-            kwargs[ 'long' ] = True
-            kwargs[ 'tile_num_cols' ] = image_iter.tiles_x
-            kwargs[ 'tile_num_rows' ] = image_iter.tiles_y
-            kwargs[ 'tiling_scheme' ] = '{0}x{1}'.format( image_iter.tiles_x, image_iter.tiles_y )
-            kwargs[ 'tile_col_index' ] = image_iter.current_col
-            kwargs[ 'tile_row_index' ] = image_iter.current_row
-            kwargs[ 'sample_group_id' ] = 0
-
-            top_left_tile_feats = FeatureVector( **kwargs ).GenerateFeatures( quiet=False, write_to_disk=False )
+            #import pdb; pdb.set_trace()
+            window.next()
+            window.GenerateFeatures( quiet=False, write_to_disk=False )
 
             top_left_tile_reference_feats = FeatureVector.NewFromSigFile( tempdir + sep + 'sj-05-3362-R2_001_E-t6x5_0_0-l.sig' )
 
             # Remember we're reading these values in from strings. and the ranges are so wide
             # you only have 6 sig figs. Better apples to apples comparison is to
             # compare strings.
-            self.assertTrue( compare( top_left_tile_feats.values, top_left_tile_reference_feats.values ) )
+            self.assertTrue( compare( window.values, top_left_tile_reference_feats.values ) )
 
             # Setting feature_names initiates the feature reduce from
             # the larger set of features that comes back from computation
