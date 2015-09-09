@@ -1857,6 +1857,12 @@ class FeatureSpace( object ):
 
         # initialize
         kwargs = {}
+
+        # Names could be None
+        kwargs['name'] = str( self.name ) + ' | ' + str( other_fs.name )
+        kwargs['num_samples'] = new_num_samples = self.num_samples + other_fs.num_samples
+        kwargs['shape'] = ( new_num_samples, self.num_features )
+
         kwargs['data_matrix'] = np.empty( kwargs['shape'] )
         kwargs['_contiguous_sample_names'] =  [None] * self.num_samples
         kwargs['_contiguous_sample_group_ids'] = [None] * self.num_samples

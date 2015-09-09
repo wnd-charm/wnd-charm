@@ -83,7 +83,7 @@ class TestFeatureCalculation( unittest.TestCase ):
 #        1    0.003    0.003   14.951   14.951 /Users/chris/src/wnd-charm/build/lib.macosx-10.9-x86_64-2.7/wndcharm/FeatureSet.py:1126(GenerateFeatures)
 
     # --------------------------------------------------------------------------
-    @unittest.skip('')
+    #@unittest.skip('')
     def test_LargeFeatureSetGrayscale( self ):
         """Large feature set, grayscale image"""
         reference_sample = FeatureVector.NewFromSigFile( self.sig_file_path,
@@ -103,7 +103,7 @@ class TestFeatureCalculation( unittest.TestCase ):
         self.assertTrue( compare( target_sample.values, reference_sample.values ) )
 
     # --------------------------------------------------------------------------
-    @unittest.skip('')
+    #@unittest.skip('')
     def test_LoadSubsetFromFile( self ):
         """Calculate one feature family, store to sig, load sig, and use to create larger fs"""
 
@@ -144,14 +144,13 @@ class TestFeatureCalculation( unittest.TestCase ):
             with self.assertRaises( IncompleteFeatureSetError ):
                 fv2.LoadSigFile()
 
-            #import pdb; pdb.set_trace()
             fv2.GenerateFeatures()
             #self.assertEqual( fv1.values[0], fv2.values[0] )
 
         finally:
             rmtree( tempdir )
 
-    @unittest.skip('')
+    #@unittest.skip('')
     def test_FeatureComputationFromROI( self ):
         """Specify bounding box to FeatureVector, calc features, then compare
         with C++ implementation-calculated feats."""
@@ -165,13 +164,14 @@ class TestFeatureCalculation( unittest.TestCase ):
         ROI_height = 208
 
         # Inflate the zipped test fit into a temp file
-        tempdir = mkdtemp()
+        sourcedir = mkdtemp()
+        targetdir = mkdtemp()
  
         try:
             import zipfile
             reference_sigs = pychrm_test_dir + sep + 'lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E_t6x5_REFERENCE_SIGFILES.zip'
             zf = zipfile.ZipFile( reference_sigs, mode='r' )
-            zf.extractall( tempdir )
+            zf.extractall( targetdir )
 
             img_filename = "lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E.tif"
             orig_img_filepath = pychrm_test_dir + sep + img_filename
@@ -179,8 +179,8 @@ class TestFeatureCalculation( unittest.TestCase ):
             from shutil import copy
 
             # copy the tiff to the tempdir so the .sig files end up there too
-            copy( orig_img_filepath, tempdir )
-            input_image_path = tempdir + sep + img_filename
+            copy( orig_img_filepath, sourcedir )
+            input_image_path = sourcedir + sep + img_filename
 
             kwargs = {}
             kwargs[ 'name' ] = img_filename
@@ -197,7 +197,7 @@ class TestFeatureCalculation( unittest.TestCase ):
             kwargs[ 'sample_group_id' ] = 0
 
             top_left_tile_feats = FeatureVector( **kwargs ).GenerateFeatures( quiet=False, write_to_disk=False )
-            top_left_tile_reference_feats = FeatureVector.NewFromSigFile( tempdir + sep + 'lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E-t6x5_0_0-l.sig' ) 
+            top_left_tile_reference_feats = FeatureVector.NewFromSigFile( targetdir + sep + 'lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E-t6x5_0_0-l.sig' ) 
 
             # Remember we're reading these values in from strings. and the ranges are so wide
             # you only have 6 sig figs. Better apples to apples comparison is to
@@ -209,19 +209,20 @@ class TestFeatureCalculation( unittest.TestCase ):
             kwargs[ 'y' ] = 832
 
             bot_right_tile_feats = FeatureVector( **kwargs ).GenerateFeatures( quiet=False, write_to_disk=False )
-            bot_right_tile_reference_feats = FeatureVector.NewFromSigFile( tempdir + sep + 'lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E-t6x5_5_4-l.sig' ) 
+            bot_right_tile_reference_feats = FeatureVector.NewFromSigFile( targetdir + sep + 'lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E-t6x5_5_4-l.sig' ) 
 
             self.assertEqual( bot_right_tile_feats.feature_names, bot_right_tile_reference_feats.feature_names )
             self.assertTrue( compare( bot_right_tile_feats.values, bot_right_tile_reference_feats.values ) )
 
         finally:
-            rmtree( tempdir )
+            rmtree( sourcedir )
+            rmtree( targetdir )
 
 from wndcharm.FeatureSpace import FeatureSpace
 from wndcharm.FeatureWeights import FisherFeatureWeights
 from wndcharm.SingleSamplePrediction import SingleSampleClassification
 from wndcharm.FeatureSpacePrediction import FeatureSpaceClassification
-from wndcharm.utils import SampleImageTiles
+from wndcharm.FeatureVector import SlidingWindow
 
 from sys import exit
 import numpy as np
@@ -252,13 +253,14 @@ class TestSlidingWindow( unittest.TestCase ):
         #num_features = 200
 
         # Inflate the zipped test fit into a temp file
-        tempdir = mkdtemp()
+        sourcedir = mkdtemp()
+        targetdir = mkdtemp()
         
         try:
             import zipfile
             reference_sigs = pychrm_test_dir + sep + 'lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E_t6x5_REFERENCE_SIGFILES.zip'
             zf = zipfile.ZipFile( reference_sigs, mode='r' )
-            zf.extractall( tempdir )
+            zf.extractall( targetdir )
 
             img_filename = "lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E.tif"
             orig_img_filepath = pychrm_test_dir + sep + img_filename
@@ -266,42 +268,42 @@ class TestSlidingWindow( unittest.TestCase ):
             from shutil import copy
 
             # copy the tiff to the tempdir so the .sig files end up there too
-            copy( orig_img_filepath, tempdir )
-            input_image_path = tempdir + sep + img_filename
+            copy( orig_img_filepath, sourcedir )
+            input_image_path = sourcedir + sep + img_filename
 
             # Create sliding window that emulates 6x5 tiling:
             kwargs = {}
             kwargs[ 'source_filepath' ] = input_image_path
             kwargs[ 'tile_num_cols' ] = 6
             kwargs[ 'tile_num_rows' ] = 5
+            kwargs[ 'long' ] = True
             window = SlidingWindow( **kwargs )
             print "Number of samples = " + str( window.num_positions )
 
             base, ext = splitext( input_image_path )
 
-            # Just grab the first tile:
-            #import pdb; pdb.set_trace()
-            window.next()
-            window.GenerateFeatures( quiet=False, write_to_disk=False )
+            ref_file = 'lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E-t6x5_{}_{}-l.sig'
 
-            top_left_tile_reference_feats = FeatureVector.NewFromSigFile( tempdir + sep + 'sj-05-3362-R2_001_E-t6x5_0_0-l.sig' )
+            # top left:
+            next(window)
+            window.GenerateFeatures( quiet=False, write_to_disk=False, cache=True )
+            reference_feats = FeatureVector.NewFromSigFile( targetdir + sep + ref_file.format(0,0) )
+            self.assertTrue( compare( window.values, reference_feats.values ) )
 
-            # Remember we're reading these values in from strings. and the ranges are so wide
-            # you only have 6 sig figs. Better apples to apples comparison is to
-            # compare strings.
-            self.assertTrue( compare( window.values, top_left_tile_reference_feats.values ) )
+            # below top left:
+            next(window)
+            window.GenerateFeatures( quiet=False, write_to_disk=False, cache=True )
+            reference_feats = FeatureVector.NewFromSigFile( targetdir + sep + ref_file.format(0,1) )
+            self.assertTrue( compare( window.values, reference_feats.values ) )
 
             # Setting feature_names initiates the feature reduce from
             # the larger set of features that comes back from computation
             #kwargs[ 'feature_names' ] = fw.feature_names
-            # if these are set, then the code will try to take a ROI of a ROI:
-            #kwargs[ 'x' ] = image_iter.current_x
-            #kwargs[ 'y' ] = image_iter.current_y
-            #kwargs[ 'w' ] = image_iter.tile_width
-            #kwargs[ 'h' ] = image_iter.tile_height
+
 
         finally:
-            rmtree( tempdir )
+            rmtree( sourcedir )
+            rmtree( targetdir )
 
 
 if __name__ == '__main__':

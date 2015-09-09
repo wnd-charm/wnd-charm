@@ -195,15 +195,9 @@ class PredictedValuesGraph( _BaseGraph ):
             density_estimates = kernel_smoother.evaluate( intervals )
             self.main_axes.plot( intervals, density_estimates, c=class_color,
                 linewidth=4, label=class_name )
-<<<<<<< HEAD
 
         np.seterr( all='raise' )
 
-=======
-
-        np.seterr( all='raise' )
-
->>>>>>> Fix AC_FUNC_MALLOC/REALLOC issue; PredictedValuesGraph improvements
         self.main_axes.legend( fontsize=self.fontsize )
         return self
 

@@ -110,9 +110,15 @@ class FeatureVector( object ):
         self.name - str - Sample (row) name, common across all channels
         self.source_filepath - str
             Filesystem path or other handle, e.g. OMERO obj id
-        self.raw_px_plane - wndcharm.ImageMatrix
-            Cached full image used for downstream subsampling/tiling/mean/std shift, etc.
-        self.px_plane - wndcharm.ImageMatrix
+        self.original_px_plane - wndcharm.ImageMatrix
+            Cached pristine original image as loaded from disk.
+        self.original_px_plane_width - int
+        self.original_px_plane_height - int
+            Dimensions of orig img kept if cache is cleared, useful for deriving
+            tiling, cropping params.
+        self.preprocessed_full_px_plane - wndcharm.ImageMatrix
+            Full image with downsample/mean/std shift done & WITHOUT any cropping/tiling
+        self.preprocessed_local_px_plane - wndcharm.ImageMatrix
             Immediate substrate/local pixel plane upon which features will be calculated.
         self.auxiliary_feature_storage - str - Path to storage on file system,
             currently an ASCII text representation of data and metadata, written
@@ -224,16 +230,19 @@ class FeatureVector( object ):
         self.name = None
         #: str - Filesystem path or other handle, e.g. OMERO obj id
         self.source_filepath = None
-        #: wndcharm.ImageMatrix - Cached full image used for downstream 
-        #: subsampling/tiling/mean/std shift, etc
-        self.raw_px_plane = None
+        #: wndcharm.ImageMatrix - Cached pristine original image as loaded from disk.
+        self.original_px_plane = None
         #: Keep separate track of raw px plane height width apart from width and height
         #: members of wndcharm.ImageMatrix object in case the latter object isn't cached.
-        self.raw_px_plane_width = None
-        self.raw_px_plane_height = None
+        self.original_px_plane_width = None
+        self.original_px_plane_height = None
+        #: wndcharm.ImageMatrix - full image with downsample/mean/std shift done.
+        self.preprocessed_full_px_plane = None
+        self.preprocessed_full_px_plane_width = None
+        self.preprocessed_full_px_plane_height = None
         #: wndcharm.ImageMatrix - the immediate substrate/local pixel plane
         #: upon which features will be calculated.
-        self.px_plane = None
+        self.preprocessed_local_px_plane = None
         #: str - Path to .sig file, in future hdf/sql file
         self.auxiliary_feature_storage = None
         #: str - prefix string to which sampling options will be appended to form .sig filepath
@@ -290,10 +299,11 @@ class FeatureVector( object ):
         self.feature_computation_plan = None
 
         self.Update( **kwargs )
+
     #==============================================================
     def __len__( self ):
         try:
-            length = len( self.feature_names )
+            length = len( self.values )
         except:
             length = 0
         return length
@@ -311,7 +321,7 @@ class FeatureVector( object ):
             outstr += ' ROI={0}x{1}+{2}+{3}"'.format( self.w, self.h, self.x, self.y)
         if self.ground_truth_label is not None:
             outstr += ' label="' + self.ground_truth_label + '"'
-        if self.feature_names is not None:
+        if self.values is not None:
             outstr += ' n_features=' + str( len( self ) )
         if self.sample_group_id is not None:
             outstr += ' grp=' + str( self.sample_group_id )
@@ -518,18 +528,18 @@ class FeatureVector( object ):
         return base + '.sig'
 
     #================================================================
-    def GetRawPixelPlane( self, cache=False ):
-        """obtains raw source pixel plane without cropping/std shift etc."""
+    def GetOriginalPixelPlane( self, cache=False ):
+        """Gets cached image pixels exactly as loaded from disk, i.e.,
+        without cropping/std shift/downsample etc."""
 
-        from .PyImageMatrix import PyImageMatrix
-
-        if self.raw_px_plane is not None:
-            return self.raw_px_plane
+        if self.original_px_plane is not None:
+            return self.original_px_plane
 
         if self.source_filepath is not None:
             # Load from disk
-            FULL_px_plane = PyImageMatrix()
-            retval = FULL_px_plane.OpenImage( self.source_filepath )
+            from .PyImageMatrix import PyImageMatrix
+            original_px_plane = PyImageMatrix()
+            retval = original_px_plane.OpenImage( self.source_filepath )
             if 1 != retval:
                 errmsg = 'Could not build a wndchrm.PyImageMatrix from {0}, check the path.'
                 raise ValueError( errmsg.format( self.source_filepath ) )
@@ -538,35 +548,71 @@ class FeatureVector( object ):
                     'Neither members "source_filepath" or "raw_px_plane" are set.'
             raise ValueError( errmsg )
 
-        self.raw_px_plane_width = FULL_px_plane.width
-        self.raw_px_plane_height = FULL_px_plane.height
+        self.original_px_plane_width = original_px_plane.width
+        self.original_px_plane_height = original_px_plane.height
 
         if cache:
-            self.raw_px_plane = FULL_px_plane
+            self.original_px_plane = original_px_plane
 
-        return FULL_px_plane
+        return original_px_plane
 
     #================================================================
-    def GetPixelPlane( self, cache=False ):
+    def GetPreprocessedFullPixelPlane( self, cache=False ):
+        """Gets cached pre-cropped pixel plane INCLUDING std shift/downsample, etc."""
+
+        if self.preprocessed_full_px_plane is not None:
+            return self.preprocessed_full_px_plane
+
+        original_px_plane = self.GetOriginalPixelPlane(cache=cache)
+
+        if not self.downsample and not self.pixel_intensity_mean:
+            self.preprocessed_full_px_plane_width = original_px_plane.width
+            self.preprocessed_full_px_plane_height = original_px_plane.height
+
+            if cache:
+                self.preprocessed_full_px_plane = original_px_plane
+            return original_px_plane
+
+        # Do a copy to avoid possibly corrupting source FULL_px_plane
+        from .PyImageMatrix import PyImageMatrix
+        preprocessed_full_px_plane = PyImageMatrix()
+
+        if self.downsample:
+            d = float( self.downsample ) / 100
+            preprocessed_full_px_plane.Downsample( original_px_plane, d, d )
+
+        else:
+            preprocessed_full_px_plane.copy( original_px_plane )
+
+        if self.pixel_intensity_mean:
+            # void normalize(double min, double max, long range, double mean, double stddev);
+            preprocessed_full_px_plane.normalize( -1, -1, -1,
+                self.pixel_intensity_mean, self.pixel_intensity_mean )
+
+        self.preprocessed_full_px_plane_width = preprocessed_full_px_plane.width
+        self.preprocessed_full_px_plane_height = preprocessed_full_px_plane.height
+
+        if cache:
+            self.preprocessed_full_px_plane = preprocessed_full_px_plane
+        return preprocessed_full_px_plane
+
+    #================================================================
+    def GetPreprocessedLocalPixelPlane( self, cache=False ):
         """obtains a pixel plane in accordance with 5D sampling options as prescribed
         by instance atributes."""
 
-        # Here are the ImageMatrix API calls:
-        # void normalize(double min, double max, long range, double mean, double stddev);
-        # int OpenImage(char *image_file_name, int downsample, rect *bounding_rect, double mean, double stddev);
-        # void Rotate (const ImageMatrix &matrix_IN, double angle);
         # ImageMatrix::submatrix() has a funky signature:
         #   void ImageMatrix::submatrix (const ImageMatrix &matrix, const unsigned int x1, const unsigned int y1, const unsigned int x2, const unsigned int y2);
         #   where x2 and y2 are INCLUSIVE, i.e., must subtract 1 from both
 
-        if self.px_plane is not None:
-            return self.px_plane
+        if self.preprocessed_local_px_plane is not None:
+            return self.preprocessed_local_px_plane
 
         from .PyImageMatrix import PyImageMatrix
 
-        FULL_px_plane = self.GetRawPixelPlane( cache=cache )
+        preprocessed_full_px_plane = self.GetPreprocessedFullPixelPlane( cache=cache )
 
-        # Next, submatrix for ROI/tiling
+        # submatrix for ROI/tiling
         if self.x is not None and self.y is not None and self.w is not None and self.h is not None:
             # For a bounding box:
             if (self.tile_num_cols and self.tile_num_cols > 1) or \
@@ -574,75 +620,48 @@ class FeatureVector( object ):
                 # Tiling pattern params ignored if bounding box params specified.
                 #errmsg = "Specifing both ROI and tiling params currently not supported."
                 #raise ValueError( errmsg )
-                pass
+                import warnings
+                warnings.warn( "Tiling pattern params ignored if bounding box params specified")
             x1 = self.x
             y1 = self.y
             x2 = x1 + self.w - 1
             y2 = y1 + self.h - 1
             # C++ API calls for copying desired pixels into empty ImageMatrix instance:
-            px_plane = PyImageMatrix()
-            retval = px_plane.submatrix( FULL_px_plane, x1, y1, x2, y2 )
+            preprocessed_local_px_plane = PyImageMatrix()
+            retval = preprocessed_local_px_plane.submatrix( preprocessed_full_px_plane, x1, y1, x2, y2 )
             if 1 != retval:
                 e = 'Error cropping bounding box ({},{}),({},{}) from image "{}" w={} h={}'
-                e = e.format( x1, y1, x2, y2, FULL_px_plane.source, FULL_px_plane.width,
-                                    FULL_px_plane.height )
+                e = e.format( x1, y1, x2, y2, preprocessed_full_px_plane.source,
+                        preprocessed_full_px_plane.width, preprocessed_full_px_plane.height )
                 raise ValueError( e )
         elif( self.tile_num_cols and self.tile_num_cols > 1 ) or \
                     ( self.tile_num_rows and self.tile_num_rows > 1 ):
             # for tiling: figure out bounding box for this tile:
-            w = int( round( float( FULL_px_plane.width ) / self.tile_num_cols ) )
-            h = int( round( float( FULL_px_plane.height ) / self.tile_num_rows ) )
+            w = int( round( float( preprocessed_full_px_plane.width ) / self.tile_num_cols ) )
+            h = int( round( float( preprocessed_full_px_plane.height ) / self.tile_num_rows ) )
             x1 = self.tile_col_index * w
             x2 = ( ( self.tile_col_index + 1 ) * w ) - 1
-            y1 = self.tile_row_index + h
+            y1 = self.tile_row_index * h
             y2 = ( ( self.tile_row_index + 1 ) * h ) - 1
-            px_plane = PyImageMatrix()
-            retval = px_plane.submatrix( FULL_px_plane, x1, y1, x2, y2 )
+            preprocessed_local_px_plane = PyImageMatrix()
+            retval = preprocessed_local_px_plane.submatrix( preprocessed_full_px_plane, x1, y1, x2, y2 )
             if 1 != retval:
                 e = 'Error cropping tile (col {},row {}) with tiling scheme {}col X {}row '
                 e += 'with bounding box ({},{}),({},{}) from image "{}" w={} h={}'
                 e = e.format( self.tile_col_index, self.tile_row_index, self.tile_num_cols,
-                            self.tile_num_rows, x1, y1, x2, y2, FULL_px_plane.source,
-                            FULL_px_plane.width, FULL_px_plane.height )
+                            self.tile_num_rows, x1, y1, x2, y2, preprocessed_full_px_plane.source,
+                            preprocessed_full_px_plane.width, preprocessed_full_px_plane.height )
                 raise ValueError( e )
         else:
-            px_plane = FULL_px_plane
-
-        # Downsampling comes after cropping in order of operations, unless the source
-        # source is an instantiated ImageMatrix (not a str path) and it came pre-downsampled
-        if self.downsample:
-            if px_plane.downsampled and self.downsample != px_plane.downsampled:
-                e = "Can't downsample {} to {}, it's already been downsampled to {}."
-                raise ValueError( e.format( px_plane, self.downsample, px_plane.downsampled))
-            d = float( self.downsample ) / 100
-            # Do a copy to avoid possibly corrupting source FULL_px_plane
-            copy = PyImageMatrix()
-            copy.Downsample( px_plane, d, d )
-            px_plane = copy
-
-        # Similar to downsampling, if the source is a pixel plane that has already been
-        # normalized, that's ok, but prevent operation on px plane that's already
-        # been averaged
-        if self.pixel_intensity_mean:
-            # MEAN:
-            if px_plane.norm_mean and self.pixel_intensity_mean != px_plane.norm_mean:
-                e = "Can't normalize pixel intensities of {} to mean={}, it's already been normalized to mean={}."
-                raise ValueError( e.format( px_plane, self.pixel_intensity_mean, px_plane.norm_mean))
-            # STDEV (optional):
-            if px_plane.norm_stdev and self.pixel_intensity_stdev and \
-                    self.pixel_intensity_stdev != px_plane.norm_stdev:
-                e = "Can't normalize pixel intensities of {} to stdev={}, it's already been normalized to stdev={}."
-                raise ValueError( e.format( px_plane, self.pixel_intensity_stdev, px_plane.norm_stdev))
-            px_plane.normalize( -1, -1, -1,
-                self.pixel_intensity_mean, self.pixel_intensity_mean )
+            preprocessed_local_px_plane = preprocessed_full_px_plane
 
         if cache:
-            self.px_plane = px_plane
-        return px_plane
+            self.preprocessed_local_px_plane = preprocessed_local_px_plane
+        return preprocessed_local_px_plane
 
     #================================================================
     def GenerateFeatures( self, write_to_disk=True, update_samp_opts_from_pathname=None,
-            quiet=True ):
+            cache=False, quiet=True ):
         """@brief Loads precalculated features, or calculates new ones, based on which instance
         attributes have been set, and what their values are.
 
@@ -712,11 +731,11 @@ class FeatureVector( object ):
                 raise ValueError( "Not sure which features you want." )
             self.feature_computation_plan = comp_plan
 
-
         if self.rot is not None:
+            # void Rotate (const ImageMatrix &matrix_IN, double angle);
             raise NotImplementedError( "FIXME: Implement rotations." )
 
-        px_plane = self.GetPixelPlane()
+        px_plane = self.GetPreprocessedLocalPixelPlane( cache=cache )
 
         # pre-allocate space where the features will be stored (C++ std::vector<double>)
         tmp_vec = wndcharm.DoubleVector( comp_plan.n_features )
@@ -749,6 +768,8 @@ class FeatureVector( object ):
                     del self.temp_names
                     del self.temp_values
                 self.values = np.array( [ comp_vals[ comp_names.index( name ) ] for name in self.feature_names ] )
+            else:
+                self.values = comp_vals
         else:
             self.feature_names = comp_names
             self.values = comp_vals
@@ -1130,7 +1151,8 @@ class SlidingWindow( FeatureVector ):
 
     def __init__( self, deltax=None, deltay=None, desired_positions=None, *args, **kwargs ):
         """Will open source image to get dimensions to calculate number of window positions,
-        UNLESS using "classic" tiling, a.k.a. contiguous, non-overlapping tiles.
+        UNLESS using "classic" tiling, a.k.a. contiguous, non-overlapping tiles. Passes
+        args/kwargs straight to FeatureVector constructor.
 
         Arguments:
             deltax & deltay - int (default None)
@@ -1149,40 +1171,75 @@ class SlidingWindow( FeatureVector ):
         if self.tile_num_rows is not None and self.tile_num_cols is not None: 
             # Case 1: Standard tiling. Sig files will use -tNxM_n_m notation.
             self.standard_tiling = True
-
+            self.num_positions = self.tile_num_rows * self.tile_num_cols
+            self.tile_col_index = None
+            self.tile_row_index = None
         elif self.deltax is not None and self.deltay is not None and \
                 self.w is not None and self.h is not None:
             self.standard_tiling = False
             # Case 2: Potential overlaping/non-contiguous window locations.
             # Sig files will use -B_x_y_w_h notation.
-            if not self.raw_px_plane_width or not self.raw_px_plane_height:
-                # No choice but to load raw pixel plane to get dimensions to derive num_positions.
-                # For multiprocessing purposes don't cache the raw pixel plane.
-                raw_img = self.GetRawPixelPlane( cache=False )
-                self.raw_px_plane_width = FULL_px_plane.width
-                self.raw_px_plane_height = FULL_px_plane.height
-
-            self.tile_num_cols = int( ( self.raw_px_plane_width - self.w ) / self.deltax )
-            self.tile_num_rows = int( ( self.raw_px_plane_height - self.h ) / self.deltay )
+            if not self.preprocessed_full_px_plane_width or \
+                    not self.preprocessed_full_px_plane_height:
+                # No choice but to load pixel plane to get dimensions to derive num_positions.
+                # For multiprocessing purposes don't cache the pixel plane.
+                precropped_img = self.GetPreprocessedFullPixelPlane( cache=False )
+ 
+            self.sliding_window_num_cols = int( ( precropped_img.width - self.w ) / self.deltax )
+            self.sliding_window_num_rows = int( ( precropped_img.height - self.h ) / self.deltay )
+            self.num_positions = self.sliding_window_num_rows * self.sliding_window_num_cols
+            self.sliding_window_col_index = None
+            self.sliding_window_row_index = None
         else:
-            raise ValueError( "Could not obtain window/slide dimensions from instance atribute params provided." 
+            raise ValueError( "Could not obtain window/slide dimensions from instance atribute params provided." )
 
-        self.num_positions = self.tile_num_rows * self.tile_num_cols
+    def __next__(self):
+        return self.next()
 
     def next( self ):
 
-        self.sample_sequence_id = 0
-        if not self.standard_tiling:
-            self.x = 0
-            self.y = 0
+        self.values = None
+        self.preprocessed_local_px_plane = None
 
-        for self.tile_col_index in xrange( self.tile_num_cols ):
-            for self.tile_row_index in xrange( self.tile_num_rows ):
-                yield self
-                self.sample_sequence_id += 1
-                if not self.standard_tiling:
-                    self.y += self.h
-            if not self.standard_tiling:
+        if self.sample_sequence_id == None:
+            self.sample_sequence_id = 0
+        else:
+            self.sample_sequence_id += 1
+
+        if self.standard_tiling:
+            if self.tile_row_index == None:
+                self.tile_row_index = 0
+            else:
+                self.tile_row_index += 1
+
+            if self.tile_col_index == None:
+                self.tile_col_index = 0
+            elif self.tile_row_index == self.tile_num_rows:
+                self.tile_col_index += 1
+                self.tile_row_index = 0
+
+            if self.tile_col_index == self.tile_num_cols:
+                raise StopIteration
+
+        else:
+
+            if self.sliding_window_row_index == None:
+                self.sliding_window_row_index = 0
+                self.y = 0
+            else:
+                self.sliding_window_row_index += 1
+                self.y += self.h
+
+            if self.sliding_window_col_index == None:
+                self.sliding_window_col_index = 0
+                self.x = 0
+            elif self.sliding_window_row_index == self.sliding_window_num_rows:
+                self.sliding_window_col_index += 1
                 self.x += self.w
+                self.sliding_window_row_index = 0
+                self.y = 0
 
-        raise StopIteration
+            if self.sliding_window_col_index == self.sliding_window_num_cols:
+                raise StopIteration
+
+        return self
