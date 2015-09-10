@@ -967,12 +967,37 @@ class FeatureSpace( object ):
 
     #==============================================================
     @classmethod
-    def NewFromDirectory( cls, top_level_dir_path, discrete=True, num_samples_per_group=1,
-      quiet=False, global_sampling_options=None, write_sig_files_to_disk=True, **kwargs ):
-        """@brief Equivalent to the "wndchrm train" command from the C++ implementation by Shamir.
-        Read the the given directory and parse its structure for class membership.
-        Populate a list of FeatureVector instances, then call helper functions to
-        load/calculate features and populate this object."""
+    def NewFromDirectory( cls, top_level_dir_path, discrete=True, num_samples_per_group=None,
+      quiet=False, global_sampling_options=None, write_sig_files_to_disk=True,
+      n_jobs=None, **kwargs ):
+        """Create a FeatureSpace by reading the given directory for image/feature data,
+        using its subdirectory structure to define class membership. Equivalent to the
+        "wndchrm train" command from the C++ WND-CHARM implementation by Shamir.
+
+        Arguments:
+            top_level_dir_path (str):
+                Filepath to directory containing subdirs/images/.sig files
+            discrete (bool default=True):
+                Is classification problem (True) or regression problem (False)
+            num_samples_per_group (int, default None):
+                Defining sample group boundaries not to be violated by train/test splits.
+                If image tiling pattern is specified, = nrows X ncols, otherwise = 1
+            quiet (bool)
+                Output helpful messages.
+            global_sampling_options (wndcharm.FeatureVector, default None):
+                A template FeatureVector with 5D sampling options set, from which all
+                FeatureVectors generated here will derive.
+            write_sig_files_to_disk (bool, default True):
+                Save any features calculated to WND-CHARM .sig file
+            n_jobs (int, bool, default None):
+                If features need to be calculated. If true, use all cores available on
+                CPU, if int, try to create that number of processes to calculate features
+            **kwargs
+                5D sampling options directly passed to FeatureVector constructor to serve as
+                template FeatureVector (see arg global_sampling_options above)
+
+        Returns:
+            wndcharm.FeatureVector object"""
 
         if not global_sampling_options:
             global_sampling_options = FeatureVector( **kwargs )
@@ -989,6 +1014,14 @@ class FeatureSpace( object ):
             tile_num_cols = global_sampling_options.tile_num_cols
         else:
             tile_num_cols = 1
+
+        # user may want fof specification to trump global defaults, entering None for
+        # tile_num_rows and tile_num_cols
+        if num_samples_per_group is None:
+            if tile_num_rows is not None and tile_num_cols is not None:
+                num_samples_per_group = tile_num_rows * tile_num_cols
+            else:
+                num_samples_per_group = 1
 
         from copy import deepcopy
         from os import walk
@@ -1031,13 +1064,18 @@ class FeatureSpace( object ):
             raise ValueError( "Didn't find any images within directory \"{0}\"".format(
                 top_level_dir_path ) )
 
+        # Load features from disk, or calculate them if they don't exist:
+        if n_jobs is not None:
+            from .utils import parallel_compute
+            parallel_compute( samples, n_jobs )
         for fv in feature_vector_list:
-            fv.GenerateFeatures( write_to_disk=write_sig_files_to_disk, quiet=quiet )
+            fv.GenerateFeatures( write_to_disk=write_sig_files_to_disk,
+                update_samp_opts_from_pathname=False, quiet=quiet )
 
         name = basename( top_level_dir_path )
         retval = cls.NewFromListOfFeatureVectors( feature_vector_list, name=name,
                source_filepath=top_level_dir_path, num_samples=len(feature_vector_list),
-               num_samples_per_group=(tile_num_rows*tile_num_cols),
+               num_samples_per_group=num_samples_per_group,
                num_features=global_sampling_options.num_features,
                discrete=discrete, quiet=True )
 
@@ -1047,15 +1085,48 @@ class FeatureSpace( object ):
 
     #==============================================================
     @classmethod
-    def NewFromFileOfFiles( cls, pathname, num_samples_per_group=None, discrete=True, quiet=False,
+    def NewFromFileOfFiles( cls, pathname, discrete=True, num_samples_per_group=None, quiet=False,
              global_sampling_options=None, write_sig_files_to_disk=True, n_jobs=None,
              **kwargs ):
-        """Create a FeatureSpace from a file of files.
+        """Create a FeatureSpace from a tab-separated text file containing paths to TIFF files,
+        ground truth values, and 5D sampling options.
 
-        The original FOF format (pre-2015) was just two columns, a path and a ground truth
-        separated by a tab character. The extention to this format supports additional optional
-        columns specifying additional paths and preprocessing options for a more complex
-        feature space."""
+        Accepts 2 formats:
+            * Original FOF format (pre-2015): two columns, a path and a ground truth
+                    separated by a tab character.
+            * Multichannel sampling FOF format: N-tab-delimited columns, where first 2
+                    are sample name and ground truth, and the rest are pairs of paths
+                    and sampling options contained by braces ("{}") and separated by semicolons
+                    (";"). Use to define a more complex feature space. Example:
+
+sample1 ClassA  /path/to/ClassA/sample1_A.tiff    {x=12;y=34;w;56;h=78} /path/to/ClassA/sample1_B.tiff {x=12;y=34;w;56;h=78}
+sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to/ClassA/sample2_A.tiff {x=12;y=34;w;56;h=78}
+...
+
+        Arguments:
+            pathname (str):
+                Filepath for file containing feature space definition
+            discrete (bool, default True):
+                Is classification problem (True) or regression problem (False)
+            num_samples_per_group (int, default None):
+                Defining sample group boundaries not to be violated by train/test splits.
+                If image tiling pattern is specified, = nrows X ncols, otherwise = 1
+            quiet (bool)
+                Output helpful messages.
+            global_sampling_options (wndcharm.FeatureVector, default None):
+                A template FeatureVector with 5D sampling options set, from which all
+                FeatureVectors generated here will derive.
+            write_sig_files_to_disk (bool, default True):
+                Save any features calculated to WND-CHARM .sig file
+            n_jobs (int, bool, default None):
+                If features need to be calculated. If true, use all cores available on
+                CPU, if int, try to create that number of processes to calculate features
+            **kwargs
+                5D sampling options directly passed to FeatureVector constructor to serve as
+                template FeatureVector (see arg global_sampling_options above)
+
+        Returns:
+            wndcharm.FeatureVector object"""
 
         from os import getcwd, stat
         from os.path import split, splitext, isfile, join
@@ -1289,10 +1360,10 @@ class FeatureSpace( object ):
         fof.close()
         # END iterating over lines in FOF
 
+        # Load features from disk, or calculate them if they don't exist:
         if n_jobs is not None:
             from .utils import parallel_compute
             parallel_compute( samples, n_jobs )
-
         for fv in samples:
             fv.GenerateFeatures( write_sig_files_to_disk,
                 update_samp_opts_from_pathname=False, quiet=quiet )
