@@ -954,7 +954,7 @@ class FeatureSpace( object ):
 
         for samp_feats, samp_name, samp_label in zip( temp_fs.data_matrix, \
                 temp_fs._contiguous_sample_names, temp_fs._contiguous_ground_truth_labels ):
-            samp_feats.tofile( fit, sep=' ', format='%g' )
+            samp_feats.tofile( fit, sep=' ', format='%.8g' )
             # add class index of sample to end of features line
             if not samp_label or samp_label == 'UNKNOWN':
                 class_index = 0

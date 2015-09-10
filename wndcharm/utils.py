@@ -275,7 +275,6 @@ def compare( a_list, b_list, atol=1e-7 ):
             result = False
             errcount += 1
             continue
-            #self.fail( errmsg.format( count, a_str, b_str, ) )
         if e_in_a_str:
             a_coeff, a_exp = a_str.split( 'e' )
             b_coeff, b_exp = b_str.split( 'e' )
@@ -283,15 +282,11 @@ def compare( a_list, b_list, atol=1e-7 ):
                 # AssertionError: Index 623: "1e-06" and "6.93497e-07" exponents don't match.
                 a_exp = int( a_exp )
                 b_exp = int( b_exp )
-#                    if a_exp > b_exp:
-#                        a_addl_zero = '0'* abs( a_exp - b_exp )
-#                    else:
-#                        b_addl_zero = '0'* abs( a_exp - b_exp )
                 exp_digits = abs( a_exp - b_exp )
 
                 #errmsg = "Index {0}: \"{1}\" and \"{2}\" exponents don't match."
-                #self.fail( errmsg.format( count, a_raw, b_raw, ) )
             # FIXME: lstrip doesn't properly deal with negative numbers
+
             a_int_str = a_coeff.translate( None, '.' ).lstrip('0')
             b_int_str = b_coeff.translate( None, '.' ).lstrip('0')
         else:
@@ -327,9 +322,9 @@ def compare( a_list, b_list, atol=1e-7 ):
 
         diff = abs( a - b )
 
-        #print "{0}->{1}=={2}<-{3} : {4} <= {5}".format( a_raw, a, b, b_raw, diff, 10 ** diff_digits )
+        print "{0}->{1}=={2}<-{3} : {4} <= {5}".format( a_raw, a, b, b_raw, diff, 10 ** diff_digits )
         if diff > 10 ** diff_digits:      
-            errstr = "Index {0}: {1} isn't enough like {2}".format( count, a_raw, b_raw )
+            errstr = "****Index {0}: {1} isn't enough like {2}".format( count, a_raw, b_raw )
             print errstr
             result = False
             errcount += 1

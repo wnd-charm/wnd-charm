@@ -47,7 +47,7 @@ class Test_parallel_compute( unittest.TestCase ):
     maxDiff = None
 
     #@unittest.expectedFailure("")
-    @unittest.skip("")
+    #@unittest.skip("")
     def test_ParallelTiling( self ):
         """Specify bounding box to FeatureVector, calc features, then compare
         with C++ implementation-calculated feats."""
@@ -74,7 +74,7 @@ class Test_parallel_compute( unittest.TestCase ):
 
             with NamedTemporaryFile( mode='w', dir=refdir, prefix='ref', delete=False ) as temp:
                 ref_fof = temp.name
-                temp.write( 'test_samp\ttest_class\t{}\t{{}}\n'.format( refdir + sep + img_filename ) )
+                temp.write( 'reference_samp\ttest_class\t{}\t{{}}\n'.format( refdir + sep + img_filename ) )
             with NamedTemporaryFile( mode='w', dir=targetdir, prefix='target', delete=False ) as temp:
                 target_fof = temp.name
                 temp.write( 'test_samp\ttest_class\t{}\t{{}}\n'.format( targetdir + sep + img_filename ) )
@@ -88,9 +88,18 @@ class Test_parallel_compute( unittest.TestCase ):
             target_fs = FeatureSpace.NewFromFileOfFiles( target_fof, n_jobs=True,
                  quiet=False, global_sampling_options=global_sampling_options )
 
-            from numpy.testing import assert_allclose
-            self.assertTrue( assert_allclose( ref_fs.data_matrix, target_fs.data_matrix ) )
+            ref_fs.ToFitFile( '/Users/colettace/src/wnd-charm/tests/pywndcharm_tests/reference.fit' )
+            target_fs.ToFitFile( '/Users/colettace/src/wnd-charm/tests/pywndcharm_tests/target.fit' )
 
+            #from numpy.testing import assert_allclose
+            #self.assertTrue( assert_allclose( ref_fs.data_matrix, target_fs.data_matrix ) )
+            from wndcharm.utils import compare
+            for row_num, (ref_row, test_row) in enumerate( zip( ref_fs.data_matrix, target_fs.data_matrix )):
+                retval = compare( ref_row, test_row )
+                if retval == False:
+                    print "error in sample row", row_num
+                    print "FIT: ", ref_fs._contiguous_sample_names[row_num], "FOF", target_fs._contiguous_sample_names[row_num]
+                self.assertTrue( retval )
         finally:
             rmtree( refdir )
             rmtree( targetdir )
