@@ -337,35 +337,46 @@ int TrainingSet::AddSample(signatures *new_sample)
    comment: saves the training set into a text file
 */
 int TrainingSet::SaveToFile(char *filename)
-{  int sample_index, class_index, sig_index;
-   FILE *file;
-   if (!(file=fopen(filename,"w"))) {
-   	catError ("Couldn't open '%s' for writing.\n");
-   	return(0);
-   }
-   fprintf(file,"%ld\t%d.%d\n",class_num,feature_vec_version,feature_vec_type);
-   fprintf(file,"%ld\n",signature_count);
-   fprintf(file,"%ld\n",count);
-   /* write the signature names */
-   for (sig_index=0;sig_index<signature_count;sig_index++)
-     fprintf(file,"%s\n",SignatureNames[sig_index]);
-   /* write the class labels */
-   for (class_index=0;class_index<=class_num;class_index++)
-     fprintf(file,"%s\n",class_labels[class_index]);
-   /* write the samples */
-   for (sample_index=0;sample_index<count;sample_index++)
-   {
-      for (sig_index=0;sig_index<signature_count;sig_index++)
-        if (samples[sample_index]->data[sig_index] == (int)(samples[sample_index]->data[sig_index]))
-      fprintf(file,"%ld ",(long)(samples[sample_index]->data[sig_index]));      /* make the file smaller */
-//        else fprintf(file,"%.6f ",samples[sample_index]->data[sig_index]);
-      else fprintf(file,"%.5e ",samples[sample_index]->data[sig_index]);
-      if (is_continuous) fprintf(file,"%f\n",samples[sample_index]->sample_value);  /* if the class is 0, save the continouos value of the sample */
-	  else fprintf(file,"%d\n",samples[sample_index]->sample_class);   /* save the class of the sample */
-      fprintf(file,"%s\n",samples[sample_index]->full_path);
-   }
-   fclose(file);
-   return(1);
+{
+	int sample_index, class_index, sig_index;
+	FILE *file;
+	if( !( file=fopen( filename,"w" ) ) )
+	{
+		catError ("Couldn't open '%s' for writing.\n");
+		return(0);
+	}
+	fprintf(file,"%ld\t%d.%d\n",class_num,feature_vec_version,feature_vec_type);
+	fprintf(file,"%ld\n",signature_count);
+	fprintf(file,"%ld\n",count);
+	// write the signature names
+	for (sig_index=0;sig_index<signature_count;sig_index++)
+		fprintf(file,"%s\n",SignatureNames[sig_index]);
+	// write the class labels
+	for (class_index=0;class_index<=class_num;class_index++)
+		fprintf(file,"%s\n",class_labels[class_index]);
+	// write the samples
+	for (sample_index=0;sample_index<count;sample_index++)
+	{
+		for( sig_index = 0; sig_index < signature_count; sig_index++ )
+			if (samples[sample_index]->data[sig_index] == (int)(samples[sample_index]->data[sig_index]))
+				// make file smaller
+				fprintf(file,"%ld ",(long)(samples[sample_index]->data[sig_index]));
+			/*
+			else
+				fprintf(file,"%.8f ",samples[sample_index]->data[sig_index]);
+			*/
+			else
+				fprintf(file,"%.8g ",samples[sample_index]->data[sig_index]);
+		if (is_continuous)
+			// if the class is 0, save the continuous value of the sample
+			fprintf(file,"%f\n",samples[sample_index]->sample_value);
+		else
+			// save the class index of the sample
+			fprintf( file, "%d\n", samples[sample_index]->sample_class );
+		fprintf( file, "%s\n", samples[sample_index]->full_path );
+	}
+	fclose(file);
+	return(1);
 }
 
 /* IsFitFile
