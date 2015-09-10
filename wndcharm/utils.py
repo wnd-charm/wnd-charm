@@ -335,7 +335,7 @@ def compare( a_list, b_list, atol=1e-7 ):
 # ============================================================
 
 def RunInProcess( fv ):
-    print "**DEBUG fv {} row-{} col{}".format( fv, fv.tile_row_index, fv.tile_col_index )
+    #print "**DEBUG fv {} row-{} col{}".format( fv, fv.tile_row_index, fv.tile_col_index )
     fv.GenerateFeatures( write_to_disk=True )
     return True
 
