@@ -240,84 +240,9 @@ def normalize_by_columns( feature_matrix, mins=None, maxs=None, means=None, stde
 # END: Initialize module level globals
 #===============================================================
 
-
-# BEGIN: Class definitions for WND-CHARM intermediate objects
-
-#############################################################################
-# class definition of SampleImageTiles
-#############################################################################
-
-class SampleImageTiles (object):
-    """SampleImageTiles is an image iterator wrapper (the iterator is the sample method).
-    The iterator is wrapped to provide additional information such as the number of samples that will
-    be extracted from the image, as well as information about each sample after calling the sample method.
-    Each call to sample returns the next wndcharm.ImageMatrix in the sample set.
-    The constructor has three required parameters.
-    The image parameter can be a path to an image file or a wndcharm.ImageMatrix
-    The x and y parameters can specify the number of non-overlapping samples in each dimension (is_fixed parameter is False),
-    or the dimentions of each sample (is_fixed parameter is True).
-    Example usage:
-        image_iter = SampleImageTiles (input_image, size_x, size_y, True)
-        print "Number of samples = "+str (image_iter.samples)
-        for sample in image_iter.sample():
-            print "({0},{1}) : ({2},{3})".format (
-                image_iter.current_x, image_iter.current_y, sample.width, sample.height)
-    """
-
-    downsample = 0
-    mean = 0
-    stddev = 0
-    def __init__( self, image_in, x, y, is_fixed=False ):
-
-        from os.path import exists
-        if isinstance( image_in, str ):
-            if not exists( image_in ):
-                raise ValueError( "The file '{0}' doesn't exist, maybe you need to specify the full path?".format( image_in ) )
-            self.image = wndcharm.ImageMatrix()
-            if 1 != self.image.OpenImage( image_in, 0, None, 0, 0 ):
-                raise ValueError( 'Could not build an ImageMatrix from {0}, check the file.'.format( image_in ) )
-        elif isinstance( image_in, wndcharm.ImageMatrix ):
-            self.image = image_in
-        else:
-            raise ValueError("image parameter 'image_in' is not a string or a wndcharm.ImageMatrix")
-
-        if (is_fixed):
-            self.tile_width = x
-            self.tile_height = y
-            self.tiles_x = int (self.image.width / x)
-            self.tiles_y = int (self.image.height / y)
-        else:
-            self.tile_width = int (self.image.width / x)
-            self.tile_height = int (self.image.height / y)
-            self.tiles_x = x
-            self.tiles_y = y
-
-        self.samples = self.tiles_x * self.tiles_y
-        self.current_row = 0
-        self.current_y = 0
-        self.current_col = 0
-        self.current_x = 0
-
-    def sample(self):
-        width = self.tile_width
-        height = self.tile_height
-        max_x = self.image.width
-        max_y = self.image.height
-        original = self.image
-        while self.current_y + height <= max_y:
-            while self.current_x + width <= max_x:
-                new_px_plane = wndcharm.ImageMatrix()
-                bb = ( self.current_x, self.current_y,
-                        self.current_x + width - 1, self.current_y + height - 1 )
-                new_px_plane.submatrix( original, *bb ) # no retval
-                yield new_px_plane
-                self.current_x += width
-                self.current_col += 1
-            self.current_y += height
-            self.current_row += 1
-
 initialize_module()
 
+# BEGIN: Helper functions
 def compare( a_list, b_list, atol=1e-7 ):
     """Helps to compare floating point values to values stored
     in text files (ala .fit and .sig files) where the number of
@@ -350,7 +275,6 @@ def compare( a_list, b_list, atol=1e-7 ):
             result = False
             errcount += 1
             continue
-            #self.fail( errmsg.format( count, a_str, b_str, ) )
         if e_in_a_str:
             a_coeff, a_exp = a_str.split( 'e' )
             b_coeff, b_exp = b_str.split( 'e' )
@@ -358,15 +282,11 @@ def compare( a_list, b_list, atol=1e-7 ):
                 # AssertionError: Index 623: "1e-06" and "6.93497e-07" exponents don't match.
                 a_exp = int( a_exp )
                 b_exp = int( b_exp )
-#                    if a_exp > b_exp:
-#                        a_addl_zero = '0'* abs( a_exp - b_exp )
-#                    else:
-#                        b_addl_zero = '0'* abs( a_exp - b_exp )
                 exp_digits = abs( a_exp - b_exp )
 
                 #errmsg = "Index {0}: \"{1}\" and \"{2}\" exponents don't match."
-                #self.fail( errmsg.format( count, a_raw, b_raw, ) )
             # FIXME: lstrip doesn't properly deal with negative numbers
+
             a_int_str = a_coeff.translate( None, '.' ).lstrip('0')
             b_int_str = b_coeff.translate( None, '.' ).lstrip('0')
         else:
@@ -402,12 +322,41 @@ def compare( a_list, b_list, atol=1e-7 ):
 
         diff = abs( a - b )
 
-        #print "{0}->{1}=={2}<-{3} : {4} <= {5}".format( a_raw, a, b, b_raw, diff, 10 ** diff_digits )
+        print "{0}->{1}=={2}<-{3} : {4} <= {5}".format( a_raw, a, b, b_raw, diff, 10 ** diff_digits )
         if diff > 10 ** diff_digits:      
-            errstr = "Index {0}: {1} isn't enough like {2}".format( count, a_raw, b_raw )
+            errstr = "****Index {0}: {1} isn't enough like {2}".format( count, a_raw, b_raw )
             print errstr
             result = False
             errcount += 1
             continue
             #self.fail( errstr.format( count, a_raw, b_raw ) )
     return result
+
+# ============================================================
+
+def RunInProcess( fv ):
+    print "**DEBUG fv {} row-{} col{}".format( fv, fv.tile_row_index, fv.tile_col_index )
+    fv.GenerateFeatures( write_to_disk=True )
+    return True
+
+def parallel_compute( samples, n_jobs=True ):
+    """WND-CHARM implementation of symmetric multiprocessing, see:
+    https://en.wikipedia.org/wiki/Symmetric_multiprocessing"""
+
+    from multiprocessing import cpu_count, Queue, Pool, log_to_stderr
+    import logging
+    if n_jobs == True:
+        n_jobs = cpu_count()
+
+    logger = log_to_stderr()
+    logger.setLevel(logging.INFO)
+    try:
+        pool = Pool( processes=n_jobs )
+        pool.map( RunInProcess, samples, chunksize=1 )
+        pool.close()
+        pool.join()
+    except KeyboardInterrupt:
+        pool.terminate()
+        pool.join()
+        raise
+ 

@@ -252,10 +252,10 @@ int signatures::SaveToFile (int save_feature_names) {
 	}
 	fprintf(wf_fp,"%s\n",full_path);
 	for (sig_index=0; sig_index < count; sig_index++) {
-		if (save_feature_names && NamesTrainingSet)
-			fprintf(wf_fp,"%f\t%s\n",data[sig_index],((TrainingSet *)NamesTrainingSet)->SignatureNames[sig_index]);
+		if( save_feature_names && NamesTrainingSet )
+			fprintf( wf_fp, "%.8g\t%s\n", data[sig_index], ((TrainingSet *)NamesTrainingSet)->SignatureNames[sig_index] );
 		else
-			fprintf(wf_fp,"%f\n",data[sig_index]);
+			fprintf( wf_fp, "%.8g\n", data[sig_index] );
 	}
    return(1);
 }
