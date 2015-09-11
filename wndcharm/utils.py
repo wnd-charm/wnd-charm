@@ -322,7 +322,7 @@ def compare( a_list, b_list, atol=1e-7 ):
 
         diff = abs( a - b )
 
-        print "{0}->{1}=={2}<-{3} : {4} <= {5}".format( a_raw, a, b, b_raw, diff, 10 ** diff_digits )
+        #print "{0}->{1}=={2}<-{3} : {4} <= {5}".format( a_raw, a, b, b_raw, diff, 10 ** diff_digits )
         if diff > 10 ** diff_digits:      
             errstr = "****Index {0}: {1} isn't enough like {2}".format( count, a_raw, b_raw )
             print errstr
