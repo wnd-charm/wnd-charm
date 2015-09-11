@@ -88,9 +88,6 @@ class Test_parallel_compute( unittest.TestCase ):
             target_fs = FeatureSpace.NewFromFileOfFiles( target_fof, n_jobs=True,
                  quiet=False, global_sampling_options=global_sampling_options )
 
-            ref_fs.ToFitFile( '/Users/colettace/src/wnd-charm/tests/pywndcharm_tests/reference.fit' )
-            target_fs.ToFitFile( '/Users/colettace/src/wnd-charm/tests/pywndcharm_tests/target.fit' )
-
             #from numpy.testing import assert_allclose
             #self.assertTrue( assert_allclose( ref_fs.data_matrix, target_fs.data_matrix ) )
             from wndcharm.utils import compare
