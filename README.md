@@ -11,11 +11,11 @@ This research was supported entirely by the Intramural Research Program of the N
 ----
 ####A full description of the wndchrm utility can be found at:
 
-[Shamir L, Orlov N, Eckley DM, Macura T, Johnston J, Goldberg IG. Wndchrm - an open source utility for biological image analysis](http://www.scfbm.org/content/3/1/13). BMC Source Code for Biology and Medicine. 3: 13, 2008. [PDF download](http://ome.grc.nia.nih.gov/wnd-charm/BMC-wndchrm-utility.pdf)
+[Shamir L, Orlov N, Eckley DM, Macura T, Johnston J, Goldberg IG. Wndchrm - an open source utility for biological image analysis](http://www.scfbm.org/content/3/1/13). BMC Source Code for Biology and Medicine. 3: 13, 2008. [PDF download](https://ome.irp.nia.nih.gov/wnd-charm/BMC-wndchrm-utility.pdf)
 
 ####The wndchrm utility is an implementation of the WND-CHARM algorithm described here:
 
-[Orlov N, Shamir L, Macura T, Johnston J, Eckley DM, Goldberg IG. WND-CHARM: Multi-purpose image classification using compound image transforms](http://ome.grc.nia.nih.gov/wnd-charm/PRL_2008.pdf). Pattern Recognition Letters. 29(11): 1684-93, 2008.
+[Orlov N, Shamir L, Macura T, Johnston J, Eckley DM, Goldberg IG. WND-CHARM: Multi-purpose image classification using compound image transforms](https://ome.irp.nia.nih.gov/wnd-charm/PRL_2008.pdf). Pattern Recognition Letters. 29(11): 1684-93, 2008.
 
 ####A review of techniques used in pattern-recognition/machine learning as applied to image analysis is here:
 
@@ -23,7 +23,7 @@ This research was supported entirely by the Intramural Research Program of the N
 
 ## Current Release
 
-The current release of the wndchrm command-line utility is  version 1.52, available here: [wndchrm-1.52.775.tar.gz](http://ome.grc.nia.nih.gov/wnd-charm/wndchrm-1.52.775.tar.gz)
+The current release of the wndchrm command-line utility is  version 1.52, available here: [wndchrm-1.52.775.tar.gz](https://ome.irp.nia.nih.gov/wnd-charm/wndchrm-1.52.775.tar.gz)
 
 ## Supported Platforms
 
@@ -67,4 +67,4 @@ The WND-CHARM Python API additionally requires the Python development package, S
 
 ## Test Images
 
-Please also visit the [IICBU Biological Image Repository](http://ome.grc.nia.nih.gov/iicbu2008), which provides a benchmark for testing and comparing the performance of image analysis algorithms for biological imaging.
+Please also visit the [IICBU Biological Image Repository](https://ome.irp.nia.nih.gov/iicbu2008), which provides a benchmark for testing and comparing the performance of image analysis algorithms for biological imaging.
