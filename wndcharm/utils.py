@@ -334,29 +334,55 @@ def compare( a_list, b_list, atol=1e-7 ):
 
 # ============================================================
 
-def RunInProcess( fv ):
-    #print "**DEBUG fv {} row-{} col{}".format( fv, fv.tile_row_index, fv.tile_col_index )
-    fv.GenerateFeatures( write_to_disk=True )
-    return True
 
-def parallel_compute( samples, n_jobs=True ):
+def print_log_message( fv ):
+    from multiprocessing import log_to_stderr
+    logger = log_to_stderr()
+    from os import getpid
+    if fv.tile_row_index is not None:
+        col = fv.tile_col_index
+        row = fv.tile_row_index
+    elif fv.sliding_window_row_index is not None:
+        col = fv.sliding_window_row_index
+        row = fv.sliding_window_col_index
+    else:
+        col = ""
+        row = ""
+    line = "Process {}: calculating {} row-{} col{}".format( getpid(), fv, row, col )
+    logger.info( line )
+
+def RunInProcess( fv ):
+    """Helper function used for parallel calculation of image features"""
+    fv.GenerateFeatures( write_to_disk=True )
+
+def RunInProcessVerbose( fv ):
+    """Helper function used for parallel calculation of image features"""
+    print_log_message( fv )
+    fv.GenerateFeatures( write_to_disk=True, quiet=False )
+
+def parallel_compute( samples, n_jobs=True, quiet=True ):
     """WND-CHARM implementation of symmetric multiprocessing, see:
     https://en.wikipedia.org/wiki/Symmetric_multiprocessing"""
 
     from multiprocessing import cpu_count, Queue, Pool, log_to_stderr
-    import logging
+
+    if not quiet:
+        import logging
+        logger = log_to_stderr()
+        logger.setLevel(logging.INFO)
+
     if n_jobs == True:
         n_jobs = cpu_count()
 
-    logger = log_to_stderr()
-    logger.setLevel(logging.INFO)
     try:
         pool = Pool( processes=n_jobs )
-        pool.map( RunInProcess, samples, chunksize=1 )
+        if quiet:
+            pool.map( RunInProcess, samples, chunksize=1 )
+        else:
+            pool.map( RunInProcessVerbose, samples, chunksize=1 )
         pool.close()
         pool.join()
     except KeyboardInterrupt:
         pool.terminate()
         pool.join()
         raise
- 

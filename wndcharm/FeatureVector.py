@@ -440,11 +440,14 @@ class FeatureVector( object ):
         return self
 
     #==============================================================
-    def Derive( self, **kwargs ):
+    def Derive( self, base=None, **kwargs ):
         """Make a copy of this FeatureVector, except members passed as kwargs"""
 
         from copy import deepcopy
-        new_obj = self.__class__()
+        if base:
+            new_obj = self.__class__.__bases__[0]()
+        else:
+            new_obj = self.__class__()
         self_namespace = vars( self )
         new_obj_namespace = vars( new_obj )
 
@@ -1146,9 +1149,6 @@ class SlidingWindow( FeatureVector ):
     by tile_num_rows & tile_num_cols. Overlapping/non-contiguous behavior enabled when
     user specifies w, h, deltax and/or deltay."""
 
-    def __iter__( self ):
-        return self
-
     def __init__( self, deltax=None, deltay=None, desired_positions=None, *args, **kwargs ):
         """Will open source image to get dimensions to calculate number of window positions,
         UNLESS using "classic" tiling, a.k.a. contiguous, non-overlapping tiles. Passes
@@ -1193,14 +1193,8 @@ class SlidingWindow( FeatureVector ):
         else:
             raise ValueError( "Could not obtain window/slide dimensions from instance atribute params provided." )
 
-    def __next__(self):
-        return self.next()
 
-    def next( self ):
-
-        self.values = None
-        self.preprocessed_local_px_plane = None
-
+    def increment_position( self ):
         if self.sample_sequence_id == None:
             self.sample_sequence_id = 0
         else:
@@ -1222,24 +1216,43 @@ class SlidingWindow( FeatureVector ):
                 raise StopIteration
 
         else:
-
             if self.sliding_window_row_index == None:
                 self.sliding_window_row_index = 0
                 self.y = 0
             else:
                 self.sliding_window_row_index += 1
-                self.y += self.h
+                self.y += self.deltay
 
             if self.sliding_window_col_index == None:
                 self.sliding_window_col_index = 0
                 self.x = 0
-            elif self.sliding_window_row_index == self.sliding_window_num_rows:
+            elif ( (self.y + self.h - 1) > self.preprocessed_full_px_plane_height) or \
+                    self.sliding_window_row_index == self.sliding_window_num_rows:
                 self.sliding_window_col_index += 1
-                self.x += self.w
+                self.x += self.deltax
                 self.sliding_window_row_index = 0
                 self.y = 0
 
-            if self.sliding_window_col_index == self.sliding_window_num_cols:
+            if ( (self.x + self.w - 1) > self.preprocessed_full_px_plane_width) or \
+                    self.sliding_window_col_index == self.sliding_window_num_cols:
                 raise StopIteration
 
+    def get_next_position( self ):
+        while True :
+            self.increment_position()
+            if self.desired_positions is not None:
+                if self.sample_sequence_id in self.desired_positions:
+                    break
+            else:
+                break
+
         return self
+
+    def sample( self ):
+
+        self.values = None
+        self.preprocessed_local_px_plane = None
+        self.auxiliary_feature_storage = None
+
+        while True:
+            yield self.get_next_position().Derive( base=True )
