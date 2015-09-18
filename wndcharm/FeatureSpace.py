@@ -1363,7 +1363,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
         # Load features from disk, or calculate them if they don't exist:
         if n_jobs is not None:
             from .utils import parallel_compute
-            parallel_compute( samples, n_jobs )
+            parallel_compute( samples, n_jobs, quiet=quiet )
         for fv in samples:
             fv.GenerateFeatures( write_sig_files_to_disk,
                 update_samp_opts_from_pathname=False, quiet=quiet )
