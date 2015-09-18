@@ -1363,7 +1363,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
         # Load features from disk, or calculate them if they don't exist:
         if n_jobs is not None:
             from .utils import parallel_compute
-            parallel_compute( samples, n_jobs )
+            parallel_compute( samples, n_jobs, quiet=quiet )
         for fv in samples:
             fv.GenerateFeatures( write_sig_files_to_disk,
                 update_samp_opts_from_pathname=False, quiet=quiet )
@@ -1378,13 +1378,85 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
         if not quiet:
             print "NEW FEATURE SPACE FROM FILE LIST:", retval
         return retval
+    #==============================================================
+    @classmethod
+    def NewFromSlidingWindow( cls, window, n_jobs=None, quiet=True):
+        """Takes features derived from samples from a wndchrm.FeatureVector.SlidingWindow
+        and constructs a FeatureSpace out of them.
+
+        Arguments:
+            window (wndchrm.FeatureVector.SlidingWindow):
+                Source object from which samples and features are derived.
+            n_jobs (int or bool, default None):
+                Number of cores to concurrently calculate features, or all available if
+                True.
+        Returns:
+            instance of wndcharm.FeatureSpace.FeatureSpace"""
+
+        samples = [None] * window.num_positions
+        for i, fv in enumerate( window.sample() ):
+            samples[i] = fv
+
+        # Load features from disk, or calculate them if they don't exist:
+        if n_jobs is not None:
+            from .utils import parallel_compute
+            parallel_compute( samples, n_jobs, quiet=quiet )
+        for fv in samples:
+            fv.GenerateFeatures( update_samp_opts_from_pathname=False, quiet=quiet )
+
+        new_fs = cls.NewFromListOfFeatureVectors( samples, name=window.name,
+                source_filepath=window.source_filepath, quiet=True )
+
+        if not quiet:
+            print "NEW FEATURE SPACE FROM SCANING WINDOW:", str( new_fs )
+
+        return new_fs
 
     #==============================================================
     @classmethod
-    def NewFromListOfFeatureVectors( cls, feature_vectors_list, num_samples, num_features,
-        name=None, source_filepath=None, num_samples_per_group=1, feature_set_version=None,
-        discrete=True, quiet=True ):
-        """Input is list of FeatureVectors WHOSE FEATURES HAVE ALREADY BEEN CALCULATED."""
+    def NewFromListOfFeatureVectors( cls, samples, num_samples=None,
+            num_features=None, name=None, source_filepath=None, num_samples_per_group=1,
+            feature_set_version=None, discrete=True, quiet=True ):
+        """Method to assemble FeatureVector objects into a FeatureSpace. N.B.:
+        FeatureVector object must already be populated with feature values, so make sure
+        you called GenerateFeatures() method on every FeatureVector object in the "samples"
+        list.
+
+        Arguments:
+            samples (list of wndcharm.FeatureVector.FeatureVector):
+                Prepopulated with features.
+            num_samples (int, default None):
+            num_features (int, default None):
+                Use if there are multiple channels of feature vectors that you want
+                to horizontally stack together (double-wide feature vectors, triple-wide,
+                etc.), otherwise default assumes all vectors are to be vertically stacked
+                and therefore "num_samples" is just the length of the samples list and
+                "num_features" is just the length.
+            name (str, default None):
+                The name of this FeatureSpace
+            source_filepath (str, default None)
+                Path to file or directory from which this FeatureSpace is derived.
+            num_samples_per_group (int, default 1):
+                By default, every sample is an independent "point" in feature space.
+                But in cases like a tiled image, it may be inappropriate to split a group
+                of samples to have some in the training set and some in the test set.
+                The quantity num_samples_per_group indicates how many samples constitute
+                an individible unit.
+            feature_set_version (str, default None):
+                A string indicating the feature set and version.
+            discrete (bool, default True):
+                If True, indicates this FeatureSet is a classification problem, otherwise
+                a regression/clustering problem
+            quiet (boot, default True):
+                Verbosity. By default, be silent about what is going on.
+
+        Returns:
+            instance of wndcharm.FeatureSpace.FeatureSpace"""
+
+        if num_samples == None:
+            num_samples = len( feature_fectors_list )
+        if num_features == None:
+            num_features = len( samples[0] )
 
         new_fs = cls( name=name,
                       source_filepath=source_filepath,
@@ -1405,12 +1477,12 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
 
         # Count the number of feature set columns we have to know whether to
         # add the "channel" string token inside the inner parentheses of the feature names
-        num_fs_columns = len( set( [ fv.fs_col for fv in feature_vectors_list ] ) )
+        num_fs_columns = len( set( [ fv.fs_col for fv in samples ] ) )
 
         # Sort list of FeatureVectors by column so we can fill in the new data_matrix
         # and feature_names from left to right.
 
-        sorted_by_fs_cols = sorted( feature_vectors_list, key=lambda fv: fv.fs_col )
+        sorted_by_fs_cols = sorted( samples, key=lambda fv: fv.fs_col )
 
         # DEBUG: optional sort 1: sort again by sample group
         #sorted_by_fs_cols = sorted( sorted_by_fs_cols, key=lambda fv: fv.sample_group_id )
