@@ -334,11 +334,16 @@ def compare( a_list, b_list, atol=1e-7 ):
 
 # ============================================================
 
+def init_worker():
+    import signal
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    #from multiprocessing import log_to_stderr
+    #logger = log_to_stderr()
 
 def print_log_message( fv ):
-    from multiprocessing import log_to_stderr
-    logger = log_to_stderr()
     from os import getpid
+    from multiprocessing import get_logger
+    logger = get_logger()
     if fv.tile_row_index is not None:
         col = fv.tile_col_index
         row = fv.tile_row_index
@@ -351,11 +356,11 @@ def print_log_message( fv ):
     line = "Process {}: calculating {} row-{} col{}".format( getpid(), fv, row, col )
     logger.info( line )
 
-def RunInProcess( fv ):
+def WorkerFunction( fv ):
     """Helper function used for parallel calculation of image features"""
-    fv.GenerateFeatures( write_to_disk=True )
+    fv.GenerateFeatures( write_to_disk=True, quiet=True )
 
-def RunInProcessVerbose( fv ):
+def WorkerFunctionVerbose( fv ):
     """Helper function used for parallel calculation of image features"""
     print_log_message( fv )
     fv.GenerateFeatures( write_to_disk=True, quiet=False )
@@ -364,8 +369,9 @@ def parallel_compute( samples, n_jobs=True, quiet=True ):
     """WND-CHARM implementation of symmetric multiprocessing, see:
     https://en.wikipedia.org/wiki/Symmetric_multiprocessing"""
 
-    from multiprocessing import cpu_count, Queue, Pool, log_to_stderr
+    from multiprocessing import cpu_count, Pool, log_to_stderr
 
+    import signal
     if not quiet:
         import logging
         logger = log_to_stderr()
@@ -374,15 +380,20 @@ def parallel_compute( samples, n_jobs=True, quiet=True ):
     if n_jobs == True:
         n_jobs = cpu_count()
 
+    pool = Pool( processes=n_jobs, initializer=init_worker )
+
+    if quiet:
+        worker = WorkerFunction
+    else:
+        worker = WorkerFunctionVerbose
+
     try:
-        pool = Pool( processes=n_jobs )
-        if quiet:
-            pool.map( RunInProcess, samples, chunksize=1 )
-        else:
-            pool.map( RunInProcessVerbose, samples, chunksize=1 )
+        pool.map_async( worker, samples, chunksize=1 )
         pool.close()
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
         pool.join()
     except KeyboardInterrupt:
+        print "Caught KeyboardInterrupt, terminating workers"
         pool.terminate()
         pool.join()
-        raise
+
