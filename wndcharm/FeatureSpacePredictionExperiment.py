@@ -254,8 +254,9 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
     #=====================================================================
     @classmethod
     def NewShuffleSplit( cls, feature_space, test_set=None, n_iter=5, name=None, features_size=0.15,
-                           train_size=None, test_size=None, random_state=True, classifier=None,
-                           lda=False, quiet=True, display=15, conserve_mem=False, progress=True ):
+                           train_size=None, test_size=None, balanced_classes=True, random_state=True,
+                           classifier=None, lda=False, quiet=True, display=15, conserve_mem=False,
+                           progress=True ):
         """args train_size, test_size, and random_state are all passed through to Split()
         feature_size if a float is feature usage fraction, if in is top n features."""
 
@@ -341,13 +342,13 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
                 stdout.write( str( split_index ) + '\t' )
  
             if master_test_set == None:
-                train_set, test_set = feature_space.Split(
-                    train_size, test_size, random_state=randint(), quiet=quiet )
+                train_set, test_set = feature_space.Split( train_size, test_size,
+                        random_state=randint(), balanced_classes=balanced_classes, quiet=quiet )
             else:
-                train_set = feature_space.Split(
-                    train_size, 0, random_state=randint(), quiet=quiet )
-                test_set = master_test_set.Split(
-                        test_size, 0, random_state=randint(), quiet=quiet )
+                train_set = feature_space.Split( train_size, 0, random_state=randint(),
+                        balanced_classes=balanced_classes, quiet=quiet )
+                test_set = master_test_set.Split( test_size, 0, random_state=randint(),
+                        balanced_classes=balanced_classes, quiet=quiet )
             
             # Normalize features using zscores if lda
             train_set.Normalize( quiet=quiet, inplace=True, non_real_check=False, zscore=lda )

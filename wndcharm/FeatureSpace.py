@@ -1746,18 +1746,18 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
 
         Parameters (stolen directly from scikit-learn's documentation):
 
-        test_size : float, int, or None (default is None)
-                    If float, should be between 0.0 and 1.0 and represent the proportion
-                    of the dataset to include in the test split (rounded up). If int, 
-                    represents the absolute number of test samples. If None, the value is
-                    automatically set to the complement of the train size. If train size 
-                    is also None, test size is set to 0.25.
-
         train_size : float, int, or None (default is None)
                     If float, should be between 0.0 and 1.0 and represent the proportion
                     of the dataset to include in the train split (rounded down). If int,
                     represents the absolute number of train samples. If None, the value
                     is automatically set to the complement of the test size.
+
+        test_size : float, int, or None (default is None)
+                    If float, should be between 0.0 and 1.0 and represent the proportion
+                    of the dataset to include in the test split (rounded up). If int,
+                    represents the absolute number of test samples. If None, the value is
+                    automatically set to the complement of the train size. If train size
+                    is also None, test size is set to 0.25.
 
         random_state : int or RandomState
                     If true, generate a new random split. If int or Pseudo-random number
@@ -1808,7 +1808,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
             seen = set()
             seen_add = seen.add
             unique_samplegroup_ids = [ x for x in sample_group_ids if not (x in seen or seen_add(x) ) ]
-            if _max and _max > len( unique_samplegroup_ids ):
+            if _max and _max < len( unique_samplegroup_ids ):
                 # Chop off the end
                 unique_samplegroup_ids = unique_samplegroup_ids[ : _max ]
 
@@ -1884,7 +1884,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
                     class_train_groups, class_test_groups = \
                       CalcTrainTestSampleGroupMembership( self.sample_group_ids[class_index], _max=smallest_class_size  )
                 except Exception as e:
-                    addl_msg = "Error with class index " + str(class_index) + \
+                    addl_msg = "Error splitting class index " + str(class_index) + \
                                '. For discrete FeatureSpaces (with classes), train_size and test_size' + \
                                ' are evaluated per-class. '
                     if e.args:
