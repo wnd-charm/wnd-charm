@@ -474,10 +474,13 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
         if self.test_set.class_names == self.training_set.class_names:
             from copy import deepcopy
             self.similarity_matrix = deepcopy( self.average_class_probability_matrix )
-            for row in self.test_set.class_names:
-                denom = self.similarity_matrix[ row ][ row ]
-                for col in self.training_set.class_names:
-                    self.similarity_matrix[ row ][ col ] /= denom
+            try:
+                for row in self.test_set.class_names:
+                    denom = self.similarity_matrix[ row ][ row ]
+                    for col in self.training_set.class_names:
+                        self.similarity_matrix[ row ][ col ] /= denom
+            except:
+                self.similarity_matrix = None
 
         self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
         return self

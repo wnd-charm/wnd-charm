@@ -287,7 +287,7 @@ class AccuracyVersusNumFeaturesGraph( _BaseGraph ):
         """Creates graph for Classifier/Regressor figure of merit as a function of
         number of top-ranked features used in classification.
 
-        Calls wndcharm.FeatureSpacePredictionExperiment.FeatureWeightsGridSearch, which is
+        Calls wndcharm.FeatureSpacePredictionExperiment.NumFeaturesGridSearch, which is
         itself a wrapper for NewShuffleSplit, to which kwargs gets passed through.
 
         Args:
@@ -313,10 +313,10 @@ class AccuracyVersusNumFeaturesGraph( _BaseGraph ):
             del kwargs['lda']
 
         if lda_comparison:
-            main_coords = Experiment.FeatureWeightsGridSearch( param_space=param_space,
+            main_coords = Experiment.NumFeaturesGridSearch( param_space=param_space,
                     quiet=quiet, lda=False, **kwargs )
             X, Y = zip( *main_coords )
-            lda_coords = Experiment.FeatureWeightsGridSearch( param_space=param_space,
+            lda_coords = Experiment.NumFeaturesGridSearch( param_space=param_space,
                     quiet=quiet, lda=True, **kwargs )
             X_lda, Y_lda = zip( *lda_coords )
             all_ys = Y + Y_lda
@@ -324,7 +324,7 @@ class AccuracyVersusNumFeaturesGraph( _BaseGraph ):
                 y_min = min( all_ys )
             y_max = max( all_ys )
         else:
-            main_coords = Experiment.FeatureWeightsGridSearch( param_space=param_space,
+            main_coords = Experiment.NumFeaturesGridSearch( param_space=param_space,
                     quiet=quiet, **kwargs )
             X, Y = zip( *main_coords )
             if y_min == None:

@@ -709,7 +709,7 @@ class FeatureSpace( object ):
             else:
                 self.lda_fitter = LDA()
 
-            self.lda_fitter.fit( self.data_matrix, self._contiguous_ground_truth_labels)
+            self.lda_fitter.fit( self.data_matrix, self._contiguous_ground_truth_labels )
             fitter = self.lda_fitter
         else:
             # Recalculate my feature space according to fitted model in reference_features

@@ -281,7 +281,7 @@ class FisherFeatureWeights( FeatureWeights ):
         return new_weights
 
     #================================================================
-    def Slice( self, start_index, stop_index ):
+    def Slice( self, start_index=0, stop_index ):
         """Return a new instance of FisherFeatureWeights containing a chunk
         of middle-ranked features."""
 
@@ -301,8 +301,9 @@ class FisherFeatureWeights( FeatureWeights ):
         new_weights = self.__class__()
         raw_featureweights = zip( self.feature_names, self.values )
 
+        from itertools import islice
         use_these_feature_weights = \
-                list( itertools.islice( raw_featureweights, min_index, max_index ) )
+                list( islice( raw_featureweights, min_index, max_index ) )
 
         # we want lists, not tuples!
         new_weights.feature_names, new_weights.values =\
