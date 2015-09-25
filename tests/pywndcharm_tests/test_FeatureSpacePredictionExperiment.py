@@ -86,7 +86,7 @@ class TESTINGFeatureSpaceRegressionExperiment( unittest.TestCase ):
             PearsonFeatureWeights.NewFromFeatureSpace( temp_normalized_fs ).Threshold(_all='nonzero')
 
         quintile = int( len( ranked_nonzero_features ) / 5 )
-        crappy_features = ranked_nonzero_features.Slice( quintile*4, len( ranked_nonzero_features ) )
+        crappy_features = ranked_nonzero_features[ quintile*4 : len( ranked_nonzero_features ) ]
         #crappy_features.Print()
         crap_featureset = fs.FeatureReduce( crappy_features, inplace=False )
 
@@ -143,7 +143,7 @@ class TESTINGFeatureSpaceRegressionExperiment( unittest.TestCase ):
             PearsonFeatureWeights.NewFromFeatureSpace( temp_normalized_fs ).Threshold(_all='nonzero')
 
         quintile = int( len( ranked_nonzero_features ) / 5 )
-        crappy_features = ranked_nonzero_features.Slice( quintile*4, len( ranked_nonzero_features ) )
+        crappy_features = ranked_nonzero_features[ quintile*4 : len( ranked_nonzero_features ) ]
         #crappy_features.Print()
         crap_featureset = fs.FeatureReduce( crappy_features )
 
