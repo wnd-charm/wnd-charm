@@ -1143,11 +1143,17 @@ class FeatureVector( object ):
 
 #=============================================================================
 class SlidingWindow( FeatureVector ):
-    """Iterator object for sliding window-style image analysis/feature calculation.
+    """Object for sliding window-style image analysis/feature calculation.
 
-    Default behavior is to iterate over contiguous, non-overlapping tiles specified
-    by tile_num_rows & tile_num_cols. Overlapping/non-contiguous behavior enabled when
-    user specifies w, h, deltax and/or deltay."""
+    self.sample() generator method yields a fully-qualified FeatureVector object with
+    5D sampling parameters appropriate for given window location.
+
+    Contstructor for this object without args yields classic "tile" behavior, i.e.,
+    contiguous, non-overlapping ROIs specified by tile_num_rows & tile_num_cols.
+    Overlapping/non-contiguous behavior enabled when user specifies instance attributes
+    w, h, deltax and/or deltay."""
+
+    count = 0
 
     def __init__( self, deltax=None, deltay=None, desired_positions=None, *args, **kwargs ):
         """Will open source image to get dimensions to calculate number of window positions,
@@ -1167,6 +1173,11 @@ class SlidingWindow( FeatureVector ):
         self.deltay = deltay
         self.desired_positions = desired_positions
         self.num_positions = None
+
+        if self.sample_group_id is None:
+            # All sample group ids are the same for all sliding window positions
+            self.sample_group_id = self.count
+            self.count += 1
 
         if self.tile_num_rows is not None and self.tile_num_cols is not None: 
             # Case 1: Standard tiling. Sig files will use -tNxM_n_m notation.

@@ -1454,7 +1454,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
             instance of wndcharm.FeatureSpace.FeatureSpace"""
 
         if num_samples == None:
-            num_samples = len( feature_fectors_list )
+            num_samples = len( samples )
         if num_features == None:
             num_features = len( samples[0] )
 
