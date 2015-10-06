@@ -903,7 +903,7 @@ class FeatureSpace( object ):
         return new_fs
 
     #==============================================================
-    def ToFitFile( self, path=None ):
+    def ToFitFile( self, path=None, sort=True ):
         """Writes features to ASCII text file which can be read by classic wnd-charm.
 
         Intended to be a const funtion, but outputted fit files are required by C++
@@ -925,10 +925,13 @@ class FeatureSpace( object ):
         # C++ WNDCHARM only likes to read classes if their class labels are in sort order
         #from copy import deepcopy
         #tempfs = deepcopy(self)
-        temp_fs = self.Derive()
-        # Sort by labels only:
-        temp_fs.SortSamplesByGroundTruth( inplace=True, rebuild_views=True,
+        if sort:
+            temp_fs = self.Derive()
+            # Sort by labels only:
+            temp_fs.SortSamplesByGroundTruth( inplace=True, rebuild_views=True,
                 force_use_labels=True )
+        else:
+            temp_fs = self
 
         fit = open( path, 'w' )
 

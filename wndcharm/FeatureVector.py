@@ -729,7 +729,7 @@ class FeatureVector( object ):
             elif minor == '3':
                 comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSetColor()
             elif minor == '4':
-                comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSetColorLong()
+                comp_plan = wndcharm.StdFeatureComputationPlans.getFeatureSetLongColor()
             else:
                 raise ValueError( "Not sure which features you want." )
             self.feature_computation_plan = comp_plan
