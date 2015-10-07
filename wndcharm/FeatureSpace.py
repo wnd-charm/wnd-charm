@@ -1626,18 +1626,25 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
 
     #==============================================================
     def SampleReduce( self, leave_in_sample_group_ids=None, leave_out_sample_group_ids=None,
-        inplace=False, override=False, quiet=False ):
-        """Returns a new FeatureSpace that contains a subset of the data by dropping
-        samples (rows), and/or rearranging rows.
+        inplace=False, override=False, sort=True, quiet=False ):
+        """Drop and/or rearrange order of sample groups in FeatureSpace. Tiles within
+        a sample group are kept contiguous.
 
-        leave_in_sample_group_list := a list containing sample group ids
-            that should be left IN
+        Arguments:
+            leave_in_sample_group_list (list, default=None):
+                Sample group ids that should be left IN.
+            leave_out_sample_group_ids (list, default=None):
+                Sample group ids that should be left OUT
+            inplace (bool, default=False):
+                If False, deepcopy this object and sort that, otherwise reduce/sort self.
+            override (bool, default=False):
+                Allow reduction/sorting even if this object has been min-max or z-score
+                normalized.
+            sort (bool, default=True):
+                Sort on ground truth after sample reduction.
 
-        leave_out_sample_group_ids := a list containing sample group ids
-            that should be left OUT
-
-        Returns a near-deep copy of self including only the sample groups specified in the list.
-        If no tiles, sample group reduces to just sample index."""
+        Returns:
+            wndcharm.FeatureSpace object"""
 
         if leave_in_sample_group_ids is None and leave_out_sample_group_ids is None:
             raise ValueError( 'Invalid input, both leave_in_sample_group_ids and leave_out_sample_group_ids were None')
@@ -1655,7 +1662,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
                 if type( item ) is not int:
                     raise TypeError( "Input must be an int or a flat iterable containing only ints.")
 
-            if not set( the_list ) < set( self._contiguous_sample_group_ids ):
+            if not set( the_list ) <= set( self._contiguous_sample_group_ids ):
                 msg = "Input contains sample group ids that aren't " + \
                             'contained in FeatureSpace "' + self.name + '", specifically: ' + \
                       str( sorted( list( set( the_list ) - set( self._contiguous_sample_group_ids ) ) ) )
@@ -1733,7 +1740,10 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
         else:
             retval = self.Derive( **newdata )
 
-        retval.SortSamplesByGroundTruth( rebuild_views=True, inplace=True )
+        if sort:
+            retval.SortSamplesByGroundTruth( rebuild_views=True, inplace=True )
+        else:
+            retval._RebuildViews()
 
         if not quiet:
             print "SAMPLE REDUCED FEATURE SPACE: ", str( retval )
