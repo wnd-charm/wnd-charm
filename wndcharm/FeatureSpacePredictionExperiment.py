@@ -147,7 +147,7 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
                     feature_weight_lists[ name ] = []
                 feature_weight_lists[ name ].append( weight )
 
-        if feature_weight_lists is not {}:
+        if len( feature_weight_lists ) > 0:
             from operator import itemgetter
 
             for feature_name in feature_weight_lists:

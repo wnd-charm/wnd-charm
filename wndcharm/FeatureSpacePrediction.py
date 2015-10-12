@@ -488,7 +488,7 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
     #==============================================================
     @output_railroad_switch
     def Print( self ):
-        """Prints out statistics from this batch's image classifications, which include 
+        """Prints out statistics from this split's image classifications, which include
         classification accuracy, confusion matrix, similarity matrix, and average class 
         probability matrix."""
 
@@ -710,9 +710,9 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
             dist_mat = ma.masked_less_equal( raw_dist_mat, epsilon, False )
 
         # Create marginal probabilities from distance matrix:
-        similarity_mat = np.power( dist_mat, -5 )
+        similarity_mat = np.power( dist_mat, -5 ).T
 
-        for test_samp_index, test_samp_sims in enumerate( similarity_mat.T ):
+        for test_samp_index, test_samp_sims in enumerate( similarity_mat ):
             result = SingleSampleClassification()
             per_class_sims_list = [ test_samp_sims[ class_slice ] \
                     for class_slice in slice_list ]
