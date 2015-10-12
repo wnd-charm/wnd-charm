@@ -1817,10 +1817,12 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
 
             from math import ceil, floor
 
-            # Uniquify the sample group list, maintaining order of input sample group list.
+            # Uniquify the sample group list, maintaining order of input sample group list in case no random.
             seen = set()
             seen_add = seen.add
             unique_samplegroup_ids = [ x for x in sample_group_ids if not (x in seen or seen_add(x) ) ]
+            if random_state:
+                shuffle( unique_samplegroup_ids )
             if _max and _max < len( unique_samplegroup_ids ):
                 # Chop off the end
                 unique_samplegroup_ids = unique_samplegroup_ids[ : _max ]
@@ -1862,8 +1864,6 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
             if( n_samplegroups_in_training_set + n_samplegroups_in_test_set ) > num_samplegroups:
                     raise ValueError( 'User input specified train/test feature set membership contain more samples than are availabel.' )
 
-            if random_state:
-                shuffle( unique_samplegroup_ids )
 
             train_groups = sorted( unique_samplegroup_ids[ : n_samplegroups_in_training_set ] )
 
