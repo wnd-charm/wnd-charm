@@ -39,28 +39,46 @@ from wndcharm.FeatureSpace import FeatureSpace
 from wndcharm.FeatureWeights import FisherFeatureWeights
 
 class TestFisherFeatureWeights( unittest.TestCase ):
-	"""Fisher score calculation"""
+    """Fisher score calculation"""
 
-	epsilon = 0.00001
+    epsilon = 0.00001
 
-	test_fit_path = join( test_dir,'test-l.fit' )
-	test_normalized_fit_path = join( test_dir, 'test_fit-l-normalized.fit' )
-	test_feat_weight_path = join( test_dir,'test_fit-l.weights' )
-	
-	# --------------------------------------------------------------------------
-	def test_NewFromFeatureSet( self ):
-		"""Fisher score calculation"""
+    test_fit_path = join( test_dir,'test-l.fit' )
+    test_normalized_fit_path = join( test_dir, 'test_fit-l-normalized.fit' )
+    test_feat_weight_path = join( test_dir,'test_fit-l.weights' )
 
-		feature_set = FeatureSpace.NewFromFitFile( self.test_fit_path )
-		feature_set.Normalize( inplace=True )
-		result_weights = FisherFeatureWeights.NewFromFeatureSpace( feature_set )
+    # --------------------------------------------------------------------------
+    def test_NewFromFeatureSet( self ):
+        """Fisher score calculation"""
 
-		# test weights generated from test-l.fit:
-		# wndchrm classify -l -f1.0 -vtest_fit-l.weights test-l.fit test-l.fit 
-		target_weights = FisherFeatureWeights.NewFromFile( self.test_feat_weight_path )
+        fs = FeatureSpace.NewFromFitFile( self.test_fit_path ).Normalize( inplace=True )
+        fw = FisherFeatureWeights.NewFromFeatureSpace( fs )
 
-	 	for target_val, res_val in zip( target_weights.values, result_weights.values ):
-			self.assertAlmostEqual( target_val, res_val, delta=self.epsilon )
+        # test weights generated from test-l.fit:
+        # wndchrm classify -l -f1.0 -vtest_fit-l.weights test-l.fit test-l.fit 
+        target_fw = FisherFeatureWeights.NewFromFile( self.test_feat_weight_path )
+
+        for target_val, res_val in zip( target_fw.values, fw.values ):
+            self.assertAlmostEqual( target_val, res_val, delta=self.epsilon )
+
+        # test slice operator
+
+        orig_len = len( fw )
+
+        sliced = fw[:10]
+        self.assertEqual( len(sliced), 10 )
+        self.assertEqual( len(sliced.feature_names), 10 )
+        self.assertEqual( len(sliced.values), 10 )
+
+        for i in xrange(10):
+            self.assertEqual( sliced.feature_names[i], fw.feature_names[i] )
+            self.assertEqual( sliced.values[i], fw.values[i] )
+
+        sliced = fw[50:100:2]
+
+        for i, j in zip( range(len(sliced)), range(50,100,2) ):
+            self.assertEqual( sliced.feature_names[i], fw.feature_names[j] )
+            self.assertEqual( sliced.values[i], fw.values[j] )
 
 if __name__ == '__main__':
-	unittest.main()
+    unittest.main()

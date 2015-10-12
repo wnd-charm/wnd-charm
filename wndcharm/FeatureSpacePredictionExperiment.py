@@ -53,6 +53,7 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
         # declared on base class
         #self.averaged_results = None
         self.feature_weight_statistics = None
+        self.aggregated_feature_weights = None
 
     #=====================================================================
     def __len__( self ):
@@ -146,7 +147,9 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
                     feature_weight_lists[ name ] = []
                 feature_weight_lists[ name ].append( weight )
 
-        if feature_weight_lists is not {}:
+        if len( feature_weight_lists ) > 0:
+            from operator import itemgetter
+
             for feature_name in feature_weight_lists:
                 feature_weight_lists[ feature_name ] = \
                         np.array( feature_weight_lists[ feature_name ] )
@@ -160,19 +163,33 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
                 feature_weight_stats.append( ( np.mean( fwl_w_zeros ),
                                 count, np.std(fwl), np.min(fwl), np.max(fwl), fname ) )
 
-            # Sort on mean values, i.e. index 0 of tuple created above
-            self.feature_weight_statistics = sorted( feature_weight_stats, key=lambda a: a[0], reverse=True )
+            # Sort on mean values, i.e. index 0 of tuple
+            feature_weight_stats.sort( key=itemgetter(0), reverse=True )
+            self.feature_weight_statistics = feature_weight_stats
+
+            if isinstance( self, FeatureSpaceClassificationExperiment ):
+                from .FeatureWeights import FisherFeatureWeights as Weights
+            else:
+
+                from .FeatureWeights import PearsonFeatureWeights as Weights
+
+            getter = itemgetter(0,5)
+            fw = Weights( name='aggregated' )
+            fw.values, fw.feature_names = zip(* \
+                    [ getter(line) for line in feature_weight_stats ] )
+            self.aggregated_feature_weights = fw
+
         return self
 
     #=====================================================================
     @classmethod
     @output_railroad_switch
-    def FeatureWeightsGridSearch( cls, param_space=None, quiet=True, **kwargs ):
+    def NumFeaturesGridSearch( cls, param_space=None, quiet=True, **kwargs ):
         """Calls NewShuffleSplit for varying number of features
 
         Args:
             param_space - iterable or int or None
-                iterable of ints specifying num features to be used each iteration
+                iterable of ints specifying num features to be used in each iteration
                 int - uses n intervals evenly spaced numbers along log scale from
                     1 to kwargs['feature_space'].num_features
                 None - same as int above but specifying 20 intervals, results in param_space
@@ -221,7 +238,7 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
                 #    ValueError: Can't reduce feature weights "None" to 2919 features.
                 #    Features ranked 2631 and below have a Fisher score of 0. Request
                 #    less features.
-                print "Skipping n_features={} and above due to feature reduction error".format( n_features)
+                print "Skipping n_features={} and above due to feature reduction error".format( n_features )
                 break
 
         return results
@@ -253,9 +270,82 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
 
     #=====================================================================
     @classmethod
+    @output_railroad_switch
+    def NumSamplesGridSearch( cls, param_space=None, quiet=True, **kwargs ):
+        """Calls NewShuffleSplit for varying number of samples in each training set class
+
+        Args:
+            param_space - iterable or int or None
+                iterable of ints specifying num samples per class to be used in each iteration
+                int - uses n intervals evenly spaced numbers along log scale from
+                    1 to min( kwargs['feature_space'].class_sizes )
+                None - same as int above but specifying 20 intervals, results in param_space
+                    1, 2, 3, 4, 7, 10, 16, 24, 36, 54, 80, 119, 178, 266, ... 2918
+            **kwargs - passed directly through to NewShuffleSplit.
+
+        Return:
+            list of 2-tuples, with x-coord = n_features, and y-coord = figure of merit"""
+
+        max_n_samps = min( kwargs['feature_space'].class_sizes )
+
+        def GenParamSpace( n_intervals=20 ):
+            from math import log10
+            max_exp = log10( max_n_samps )
+            interval = max_exp / n_intervals
+            samps = [ int( round( 10 ** (interval * i) ) ) for i in xrange( 1, n_intervals + 1 ) ]
+            return list( sorted( set( samps ) ) )
+
+        if param_space is None:
+            param_space = GenParamSpace()
+        elif type( param_space ) is int:
+            param_space = GenParamSpace( param_space )
+        elif max( param_space ) > max_n_samples:
+            raise ValueError( "val in param_space ({}) is more samples than a balanced feature space has ({})".format(
+                max( param_space ), max_n_samps ) )
+
+        if max_n_samps in param_space:
+            del param_space[ param_space.index( max_n_samps ) ]
+            param_space.append( max_n_samps - 1 )
+        # also, can't have feature spaces with 1 or 2 samples per class because
+        # feature weights need a variance
+        if 1 in param_space:
+            del param_space[ param_space.index( 1 ) ]
+        if 2 in param_space:
+            del param_space[ param_space.index( 2 ) ]
+
+        if not quiet:
+            print "Using num samples per class param space of :", param_space
+
+        results = []
+        kwargs['progress'] = False
+
+        if not quiet:
+            print "==================================================="
+            print "NUM TRAINING SET SAMPLES GRID SEARCH RESULTS:"
+            print "n samples\t figure of merit"
+
+        for n_samples in param_space:
+            try:
+                exp = cls.NewShuffleSplit( quiet=True, train_size=n_samples, test_size=1, **kwargs ).GenerateStats()
+                results.append( ( n_samples, exp.figure_of_merit ) )
+                if not quiet:
+                    print "{}\t{}".format( n_samples, exp.figure_of_merit )
+            except ValueError as e:
+                # Sometimes the features ranked above a certain number are all 0, e.g.,
+                #    ValueError: Can't reduce feature weights "None" to 2919 features.
+                #    Features ranked 2631 and below have a Fisher score of 0. Request
+                #    less features.
+                print "Skipping n_samples={} and above due to a FeatureSpace.Split error".format( n_samples )
+                break
+
+        return results
+
+    #=====================================================================
+    @classmethod
     def NewShuffleSplit( cls, feature_space, test_set=None, n_iter=5, name=None, features_size=0.15,
-                           train_size=None, test_size=None, random_state=True, classifier=None,
-                           lda=False, quiet=True, display=15, conserve_mem=False, progress=True ):
+                           train_size=None, test_size=None, balanced_classes=True, random_state=True,
+                           classifier=None, lda=False, quiet=True, display=15, conserve_mem=False,
+                           progress=True ):
         """args train_size, test_size, and random_state are all passed through to Split()
         feature_size if a float is feature usage fraction, if in is top n features."""
 
@@ -341,13 +431,13 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
                 stdout.write( str( split_index ) + '\t' )
  
             if master_test_set == None:
-                train_set, test_set = feature_space.Split(
-                    train_size, test_size, random_state=randint(), quiet=quiet )
+                train_set, test_set = feature_space.Split( train_size, test_size,
+                        random_state=randint(), balanced_classes=balanced_classes, quiet=quiet )
             else:
-                train_set = feature_space.Split(
-                    train_size, 0, random_state=randint(), quiet=quiet )
-                test_set = master_test_set.Split(
-                        test_size, 0, random_state=randint(), quiet=quiet )
+                train_set = feature_space.Split( train_size, 0, random_state=randint(),
+                        balanced_classes=balanced_classes, quiet=quiet )
+                test_set = master_test_set.Split( test_size, 0, random_state=randint(),
+                        balanced_classes=balanced_classes, quiet=quiet )
             
             # Normalize features using zscores if lda
             train_set.Normalize( quiet=quiet, inplace=True, non_real_check=False, zscore=lda )

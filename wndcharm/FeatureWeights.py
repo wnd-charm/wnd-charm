@@ -58,6 +58,11 @@ class FeatureWeights( object ):
         except:
             return 0
     #================================================================
+    def __eq__( self, other ):
+        return self.values == other.values and \
+                self.feature_names == other.feature_names
+
+    #================================================================
     def __str__( self ):
         s = '<' + self.__class__.__name__
         if self.name:
@@ -70,6 +75,23 @@ class FeatureWeights( object ):
     #================================================================
     def __repr__( self ):
         return str( self )
+
+    #================================================================
+    def __getitem__( self, key ):
+        new = self.__class__()
+        if self.name:
+            new.name = self.name + '[{}]'.format( key )
+        new.associated_feature_space = self.associated_feature_space
+
+        if isinstance( key, int ):
+            new.feature_names = list( (self.feature_names[ key ],) )
+            new.values = list( (self.values[ key ],) )
+        else:
+            new.feature_names = self.feature_names[key]
+            new.values = self.values[key]
+
+        return new
+
     #================================================================
     @classmethod
     def NewFromFile( cls, weights_filepath ):
@@ -280,37 +302,6 @@ class FisherFeatureWeights( FeatureWeights ):
 
         return new_weights
 
-    #================================================================
-    def Slice( self, start_index, stop_index ):
-        """Return a new instance of FisherFeatureWeights containing a chunk
-        of middle-ranked features."""
-
-        min_index = None
-        max_index = None
-
-        if stop_index > start_index:
-            min_index = start_index
-            max_index = stop_index
-        else:
-            min_index = stop_index
-            max_index = start_index
-
-        if (min_index < 0) or ( max_index > len( self.values ) ):
-            raise ValueError( 'Cannot slice, check your start and stop indices.' )
-
-        new_weights = self.__class__()
-        raw_featureweights = zip( self.feature_names, self.values )
-
-        use_these_feature_weights = \
-                list( itertools.islice( raw_featureweights, min_index, max_index ) )
-
-        # we want lists, not tuples!
-        new_weights.feature_names, new_weights.values =\
-          [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
-
-        new_weights.associated_feature_space = self.associated_feature_space
-
-        return new_weights
 
     #================================================================
     @output_railroad_switch
@@ -531,49 +522,41 @@ class PearsonFeatureWeights( FeatureWeights ):
 
         return new_weights
 
+
     #================================================================
-    def Slice( self, start_index, stop_index ):
-        """Return a new instance of PearsonFeatureWeights populated with a
-        chunk of middle-ranked features specified by arguments start_index and stop_index."""
-
-        min_index = None
-        max_index = None
-
-        if stop_index > start_index:
-            min_index = start_index
-            max_index = stop_index
-        else:
-            min_index = stop_index
-            max_index = start_index
-
-        if (min_index < 0) or ( max_index > len( self.values ) ):
-            raise ValueError( 'Cannot slice, check your start and stop indices.' )
-
-        new_weights = self.__class__()
+    def __getitem__( self, key ):
+        new = self.__class__()
         if self.name:
-            new_weights.name = self.name + " (sliced {0}-{1})".format( min_index, max_index )
+            new.name = self.name + '[{}]'.format( key )
+        new.associated_feature_space = self.associated_feature_space
 
-        abs_val_pearson_coeffs = [ abs( val ) for val in self.pearson_coeffs ]
-        raw_featureweights = zip( self.feature_names, abs_val_pearson_coeffs, self.pearson_coeffs, \
-            self.slopes, self.intercepts, self.pearson_stderrs, self.pearson_p_values, \
-            self.spearman_coeffs, self.spearman_p_values )
-
-        from itertools import islice
-        use_these_feature_weights = list( islice( raw_featureweights, min_index, max_index ) )
- 
-        new_weights.feature_names, abs_pearson_coeffs, new_weights.pearson_coeffs, new_weights.slopes, \
-            new_weights.intercepts, new_weights.pearson_stderrs, new_weights.pearson_p_values,\
-            new_weights.spearman_coeffs, new_weights. spearman_p_values =\
-              [ list( unzipped_tuple ) for unzipped_tuple in zip( *use_these_feature_weights ) ]
+        if isinstance( key, int ):
+            new.feature_names = list( (self.feature_names[ key ],) )
+            new.values = list( (self.values[ key ],) )
+            new.pearson_coeffs = list( (self.pearson_coeffs[ key ],) )
+            new.slopes = list( (self.slopes[ key ],) )
+            new.intercepts = list( (self.intercepts[ key ],) )
+            new.pearson_stderrs = list( (self.pearson_stderrs[ key ],) )
+            new.pearson_p_values = list( (self.pearson_p_values[ key ],) )
+            new.spearman_coeffs = list( (self.spearman_coeffs[ key ],) )
+            new.spearman_p_values = list( (self.spearman_p_values[ key ],) )
+        else:
+            new.feature_names = self.feature_names[key]
+            new.values = self.values[key]
+            new.pearson_coeffs = self.pearson_coeffs[key]
+            new.slopes = self.slopes[key]
+            new.intercepts = self.intercepts[key]
+            new.pearson_stderrs = self.pearson_stderrs[key]
+            new.pearson_p_values = self.pearson_p_values[key]
+            new.spearman_coeffs = self.spearman_coeffs[key]
+            new.spearman_p_values = self.spearman_p_values[key]
 
         r_val_sum = 0
-        for val in abs_pearson_coeffs:
-            r_val_sum += val
-        new_weights.values = [ val / r_val_sum for val in abs_pearson_coeffs ]
+        for val in new.pearson_coeffs:
+            r_val_sum += val * val
+        new.values = [ ( float(val*val) / r_val_sum ) for val in new.pearson_coeffs ]
 
-        new_weights.associated_feature_space = self.associated_feature_space
-
-        return new_weights
+        return new
 
     #================================================================
     @output_railroad_switch

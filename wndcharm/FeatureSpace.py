@@ -709,7 +709,7 @@ class FeatureSpace( object ):
             else:
                 self.lda_fitter = LDA()
 
-            self.lda_fitter.fit( self.data_matrix, self._contiguous_ground_truth_labels)
+            self.lda_fitter.fit( self.data_matrix, self._contiguous_ground_truth_labels )
             fitter = self.lda_fitter
         else:
             # Recalculate my feature space according to fitted model in reference_features
@@ -903,7 +903,7 @@ class FeatureSpace( object ):
         return new_fs
 
     #==============================================================
-    def ToFitFile( self, path=None ):
+    def ToFitFile( self, path=None, sort=True ):
         """Writes features to ASCII text file which can be read by classic wnd-charm.
 
         Intended to be a const funtion, but outputted fit files are required by C++
@@ -925,10 +925,13 @@ class FeatureSpace( object ):
         # C++ WNDCHARM only likes to read classes if their class labels are in sort order
         #from copy import deepcopy
         #tempfs = deepcopy(self)
-        temp_fs = self.Derive()
-        # Sort by labels only:
-        temp_fs.SortSamplesByGroundTruth( inplace=True, rebuild_views=True,
+        if sort:
+            temp_fs = self.Derive()
+            # Sort by labels only:
+            temp_fs.SortSamplesByGroundTruth( inplace=True, rebuild_views=True,
                 force_use_labels=True )
+        else:
+            temp_fs = self
 
         fit = open( path, 'w' )
 
@@ -1454,7 +1457,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
             instance of wndcharm.FeatureSpace.FeatureSpace"""
 
         if num_samples == None:
-            num_samples = len( feature_fectors_list )
+            num_samples = len( samples )
         if num_features == None:
             num_features = len( samples[0] )
 
@@ -1623,18 +1626,25 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
 
     #==============================================================
     def SampleReduce( self, leave_in_sample_group_ids=None, leave_out_sample_group_ids=None,
-        inplace=False, override=False, quiet=False ):
-        """Returns a new FeatureSpace that contains a subset of the data by dropping
-        samples (rows), and/or rearranging rows.
+        inplace=False, override=False, sort=True, quiet=False ):
+        """Drop and/or rearrange order of sample groups in FeatureSpace. Tiles within
+        a sample group are kept contiguous.
 
-        leave_in_sample_group_list := a list containing sample group ids
-            that should be left IN
+        Arguments:
+            leave_in_sample_group_list (list, default=None):
+                Sample group ids that should be left IN.
+            leave_out_sample_group_ids (list, default=None):
+                Sample group ids that should be left OUT
+            inplace (bool, default=False):
+                If False, deepcopy this object and sort that, otherwise reduce/sort self.
+            override (bool, default=False):
+                Allow reduction/sorting even if this object has been min-max or z-score
+                normalized.
+            sort (bool, default=True):
+                Sort on ground truth after sample reduction.
 
-        leave_out_sample_group_ids := a list containing sample group ids
-            that should be left OUT
-
-        Returns a near-deep copy of self including only the sample groups specified in the list.
-        If no tiles, sample group reduces to just sample index."""
+        Returns:
+            wndcharm.FeatureSpace object"""
 
         if leave_in_sample_group_ids is None and leave_out_sample_group_ids is None:
             raise ValueError( 'Invalid input, both leave_in_sample_group_ids and leave_out_sample_group_ids were None')
@@ -1652,7 +1662,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
                 if type( item ) is not int:
                     raise TypeError( "Input must be an int or a flat iterable containing only ints.")
 
-            if not set( the_list ) < set( self._contiguous_sample_group_ids ):
+            if not set( the_list ) <= set( self._contiguous_sample_group_ids ):
                 msg = "Input contains sample group ids that aren't " + \
                             'contained in FeatureSpace "' + self.name + '", specifically: ' + \
                       str( sorted( list( set( the_list ) - set( self._contiguous_sample_group_ids ) ) ) )
@@ -1730,7 +1740,10 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
         else:
             retval = self.Derive( **newdata )
 
-        retval.SortSamplesByGroundTruth( rebuild_views=True, inplace=True )
+        if sort:
+            retval.SortSamplesByGroundTruth( rebuild_views=True, inplace=True )
+        else:
+            retval._RebuildViews()
 
         if not quiet:
             print "SAMPLE REDUCED FEATURE SPACE: ", str( retval )
@@ -1746,18 +1759,18 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
 
         Parameters (stolen directly from scikit-learn's documentation):
 
-        test_size : float, int, or None (default is None)
-                    If float, should be between 0.0 and 1.0 and represent the proportion
-                    of the dataset to include in the test split (rounded up). If int, 
-                    represents the absolute number of test samples. If None, the value is
-                    automatically set to the complement of the train size. If train size 
-                    is also None, test size is set to 0.25.
-
         train_size : float, int, or None (default is None)
                     If float, should be between 0.0 and 1.0 and represent the proportion
                     of the dataset to include in the train split (rounded down). If int,
                     represents the absolute number of train samples. If None, the value
                     is automatically set to the complement of the test size.
+
+        test_size : float, int, or None (default is None)
+                    If float, should be between 0.0 and 1.0 and represent the proportion
+                    of the dataset to include in the test split (rounded up). If int,
+                    represents the absolute number of test samples. If None, the value is
+                    automatically set to the complement of the train size. If train size
+                    is also None, test size is set to 0.25.
 
         random_state : int or RandomState
                     If true, generate a new random split. If int or Pseudo-random number
@@ -1808,7 +1821,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
             seen = set()
             seen_add = seen.add
             unique_samplegroup_ids = [ x for x in sample_group_ids if not (x in seen or seen_add(x) ) ]
-            if _max and _max > len( unique_samplegroup_ids ):
+            if _max and _max < len( unique_samplegroup_ids ):
                 # Chop off the end
                 unique_samplegroup_ids = unique_samplegroup_ids[ : _max ]
 
@@ -1884,7 +1897,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
                     class_train_groups, class_test_groups = \
                       CalcTrainTestSampleGroupMembership( self.sample_group_ids[class_index], _max=smallest_class_size  )
                 except Exception as e:
-                    addl_msg = "Error with class index " + str(class_index) + \
+                    addl_msg = "Error splitting class index " + str(class_index) + \
                                '. For discrete FeatureSpaces (with classes), train_size and test_size' + \
                                ' are evaluated per-class. '
                     if e.args:

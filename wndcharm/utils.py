@@ -342,8 +342,8 @@ def init_worker():
 
 def print_log_message( fv ):
     from os import getpid
-    from multiprocessing import get_logger
-    logger = get_logger()
+    #from multiprocessing import get_logger
+    #logger = get_logger()
     if fv.tile_row_index is not None:
         col = fv.tile_col_index
         row = fv.tile_row_index
@@ -354,7 +354,8 @@ def print_log_message( fv ):
         col = ""
         row = ""
     line = "Process {}: calculating {} row-{} col{}".format( getpid(), fv, row, col )
-    logger.info( line )
+    print line
+    #logger.info( line )
 
 def WorkerFunction( fv ):
     """Helper function used for parallel calculation of image features"""

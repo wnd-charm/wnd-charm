@@ -41,6 +41,7 @@ class TESTINGFeatureSpaceRegressionExperiment( unittest.TestCase ):
     """Test various functions from the FeatureSpaceRegressionExperiment class."""
 
     # ---------------------------------------------------------------------
+    #@unittest.skip('')
     def test_NewShuffleSplitLeastSquares(self):
         """CONTINUOUS SHUFFLE SPLIT LEAST SQUARES"""
 
@@ -85,7 +86,7 @@ class TESTINGFeatureSpaceRegressionExperiment( unittest.TestCase ):
             PearsonFeatureWeights.NewFromFeatureSpace( temp_normalized_fs ).Threshold(_all='nonzero')
 
         quintile = int( len( ranked_nonzero_features ) / 5 )
-        crappy_features = ranked_nonzero_features.Slice( quintile*4, len( ranked_nonzero_features ) )
+        crappy_features = ranked_nonzero_features[ quintile*4 : len( ranked_nonzero_features ) ]
         #crappy_features.Print()
         crap_featureset = fs.FeatureReduce( crappy_features, inplace=False )
 
@@ -97,6 +98,7 @@ class TESTINGFeatureSpaceRegressionExperiment( unittest.TestCase ):
         self.assertAlmostEqual( exp.pearson_coeff, 0.0, delta=max_allowable_pearson_coeff )
 
     # --------------------------------------------------------------------
+    #@unittest.skip('')
     def test_NewShuffleSplitLinearMultivariateRegression(self):
         """CONTINUOUS SHUFFLE SPLIT LINEAR MULTIVARIATE METHOD"""
 
@@ -141,7 +143,7 @@ class TESTINGFeatureSpaceRegressionExperiment( unittest.TestCase ):
             PearsonFeatureWeights.NewFromFeatureSpace( temp_normalized_fs ).Threshold(_all='nonzero')
 
         quintile = int( len( ranked_nonzero_features ) / 5 )
-        crappy_features = ranked_nonzero_features.Slice( quintile*4, len( ranked_nonzero_features ) )
+        crappy_features = ranked_nonzero_features[ quintile*4 : len( ranked_nonzero_features ) ]
         #crappy_features.Print()
         crap_featureset = fs.FeatureReduce( crappy_features )
 
@@ -152,6 +154,7 @@ class TESTINGFeatureSpaceRegressionExperiment( unittest.TestCase ):
         self.assertAlmostEqual( exp.pearson_coeff, 0.0, delta=max_allowable_pearson_coeff )
 
     # -------------------------------------------------------------------
+    #@unittest.skip('')
     def test_PerSampleStatistics(self):
         """Testing ContinuousClassificationExperimentResult.PerSampleStatistics()
 
@@ -211,6 +214,7 @@ class TESTINGFeatureSpaceClassificationExperiment( unittest.TestCase ):
     """Test various functions from the DiscreteClassificationExperimentResult class."""
 
     # -------------------------------------------------------------------
+    #@unittest.skip('')
     def test_PerSampleStatisticsWITHOUTPredictedValue(self):
         """DISCRETE ShuffleSplit/PerSampleStatistics w/ no predicted value"""
 
@@ -250,6 +254,7 @@ class TESTINGFeatureSpaceClassificationExperiment( unittest.TestCase ):
         self.assertTrue(True)
 
     # -------------------------------------------------------------------
+    #@unittest.skip('')
     def test_PerSampleStatisticsWITHPredictedValue(self):
         """DISCRETE PerSampleStatistics with numeric predicted value"""
 
@@ -283,6 +288,31 @@ class TESTINGFeatureSpaceClassificationExperiment( unittest.TestCase ):
         exp.Print( )#output_stream=devnull )
         exp.PerSampleStatistics( )#output_stream=devnull )
         self.assertTrue(True)
+
+    # -------------------------------------------------------------------
+    def test_GridSearches(self):
+
+        fs_kwargs = {}
+        fs_kwargs['name'] = "DISCRETE PerSampleStatistics WITH Pred Values"
+        fs_kwargs['n_samples'] = n_samples = 500
+        fs_kwargs['n_classes'] = 10
+        fs_kwargs['num_features_per_signal_type'] = 10 # small on purpose, to make test fast
+        fs_kwargs['noise_gradient'] = 5
+        fs_kwargs['initial_noise_sigma'] = 75
+        fs_kwargs['n_samples_per_group'] = 1
+        fs_kwargs['random_state'] = 42
+        fs_kwargs['interpolatable'] = True
+        fs_kwargs['singularity'] = False
+        fs_kwargs['clip'] = False
+        fs = CreateArtificialFeatureSpace_Discrete( **fs_kwargs )
+
+        ss_kwargs = {}
+        ss_kwargs['feature_space'] = fs
+        ss_kwargs['quiet'] = False
+        ss_kwargs['n_iter'] = n_iter = 50
+        ss_kwargs['random_state'] = 42
+        exp = FeatureSpaceClassificationExperiment.NumSamplesGridSearch( **ss_kwargs )
+
 
 if __name__ == '__main__':
     unittest.main()

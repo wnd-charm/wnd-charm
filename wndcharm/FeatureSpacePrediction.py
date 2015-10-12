@@ -474,10 +474,13 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
         if self.test_set.class_names == self.training_set.class_names:
             from copy import deepcopy
             self.similarity_matrix = deepcopy( self.average_class_probability_matrix )
-            for row in self.test_set.class_names:
-                denom = self.similarity_matrix[ row ][ row ]
-                for col in self.training_set.class_names:
-                    self.similarity_matrix[ row ][ col ] /= denom
+            try:
+                for row in self.test_set.class_names:
+                    denom = self.similarity_matrix[ row ][ row ]
+                    for col in self.training_set.class_names:
+                        self.similarity_matrix[ row ][ col ] /= denom
+            except:
+                self.similarity_matrix = None
 
         self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
         return self
@@ -485,7 +488,7 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
     #==============================================================
     @output_railroad_switch
     def Print( self ):
-        """Prints out statistics from this batch's image classifications, which include 
+        """Prints out statistics from this split's image classifications, which include
         classification accuracy, confusion matrix, similarity matrix, and average class 
         probability matrix."""
 
@@ -707,9 +710,9 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
             dist_mat = ma.masked_less_equal( raw_dist_mat, epsilon, False )
 
         # Create marginal probabilities from distance matrix:
-        similarity_mat = np.power( dist_mat, -5 )
+        similarity_mat = np.power( dist_mat, -5 ).T
 
-        for test_samp_index, test_samp_sims in enumerate( similarity_mat.T ):
+        for test_samp_index, test_samp_sims in enumerate( similarity_mat ):
             result = SingleSampleClassification()
             per_class_sims_list = [ test_samp_sims[ class_slice ] \
                     for class_slice in slice_list ]

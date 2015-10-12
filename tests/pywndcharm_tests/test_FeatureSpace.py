@@ -197,6 +197,20 @@ class TestFeatureSpace( unittest.TestCase ):
         self.assertRaises( ValueError, fs_class_2_and_7_smaller.Split, train_size=80,
                            test_size=20 )
 
+        # Test balanced_classes:
+        train_fs, test_fs = fs_class_2_and_7_smaller.Split()
+        # Training set number rounds down (apparently).
+        from math import floor
+        expected_num_samps_per_train_class = int( floor(50*0.75) )
+        expected_num_samps_per_test_class = 50 - expected_num_samps_per_train_class
+
+        err_msg = "Balanced classes {} set split error, class {}, expected {}, got {}"
+        for i, (n_train, n_test) in enumerate( zip( train_fs.class_sizes, test_fs.class_sizes )):
+            self.assertEqual( n_train, expected_num_samps_per_train_class, msg=\
+                    err_msg.format( "TRAIN", i, expected_num_samps_per_train_class, n_train  ) )
+            self.assertEqual( n_test, expected_num_samps_per_test_class, msg=\
+                    err_msg.format( "TEST", i, expected_num_samps_per_test_class, n_test ) )
+
     # --------------------------------------------------------------------------
     #@unittest.skip('')
     def test_SampleReduce( self ):
