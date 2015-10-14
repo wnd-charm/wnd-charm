@@ -1087,11 +1087,13 @@ class FeatureVector( object ):
 
         self.values = np.array( [ float( val ) for val in values ] )
 
-        # Subtract path so that path part doesn't become part of name
-        from os.path import basename
-        # Pull sampling options from filename
-        path_removed = basename( path )
-        self.name = path_removed
+        if not self.name or update_samp_opts_from_pathname:
+            # Subtract path so that path part doesn't become part of name
+            from os.path import basename
+            # Pull sampling options from filename
+            path_removed = basename( path )
+            self.name = path_removed
+
         if update_samp_opts_from_pathname:
             result = self.sig_filename_parser.search( path_removed )
             if result:

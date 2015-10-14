@@ -45,7 +45,7 @@ class _SingleSamplePrediction( object ):
         self.predicted_label = None
         self.split_number = None
         self.sample_group_id = None
-        self.num_samples_in_group = 1
+        self.num_samples_per_group = 1
         #: Indicates the position of the ROI within an image
         self.sample_sequence_id = None
         self.discrete = None
@@ -109,36 +109,43 @@ class _SingleSamplePrediction( object ):
     #==============================================================
     @output_railroad_switch
     def Print( self, line_item=False, include_name=True, include_split_number=False,
-            include_col_header=False, training_set_class_names=None ):
+            include_col_header=False, col_header_only=False, training_set_class_names=None ):
         """Output tab-separated prediction results data"""
 
         if not line_item:
             print str(self)
             return
 
+        if col_header_only:
+            include_col_header = True
+
         outstr = ""
         col_header = ""
 
         # sample name:
-        if include_name and self.source_filepath:
-            outstr += self.source_filepath + '\t'
+        if include_name and self.name:
+            outstr += self.name + '\t'
             if include_col_header:
                 col_header += "Samp. Name\t"
 
         if self.sample_sequence_id is not None:
-            if self.sample_sequence_id == 'AVG':
-                outstr += "(AVG)"
-            elif self.num_samples_in_group != 1:
-                outstr += "(t{0}/{1})".format( self.sample_sequence_id + 1, self.num_samples_in_group )
+            if isinstance( self.sample_sequence_id, str ):
+                outstr += "(" + self.sample_sequence_id + ")"
+            elif self.num_samples_per_group != 1:
+                outstr += "(t{0}/{1})".format( self.sample_sequence_id + 1, self.num_samples_per_group )
             outstr += '\t'
             if include_col_header:
-                col_header += "ROI Index\t"
+                col_header += "Tile/ROI Index\t"
 
         # split number
-        if include_split_number and self.split_number is not None:
-            outstr += '{0}\t'.format( self.split_number )
+        if include_split_number:
+            if self.split_number is not None:
+                outstr += str( self.split_number )
+            else:
+                outstr += 'N/A'
+            outstr += '\t'
             if include_col_header:
-                col_header += "Split\t"
+                col_header += "Split #\t"
 
         # Classification stuff
         if self.discrete:
@@ -203,8 +210,8 @@ class _SingleSamplePrediction( object ):
 
         if include_col_header:
             print col_header
-
-        print outstr
+        if not col_header_only:
+            print outstr
 
 #=================================================================================
 class SingleSampleClassification( _SingleSamplePrediction ):
@@ -323,22 +330,22 @@ class AveragedSingleSamplePrediction( _SingleSamplePrediction ):
         #alias:
         reslist = list_of_results
 
-        # This is some ghetto polymorphism right here!
-        self.discrete = isinstance( reslist[0], SingleSampleClassification )
-
         # save 'em; useful when you want to print out the individual calls
         # to see how predictions change over the splits, ala PerSampleStatistics()
         self.individual_results = reslist
 
+        self.name = reslist[0].name
+        self.discrete = reslist[0].discrete
         self.source_filepath = reslist[0].source_filepath
         self.ground_truth_value = reslist[0].ground_truth_value
         self.ground_truth_label = reslist[0].ground_truth_label
 
         sample_sequence_ids = set( [ res.sample_sequence_id for res in reslist ] )
-        if sample_sequence_ids != set( (None,) ) and len( sample_sequence_ids ) == 1:
-            self.sample_sequence_id = sample_sequence_ids.pop()
-        else:
-            self.sample_sequence_id = 'AVG'
+        self.sample_sequence_id = 'AVG of {}'.format( len( reslist ) )
+        if sample_sequence_ids != set( (None,) ) and len( sample_sequence_ids ) == 1 and \
+                reslist[0].num_samples_per_group and reslist[0].num_samples_per_group > 1:
+            # Don't bother to put the sample sequence id if there's only 1 tile per group
+            self.sample_sequence_id += 'x' + str(sample_sequence_ids.pop())
 
         if self.discrete:
             # Sometimes the result comes back with a non-call, like when
@@ -353,7 +360,7 @@ class AveragedSingleSamplePrediction( _SingleSamplePrediction ):
             mp_list_of_lists = [ res.marginal_probabilities for res in reslist \
                                                 if res.marginal_probabilities is not None ]
 
-            self.num_samples_in_group = n_res = len( mp_list_of_lists )
+            self.num_samples_per_group = n_res = len( mp_list_of_lists )
             mp_reject_count = len( reslist ) - len( mp_list_of_lists )
             if mp_reject_count == len( reslist ):
                 self.predicted_label = "*Collided with every training image*"

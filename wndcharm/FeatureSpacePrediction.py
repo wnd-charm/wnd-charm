@@ -735,12 +735,11 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
 
             result.sample_group_id = test_set._contiguous_sample_group_ids[ test_samp_index ]
             result.sample_sequence_id = test_set._contiguous_sample_sequence_ids[ test_samp_index ]
-            result.num_samples_in_group = test_set.num_samples_per_group
-            result.source_filepath = test_set._contiguous_sample_names[ test_samp_index ]
+            result.num_samples_per_group = test_set.num_samples_per_group
+            result.name = test_set._contiguous_sample_names[ test_samp_index ]
             result.ground_truth_label = test_set._contiguous_ground_truth_labels[ test_samp_index ]
             result.ground_truth_value = test_set._contiguous_ground_truth_values[ test_samp_index ]
             result.split_number = split_number
-            result.name = name
             split_result.individual_results.append( result )
 
         # Predicted value via class coefficients, if applicable
@@ -768,7 +767,7 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
                 end_index = start_index + test_set.num_samples_per_group
                 tiles = split_result.individual_results[ start_index: end_index ]
                 avg_result = AveragedSingleSamplePrediction( tiles, training_set.class_names )
-
+                avg_result.split_number = split_number
                 if avg_result.predicted_value is not None:
                     averaged_predicted_values.append( avg_result.predicted_value )
                     averaged_ground_truth_values.append( avg_result.ground_truth_value )
@@ -782,10 +781,12 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
             first_time_through = True
             if test_set.num_samples_per_group > 1:
                 for avg_res in split_result.averaged_results:
+                    if first_time_through:
+                        avg_res.Print( line_item=True, col_header_only=first_time_through )
+                    first_time_through = False
                     for indiv_res in avg_res.individual_results:
-                        indiv_res.Print( line_item=True, include_col_header=first_time_through,
+                        indiv_res.Print( line_item=True,
                             training_set_class_names=training_set.class_names )
-                        first_time_through = False
                     avg_res.Print( line_item=True )
             else:
                 for indiv_res in split_result.individual_results:
