@@ -1070,7 +1070,7 @@ class FeatureSpace( object ):
         # Load features from disk, or calculate them if they don't exist:
         if n_jobs is not None:
             from .utils import parallel_compute
-            parallel_compute( samples, n_jobs )
+            parallel_compute( feature_vector_list, n_jobs )
         for fv in feature_vector_list:
             fv.GenerateFeatures( write_to_disk=write_sig_files_to_disk,
                 update_samp_opts_from_pathname=False, quiet=quiet )
@@ -1817,10 +1817,14 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
 
             from math import ceil, floor
 
-            # Uniquify the sample group list, maintaining order of input sample group list.
+            # Uniquify the sample group list, maintaining order of input sample group list in case no random.
             seen = set()
             seen_add = seen.add
             unique_samplegroup_ids = [ x for x in sample_group_ids if not (x in seen or seen_add(x) ) ]
+
+            if random_state:
+                shuffle( unique_samplegroup_ids )
+
             if _max and _max < len( unique_samplegroup_ids ):
                 # Chop off the end
                 unique_samplegroup_ids = unique_samplegroup_ids[ : _max ]
@@ -1861,9 +1865,6 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
 
             if( n_samplegroups_in_training_set + n_samplegroups_in_test_set ) > num_samplegroups:
                     raise ValueError( 'User input specified train/test feature set membership contain more samples than are availabel.' )
-
-            if random_state:
-                shuffle( unique_samplegroup_ids )
 
             train_groups = sorted( unique_samplegroup_ids[ : n_samplegroups_in_training_set ] )
 
@@ -1956,7 +1957,8 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
 
     #==============================================================
     def TakeTiles( self, wanted_tiles, inplace=False, quiet=False ):
-        """"""
+        """Reduce sample space to only include samples with the desired
+        tile indices (i.e., sample_sequence_id)"""
 
         if type( wanted_tiles ) == int:
             wanted_tiles = list( (wanted_tiles,) )
@@ -1986,6 +1988,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
         if not quiet:
             print "TOOK TILES {0}, RESULTANT FEATURE SPACE: {1}".format( wanted_tiles, retval )
         return retval
+
     #==============================================================
     def SamplesUnion( self, other_fs, inplace=False, override=False, quiet=False ):
         """Concatenate two FeatureSpaces along the samples (rows) axis.

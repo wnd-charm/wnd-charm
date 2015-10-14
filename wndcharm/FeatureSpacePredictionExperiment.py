@@ -500,8 +500,8 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
         returns self for convenience.
         quiet - bool - if True, just do the average"""
 
-        if self.individual_results == 0:
-            raise ValueError( 'No batch results to analyze' )
+        if not self.individual_results:
+            raise ValueError( 'No splits to analyze.' )
 
         from collections import defaultdict
         accumulated_results = defaultdict( list )
@@ -509,9 +509,21 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
 
         # Coallate:
         for split in self.individual_results:
-            for result in split.individual_results:
-                accumulated_results[ result.source_filepath ].append( result )
+            if split.averaged_results:
+                classification_results = split.averaged_results
+            else:
+                classification_results = split.individual_results
 
+            for result in classification_results:
+                if result.name:
+                    handle = result.name
+                elif result.source_filepath:
+                    handle = result.source_filepath
+                else:
+                    raise ValueError( "The individual results don't have names or source_filepath's, so they can't be coallated across splits." )
+                accumulated_results[ handle ].append( result )
+
+        # self.averaged_results may be averages of averages if splits were tiled
         self.averaged_results = [ AveragedSingleSamplePrediction( reslist,
                 self.training_set.class_names ) \
                     for reslist in accumulated_results.values() ]
@@ -529,7 +541,8 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
 
         first_time_through = True
         for avg_res in self.averaged_results:
-            avg_res.Print( line_item=True, include_name=True, include_col_header=first_time_through,\
+            avg_res.Print( line_item=True, include_name=True, include_split_number=True,\
+                    include_col_header=first_time_through,\
                     training_set_class_names=self.training_set.class_names )
             if print_indiv and len( avg_res.individual_results ) > 1:
                 for res in avg_res.individual_results:
