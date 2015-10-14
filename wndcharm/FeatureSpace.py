@@ -1070,7 +1070,7 @@ class FeatureSpace( object ):
         # Load features from disk, or calculate them if they don't exist:
         if n_jobs is not None:
             from .utils import parallel_compute
-            parallel_compute( samples, n_jobs )
+            parallel_compute( feature_vector_list, n_jobs )
         for fv in feature_vector_list:
             fv.GenerateFeatures( write_to_disk=write_sig_files_to_disk,
                 update_samp_opts_from_pathname=False, quiet=quiet )
