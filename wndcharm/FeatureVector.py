@@ -82,7 +82,8 @@ def GenerateFeatureComputationPlan( feature_list, name='custom' ):
         return plan_cache[ feature_groups ]
 
     obj = wndcharm.FeatureComputationPlan( name )
-    [ obj.add( family ) for family in feature_groups ]
+    for family in feature_groups:
+        obj.add( family )
 
     plan_cache[ feature_groups ] = obj
     return obj
@@ -253,8 +254,13 @@ class FeatureVector( object ):
 
         #: feature names
         self.feature_names = None
+        #: Used for loading features from disk but not all requested were there
+        self.temp_names = None
         #: feature vector
         self.values = None
+        #: Used for loading features from disk but not all requested were there
+        self.temp_values = None
+
         #: feature_maxima, feature_minima, and normalized_against are members
         #: this object shares with the FeatureSpaceObject, as well as implementations
         #: of FeatureReduce() and Normalize(), and CompatibleFeatureSetVersion()
@@ -403,31 +409,31 @@ class FeatureVector( object ):
 
         # When reading in sampling opts from the path, they get pulled out as strings
         # instead of ints:
-        if self.tile_row_index is not None and type( self.tile_row_index ) != int:
+        if self.tile_row_index is not None:
             self.tile_row_index = int( self.tile_row_index )
-        if self.tile_col_index is not None and type( self.tile_col_index ) != int:
+        if self.tile_col_index is not None:
             self.tile_col_index = int( self.tile_col_index )
-        if self.tile_num_rows is not None and type( self.tile_num_rows ) != int:
+        if self.tile_num_rows is not None:
             self.tile_num_rows = int( self.tile_num_rows )
-        if self.tile_num_cols is not None and type( self.tile_num_cols ) != int:
+        if self.tile_num_cols is not None:
             self.tile_num_cols = int( self.tile_num_cols )
-        if self.sample_group_id is not None and type( self.sample_group_id ) != int:
+        if self.sample_group_id is not None:
             self.sample_group_id = int( self.sample_group_id )
-        if self.sample_sequence_id is not None and type( self.sample_sequence_id ) != int:
+        if self.sample_sequence_id is not None:
             self.sample_sequence_id = int( self.sample_sequence_id )
-        if self.x is not None and type( self.x ) != int:
+        if self.x is not None:
             self.x = int( self.x )
-        if self.y is not None and type( self.y ) != int:
+        if self.y is not None:
             self.y = int( self.y )
-        if self.w is not None and type( self.w ) != int:
+        if self.w is not None:
             self.w = int( self.w )
-        if self.h is not None and type( self.h ) != int:
+        if self.h is not None:
             self.h = int( self.h )
-        if self.z is not None and type( self.z ) != int:
+        if self.z is not None:
             self.h = int( self.z )
-        if self.z_delta is not None and type( self.z_delta ) != int:
+        if self.z_delta is not None:
             self.z_delta = int( self.z_delta )
-        if self.downsample is not None and type( self.downsample ) != int:
+        if self.downsample is not None:
             self.downsample = int( self.downsample )
         # sequence order has historically been (e.g. 3x3):
         # 0 3 6
@@ -472,7 +478,8 @@ class FeatureVector( object ):
 
     #==============================================================
     def __deepcopy__( self, memo ):
-        """Make a deepcopy of this FeatureVector"""
+        """Make a deepcopy of this FeatureVector
+        memo - arg required by deepcopy package"""
         return self.Derive()
 
     #==============================================================
@@ -500,16 +507,14 @@ class FeatureVector( object ):
         else:
             raise ValueError( 'Need for "basename" or "source_filepath" or "name" attribute in FeatureVector object to be set to generate sig filepath.')
 
-        self_namespace = vars(self)
-        
         if self.x is not None and self.y is not None and self.w is not None and self.h is not None:
             base += "-B{0}_{1}_{2}_{3}".format( self.x, self.y, self.w, self.h )
         if self.downsample:
             base += "-d" + str(self.downsample)
         if self.pixel_intensity_mean is not None:
             base += "-S" + str(self.pixel_intensity_mean)
-            if self.pixel_intensity_stddev is not None:
-                base += "-S" + str(self.pixel_intensity_stddev)
+            if self.pixel_intensity_stdev is not None:
+                base += "-S" + str(self.pixel_intensity_stdev)
         if self.rot is not None:
             base += "-R_" + str(self.rot)
         # the historical tile notation order is: num_cols, num_rows, col index, row_index
@@ -704,7 +709,6 @@ class FeatureVector( object ):
                 print 'Loaded {0} features from disk for sample "{1}"'.format(
                         len( self.temp_names ), self.name )
             partial_load = True
-            pass
 
         # All hope is lost, calculate features.
 
@@ -819,7 +823,7 @@ class FeatureVector( object ):
         their_major, their_minor = [ int(v) for v in version.split('.',1) ]
         our_major, our_minor = [ int(v) for v in self.feature_set_version.split('.',1) ]
 
-        if( their_major != our_major ):
+        if their_major != our_major:
             return False
         if our_minor and their_minor and our_minor != their_minor:
             return False
@@ -999,7 +1003,7 @@ class FeatureVector( object ):
 
             # First, check to see feature set versions match:
             firstline = infile.readline()
-            m = re.match( '^(\S+)\s*(\S+)?$', firstline )
+            m = re.match( r'^(\S+)\s*(\S+)?$', firstline )
             if not m:
                 # Deprecate old-style naming support anyway, those features are pretty buggy
                 # -CEC 20150104

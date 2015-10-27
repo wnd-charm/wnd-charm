@@ -216,9 +216,10 @@ class FeatureTimingVersusAccuracyGraph( _BaseGraph ):
         import time
         timings = []
 
-        from wndcharm.FeatureSpacePredictionExperiment import FeatureSpaceClassificationExperiment
-        from wndcharm.SingleSamplePrediction import SingleSampleClassification
-        from wndcharm.FeatureSpacePrediction import FeatureSpaceClassification
+        from .FeatureSpacePredictionExperiment import FeatureSpaceClassificationExperiment
+        from .SingleSamplePrediction import SingleSampleClassification
+        from .FeatureSpacePrediction import FeatureSpaceClassification
+        from .FeatureVector import FeatureVector
 
         experiment = FeatureSpaceClassificationExperiment( training_set, training_set, feature_weights )
         for number_of_features_to_use in range( 1, max_num_features + 1 ):

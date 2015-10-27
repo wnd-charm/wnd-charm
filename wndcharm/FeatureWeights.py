@@ -262,7 +262,7 @@ class FisherFeatureWeights( FeatureWeights ):
         # Default is top 15% of features
         elif num_features_to_be_used is None:
             num_features_to_be_used = int( len( self.values ) * 0.15 )
-        elif type( num_features_to_be_used ) is float:
+        elif isinstance( num_features_to_be_used, float ):
             if num_features_to_be_used <= 0 or num_features_to_be_used > 1:
                 raise ValueError('Choose feature reduction fraction on interval (0,1] (got "{0}"'.format( num_features_to_be_used  ) )
             num_features_to_be_used = int( round( num_features_to_be_used * len( self ) ) )
@@ -451,7 +451,7 @@ class PearsonFeatureWeights( FeatureWeights ):
         elif num_features_to_be_used is None:
             # Default is top 15% of features
             num_features_to_be_used = int( len( self.values ) * 0.15 )
-        elif type( num_features_to_be_used ) is float:
+        elif isinstance( num_features_to_be_used, float ):
             if num_features_to_be_used <= 0 or num_features_to_be_used > 1:
                 raise ValueError('Choose feature reduction fraction on interval (0,1] (got "{0}"'.format( num_features_to_be_used  ) )
             num_features_to_be_used = int( round( num_features_to_be_used * len( self ) ) )

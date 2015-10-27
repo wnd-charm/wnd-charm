@@ -56,6 +56,7 @@ class _FeatureSpacePrediction( object ):
 
         # Give myself a number so that it looks good when I print out results
         if not split_number:
+            # obj_count is a class attribute in child classes
             split_number = self.__class__.obj_count
             self.__class__.obj_count += 1
 
@@ -163,11 +164,11 @@ class _FeatureSpacePrediction( object ):
         self.GenerateStats()
 
         if use_averaged_results and self.averaged_results:
-            classification_results = self.averaged_results
+            #classification_results = self.averaged_results
             ground_truth_values = self.averaged_ground_truth_values
             predicted_values = self.averaged_predicted_values
         else:
-            classification_results = self.individual_results
+            #classification_results = self.individual_results
             ground_truth_values = self.ground_truth_values
             predicted_values = self.predicted_values
             
@@ -419,8 +420,6 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
         # This also sets self.num_classifications
         super( FeatureSpaceClassification, self ).GenerateStats()
 
-        num_classes = self.training_set.num_classes
-
         # Initialize the matrices:
 
         # Remember! Dicts are not guaranteed to maintain key order but lists are
@@ -516,7 +515,7 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
             # For more info, see http://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval
             # The confidence interval is S.E.M. * quantile for your chosen accuracy
             # The quantile for 95% accuracy is ~ 1.96.
-            z = 1.95996;
+            z = 1.95996
             z2 = 3.84144 # z^2
 
             from math import sqrt
@@ -638,7 +637,7 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
     @classmethod
     @output_railroad_switch
     def NewWND5( cls, training_set, test_set, feature_weights=None, name=None, split_number=None,
-                quiet=False, norm_factor_threshold=None, error_bars=False ):
+                quiet=False, error_bars=False ):
         """The equivalent of the "wndcharm classify" command in the command line implementation
         of WND-CHARM. Input a training set, a test set, and feature weights, and returns a
         new instance of a FeatureSpaceClassification, with self.individual_results
@@ -652,7 +651,7 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
         if not isinstance( test_set, FeatureSpace ):
             raise ValueError( 'Second argument to New must be of type "FeatureSpace", you gave a {0}'.format( type( test_set ).__name__ ) )
         if feature_weights is not None and not isinstance( feature_weights, FeatureWeights ):
-                raise ValueError( 'Third argument to New must be of type "FeatureWeights" or derived class, you gave a {0}'.format( type( feature_weights ).__name__ ) )
+            raise ValueError( 'Third argument to New must be of type "FeatureWeights" or derived class, you gave a {0}'.format( type( feature_weights ).__name__ ) )
 
         # feature comparison
         if test_set.feature_names != training_set.feature_names:

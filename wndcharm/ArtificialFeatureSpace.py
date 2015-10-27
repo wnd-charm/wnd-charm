@@ -91,16 +91,16 @@ def CreateArtificialFeatureSpace_Continuous( name="ContinuousArtificialFS", n_sa
     clip = {False, True, (user_lbound, user_ubound)} signal clipping not used,
            used with default lbound and ubound, or used with user specifications
     """
-    if n_samples_per_group < 1 or type(n_samples_per_group) is not int:
-      raise ValueError( "n_samples_per_group has to be an integer, and at least 1." )
+    if n_samples_per_group < 1 or not isinstance(n_samples_per_group, int):
+        raise ValueError( "n_samples_per_group has to be an integer, and at least 1." )
 
     if random_state:
         from numpy.random import RandomState
         if random_state is True:
             from numpy.random import normal
-        elif type( random_state ) is RandomState:
+        elif isinstance( random_state, RandomState ):
             normal = random_state.normal
-        elif type( random_state ) is int:
+        elif isinstance( random_state, int ):
             normal = RandomState( random_state ).normal
         else:
             raise ValueError( 'Arg random_state must be an instance of np.random.RandomState, an int, or the value True')
@@ -133,8 +133,8 @@ def CreateArtificialFeatureSpace_Continuous( name="ContinuousArtificialFS", n_sa
     num_features = num_features_per_signal_type * len( signals )
 
     if n_samples_per_group > 1:
-      # make n_samples evenly divisible
-      n_samples = int( n_samples // n_samples_per_group ) * n_samples_per_group
+        # make n_samples evenly divisible
+        n_samples = int( n_samples // n_samples_per_group ) * n_samples_per_group
 
     # Instantiate and assign basic data members
     new_fs = FeatureSpace( name=name, source_filepath=name, num_samples=n_samples,
@@ -225,16 +225,16 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
 
         if random_state is True:
             from numpy.random import normal
-        elif type( random_state ) is RandomState:
+        elif isinstance( random_state, RandomState ):
             normal = random_state.normal
-        elif type( random_state ) is int:
+        elif isinstance( random_state, int ):
             normal = RandomState( random_state ).normal
         else:
             raise ValueError( 'Arg random_state must be an instance of np.random.RandomState, an int, or the value True')
     else: # no noise added to feature values
         normal = lambda mu, sigma, n: np.zeros( n )
 
-    if n_samples_per_group < 1 or type(n_samples_per_group) is not int:
+    if n_samples_per_group < 1 or not isinstance(n_samples_per_group, int):
         raise ValueError( "n_samples_per_group has to be an integer, and at least 1." )
 
     # Figure out what signals to use
@@ -317,27 +317,27 @@ def CreateArtificialFeatureSpace_Discrete( name="DiscreteArtificialFS", n_sample
 
     # Creating sample metadata
     if n_samples_per_group == 1:
-      # Format: <class name>_<sample index within class>
-      new_fs._contiguous_sample_names = \
+        # Format: <class name>_<sample index within class>
+        new_fs._contiguous_sample_names = \
         [ "{0}_{1:03d}".format( class_name, i ) \
              for class_name in new_fs.class_names for i in xrange( n_samples_per_class ) ]
-      new_fs._contiguous_sample_group_ids = range( n_samples ) # not xrange
-      new_fs._contiguous_sample_sequence_ids =  [1] * n_samples
+        new_fs._contiguous_sample_group_ids = range( n_samples ) # not xrange
+        new_fs._contiguous_sample_sequence_ids =  [1] * n_samples
     else:
-      # Format: <class name>_i<sample index within class>_g<group>_t<tile#>
-      temp1 = [ "{0}_i{1:03d}".format( class_name, i ) \
-        for class_name in new_fs.class_names for i in xrange( n_samples_per_class ) ]
-      n_samplegroups = n_samples / n_samples_per_group
-      temp2 = [ "_g{0:03d}_t{1:02d}".format( samplegroup_index, tile_index ) \
-        for samplegroup_index in xrange( n_samplegroups ) \
-          for tile_index in xrange( n_samples_per_group ) ]
-      new_fs._contiguous_sample_names = [ a + b for a, b in zip( temp1, temp2 ) ]
-      new_fs._contiguous_sample_group_ids = \
-          [ samplegroup_index for samplegroup_index in xrange( n_samplegroups ) \
-          for tile_index in xrange( n_samples_per_group ) ]
-      new_fs._contiguous_sample_sequence_ids = \
-          [ tile_index for samplegroup_index in xrange( n_samplegroups ) \
-          for tile_index in xrange( n_samples_per_group ) ]
+        # Format: <class name>_i<sample index within class>_g<group>_t<tile#>
+        temp1 = [ "{0}_i{1:03d}".format( class_name, i ) \
+            for class_name in new_fs.class_names for i in xrange( n_samples_per_class ) ]
+        n_samplegroups = n_samples / n_samples_per_group
+        temp2 = [ "_g{0:03d}_t{1:02d}".format( samplegroup_index, tile_index ) \
+            for samplegroup_index in xrange( n_samplegroups ) \
+                for tile_index in xrange( n_samples_per_group ) ]
+        new_fs._contiguous_sample_names = [ a + b for a, b in zip( temp1, temp2 ) ]
+        new_fs._contiguous_sample_group_ids = \
+            [ samplegroup_index for samplegroup_index in xrange( n_samplegroups ) \
+                for tile_index in xrange( n_samples_per_group ) ]
+        new_fs._contiguous_sample_sequence_ids = \
+            [ tile_index for samplegroup_index in xrange( n_samplegroups ) \
+                for tile_index in xrange( n_samples_per_group ) ]
 
     old_settings = np.seterr( all='ignore' ) # Bring on the NaN's!
 
