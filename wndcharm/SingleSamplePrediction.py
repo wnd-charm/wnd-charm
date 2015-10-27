@@ -26,8 +26,6 @@
 import numpy as np
 import wndcharm # for ImageMatrix
 from .utils import output_railroad_switch
-from .FeatureVector import FeatureVector
-from .FeatureWeights import FeatureWeights
 from .FeatureSpace import FeatureSpace
 
 #=================================================================================
@@ -38,16 +36,16 @@ class _SingleSamplePrediction( object ):
         self.source_filepath = None
         self.ground_truth_value = None
         self.predicted_value = None
-        # Labels really only apply to classifications, but we establish the member
-        # on the base class and initialize it to something on the daughter class
-        # to facilitate polymorphism/sorting in PerSampleStatistics.
-        self.ground_truth_label = None
-        self.predicted_label = None
         self.split_number = None
         self.sample_group_id = None
         self.num_samples_per_group = 1
         #: Indicates the position of the ROI within an image
         self.sample_sequence_id = None
+        # Labels really only apply to classifications, but we establish the member
+        # on the base class and initialize it to something on the daughter class
+        # to facilitate polymorphism/sorting in PerSampleStatistics.
+        self.ground_truth_label = None
+        self.predicted_label = None
         self.discrete = None
 
     #==============================================================
@@ -218,7 +216,6 @@ class SingleSampleClassification( _SingleSamplePrediction ):
     """Classification result for a single image/ROI (a.k.a "sample"),
     which includes predicted class, marginal probabilities, etc."""
 
-    import numpy as np
     epsilon = np.finfo( np.float ).eps
 
     def __init__( self ):

@@ -272,7 +272,8 @@ class FeatureSpace( object ):
 
     #==============================================================
     def __deepcopy__( self, memo ):
-        """Make a deepcopy of this FeatureSpace"""
+        """Make a deepcopy of this FeatureSpace
+        memo - arg required by deepcopy package"""
         return self.Derive()
 
     #==============================================================
@@ -385,7 +386,7 @@ class FeatureSpace( object ):
         their_major, their_minor = [ int(v) for v in version.split('.',1) ]
         our_major, our_minor = [ int(v) for v in self.feature_set_version.split('.',1) ]
 
-        if( their_major != our_major ):
+        if their_major != our_major:
             return False
         if our_minor and their_minor and our_minor != their_minor:
             return False
@@ -1188,7 +1189,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
                     if num_fs_columns == None:
                         num_fs_columns = -1
                     elif num_fs_columns != -1:
-                        err_smg = "File {0}, line {1} has old-style two-column FOF format, while the other lines use the new-style format with {3} columns"
+                        err_msg = "File {0}, line {1} has old-style two-column FOF format, while the other lines use the new-style format with {3} columns"
                         raise ValueError( err_msg.format( pathname, line_num, num_fs_columns + 3 ) )
 
                     # Create a sampling opts template for this line in the FOF
@@ -1330,7 +1331,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
                     if num_fs_columns == None:
                         num_fs_columns = fs_col
                     elif fs_col != num_fs_columns:
-                        err_smg = "File {0}, line {1} has {2} channel cols, when the rest has {3}"
+                        err_msg = "File {0}, line {1} has {2} channel cols, when the rest has {3}"
                         raise ValueError( err_msg.format( pathname, line_num, fs_col, num_fs_columns) )
 
                     # FIXME: This is kinda kludgy since it doesn't evaluate major versions across columns
@@ -1341,7 +1342,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
                         if fs_col > 0:
                             feature_set_version = base_sample_opts.feature_set_version.split('.',1)[0] + '.0'
                         else:
-                            base_sample_opts.feature_set_version
+                            feature_set_version = base_sample_opts.feature_set_version
 
                 # END if len( cols ) < 3
 
@@ -1576,7 +1577,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
 
         newdata = {}
         newdata[ 'shape' ] = shape
-        if self.source_filepath and type( self.source_filepath ) == str:
+        if self.source_filepath and isinstance( self.source_filepath, str):
             # A.K.A. not wndcharm.PyImageMatrix
             newdata[ 'source_filepath' ] = self.source_filepath + " (feature reduced)"
         newdata[ 'name' ] = self.name + " (feature reduced)"
@@ -1659,7 +1660,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
         def CheckForValidListOfInts( the_list ):
             """Items in list must be ints that are valid sample group ids for this FeatureSpace"""
             for item in the_list:
-                if type( item ) is not int:
+                if not isinstance( item, int):
                     raise TypeError( "Input must be an int or a flat iterable containing only ints.")
 
             if not set( the_list ) <= set( self._contiguous_sample_group_ids ):
@@ -1676,7 +1677,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
         #==================================
 
         if leave_out_sample_group_ids is not None:
-            if type( leave_out_sample_group_ids ) is int:
+            if isinstance( leave_out_sample_group_ids, int ):
                 leave_out_sample_group_ids = [ leave_out_sample_group_ids ]
             CheckForValidListOfInts( leave_out_sample_group_ids )
 
@@ -1684,7 +1685,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
             leave_in_sample_group_ids = UniquifySansLeaveOutList(
                     self._contiguous_sample_group_ids, leave_out_sample_group_ids )
         else: # user provided leave in list
-            if type( leave_in_sample_group_ids ) is int:
+            if isinstance( leave_in_sample_group_ids, int ):
                 leave_in_sample_group_ids = [ leave_in_sample_group_ids ]
             CheckForValidListOfInts( leave_in_sample_group_ids )
 
@@ -1786,9 +1787,9 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
 
             if random_state is True:
                 from numpy.random import shuffle
-            elif type( random_state ) is RandomState:
+            elif isinstance( random_state, RandomState ):
                 shuffle = random_state.shuffle
-            elif type( random_state ) is int:
+            elif isinstance( random_state, int ):
                 shuffle = RandomState( random_state ).shuffle
             else:
                 raise ValueError( 'Arg random_state must be an instance of numpy.random.RandomState, an int, or the value True')
@@ -1832,12 +1833,12 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
             num_samplegroups = len( unique_samplegroup_ids )
 
             # TEST SET SIZE:
-            if type( test_size ) is int:
+            if isinstance( test_size, int ):
                 if test_size < 0 or test_size >= num_samplegroups: # test sets of size 0 are allowed
                     errmsg = 'Arg test_size ({0}) must be 0 <= test_size < {1} (# images/sample groups).'
                     raise ValueError( errmsg.format( test_size, num_samplegroups ) )
                 n_samplegroups_in_test_set = test_size
-            elif type( test_size ) is float:
+            elif isinstance( test_size, float ):
                 if test_size < 0 or test_size >= 1: # test sets of size 0 are allowed
                     errmsg = 'Arg test_size fraction {0} must be 0 <= 1.0'
                     raise ValueError( errmsg.format( test_size ) )
@@ -1846,12 +1847,12 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
                 raise ValueError( 'Invalid input: test_size={0}'.format( test_size ) )
 
             # TRAIN SET SIZE:
-            if type( train_size ) is int:
+            if isinstance( train_size, int ):
                 if train_size < 0 or train_size >= num_samplegroups: # train sets of size 1 are allowed
                     errmsg = 'Arg train_size ({0}) must be 0 <= train_size < {1} (# images/sample groups).'
                     raise ValueError( errmsg.format( train_size, num_samplegroups ) )
                 n_samplegroups_in_training_set = train_size
-            elif type( train_size ) is float:
+            elif isinstance( train_size, float):
                 if train_size < 0 or train_size >= 1: # train sets of size 1 are allowed
                     errmsg = 'Arg train_size fraction {0} must be 0 <= 1.0'
                     raise ValueError( errmsg.format( train_size ) )
@@ -1864,7 +1865,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
                 raise ValueError( 'Invalid input: train_size={0}'.format( test_size ) )
 
             if( n_samplegroups_in_training_set + n_samplegroups_in_test_set ) > num_samplegroups:
-                    raise ValueError( 'User input specified train/test feature set membership contain more samples than are availabel.' )
+                raise ValueError( 'User input specified train/test feature set membership contain more samples than are availabel.' )
 
             train_groups = sorted( unique_samplegroup_ids[ : n_samplegroups_in_training_set ] )
 
@@ -1937,9 +1938,9 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
             raise ValueError( "This FeatureSpace isn't organized into categories, so no classes to remove (self.discrete is set to True)" )
 
         try:
-            if type( class_token ) is int:
+            if isinstance( class_token, int ):
                 class_index_to_be_removed = class_token
-            elif type( class_token ) is str:
+            elif isinstance( class_token, str ):
                 class_index_to_be_removed = self.class_names.index( class_token )
 
             # sample indices AREN'T the same as sample group ids:
@@ -1960,7 +1961,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
         """Reduce sample space to only include samples with the desired
         tile indices (i.e., sample_sequence_id)"""
 
-        if type( wanted_tiles ) == int:
+        if isinstance( wanted_tiles, int ):
             wanted_tiles = list( (wanted_tiles,) )
 
         wanted_indices = [ i for i in xrange( self.num_samples ) \
@@ -1997,7 +1998,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
         
         override - bool - add fs even if it's immutable (features are normalized)."""
 
-        if type( other_fs ) is not FeatureSpace:
+        if not isinstance( other_fs, FeatureSpace ):
             raise ValueError( 'Arg other_fs needs to be of type "FeatureSpace", was a {0}'.format( 
                 type( other_fs ) ) )
 
@@ -2009,10 +2010,10 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
 
         #FIXME: Use override and self.normalized_against to make sure it's ok to
         #       join samples.
-        assert( self.shape[1] == self.num_features == other_fs.shape[1] == other_fs.num_features )
-        assert( self.num_samples == self.shape[0] )
-        assert( other_fs.num_samples == other_fs.shape[0] )
-        assert( self.num_samples_per_group == other_fs.num_samples_per_group )
+        assert self.shape[1] == self.num_features == other_fs.shape[1] == other_fs.num_features
+        assert self.num_samples == self.shape[0]
+        assert other_fs.num_samples == other_fs.shape[0]
+        assert self.num_samples_per_group == other_fs.num_samples_per_group
 
         # initialize
         kwargs = {}
@@ -2077,7 +2078,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
     def FeaturesUnion( self, other_fs, inplace=False ):
         """Concatenate two FeatureSpaces along the features (columns) axis."""
 
-        if type( other_fs ) is not FeatureSpace:
+        if not isinstance( other_fs, FeatureSpace ):
             raise ValueError( 'Arg other_fs needs to be of type "FeatureSpace", was a {0}'.format(
                 type( other_fs ) ) )
 

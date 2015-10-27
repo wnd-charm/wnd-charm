@@ -30,7 +30,7 @@ from .FeatureSpace import FeatureSpace, CheckIfClassNamesAreInterpolatable
 from .FeatureSpacePrediction import _FeatureSpacePrediction, FeatureSpaceClassification,\
         FeatureSpaceRegression
 from .FeatureWeights import FisherFeatureWeights, PearsonFeatureWeights
-from .SingleSamplePrediction import SingleSampleClassification, SingleSampleRegression, \
+from .SingleSamplePrediction import SingleSampleClassification, \
         AveragedSingleSamplePrediction
 
 #============================================================================
@@ -210,7 +210,7 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
 
         if param_space is None:
             param_space = GenParamSpace()
-        elif type( param_space ) is int:
+        elif isinstance( param_space, int ):
             param_space = GenParamSpace( param_space )
         elif max( param_space ) > max_n_feats:
             raise ValueError( "val in param_space ({}) is more features than feature space has ({})".format(
@@ -233,7 +233,7 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
                 results.append( ( n_features, exp.figure_of_merit ) )
                 if not quiet:
                     print "{}\t{}".format( n_features, exp.figure_of_merit )
-            except ValueError as e:
+            except ValueError:
                 # Sometimes the features ranked above a certain number are all 0, e.g.,
                 #    ValueError: Can't reduce feature weights "None" to 2919 features.
                 #    Features ranked 2631 and below have a Fisher score of 0. Request
@@ -297,9 +297,9 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
 
         if param_space is None:
             param_space = GenParamSpace()
-        elif type( param_space ) is int:
+        elif isinstance( param_space, int ):
             param_space = GenParamSpace( param_space )
-        elif max( param_space ) > max_n_samples:
+        elif max( param_space ) > max_n_samps:
             raise ValueError( "val in param_space ({}) is more samples than a balanced feature space has ({})".format(
                 max( param_space ), max_n_samps ) )
 
@@ -330,7 +330,7 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
                 results.append( ( n_samples, exp.figure_of_merit ) )
                 if not quiet:
                     print "{}\t{}".format( n_samples, exp.figure_of_merit )
-            except ValueError as e:
+            except ValueError:
                 # Sometimes the features ranked above a certain number are all 0, e.g.,
                 #    ValueError: Can't reduce feature weights "None" to 2919 features.
                 #    Features ranked 2631 and below have a Fisher score of 0. Request
@@ -403,9 +403,9 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
             if random_state is True:
                 from numpy.random import randint as np_randint
                 randint = partial( np_randint, low=0, high=maxint )
-            elif type( random_state ) is int:
+            elif isinstance( random_state, int ):
                 randint = partial( RandomState( random_state ).randint, low=0, high=maxint )
-            elif type( random_state ) is RandomState:
+            elif isinstance( random_state, RandomState ):
                 randint = partial( random_state.randint, low=0, high=maxint )
             else:
                 raise ValueError( "arg random_state must be an int, instance of numpy.random.RandomState, or True")
@@ -776,7 +776,6 @@ class FeatureSpaceClassificationExperiment( _FeatureSpacePredictionExperiment ):
         import re
         row_re = re.compile( r'<tr>(.+?)</tr>' )
         name_re = re.compile( r'"(.+?)"' )
-        num_re = re.compile( r'(\d*\.?\d+)' )
 
         # FIXME: This should fail if there isn't some part of the class names that are interpretable
         # as a number, specifically when it tries to calculate an "interpolated" (predicted) value
@@ -802,7 +801,7 @@ class FeatureSpaceClassificationExperiment( _FeatureSpacePredictionExperiment ):
         mp_col = 2
         ground_truth_col = None
         predicted_col = None
-        interp_val_col = None # We don't even use this
+        #interp_val_col = None # We don't even use this
         name_col = None
 
         _training_set = None
@@ -819,8 +818,8 @@ class FeatureSpaceClassificationExperiment( _FeatureSpacePredictionExperiment ):
         split = None
         splitcount = 0
         split_linecount = None
-        with open( path_to_html ) as file:
-            for line in file:
+        with open( path_to_html ) as _file:
+            for line in _file:
                 if 'trainset_summary' in line:
                     trainingset_definition = True
                 elif trainingset_definition == True:
@@ -830,7 +829,7 @@ class FeatureSpaceClassificationExperiment( _FeatureSpacePredictionExperiment ):
                         ts = _training_set = ParseClassSummaryHTML( trainingset_html )
                         ground_truth_col = ts.num_classes + 3
                         predicted_col = ts.num_classes + 4
-                        interp_val_col = ts.num_classes + 6
+                        #interp_val_col = ts.num_classes + 6
                         name_col = ts.num_classes + 7
                         if not quiet:
                             print "TRAINING SET:", _training_set
@@ -863,7 +862,7 @@ class FeatureSpaceClassificationExperiment( _FeatureSpacePredictionExperiment ):
                         # First line in individual results is column headers
                         # Pure clasification without interpolation
                         if 'Interpolated Value' not in line:
-                            interp_val_col = None
+                            #interp_val_col = None
                             name_col = ts.num_classes + 6 # one less than set above -- that column won't exist
                         continue
                     noends = line.strip( '<trd/>\n' ) # take the tr and td tags off front end
