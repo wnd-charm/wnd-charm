@@ -33,42 +33,30 @@ pkg_dir = os.path.join (os.path.dirname(os.path.realpath(__file__)),'wndcharm')
 # We DO want to set the version in setup() and have it all synchronized from a single place (wndcharm/_version.py)
 execfile(os.path.join (pkg_dir,'_version.py'))
 
-# If we're building from svn, get the svn revision using the svnversion command
-# The svn revision (if it exists) gets appended to the version string (e.g. 0.3-r123 or 0.2-r141-local)
-# This mechanism allows for detection of locally modified (uncommitted) svn versions, and does not
-# require any action other than normal svn updates/commits to register new version numbers
-# The svn version is written to wndcharm/_svn_version.py (which is not under svn control) for inclusion by __init__.py
-# If we're not building from svn, then _svn_version.py is not written, and __version__ will be as in wndcharm/_version.py
-#try:
-#	import subprocess
-#	import re
-#	svn_vers = subprocess.Popen(['svnversion', pkg_dir], stdout=subprocess.PIPE).communicate()[0].strip()
-#	rev_re = re.search(r'^(\d+)(.+)?$', svn_vers)
-#	if rev_re:
-#		if rev_re.group(2):
-#			svn_vers = 'r'+rev_re.group(1)+'-local'
-#		else:
-#			svn_vers = 'r'+rev_re.group(1)
-#		print "svn revision "+svn_vers
-#		# this construction matches what is done in __init__.py by importing both _version.py and _svn_version.py
-#		__version__ = __version__+'-'+svn_vers
-#		f = open(os.path.join(pkg_dir,'_svn_version.py'), 'w+')
-#		f.write ("__svn_version__ = '"+svn_vers+"'\n")
-#		f.close()
-#except:
-#	pass
+try:
+    import subprocess
+    # If this returns non-zero, throws CalledProcessError
+    git_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip()
+    print "git hash " + git_hash
+    # this construction matches what is done in __init__.py by importing both _version.py and _git_hash.py
+    # use "normalized" semantic version string (a.k.a., dots)
+    __version__ = __version__+ '.' + git_hash
+    with open( os.path.join( pkg_dir, '_git_hash.py' ), 'w+' ) as f:
+	f.write( "__git_hash__ = '{0}'\n".format( git_hash) )
+except:
+    pass
 
 # Since there's a large C++ underpinning for the wndcharm Python API, run autotools to test build environment
 import os
 if not os.path.exists( 'config.h' ):
-	cmd = os.getcwd() + os.sep + 'configure'
-	import subprocess
-	p = subprocess.call( [cmd] )
+    cmd = os.getcwd() + os.sep + 'configure'
+    import subprocess
+    p = subprocess.call( [cmd] )
 
-	if p != 0:
-		print "Error running configure script"
-		import sys
-		sys.exit(p)
+    if p != 0:
+	print "Error running configure script"
+	import sys
+	sys.exit(p)
 
 wndchrm_module = Extension('_wndcharm',
 	sources=[
