@@ -1,28 +1,26 @@
-"""
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                                                                               
- Copyright (C) 2015 National Institutes of Health 
-
-    This library is free software; you can redistribute it and/or              
-    modify it under the terms of the GNU Lesser General Public                 
-    License as published by the Free Software Foundation; either               
-    version 2.1 of the License, or (at your option) any later version.         
-                                                                               
-    This library is distributed in the hope that it will be useful,            
-    but WITHOUT ANY WARRANTY; without even the implied warranty of             
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU          
-    Lesser General Public License for more details.                            
-                                                                               
-    You should have received a copy of the GNU Lesser General Public           
-    License along with this library; if not, write to the Free Software        
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA  
-                                                                               
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                                                                               
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- Written by:  Christopher Coletta (github.com/colettace)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"""
-
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+# Copyright (C) 2015 National Institutes of Health
+#
+#    This library is free software; you can redistribute it and/or
+#    modify it under the terms of the GNU Lesser General Public
+#    License as published by the Free Software Foundation; either
+#    version 2.1 of the License, or (at your option) any later version.
+#
+#    This library is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public
+#    License along with this library; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Written by:  Christopher Coletta (github.com/colettace)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 import numpy as np
 from .utils import output_railroad_switch
@@ -127,10 +125,6 @@ class PredictedValuesGraph( _BaseGraph ):
         
         Required the package matplotlib to be installed."""
 
-        import matplotlib
-        # Need following line to generate images on servers, see
-        # http://matplotlib.org/faq/howto_faq.html#generate-images-without-having-a-window-appear
-        matplotlib.use('Agg')
         import matplotlib.pyplot as plt
 
         self.figure = plt.figure( figsize=self.figsize )
@@ -166,8 +160,6 @@ class PredictedValuesGraph( _BaseGraph ):
 
         bw_method - passed directly to bw_method arg in scipy.stats.gaussian_kde"""
 
-        import matplotlib
-        matplotlib.use('Agg')
         import matplotlib.pyplot as plt
 
         self.figure = plt.figure( figsize=self.figsize )
@@ -250,8 +242,6 @@ class FeatureTimingVersusAccuracyGraph( _BaseGraph ):
             split_result.Print()
             experiment.individual_results.append( split_result )
 
-        import matplotlib
-        matplotlib.use('Agg')
         import matplotlib.pyplot as plt
 
         x_vals = list( range( 1, max_num_features + 1 ) )
@@ -337,8 +327,6 @@ class AccuracyVersusNumFeaturesGraph( _BaseGraph ):
         y_max += horiz_buffer
         total_n_feats = kwargs['feature_space'].num_features
 
-        import matplotlib
-        matplotlib.use('Agg')
         import matplotlib.pyplot as plt
 
         self.figure = plt.figure( figsize=figsize, facecolor='white' )
