@@ -38,6 +38,51 @@ try:
 except:
     pass
 
+class _package_versions( object ):
+    """Report the versions of various Python packages WND-CHARM
+    depends on/is often used with"""
+
+    def __init__( self ):
+        self.module_list = ['wndcharm', 'numpy', 'scipy', 'matplotlib', 'sklearn', \
+                'IPython', 'tifffile', 'PIL', 'pandas']
+
+    def get_package_versions( self ):
+        """Runs through self.module_list, tries to import,
+        then gets .__version__ or .VERSION"""
+
+        ret = []
+        import sys
+        ret.append( ('python', sys.version ) )
+
+        for name in self.module_list:
+            m = None
+            ver = None
+            try: # 1. can we import it?
+                m = __import__( name )
+                try: #2. does it have a __version__?
+                    ver = m.__version__
+                except AttributeError:
+                    try: # 3. Is it PIL which has a .VERSION instead?
+                        ver = m.VERSION
+                    except AttributeError:
+                        ver = 'version not available'
+            except ImportError:
+                pass
+
+            ret.append( ( name, ver ) )
+        return ret
+
+    def __call__( self ):
+        return self.get_package_versions()
+
+    def __str__( self ):
+        retval = self.get_package_versions()
+        outstr = ""
+        for name, ver in retval:
+            outstr += str( name ) + ': ' + str( ver ) + '\n'
+        return outstr
+
+package_versions = _package_versions()
 
 # The numbers *must* be consistent with what's defined in wndchrm C-codebase.
 feature_vector_major_version = 3
