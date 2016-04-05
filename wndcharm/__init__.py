@@ -34,7 +34,7 @@ except ImportError:
 
 try:
     from _git_hash import __git_hash__
-    __version__ = __version__+ '.' + __git_hash__
+    __version__ = __version__+ '+' + __git_hash__
 except:
     pass
 
