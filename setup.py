@@ -24,7 +24,7 @@ class CustomInstall(install):
         self.do_egg_install()
 
 import os
-pkg_dir = os.path.join (os.path.dirname(os.path.realpath(__file__)),'wndcharm')
+pkg_dir = os.path.join( os.path.dirname( os.path.realpath(__file__)), 'wndcharm' )
 
 # this sets the __version__ variable
 # the wndcharm/_version.py file contains a single line assigning the __version__ variable
@@ -34,12 +34,19 @@ pkg_dir = os.path.join (os.path.dirname(os.path.realpath(__file__)),'wndcharm')
 execfile(os.path.join (pkg_dir,'_version.py'))
 
 try:
-    import subprocess
-    # If this returns non-zero, throws CalledProcessError
-    git_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip()
+    from subprocess import check_output
+
+    # Get the git hash for this commit
+    # If this returns non-zero, a.k.a. got a git repo, throws CalledProcessError
+    git_hash = check_output(['git', 'rev-parse', '--short', 'HEAD']).strip()
+
+    # Check for local modifications
+    if check_output(['git', 'diff-index', '--name-only', 'HEAD']).strip():
+        git_hash += 'localmod'
+
     print "git hash " + git_hash
-    # this construction matches what is done in __init__.py by importing both _version.py and _git_hash.py
-    # use "normalized" semantic version string (a.k.a., dots)
+    # this construction matches what is done in __init__.py by importing
+    # both _version.py and _git_hash.py use "normalized" semantic version string (a.k.a., dots)
     __version__ = __version__+ '+' + git_hash
     with open( os.path.join( pkg_dir, '_git_hash.py' ), 'w+' ) as f:
 	f.write( "__git_hash__ = '{0}'\n".format( git_hash) )
