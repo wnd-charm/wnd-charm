@@ -1,27 +1,26 @@
-"""
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                                                                               
- Copyright (C) 2015 National Institutes of Health 
-
-    This library is free software; you can redistribute it and/or              
-    modify it under the terms of the GNU Lesser General Public                 
-    License as published by the Free Software Foundation; either               
-    version 2.1 of the License, or (at your option) any later version.         
-                                                                               
-    This library is distributed in the hope that it will be useful,            
-    but WITHOUT ANY WARRANTY; without even the implied warranty of             
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU          
-    Lesser General Public License for more details.                            
-                                                                               
-    You should have received a copy of the GNU Lesser General Public           
-    License along with this library; if not, write to the Free Software        
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA  
-                                                                               
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                                                                               
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- Written by:  Christopher Coletta (github.com/colettace)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"""
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+# Copyright (C) 2015 National Institutes of Health 
+#
+#    This library is free software; you can redistribute it and/or
+#    modify it under the terms of the GNU Lesser General Public
+#    License as published by the Free Software Foundation; either
+#    version 2.1 of the License, or (at your option) any later version.
+#
+#    This library is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public
+#    License along with this library; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Written by:  Christopher Coletta (github.com/colettace)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 __version__ = "unknown"
 
@@ -34,12 +33,56 @@ except ImportError:
     pass
 
 try:
-    from _svn_version import __svn_version__
-    __version__ = __version__+'-'+__svn_version__
-except ImportError:
-    # We're running in a tree that doesn't have a _svn_version.py, so we don't know what our version is.
+    from _git_hash import __git_hash__
+    __version__ = __version__+ '+' + __git_hash__
+except:
     pass
 
+class _package_versions( object ):
+    """Report the versions of various Python packages WND-CHARM
+    depends on/is often used with"""
+
+    def __init__( self ):
+        self.module_list = ['wndcharm', 'numpy', 'scipy', 'matplotlib', 'sklearn', \
+                'IPython', 'tifffile', 'PIL', 'pandas']
+
+    def get_package_versions( self ):
+        """Runs through self.module_list, tries to import,
+        then gets .__version__ or .VERSION"""
+
+        ret = []
+        import sys
+        ret.append( ('python', sys.version ) )
+
+        for name in self.module_list:
+            m = None
+            ver = None
+            try: # 1. can we import it?
+                m = __import__( name )
+                try: #2. does it have a __version__?
+                    ver = m.__version__
+                except AttributeError:
+                    try: # 3. Is it PIL which has a .VERSION instead?
+                        ver = m.VERSION
+                    except AttributeError:
+                        ver = 'version not available'
+            except ImportError:
+                pass
+
+            ret.append( ( name, ver ) )
+        return ret
+
+    def __call__( self ):
+        return self.get_package_versions()
+
+    def __str__( self ):
+        retval = self.get_package_versions()
+        outstr = ""
+        for name, ver in retval:
+            outstr += str( name ) + ': ' + str( ver ) + '\n'
+        return outstr
+
+package_versions = _package_versions()
 
 # The numbers *must* be consistent with what's defined in wndchrm C-codebase.
 feature_vector_major_version = 3

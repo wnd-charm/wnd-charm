@@ -39,6 +39,11 @@ from shutil import rmtree
 from numpy.testing import assert_equal
 
 import numpy as np
+
+import matplotlib
+# Need following line to generate images on servers, see
+# http://matplotlib.org/faq/howto_faq.html#generate-images-without-having-a-window-appear
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 pychrm_test_dir = dirname( realpath( __file__ ) ) #WNDCHARM_HOME/tests/pywndchrm_tests
