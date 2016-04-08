@@ -823,8 +823,18 @@ void ImageMatrix::GetStats (Moments2 &moments2) const {
    n_std -double- the stdev of the normalized image (ignored if <0)
 */
 void ImageMatrix::normalize(double n_min, double n_max, long n_range, double n_mean, double n_std) {
+
+    #if DEBUG
+        auto curr_mean = _pix_plane.mean();
+        auto curr_min = _pix_plane.minCoeff();
+        auto curr_max = _pix_plane.maxCoeff();
+  		std::cout << "DEBUG normalize() BEFORE: mean: " << curr_mean << 
+            " min: " << curr_min << " max: " << curr_max << std::endl;
+	#endif
+
 	unsigned int x,y;
 	double val;
+    this->_is_pix_writeable = true;
 	writeablePixels pix_plane = WriteablePixels();
 
 	/* normalized to n_min and n_max */
@@ -855,7 +865,16 @@ void ImageMatrix::normalize(double n_min, double n_max, long n_range, double n_m
 				pix_plane (y,x) = stats.add (val);
 			}
 		}
-	}	   
+	}
+    this->_is_pix_writeable = false;
+    #if DEBUG
+        curr_mean = _pix_plane.mean();
+        curr_min = _pix_plane.minCoeff();
+        curr_max = _pix_plane.maxCoeff();
+  		std::cout << "DEBUG normalize() AFTER: mean: " << curr_mean << 
+            " min: " << curr_min << " max: " << curr_max << std::endl;
+	#endif
+
 }
 
 /* convolve

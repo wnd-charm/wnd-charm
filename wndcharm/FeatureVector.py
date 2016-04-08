@@ -177,9 +177,12 @@ class FeatureVector( object ):
         self.sample_sequence_id - int, index within sample group. If no
             ROI/image subsample, whole image is tile 1 of 1 in this sample group.
         self.downsample  - int, in percents
-        self.pixel_intensity_mean = None
-        self.pixel_intensity_stddev = None
-        self.rot = None
+        self.pixel_intensity_mean - int - Mean shift pixel intensities. New pixel
+            intensities are clipped to interval [0 , (bit depth)^2-1], THEREFORE
+            RESULTING MEAN MAY BE DIFFERENT THAN WHAT'S ASKED FOR BY USER!
+        self.pixel_intensity_stdev - int
+        self.rot - bool - Calculate entire feature set for each pixel plane rotated
+            4 times, 90 degrees each time.
 
         The following attributes are for calling out a single ROI within an image for
         feature extraction:
@@ -213,7 +216,7 @@ class FeatureVector( object ):
     # downsampling:
     r'(?:-d(?P<downsample>\d+))?',
     # pixel intensity adjustment:
-    r'(?:-S(?P<pixel_intensity_mean>\d+)(?:_(?P<pixel_intensity_stddev>\d+))?)?',
+    r'(?:-S(?P<pixel_intensity_mean>\d+)(?:_(?P<pixel_intensity_stdev>\d+))?)?',
     # rotations:
     r'(?:-R_(?P<rot>\d))?',
     # tiling info: (I know the order is a bit wacky: num_cols, num_rows, col index, row_index
@@ -224,6 +227,8 @@ class FeatureVector( object ):
     r'(?P<long>-l)?',
     # extension: .sig or .pysig
     r'\.(?:py)?sig$' ] ) )
+
+    members_of_type_int = [ 'tile_row_index', 'tile_col_index', 'tile_num_rows', 'tile_num_cols', 'sample_group_id', 'sample_sequence_id', 'x','y','w','h','z','z_delta', 'downsample', 'pixel_intensity_mean', 'pixel_intensity_stdev',]
 
     #==============================================================
     def __init__( self, **kwargs ):
@@ -409,32 +414,11 @@ class FeatureVector( object ):
 
         # When reading in sampling opts from the path, they get pulled out as strings
         # instead of ints:
-        if self.tile_row_index is not None:
-            self.tile_row_index = int( self.tile_row_index )
-        if self.tile_col_index is not None:
-            self.tile_col_index = int( self.tile_col_index )
-        if self.tile_num_rows is not None:
-            self.tile_num_rows = int( self.tile_num_rows )
-        if self.tile_num_cols is not None:
-            self.tile_num_cols = int( self.tile_num_cols )
-        if self.sample_group_id is not None:
-            self.sample_group_id = int( self.sample_group_id )
-        if self.sample_sequence_id is not None:
-            self.sample_sequence_id = int( self.sample_sequence_id )
-        if self.x is not None:
-            self.x = int( self.x )
-        if self.y is not None:
-            self.y = int( self.y )
-        if self.w is not None:
-            self.w = int( self.w )
-        if self.h is not None:
-            self.h = int( self.h )
-        if self.z is not None:
-            self.h = int( self.z )
-        if self.z_delta is not None:
-            self.z_delta = int( self.z_delta )
-        if self.downsample is not None:
-            self.downsample = int( self.downsample )
+        for member in self.members_of_type_int:
+            val = getattr( self, member )
+            if val is not None and not isinstance( val, int ):
+                setattr( self, member, int( val ) )
+
         # sequence order has historically been (e.g. 3x3):
         # 0 3 6
         # 1 4 7
@@ -588,14 +572,14 @@ class FeatureVector( object ):
         if self.downsample:
             d = float( self.downsample ) / 100
             preprocessed_full_px_plane.Downsample( original_px_plane, d, d )
-
         else:
             preprocessed_full_px_plane.copy( original_px_plane )
 
         if self.pixel_intensity_mean:
-            # void normalize(double min, double max, long range, double mean, double stddev);
-            preprocessed_full_px_plane.normalize( -1, -1, -1,
-                self.pixel_intensity_mean, self.pixel_intensity_mean )
+            mean = float( self.pixel_intensity_mean )
+            std = float( self.pixel_intensity_stdev ) if self.pixel_intensity_stdev else 0.0
+            # void normalize(double min, double max, long range, double mean, double stdev);
+            preprocessed_full_px_plane.normalize( -1, -1, -1, mean, std )
 
         self.preprocessed_full_px_plane_width = preprocessed_full_px_plane.width
         self.preprocessed_full_px_plane_height = preprocessed_full_px_plane.height
