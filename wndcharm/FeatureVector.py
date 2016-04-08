@@ -177,9 +177,12 @@ class FeatureVector( object ):
         self.sample_sequence_id - int, index within sample group. If no
             ROI/image subsample, whole image is tile 1 of 1 in this sample group.
         self.downsample  - int, in percents
-        self.pixel_intensity_mean = None
-        self.pixel_intensity_stdev = None
-        self.rot = None
+        self.pixel_intensity_mean - int - Mean shift pixel intensities. New pixel
+            intensities are clipped to interval [0 , (bit depth)^2-1], THEREFORE
+            RESULTING MEAN MAY BE DIFFERENT THAN WHAT'S ASKED FOR BY USER!
+        self.pixel_intensity_stdev - int
+        self.rot - bool - Calculate entire feature set for each pixel plane rotated
+            4 times, 90 degrees each time.
 
         The following attributes are for calling out a single ROI within an image for
         feature extraction:
