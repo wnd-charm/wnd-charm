@@ -27,7 +27,7 @@
 /* Written by:  Lior Shamir <shamirl [at] mail [dot] nih [dot] gov>              */
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-#define DEBUG 1
+#define DEBUG 0
 
 #include <vector>
 #include <math.h>

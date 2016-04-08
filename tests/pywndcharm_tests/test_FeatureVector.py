@@ -224,50 +224,50 @@ class TestSamplingOptions( unittest.TestCase ):
     def test_GetPreprocessedFullPixelPlane( self ):
         """Exercise pixel intensity mean/std shift, and downsample"""
 
-        from wndcharm import package_versions
-        print package_versions
-        print '==========================='
+        debug = False
+        if debug:
+            from wndcharm import package_versions
+            print package_versions
+            print '==========================='
 
-        img = "lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E.tif"
+        img = wndchrm_test_dir + sep + "t1_s01_c05_ij.tif"
         # px plane	min	max	mean	std
-        # np orig:	13.0	255.0	177.87	37.01
+        # np orig:	411.00	1465.00	912.19	129.31
 
         samp = FeatureVector( source_filepath=img )
         orig = samp.GetOriginalPixelPlane( cache=True )
         orig_np = orig.as_ndarray()
 
-        frmt = "{}:\t{:0.2f}\t{:0.2f}\t{:0.2f}\t{:0.2f}"
+        target_mean = 1000
+        target_std = 100
 
-        target_mean = 100
-        target_std = 30
-
-        print "target mean: {}, target std: {}".format( target_mean, target_std )
-        print "px plane\tmin\tmax\tmean\tstd"
-        #d = "wc orig", orig.minCoeff(), orig.minCoeff(), orig.mean(), None,
-        #print frmt.format( *d )
-        d = "np orig", orig_np.min(), orig_np.max(), orig_np.mean(), orig_np.std(),
-        print frmt.format( *d )
+        if debug:
+            frmt = "{}:\t{:0.2f}\t{:0.2f}\t{:0.2f}\t{:0.2f}"
+            print "target mean: {}, target std: {}".format( target_mean, target_std )
+            print "px plane\tmin\tmax\tmean\tstd"
+            d = "np orig", orig_np.min(), orig_np.max(), orig_np.mean(), orig_np.std(),
+            print frmt.format( *d )
 
         # Mean shift only
         samp.pixel_intensity_mean = target_mean
-        #import pdb; pdb.set_trace()
         mean_shifted = samp.GetPreprocessedFullPixelPlane( cache=False )
         mean_shifted_np = mean_shifted.as_ndarray()
-        d = ( "mean   ", mean_shifted_np.min(), mean_shifted_np.max(), mean_shifted_np.mean(),
-            mean_shifted_np.std() )
-        print frmt.format( *d )
-        #self.assertEqual( target_mean, int( mean_shifted_np.mean() ) )
+        if debug:
+            d = ( "mean   ", mean_shifted_np.min(), mean_shifted_np.max(), mean_shifted_np.mean(), mean_shifted_np.std() )
+            print frmt.format( *d )
+        self.assertEqual( target_mean, int( mean_shifted_np.mean() ) )
 
         # Mean and std shift
         samp.pixel_intensity_stdev = target_std
         mean_std_shifted = samp.GetPreprocessedFullPixelPlane( cache=False )
         mean_std_shifted_np = mean_std_shifted.as_ndarray()
-        d = ( "mean&std", mean_std_shifted_np.min(), mean_std_shifted_np.max(),
+        if debug:
+            d = ( "mean&std", mean_std_shifted_np.min(), mean_std_shifted_np.max(),
             mean_std_shifted_np.mean(), mean_std_shifted_np.std() )
-        print frmt.format( *d )
+            print frmt.format( *d )
 
-        #self.assertEqual( target_mean, int( mean_std_shifted_np.mean() ) )
-        #self.assertEqual( target_std, int( mean_std_shifted_np.std() ) )
+        self.assertEqual( target_mean, int( round( mean_std_shifted_np.mean() ) ) )
+        self.assertEqual( target_std, int( round( mean_std_shifted_np.std() ) ) )
 
         # downsample
         samp.pixel_intensity_mean = None
@@ -275,7 +275,7 @@ class TestSamplingOptions( unittest.TestCase ):
 
         w = orig.width
         h = orig.height
-        print "orig dimensions: {}x{}".format( w, h )
+
         downsample = 25
         samp.downsample = downsample
         target_w = int( w * float( downsample ) / 100 )
@@ -285,7 +285,11 @@ class TestSamplingOptions( unittest.TestCase ):
         ds_np = ds.as_ndarray()
 
         new_h, new_w = ds_np.shape
-        print "downsample {}%: {}x{}".format( downsample, new_w, new_h )
+
+        if debug:
+            print "orig dimensions: {}x{}".format( w, h )
+            print "downsample {}%: {}x{}".format( downsample, new_w, new_h )
+
         self.assertEqual( target_w, new_w )
         self.assertEqual( target_h, new_h )
 

@@ -576,9 +576,10 @@ class FeatureVector( object ):
             preprocessed_full_px_plane.copy( original_px_plane )
 
         if self.pixel_intensity_mean:
+            mean = float( self.pixel_intensity_mean )
+            std = float( self.pixel_intensity_stdev ) if self.pixel_intensity_stdev else 0.0
             # void normalize(double min, double max, long range, double mean, double stdev);
-            preprocessed_full_px_plane.normalize( -1, -1, -1,
-                self.pixel_intensity_mean, self.pixel_intensity_stdev )
+            preprocessed_full_px_plane.normalize( -1, -1, -1, mean, std )
 
         self.preprocessed_full_px_plane_width = preprocessed_full_px_plane.width
         self.preprocessed_full_px_plane_height = preprocessed_full_px_plane.height
