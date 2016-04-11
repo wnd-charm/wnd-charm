@@ -35,13 +35,14 @@ execfile(os.path.join (pkg_dir,'_version.py'))
 
 try:
     from subprocess import check_output
+    from os import devnull
 
     # Get the git hash for this commit
     # If this returns non-zero, a.k.a. got a git repo, throws CalledProcessError
-    git_hash = check_output(['git', 'rev-parse', '--short', 'HEAD']).strip()
+    git_hash = check_output(['git', 'rev-parse', '--short', 'HEAD'], stderr=devnull).strip()
 
     # Check for local modifications
-    if check_output(['git', 'diff-index', '--name-only', 'HEAD']).strip():
+    if check_output(['git', 'diff-index', '--name-only', 'HEAD'], stderr=devnull).strip():
         git_hash += 'localmod'
 
     print "git hash " + git_hash
