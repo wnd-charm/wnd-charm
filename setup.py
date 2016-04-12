@@ -36,23 +36,24 @@ execfile(os.path.join (pkg_dir,'_version.py'))
 try:
     from subprocess import check_output
     from os import devnull
+    with open( devnull, 'w' ) as bitbucket:
 
-    # Get the git hash for this commit
-    # If this returns non-zero, a.k.a. got a git repo, throws CalledProcessError
-    git_hash = check_output(['git', 'rev-parse', '--short', 'HEAD'], stderr=devnull).strip()
+        # Get the git hash for this commit
+        # If this returns non-zero, a.k.a. got a git repo, throws CalledProcessError
+        git_hash = check_output(['git', 'rev-parse', '--short', 'HEAD'], stderr=bitbucket ).strip()
 
-    # Check for local modifications
-    if check_output(['git', 'diff-index', '--name-only', 'HEAD'], stderr=devnull).strip():
-        git_hash += 'localmod'
+        # Check for local modifications
+        if check_output(['git', 'diff-index', '--name-only', 'HEAD'], stderr=bitbucket ).strip():
+            git_hash += 'localmod'
 
-    print "git hash " + git_hash
+    print "Building WND-CHARM {} at git repo commit {}...".format( __version__, git_hash )
     # this construction matches what is done in __init__.py by importing
     # both _version.py and _git_hash.py use "normalized" semantic version string (a.k.a., dots)
     __version__ = __version__+ '+' + git_hash
     with open( os.path.join( pkg_dir, '_git_hash.py' ), 'w+' ) as f:
 	f.write( "__git_hash__ = '{0}'\n".format( git_hash) )
 except:
-    pass
+    print "Building WND-CHARM {} release version...".format( __version__ )
 
 # Since there's a large C++ underpinning for the wndcharm Python API, run autotools to test build environment
 import os
