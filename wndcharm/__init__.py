@@ -38,7 +38,7 @@ try:
 except:
     pass
 
-class _package_versions( object ):
+class _diagnostics( object ):
     """Report the versions of various Python packages WND-CHARM
     depends on/is often used with"""
 
@@ -53,7 +53,7 @@ class _package_versions( object ):
         ret = []
         import sys
         ret.append( ('python', sys.version ) )
-
+        
         for name in self.module_list:
             m = None
             ver = None
@@ -76,13 +76,28 @@ class _package_versions( object ):
         return self.get_package_versions()
 
     def __str__( self ):
+        outstr = "WND-CHARM Python API Diagnostics\n"
+        outstr += "================================\n"
+
+        from sys import executable
+        outstr += "Executable:" + '\n\t' + str( executable ) + '\n'
+
+        from os import getenv
+        outstr += 'PYTHONPATH environment variable:\n\t' + \
+                getenv( 'PYTHONPATH', '<unset>') + '\n'
+
+        import wndcharm
+
+        outstr += 'WND-CHARM library path:\n\t' + wndcharm.__file__ + '\n'
+
+        outstr += 'Package versions:\n'
         retval = self.get_package_versions()
-        outstr = ""
+
         for name, ver in retval:
-            outstr += str( name ) + ': ' + str( ver ) + '\n'
+            outstr += '\t' + str( name ).ljust(10) + '\t' + str( ver ).replace( '\n', ' ') + '\n'
         return outstr
 
-package_versions = _package_versions()
+diagnostics = _diagnostics()
 
 # The numbers *must* be consistent with what's defined in wndchrm C-codebase.
 feature_vector_major_version = 3
