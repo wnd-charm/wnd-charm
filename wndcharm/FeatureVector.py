@@ -1127,7 +1127,7 @@ class FeatureVector( object ):
             out.write( "0\t{0}\n".format( self.feature_set_version ) )
             out.write( "{0}\n".format( self.source_filepath ) )
             for val, name in zip( self.values, self.feature_names ):
-                out.write( "{0:0.8g} {1}\n".format( val, name ) )
+                out.write( "{0:0.8g}\t{1}\n".format( val, name ) )
 
 # end definition class FeatureVector
 
