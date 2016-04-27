@@ -243,15 +243,17 @@ def normalize_by_columns( feature_matrix, mins=None, maxs=None, means=None, stde
 initialize_module()
 
 # BEGIN: Helper functions
-def compare( a_list, b_list, atol=1e-7 ):
+def compare( a_list, b_list, atol=1e-7, feature_names=None ):
     """Helps to compare floating point values to values stored
     in text files (ala .fit and .sig files) where the number of
     significant figures is sometimes orders of magnitude different"""
 
     result = True
     errcount = 0
+
     for count, (a_raw, b_raw) in enumerate( zip( a_list, b_list ) ):
-        if errcount > 20:
+        if errcount > 30:
+            print "More than 30 inconsistencies. Stopping comparison."
             break
 
         if a_raw == b_raw:
@@ -323,8 +325,13 @@ def compare( a_list, b_list, atol=1e-7 ):
         diff = abs( a - b )
 
         #print "{0}->{1}=={2}<-{3} : {4} <= {5}".format( a_raw, a, b, b_raw, diff, 10 ** diff_digits )
-        if diff > 10 ** diff_digits:      
-            errstr = "****Index {0}: {1} isn't enough like {2}".format( count, a_raw, b_raw )
+        if diff > 10 ** diff_digits:
+            try:
+                feature_name = ' ' + feature_names[count]
+            except:
+                feature_name = ""
+
+            errstr = "****Feature {0}{1}: {2} isn't enough like {3}".format( count, feature_name, a_raw, b_raw )
             print errstr
             result = False
             errcount += 1

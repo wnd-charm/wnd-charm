@@ -91,12 +91,13 @@ class Test_parallel_compute( unittest.TestCase ):
             #from numpy.testing import assert_allclose
             #self.assertTrue( assert_allclose( ref_fs.data_matrix, target_fs.data_matrix ) )
             from wndcharm.utils import compare
+            errmsg = ""
             for row_num, (ref_row, test_row) in enumerate( zip( ref_fs.data_matrix, target_fs.data_matrix )):
-                retval = compare( ref_row, test_row )
+                retval = compare( ref_row, test_row, feature_names=ref_fs.feature_names )
                 if retval == False:
-                    print "error in sample row", row_num
-                    print "FIT: ", ref_fs._contiguous_sample_names[row_num], "FOF", target_fs._contiguous_sample_names[row_num]
-                self.assertTrue( retval )
+                    errmsg =  "Features don't match in row " + str( row_num )
+                self.assertTrue( retval, errmsg )
+
         finally:
             rmtree( refdir )
             rmtree( targetdir )
