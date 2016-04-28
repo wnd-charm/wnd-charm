@@ -95,7 +95,7 @@ class Test_parallel_compute( unittest.TestCase ):
             for row_num, (ref_row, test_row) in enumerate( zip( ref_fs.data_matrix, target_fs.data_matrix )):
                 retval = compare( ref_row, test_row, feature_names=ref_fs.feature_names )
                 if retval == False:
-                    errmsg =  "Features don't match in row " + str( row_num )
+                    errmsg =  "Features don't match in row {0}/{1}".format( row_num, len( ref_fs.data_matrix ) )
                 self.assertTrue( retval, errmsg )
 
         finally:

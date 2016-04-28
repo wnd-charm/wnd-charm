@@ -246,7 +246,16 @@ initialize_module()
 def compare( a_list, b_list, atol=1e-7, feature_names=None ):
     """Helps to compare floating point values to values stored
     in text files (ala .fit and .sig files) where the number of
-    significant figures is sometimes orders of magnitude different"""
+    significant figures is sometimes orders of magnitude different
+
+    Does this by converting the values to integers and checking
+    that the difference between them is less than the difference that
+    would naturally occur between two floats with different precision.
+
+    For example the numbers 6.9e-07 and 6.93497e-07 would be converted
+    to 690,000 and 693,497 respectively and would be judged to be
+    equivalent since the difference 3,497 is less than
+    10 ** (difference in precision digits) = 10 ** 4 = 10,000."""
 
     result = True
     errcount = 0
@@ -325,13 +334,16 @@ def compare( a_list, b_list, atol=1e-7, feature_names=None ):
         diff = abs( a - b )
 
         #print "{0}->{1}=={2}<-{3} : {4} <= {5}".format( a_raw, a, b, b_raw, diff, 10 ** diff_digits )
+        err_frmt_str = "****Feature {0}{1}: {2} != {3} (abs diff {4:0.2g} rel_dif {5:0.2g}%)"
         if diff > 10 ** diff_digits:
             try:
                 feature_name = ' ' + feature_names[count]
             except:
                 feature_name = ""
 
-            errstr = "****Feature {0}{1}: {2} isn't enough like {3}".format( count, feature_name, a_raw, b_raw )
+            my_a_diff = abs( float(a_raw) - float(b_raw) )
+            my_r_diff = my_a_diff / abs( float( min( a_raw, b_raw ) ) )  * 100
+            errstr = err_frmt_str.format( count, feature_name, a_raw, b_raw, my_a_diff, my_r_diff )
             print errstr
             result = False
             errcount += 1
