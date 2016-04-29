@@ -1,7 +1,8 @@
 # echo "noinst_HEADERS = $(find Eigen  -not -path '*.svn/*'  -type f | perl -n -e 'chomp;s/^\.\///;push (@foo,$_); END{print join(" \\\n    ",@foo)}')" > Eigen/sources.am 
 include Eigen/sources.am
 
-AM_CPPFLAGS = -fPIC
+AM_CPPFLAGS = -fPIC -Os
+AM_CFLAGS = -Os
 
 noinst_LIBRARIES = libchrm.a
 
@@ -79,11 +80,14 @@ libchrm_a_SOURCES = \
   wndchrm_error.cpp \
   wndchrm_error.h
 
-libchrm_a_CXXFLAGS = -Wall
+libchrm_a_CXXFLAGS = -Wall -Os
+libchrm_a_CFLAGS = -Os
 
 bin_PROGRAMS=wndchrm
 
 wndchrm_SOURCES = wndchrm_src/wndchrm.cpp
+wndchrm_CXXFLAGS = -Wall -Os
+wndchrm_CFLAGS = -Os
 
 wndchrm_LDADD = libchrm.a -lm -ltiff -L. -lchrm -lfftw3
 
