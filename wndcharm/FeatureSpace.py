@@ -129,7 +129,8 @@ class FeatureSpace( object ):
         #: shape - supposed to work like numpy.ndarray.shape
         self.shape = None
 
-        #: If package sklearn is available, an optional instance of sklearn.lda.LDA
+        #: If package sklearn is available, an optional instance of
+        #: sklearn.discriminant_analysis.LinearDiscriminantAnalysis
         self.lda_fitter = None
 
         #: type: FeatureSpace, or string containing 'self'
@@ -691,7 +692,11 @@ class FeatureSpace( object ):
         for training set, then transforming the test set against self before proceeding with 
         classification."""
 
-        from sklearn.lda import LDA
+        try:
+            from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+        except ImportError:
+            # if sklearn version < 0.17
+            from sklearn.lda import LDA
 
         if self.transformed_against:
             # I've already been transformed, and you want to transform me again?

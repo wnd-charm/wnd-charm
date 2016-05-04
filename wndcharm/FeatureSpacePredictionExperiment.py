@@ -423,6 +423,8 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
         if master_test_set is not None:
             ReplaceNonReal( master_test_set.data_matrix )
 
+        nonconvergence_count = 0
+
         for split_index in xrange( n_iter ):
             if not quiet:
                 print "\n\n=========================================="
@@ -442,26 +444,41 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
             # Normalize features using zscores if lda
             train_set.Normalize( quiet=quiet, inplace=True, non_real_check=False, zscore=lda )
 
-            if feature_space.discrete:
-                weights = \
-                  FisherFeatureWeights.NewFromFeatureSpace( train_set ).Threshold( num_features )
-            else:    
-                weights = \
-                  PearsonFeatureWeights.NewFromFeatureSpace( train_set ).Threshold( num_features )
+            # If lda, num_features corresponds to the post-lda transform feature space
+            if not lda:
+                if feature_space.discrete:
+                    weights = \
+                      FisherFeatureWeights.NewFromFeatureSpace( train_set ).Threshold( num_features )
+                else:
+                    weights = \
+                      PearsonFeatureWeights.NewFromFeatureSpace( train_set ).Threshold( num_features )
 
-            if not quiet:
-                weights.Print( display=display )
-            train_set.FeatureReduce( weights, quiet=quiet, inplace=True )
-            test_set.FeatureReduce( weights, quiet=quiet, inplace=True )
+                if not quiet:
+                    weights.Print( display=display )
+
+                train_set.FeatureReduce( weights, quiet=quiet, inplace=True )
+                test_set.FeatureReduce( weights, quiet=quiet, inplace=True )
+            else:
+                    weights = None
+
             test_set.Normalize( train_set, quiet=quiet, inplace=True,
                     non_real_check=False, zscore=lda )
 
             if feature_space.discrete:
                 if lda:
                     # Don't Fisher weight the LDA transformed feature space
-                    weights = None
-                    train_set.LDATransform( inplace=True, quiet=quiet )
-                    test_set.LDATransform( train_set, inplace=True, quiet=quiet )
+                    try:
+                        train_set.LDATransform( inplace=True, quiet=quiet )
+                        test_set.LDATransform( train_set, inplace=True, quiet=quiet )
+                    except:
+                        nonconvergence_count += 1
+                        continue
+                        #raise
+
+                    if num_features:
+                        desired_feats = train_set.feature_names[:num_features]
+                        train_set.FeatureReduce( desired_feats, inplace=True, quiet=quiet )
+                        test_set.FeatureReduce( desired_feats, inplace=True, quiet=quiet )
 
                 split_result = FeatureSpaceClassification.NewWND5( train_set, \
                  test_set, weights, split_number=split_index, quiet=quiet,\
@@ -488,6 +505,9 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
 
         if not quiet:
             experiment.Print()
+            if nonconvergenge_count > 0:
+                print "nonconvergence count: ", nonconvergence_count
+
         return experiment
 
     #=====================================================================
