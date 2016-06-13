@@ -610,10 +610,15 @@ class FeatureSpace( object ):
     #==============================================================
     def Normalize( self, reference_features=None, inplace=True, zscore=False,
             non_real_check=True, quiet=False ):
-        """By convention, the range of feature values in the WND-CHARM algorithm are
-        normalized on the interval [0,100]. Normalizing is useful in making the variation
-        of features human readable. Normalized samples are only comprable if they've been
-        normalized against the same feature maxima/minima."""
+        """Scale raw feature values. Min/max scaling to inteval [0,100] by defualt,
+        otherwize uses z-scores. Feature spaces transformed in this manner are only
+        comparable if they've been normalized against the same feature maxima/minima.
+
+        reference_features - wndcharm.FeatureSpace.FeatureSpace, default=None
+            Provides the reference feature minima/maxima to transform this feature
+            space. Otherwise, use own feature minima/maxima to normalize.
+
+        Returns: self"""
 
         if self.normalized_against:
             # I've already been normalized, and you want to normalize me again?
@@ -1553,6 +1558,8 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
             (FeatureVector/FeatureSpace/FeatureWeights) or an iterable containing 
             strings that are feature names.
 
+        Returns: self
+
         Implementation detail: compares input "requested_features" to self.feature_names,
         and "requested_features" becomes the self.feature_names of the returned FeatureSpace."""
 
@@ -1770,19 +1777,20 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
                     of the dataset to include in the train split (rounded down). If int,
                     represents the absolute number of train samples. If None, the value
                     is automatically set to the complement of the test size.
-
         test_size : float, int, or None (default is None)
                     If float, should be between 0.0 and 1.0 and represent the proportion
                     of the dataset to include in the test split (rounded up). If int,
                     represents the absolute number of test samples. If None, the value is
                     automatically set to the complement of the train size. If train size
                     is also None, test size is set to 0.25.
-
         random_state : int or RandomState
                     If true, generate a new random split. If int or Pseudo-random number
                     generator state used for random sampling. If value evaluates to false,
                     then do not randomize, but take the first samples in the order
-                    the occur in the FeatureSpace/class."""
+                    the occur in the FeatureSpace/class.
+        balanced_classes : boolean, default True
+                    For classification problems only. Create training sets whose classes
+                    have an equal number of samples in them."""
 
         # Step 1: Determine composition of split classes, i.e.,
         # figure out how many images/samples goes into the train and test sets respectively.

@@ -335,19 +335,75 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
                 #    ValueError: Can't reduce feature weights "None" to 2919 features.
                 #    Features ranked 2631 and below have a Fisher score of 0. Request
                 #    less features.
-                print "Skipping n_samples={} and above due to a FeatureSpace.Split error".format( n_samples )
+                print "Skipping n_samples={} and above due to a FeatureSpace. Split error".format( n_samples )
                 break
 
         return results
 
     #=====================================================================
     @classmethod
-    def NewShuffleSplit( cls, feature_space, test_set=None, n_iter=5, name=None, features_size=0.15,
-                           train_size=None, test_size=None, balanced_classes=True, random_state=True,
-                           classifier=None, lda=False, quiet=True, display=15, conserve_mem=False,
-                           progress=True ):
-        """args train_size, test_size, and random_state are all passed through to Split()
-        feature_size if a float is feature usage fraction, if in is top n features."""
+    def NewShuffleSplit( cls, feature_space, test_set=None, n_iter=5, name=None,
+            features_size=0.15, train_size=None, test_size=None, balanced_classes=True,
+            random_state=True, classifier=None, lda=False, lda_features_size=1.0,
+            pre_lda_feature_filter=False, quiet=True, display=15, conserve_mem=False,
+            progress=True ):
+        """Perform a shuffle-split cross validation, with randomization enabled by default.
+        Also known as "Bagging," i.e bootstrap and aggregate. N.B., sampling is done
+        WITH replacement, i.e., a sample may be selected to be in training or test sets
+        multiple times over the course of iterations, but will NEVER be in training AND test
+        sets at the same time within a given iteration (unless user puts same sample in both
+        feature_space and test_set FeatureSpaces).
+
+        feature_space - wndcharm.FeatureSpace.FeatureSpace
+            Pool of samples from which training set is drawn.
+        test_set - wndcharm.FeatureSpace.FeatureSpace, default=None
+            Pool of samples from which test set is drawn. Will draw test set samples from
+            feature_space if None.
+        n_iter - int, default=5
+            Number of iterations/splits.
+        name - string
+            A descriptor for this experiment. If not provided, takes name from feature_space
+            name.
+        feature_size - float, int, default=0.15
+            Per-split dimensionality reduction/hard thresholding cutoff of top-ranked
+            features. If int, take top-ranked n features. If float, take top ranked n
+            fraction of feature space. Ranking done with Fisher discriminant if
+            this is a classification problem, or with Pearson Correlation Coefficient
+            if regression.
+        train_size & test_size - float, int
+            Args passed directly through to FeatureSpace.Split, see docstring for details.
+        balanced_classes - boolean, default True
+            Arg passed directly through to FeatureSpace.Split, see docstring for details.
+        random_state - int, bool, or numpy.random.RandomState, default True
+            The seed used to create other seeds for each call to FeatureSpace.Split.
+            By providing a seed here once, the composition of samples in each train/test
+            split is deterministic. Very good for apples to apples comparison of
+            hyperparameters.
+        classifier - string ("lstsq" (default), "linear")
+            For regression problems only.
+            "lstsq" uses FeatureSpaceRegression.NewMultivariateLinear regressor.
+            "linear" uses FeatureSpaceRegression.NewLeastSquares regressor.
+        lda - boolean, default False
+            If True, use sklearn.discriminant_analysis.LinearDiscriminantAnalysis to
+            transform raw feature spaces into "linear subspaces consisting of the
+            directions which maximize the separation between classes." The LDA model is fit
+            to the training set and then used to transform the both training and test
+            feature spaces, which are used by the classifers/regressors downstream. See
+            scikit-learn docs for more info.
+        lda_features_size - float, int, iterable, default=1.0
+            Applies only when arg lda is True. By default, classifiers downstream of LDA
+            use entire feature space returned by LDA transform. Optionally, LDA dimensions
+            can be subselected based on ranking of their respective eigenvalues.
+        pre_lda_feature_filter - boolean, default=False
+            Pre filter raw feature space before LDA transform.
+        conserve_mem - boolean, default=False
+            When False, guarantees not to modify input FeatureSpaces; otherwise, sorts
+            etc are done in-place.
+
+        Returns:
+            This is a factory method which will create an instance of
+            FeatureSpaceClassificationExperiment or FeatureSpaceRegressionExperiment and
+            return it."""
 
         # Splitting will result in a call to _RebuildViews and SortSamplesByGroundTruth
         # so we have to make sure that the input FeatureSpace is sorted too
@@ -379,6 +435,9 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
             num_features = features_size
         else:
             raise ValueError( 'Arg "features_size" must be valid float or int.' )
+
+        if lda_features_size:
+            lda_features_slice = None
 
         if not quiet:
             print "using top " + str( num_features ) + " features"
@@ -431,7 +490,7 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
                 print "SHUFFLE SPLIT ITERATION", str( split_index )
             if progress:
                 stdout.write( str( split_index ) + '\t' )
- 
+
             if master_test_set == None:
                 train_set, test_set = feature_space.Split( train_size, test_size,
                         random_state=randint(), balanced_classes=balanced_classes, quiet=quiet )
@@ -440,12 +499,12 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
                         balanced_classes=balanced_classes, quiet=quiet )
                 test_set = master_test_set.Split( test_size, 0, random_state=randint(),
                         balanced_classes=balanced_classes, quiet=quiet )
-            
+
             # Normalize features using zscores if lda
             train_set.Normalize( quiet=quiet, inplace=True, non_real_check=False, zscore=lda )
 
             # If lda, num_features corresponds to the post-lda transform feature space
-            if not lda:
+            if not lda or pre_lda_feature_filter:
                 if feature_space.discrete:
                     weights = \
                       FisherFeatureWeights.NewFromFeatureSpace( train_set ).Threshold( num_features )
@@ -459,23 +518,35 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
                 train_set.FeatureReduce( weights, quiet=quiet, inplace=True )
                 test_set.FeatureReduce( weights, quiet=quiet, inplace=True )
             else:
-                    weights = None
+                weights = None
 
             test_set.Normalize( train_set, quiet=quiet, inplace=True,
                     non_real_check=False, zscore=lda )
 
             if feature_space.discrete:
                 if lda:
-                    # Don't Fisher weight the LDA transformed feature space
                     try:
                         train_set.LDATransform( inplace=True, quiet=quiet )
                         test_set.LDATransform( train_set, inplace=True, quiet=quiet )
                     except:
                         nonconvergence_count += 1
                         continue
-                        #raise
 
-                    if num_features:
+                    if lda_features_size and lda_features_size != 1.0:
+
+                        if lda_features_slice is None:
+                            if isinstance( lda_features_size, float ):
+                                if lda_features_size < 0 or lda_features_size > 1.0:
+                                    raise ValueError('Arg "lda_features_size" must be on interval [0,1] if a float.')
+                                lda_num_features = int( round( features_size * feature_space.num_features ) )
+                            elif isinstance( features_size, int ):
+                                if features_size < 0 or features_size > feature_space.num_features:
+                                    raise ValueError( 'must specify num_features or feature_usage_fraction in kwargs')
+                                num_features = features_size
+                            else:
+                                raise ValueError( 'Arg "features_size" must be valid float or int.' )
+
+
                         desired_feats = train_set.feature_names[:num_features]
                         train_set.FeatureReduce( desired_feats, inplace=True, quiet=quiet )
                         test_set.FeatureReduce( desired_feats, inplace=True, quiet=quiet )
