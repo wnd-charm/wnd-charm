@@ -523,9 +523,15 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
             test_set.Normalize( train_set, quiet=quiet, inplace=True,
                     non_real_check=False, zscore=lda )
 
+            # If a classification problem (not regression):
             if feature_space.discrete:
                 if lda:
                     try:
+                        # At the user's request, fit an LDA model to this split's training
+                        # set, then transform both the training set and the test set using
+                        # this model. Downstream, the Euclidean distances calculated for
+                        # WND5 classification with be done in this orthogonal LDA feature
+                        # space.
                         train_set.LDATransform( inplace=True, quiet=quiet )
                         test_set.LDATransform( train_set, inplace=True, quiet=quiet )
                     except:
@@ -534,20 +540,25 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
 
                     if lda_features_size and lda_features_size != 1.0:
 
-                        if lda_features_slice is None:
+                        if lda_features_size is None:
                             if isinstance( lda_features_size, float ):
                                 if lda_features_size < 0 or lda_features_size > 1.0:
                                     raise ValueError('Arg "lda_features_size" must be on interval [0,1] if a float.')
-                                lda_num_features = int( round( features_size * feature_space.num_features ) )
-                            elif isinstance( features_size, int ):
-                                if features_size < 0 or features_size > feature_space.num_features:
-                                    raise ValueError( 'must specify num_features or feature_usage_fraction in kwargs')
-                                num_features = features_size
+                                lda_num_features = int( round( lda_features_size * feature_space.num_classes ) )
+                            elif isinstance( lda_features_size, int ):
+                                if lda_features_size < 0 or lda_features_size > feature_space.num_classes:
+                                    raise ValueError( 'Arg "lda_features_size" must be on interval [0,num_classes] if an int.')
+                                lda_num_features = lda_features_size
                             else:
-                                raise ValueError( 'Arg "features_size" must be valid float or int.' )
+                                try:
+                                    len( lda_features_size )
+                                    raise NotImplementedError( 'Passing an iterable to specify desired LDA dimensions has not been implemented yet.' )
+                                except TypeError:
+                                    pass
 
+                                raise ValueError( 'Arg "lda_features_size" must be valid float or int.' )
 
-                        desired_feats = train_set.feature_names[:num_features]
+                        desired_feats = train_set.feature_names[:lda_num_features]
                         train_set.FeatureReduce( desired_feats, inplace=True, quiet=quiet )
                         test_set.FeatureReduce( desired_feats, inplace=True, quiet=quiet )
 

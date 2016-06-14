@@ -272,6 +272,8 @@ class TESTINGFeatureSpaceClassificationExperiment( unittest.TestCase ):
         fs_kwargs['clip'] = False
         fs = CreateArtificialFeatureSpace_Discrete( **fs_kwargs )
 
+
+        # Use case 1: Straight, classic WND-CHARM train/test splits
         ss_kwargs = {}
         ss_kwargs['name'] = "Discrete PerSampleStatistics ShuffleSplit WITH Pred Values"
         ss_kwargs['quiet'] = True
@@ -281,8 +283,20 @@ class TESTINGFeatureSpaceClassificationExperiment( unittest.TestCase ):
         ss_kwargs['random_state'] = 42
         exp = FeatureSpaceClassificationExperiment.NewShuffleSplit( fs, **ss_kwargs )
 
+
+        # Use case 2: Put LDA in pipeline (no fisher feature space prefilter, by default)
         ss_kwargs['lda'] = True
         exp = FeatureSpaceClassificationExperiment.NewShuffleSplit( fs, **ss_kwargs )
+
+        ## Use case 3: LDA AND Fisher feature space prefilter
+        #ss_kwargs['pre_lda_feature_filter'] = True
+        #exp = FeatureSpaceClassificationExperiment.NewShuffleSplit( fs, **ss_kwargs )
+
+        ## Use case 4: LDA AND Fisher feature space prefilter, AND post-LDA dimension reduction 
+        #ss_kwargs['lda_features_size'] = 0.5
+        #exp = FeatureSpaceClassificationExperiment.NewShuffleSplit( fs, **ss_kwargs )
+
+
         #Print calls self.GenereateStats()
         #from os import devnull
         exp.Print( )#output_stream=devnull )
