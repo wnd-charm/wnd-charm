@@ -1057,12 +1057,12 @@ class FeatureSpace( object ):
 
         root, dirs, files = walk( top_level_dir_path ).next()
         dirlist = [ join(root, subdir) for subdir in dirs if not subdir.startswith('.') ]
-        if len( dirlist ) == 0:
-            # no class structure
+        # dirlist may be empty
+        for subdir in dirlist:
+            InstantiateFeatureVectorsForDirectory( subdir )
+        # If the directories don't have any tiffs, look in top level
+        if len( feature_vector_list ) == 0:
             InstantiateFeatureVectorsForDirectory( top_level_dir_path )
-        else:
-            for subdir in dirlist:
-                InstantiateFeatureVectorsForDirectory( subdir )
 
         if len( feature_vector_list ) == 0:
             raise ValueError( "Didn't find any images within directory \"{0}\"".format(

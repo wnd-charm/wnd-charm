@@ -629,8 +629,11 @@ class FeatureVector( object ):
         elif( self.tile_num_cols and self.tile_num_cols > 1 ) or \
                     ( self.tile_num_rows and self.tile_num_rows > 1 ):
             # for tiling: figure out bounding box for this tile:
-            w = int( round( float( preprocessed_full_px_plane.width ) / self.tile_num_cols ) )
-            h = int( round( float( preprocessed_full_px_plane.height ) / self.tile_num_rows ) )
+            # You have to use floor division here, as opposed to rounding as was previously
+            # used; e.g. and 11x11 image with requested 3x3 tile scheme has a 3.66x3.66
+            # dimension, you can't round up to 4x4 tiles.
+            w = int( float( preprocessed_full_px_plane.width ) / self.tile_num_cols )
+            h = int( float( preprocessed_full_px_plane.height ) / self.tile_num_rows )
             x1 = self.tile_col_index * w
             x2 = ( ( self.tile_col_index + 1 ) * w ) - 1
             y1 = self.tile_row_index * h
