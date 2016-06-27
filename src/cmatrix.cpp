@@ -414,14 +414,24 @@ int ImageMatrix::submatrix( const ImageMatrix &matrix_IN, const unsigned int x1,
 	// args x1 and y1 can never be negative because they're unsigned ints
 
 	#if DEBUG
-		std::cout << "DEBUG submatrix(): crop ROI topleft=(" << x1 << "," << y1 << ") botright=("
-			<< x2 << "," << y2 << ") from ImageMatrix: " << &matrix_IN << " (shape: rows=" <<
-			matrix_IN.height << " cols=" << matrix_IN.width << 	") to:" << this << " (current " <<
-			"shape: rows= " << height << " cols=" << width << ")\n";
+		std::cout << "DEBUG submatrix(): crop ROI topleft=(" << x1 << "," << y1 <<
+            ") botright=(" << x2 << "," << y2 << ") from source ImageMatrix: " <<
+            &matrix_IN << " (shape: rows=" << matrix_IN.height << " cols=" <<
+            matrix_IN.width << 	") target:" << this << std::endl;
 	#endif
 
 	if( (x2 >= matrix_IN.width) || (y2 >= matrix_IN.height) ) {
 		// invalid!
+        #if DEBUG
+            if (x2 >= matrix_IN.width) {
+		        std::cout << "DEBUG submatrix(): requested crop bounding box is outside of pixel plane width: wanted x2=" << x2 << ", max=" << matrix_IN.width <<
+                std::endl;
+            }
+            else {
+		        std::cout << "DEBUG submatrix(): requested crop bounding box is outside of pixel plane height: wanted y2=" << y2 << ", max=" << matrix_IN.height <<
+                std::endl;
+            }
+	    #endif
 		return 0;
 	}
 
