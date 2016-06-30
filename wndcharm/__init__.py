@@ -44,7 +44,7 @@ class _diagnostics( object ):
 
     def __init__( self ):
         self.module_list = ['wndcharm', 'numpy', 'scipy', 'matplotlib', 'sklearn', \
-                'IPython', 'tifffile', 'PIL', 'pandas']
+                'skimage', 'IPython', 'tifffile', 'PIL', 'pandas']
 
     def get_package_versions( self ):
         """Runs through self.module_list, tries to import,
