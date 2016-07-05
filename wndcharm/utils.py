@@ -27,6 +27,7 @@
 # wndcharm.py has the definitions of all the SWIG-wrapped primitive C++ WND_CHARM objects.
 import wndcharm
 import numpy as np
+from functools import wraps
 
 # ============================================================
 # BEGIN: Initialize module level globals
@@ -81,7 +82,8 @@ def output_railroad_switch( method_that_prints_output ):
     """This is a decorator that optionally lets the user specify a file to which to redirect
     STDOUT. To use, you must use the keyword argument "output_filepath" and optionally
     the keyword argument "mode" """
-
+    
+    @wraps( method_that_prints_output )
     def print_method_wrapper( *args, **kwargs ):
         
         retval = None
