@@ -220,11 +220,9 @@ class TestGraphs( unittest.TestCase ):
         ss_kwargs['test_size' ] = test_size = 2 # per-class
         ss_kwargs['random_state'] = 42
         ss_kwargs['show_raw']=True
-        ss_kwargs['show_lda']=True
         ss_kwargs['show_lda_prefilter']=True
         graph = HyperparameterOptimizationGraph( small_fs )
         graph.NumFeaturesGridSearch( **ss_kwargs )
-        graph.savefig( '~/test.png' )
 
     @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOT installed" )
     def test_FromHTML( self ):

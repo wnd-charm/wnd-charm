@@ -379,7 +379,6 @@ class HyperparameterOptimizationGraph( _BaseGraph ):
         # Save the intermediate results in case you want to
         # write over them and redraw figure
         self.num_features_raw_results = None
-        self.num_features_lda_results = None
         self.num_features_lda_prefilter_results = None
 
         #self.num_samples_raw_results = None
@@ -387,9 +386,9 @@ class HyperparameterOptimizationGraph( _BaseGraph ):
         #self.num_samples_lda_prefilter_results = None
 
     def NumFeaturesGridSearch( self, param_space=None, param_scale='log',
-            show_raw=True, show_lda=True, show_lda_prefilter=False,
+            show_raw=True, show_lda_prefilter=True,
             chart_title=None, figsize=(12, 8), y_lim=(0,1), quiet=True,
-            use_error_bars=True, test_angle=-30, fig=None, ax=None, **kwargs ):
+            use_error_bars=True, text_angle=None, fig=None, ax=None, **kwargs ):
         """Creates graph for Classifier/Regressor figure of merit as a function of
         number of top-ranked features used in classification.
 
@@ -404,9 +403,7 @@ class HyperparameterOptimizationGraph( _BaseGraph ):
             show_raw - bool, default=True
                 Include in figure results obtained WITHOUT LDA feature space transform
             show_lda - bool, default=True
-                Include in figure results obtained WITH LDA featurespace transform
-                BUT WITHOUT prefiltering the feature space upstream of LDA
-            show_lda_prefilter - bool, default=False
+            show_lda_prefilter - bool, default=True
                 Include in figure results obtained WITH LDA featurespace transform
                 AND WITH prefiltering the feature space upstream of LDA
             y_lim - (float,float), or None
@@ -449,7 +446,7 @@ class HyperparameterOptimizationGraph( _BaseGraph ):
         # dummyproof:
         if 'feature_space' in kwargs:
             if self.feature_space is not kwargs['feature_space']:
-                raise ValueError( 'This graph object already has a FeatureSpace assoiated with it: {}'.format( self.feature_space ) )
+                raise ValueError( 'This graph object already has a FeatureSpace associated with it: {}'.format( self.feature_space ) )
 
         if show_raw:
             if self.num_features_raw_results is None:
@@ -459,19 +456,8 @@ class HyperparameterOptimizationGraph( _BaseGraph ):
             else:
                 # Implement ability to choose different params and add additional runs
                 pass
-            x,y = zip( *self.num_features_raw_results)
-            all_results.append( (x,y) )
+            all_results.append( self.num_features_raw_results )
             data_labels.append( 'Without LDA' )
-        if show_lda:
-            if self.num_features_lda_results is None:
-                self.num_features_lda_results = Experiment.NumFeaturesGridSearch(
-                    feature_space=self.feature_space, param_space=param_space, quiet=quiet,
-                    lda=True, **kwargs )
-            else:
-                pass
-            x,y = zip( *self.num_features_lda_results)
-            all_results.append( (x,y) )
-            data_labels.append( 'With LDA' )
         if show_lda_prefilter:
             if self.num_features_lda_prefilter_results is None:
                 self.num_features_lda_prefilter_results = Experiment.NumFeaturesGridSearch(
@@ -479,9 +465,24 @@ class HyperparameterOptimizationGraph( _BaseGraph ):
                     lda=True, pre_lda_feature_filter=True, **kwargs )
             else:
                 pass
-            x,y = zip( *self.num_features_lda_prefilter_results)
-            all_results.append( (x,y) )
+            all_results.append( self.num_features_lda_prefilter_results )
             data_labels.append( 'With LDA and prefilter' )
+
+        ax.set_xlabel( '# top-ranked features', size=16 )
+        ax.set_xscale( param_scale )
+        ax.set_ylabel( 'Figure of Merit', size=16 )
+
+        all_Ys = []
+        all_Xs = []
+        for label, (X, Y, E), C in zip( data_labels, all_results, ['r','g','b' ] ):
+            all_Ys.extend( Y )
+            all_Xs.extend( X )
+            ax.plot( X, Y, color=C, linestyle='--' )
+            ax.errorbar( X, Y, yerr=E, color=C, marker='o' )
+            if text_angle is not None:
+                for x, y in zip( X, Y ):
+                    text = '({},{:0.03}'.format( x, y )
+                    ax.annotate( text, xy=(x,y), rotation=float(test_angle) )
 
         if y_lim == None:
             y_min = min( all_Ys )
@@ -490,18 +491,11 @@ class HyperparameterOptimizationGraph( _BaseGraph ):
             horiz_buffer = 0.05 * ( y_max - y_min )
             y_min -= horiz_buffer
             y_max += horiz_buffer
-
-        ax.set_xlabel( '# top-ranked features', size=16 )
-        ax.set_xscale( param_scale )
-        ax.set_ylabel( 'Figure of Merit', size=16 )
+        else:
+            y_min, y_max = y_lim
         ax.set_ylim( [ y_min, y_max ] )
-
-        for label, (X, Y) in zip( data_labels, all_results ):
-            ax.plot( X, Y, color='b', marker='o', linestyle='--' )
-            if text_angle is not None:
-                for x, y in zip( X, Y ):
-                    text = '({},{:0.03}'.format( x, y )
-                    ax.annotate( text, xy=(x,y), rotation=-45 )
+        ax.set_xlim( [ 0, max( all_Xs ) ] )
+        ax.legend( loc='lower right', fontsize=16 )
 
         self.figure = fig
         self.main_axes = ax

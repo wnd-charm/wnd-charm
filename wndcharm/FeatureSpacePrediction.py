@@ -527,6 +527,12 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
                     n_correct, n, acc * 100, conf_interval * 100 )
             else:
                 # Using Wilson approximation:
+                # This term goes to 1 as number of classifications gets large:
+                z2 = 3.84144 # z^2 = (1.95996)^2
+                coeff = 1 / (1+(z2/n))
+                raw_acc = acc
+                # Wilson accuracy modifies the raw accuracy for low n:
+                acc = coeff * (raw_acc + z2/(2*n))
                 outstr = "{0}/{1} correct = {2:0.1f}% raw accuracy".format(
                     n_correct, n, raw_acc * 100, conf_interval * 100 )
                 outstr += " ({0:0.2f} +/- {1:0.2f}% w/ 95% conf. (Wilson score interval))".format(

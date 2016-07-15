@@ -219,7 +219,9 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
         if not quiet:
             print "Using num features param space of :", param_space
 
-        results = []
+        X = []
+        Y = []
+        E = []
         kwargs['progress'] = False
 
         if not quiet:
@@ -230,19 +232,22 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
         for n_features in param_space:
             try:
                 exp = cls.NewShuffleSplit( quiet=True, features_size=n_features, **kwargs )
-            except ValueError:
+            except ValueError as e:
                 # Sometimes the features ranked above a certain number are all 0, e.g.,
                 #    ValueError: Can't reduce feature weights "None" to 2919 features.
                 #    Features ranked 2631 and below have a Fisher score of 0. Request
                 #    less features.
                 print "Skipping n_features={} and above due to feature reduction error".format( n_features )
+                print e
                 break
             exp.GenerateStats()
-            results.append( ( n_features, exp.figure_of_merit ) )
+            X.append( n_features )
+            Y.append( exp.figure_of_merit )
+            E.append( exp.confidence_interval )
             if not quiet:
                     print "{}\t{}".format( n_features, exp.figure_of_merit )
 
-        return results
+        return (X, Y, E)
 
 #        print ""
 #        print "Aggregate feature weight analysis:"
@@ -317,7 +322,9 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
         if not quiet:
             print "Using num samples per class param space of :", param_space
 
-        results = []
+        X = []
+        Y = []
+        E = []
         kwargs['progress'] = False
 
         if not quiet:
@@ -332,11 +339,13 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
                 print "Skipping n_samples={} and above due to a FeatureSpace.Split error".format( n_samples )
                 break
             exp.GenerateStats()
-            results.append( ( n_samples, exp.figure_of_merit ) )
+            X.append( n_samples )
+            Y.append( exp.figure_of_merit )
+            E.append( exp.confidence_interval )
             if not quiet:
                 print "{}\t{}".format( n_samples, exp.figure_of_merit )
 
-        return results
+        return (X, Y, E)
 
     #=====================================================================
     @classmethod
@@ -499,9 +508,8 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
                         balanced_classes=balanced_classes, quiet=quiet )
 
             # Normalize features using zscores if lda
-            train_set.Normalize( quiet=quiet, inplace=True, non_real_check=False, zscore=lda )
+            train_set.Normalize(quiet=quiet, inplace=True, non_real_check=False, zscore=lda )
 
-            # If lda, num_features corresponds to the post-lda transform feature space
             if not lda or pre_lda_feature_filter:
                 if feature_space.discrete:
                     weights = \
@@ -515,8 +523,6 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
 
                 train_set.FeatureReduce( weights, quiet=quiet, inplace=True )
                 test_set.FeatureReduce( weights, quiet=quiet, inplace=True )
-            else:
-                weights = None
 
             test_set.Normalize( train_set, quiet=quiet, inplace=True,
                     non_real_check=False, zscore=lda )
@@ -524,6 +530,8 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
             # If a classification problem (not regression):
             if feature_space.discrete:
                 if lda:
+                    # LDA feature space is pre-weighted, so we won't need this anymore:
+                    weights = None
                     try:
                         # At the user's request, fit an LDA model to this split's training
                         # set, then transform both the training set and the test set using
@@ -585,7 +593,7 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
 
         if not quiet:
             experiment.Print()
-            if nonconvergenge_count > 0:
+            if nonconvergence_count > 0:
                 print "nonconvergence count: ", nonconvergence_count
 
         return experiment
@@ -782,7 +790,7 @@ class FeatureSpaceClassificationExperiment( _FeatureSpacePredictionExperiment ):
         self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
         self.figure_of_merit = self.classification_accuracy
 
-        if not self.use_error_bars:
+        if self.use_error_bars:
             from .utils import ConfidenceInterval_95
             self.confidence_interval = ConfidenceInterval_95(
                 self.classification_accuracy, self.num_classifications,
@@ -832,6 +840,12 @@ class FeatureSpaceClassificationExperiment( _FeatureSpacePredictionExperiment ):
                     n_correct, n, acc * 100, conf_interval * 100 )
             else:
                 # Using Wilson approximation:
+                # This term goes to 1 as number of classifications gets large:
+                z2 = 3.84144 # z^2 = (1.95996)^2
+                coeff = 1 / (1+(z2/n))
+                raw_acc = acc
+                # Wilson accuracy modifies the raw accuracy for low n:
+                acc = coeff * (raw_acc + z2/(2*n))
                 outstr = "{0}/{1} correct = {2:0.1f}% raw accuracy".format(
                     n_correct, n, raw_acc * 100, conf_interval * 100 )
                 outstr += " ({0:0.2f} +/- {1:0.2f}% w/ 95% conf. (Wilson score interval))".format(
