@@ -229,10 +229,7 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
 
         for n_features in param_space:
             try:
-                exp = cls.NewShuffleSplit( quiet=True, features_size=n_features, **kwargs ).GenerateStats()
-                results.append( ( n_features, exp.figure_of_merit ) )
-                if not quiet:
-                    print "{}\t{}".format( n_features, exp.figure_of_merit )
+                exp = cls.NewShuffleSplit( quiet=True, features_size=n_features, **kwargs )
             except ValueError:
                 # Sometimes the features ranked above a certain number are all 0, e.g.,
                 #    ValueError: Can't reduce feature weights "None" to 2919 features.
@@ -240,6 +237,10 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
                 #    less features.
                 print "Skipping n_features={} and above due to feature reduction error".format( n_features )
                 break
+            exp.GenerateStats()
+            results.append( ( n_features, exp.figure_of_merit ) )
+            if not quiet:
+                    print "{}\t{}".format( n_features, exp.figure_of_merit )
 
         return results
 
@@ -326,17 +327,14 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
 
         for n_samples in param_space:
             try:
-                exp = cls.NewShuffleSplit( quiet=True, train_size=n_samples, test_size=1, **kwargs ).GenerateStats()
-                results.append( ( n_samples, exp.figure_of_merit ) )
-                if not quiet:
-                    print "{}\t{}".format( n_samples, exp.figure_of_merit )
+                exp = cls.NewShuffleSplit( quiet=True, train_size=n_samples, test_size=1, **kwargs )
             except ValueError:
-                # Sometimes the features ranked above a certain number are all 0, e.g.,
-                #    ValueError: Can't reduce feature weights "None" to 2919 features.
-                #    Features ranked 2631 and below have a Fisher score of 0. Request
-                #    less features.
-                print "Skipping n_samples={} and above due to a FeatureSpace. Split error".format( n_samples )
+                print "Skipping n_samples={} and above due to a FeatureSpace.Split error".format( n_samples )
                 break
+            exp.GenerateStats()
+            results.append( ( n_samples, exp.figure_of_merit ) )
+            if not quiet:
+                print "{}\t{}".format( n_samples, exp.figure_of_merit )
 
         return results
 

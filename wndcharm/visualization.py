@@ -179,7 +179,7 @@ class _BaseGraph( object ):
         self.figure = None
         self.main_axes = None
 
-    def SaveToFile( self, filepath ):
+    def savefig( self, filepath ):
     
         if self.figure == None:
             raise ValueError( 'No figure to save!' )
@@ -366,12 +366,30 @@ class FeatureTimingVersusAccuracyGraph( _BaseGraph ):
             tl.set_color('r')    
 
 #============================================================================
-class AccuracyVersusNumFeaturesGraph( _BaseGraph ):
-    """Hyper-parameter optimization of number of features.
-    Graphs the figure of merit as a function of number of top-ranked features."""
+class HyperparameterOptimizationGraph( _BaseGraph ):
+    """Hyper-parameter optimization.
+    Graphs the figure of merit as a function of hyperparameter specified by
+    method name.."""
 
-    def __init__( self, param_space=None, param_scale='log', lda_comparison=True,
-            chart_title=None, figsize=(12, 8), y_min=None, y_max=None, quiet=True, **kwargs ):
+
+    def __init__( self, feature_space ):
+        self.feature_space = feature_space
+        self.discrete = self.feature_space.discrete
+
+        # Save the intermediate results in case you want to
+        # write over them and redraw figure
+        self.num_features_raw_results = None
+        self.num_features_lda_results = None
+        self.num_features_lda_prefilter_results = None
+
+        #self.num_samples_raw_results = None
+        #self.num_samples_lda_results = None
+        #self.num_samples_lda_prefilter_results = None
+
+    def NumFeaturesGridSearch( self, param_space=None, param_scale='log',
+            show_raw=True, show_lda=True, show_lda_prefilter=False,
+            chart_title=None, figsize=(12, 8), y_lim=(0,1), quiet=True,
+            use_error_bars=True, test_angle=-30, fig=None, ax=None, **kwargs ):
         """Creates graph for Classifier/Regressor figure of merit as a function of
         number of top-ranked features used in classification.
 
@@ -380,91 +398,111 @@ class AccuracyVersusNumFeaturesGraph( _BaseGraph ):
 
         Args:
             param_space - iterable or int or None
-                iterable of ints specifying num features to be used each iteration
-                int - uses n intervals evenly spaced numbers along log scale from
-                    1 to kwargs['feature_space'].num_features
-                None - same as int above but specifying 20 intervals, results in param_space
-                    1, 2, 3, 4, 7, 10, 16, 24, 36, 54, 80, 119, 178, 266, ... 2919
-            param_scale - {'log', 'linear' }, pass through to matplotlib.ax.set_xscale()
-            lda_comparison - bool - Do two runs with and without Linear Discriminant Analysis
-                and graph the results on the same axes.
-            y_min, y_max - float - chart param.
-            **kwargs - passed directly through to NewShuffleSplit()
+                Passed through to NumFeaturesGridSearch()
+            param_scale - str={'log', 'linear' }, default='log'
+                Passed through to matplotlib.ax.set_xscale()
+            show_raw - bool, default=True
+                Include in figure results obtained WITHOUT LDA feature space transform
+            show_lda - bool, default=True
+                Include in figure results obtained WITH LDA featurespace transform
+                BUT WITHOUT prefiltering the feature space upstream of LDA
+            show_lda_prefilter - bool, default=False
+                Include in figure results obtained WITH LDA featurespace transform
+                AND WITH prefiltering the feature space upstream of LDA
+            y_lim - (float,float), or None
+                Sets ymin and ymax of figure. If None, set dynamically using figure data.
+            text_angle - int, or None
+                Create text labels containing x & y values for all points if not None
+            fig - matplotlib.figure.Figure, or None (default):
+                If provided, generate axes on the passed-in figure obj, otherwise
+                instantiate a new one.
+            ax - matplotlib.axes._subplots.AxesSubplot or None (default):
+                Plot data on these axes, if provided, otherwise create new axes on figure.
+
+            **kwargs
+                Passed through to NewShuffleSplit()
         """
-
-        if kwargs['feature_space'].discrete:
-            from .FeatureSpacePredictionExperiment import FeatureSpaceClassificationExperiment as Experiment
-        else:
-            from .FeatureSpacePredictionExperiment import FeatureSpaceRegressionExperiment as Experiment
-
-        if lda_comparison and 'lda' in kwargs:
-            del kwargs['lda']
-
-        if lda_comparison:
-            main_coords = Experiment.NumFeaturesGridSearch( param_space=param_space,
-                    quiet=quiet, lda=False, **kwargs )
-            X, Y = zip( *main_coords )
-            lda_coords = Experiment.NumFeaturesGridSearch( param_space=param_space,
-                    quiet=quiet, lda=True, **kwargs )
-            X_lda, Y_lda = zip( *lda_coords )
-            all_ys = Y + Y_lda
-            if y_min == None:
-                y_min = min( all_ys )
-            y_max = max( all_ys )
-        else:
-            main_coords = Experiment.NumFeaturesGridSearch( param_space=param_space,
-                    quiet=quiet, **kwargs )
-            X, Y = zip( *main_coords )
-            if y_min == None:
-                y_min = min( Y )
-            y_max = max( Y )
-
-        horiz_buffer = 0.05 * ( y_max - y_min )
-        y_min -= horiz_buffer
-        y_max += horiz_buffer
-        total_n_feats = kwargs['feature_space'].num_features
-
         import matplotlib.pyplot as plt
 
-        self.figure = plt.figure( figsize=figsize, facecolor='white' )
-        self.main_axes = self.figure.add_subplot(111)
+        if fig is None and ax is None:
+            fig = plt.figure( figsize=figsize, facecolor='white' )
+            ax = fig.add_subplot(111)
+        elif fig is None:
+            fig = ax.get_figure()
+        elif ax is None:
+            ax = fig.gca()
+
         if chart_title == None:
             self.chart_title = "Feature Space Predicton figure of merit vs. # features"
         else:
             self.chart_title = chart_title
-        self.main_axes.set_title( self.chart_title, size=18 )
+        ax.set_title( self.chart_title, size=18 )
 
-        self.main_axes.set_xlabel( '# top-ranked features', size=16 )
-        self.main_axes.set_xscale( param_scale )
-        self.main_axes.set_ylabel( 'Figure of Merit', color='b', size=16 )
-        self.main_axes.set_ylim( [ y_min, y_max ] )
-        self.main_axes.plot( X, Y, color='b', marker='o', linestyle='--' )
-        for x, y in zip( X, Y ):
-            text = '{:0.03} (n={}, frac={:0.3f})'.format( y, x, float(x)/total_n_feats )
-            self.main_axes.annotate( text, xy=(x,y), rotation=-30 )
+        if self.discrete:
+            from .FeatureSpacePredictionExperiment import FeatureSpaceClassificationExperiment as Experiment
+        else:
+            from .FeatureSpacePredictionExperiment import FeatureSpaceRegressionExperiment as Experiment
 
-        for tl in self.main_axes.get_yticklabels():
-            tl.set_color('b')
+        all_results = []
+        data_labels = []
 
-#        self.main_axes.annotate( 'min R={0:.3f} @ {1}'.format(min_ls_yval, optimal_num_feats_ls),
-#        color='b',
-#        xy=( optimal_num_feats_ls, min_ls_yval ),
-#        xytext=( optimal_num_feats_ls, 0.8 * _max ),
-#        arrowprops=dict(facecolor='black', shrink=0.05),
-#        horizontalalignment='right' )
+        # dummyproof:
+        if 'feature_space' in kwargs:
+            if self.feature_space is not kwargs['feature_space']:
+                raise ValueError( 'This graph object already has a FeatureSpace assoiated with it: {}'.format( self.feature_space ) )
 
-        if lda_comparison:
-            self.lda_axes = self.main_axes.twinx()
-            self.lda_axes.set_xscale( param_scale )
-            self.lda_axes.set_ylabel( 'Figure of Merit WITH LDA', color='r', size=16 )
-            self.lda_axes.set_ylim( [ y_min, y_max ] )
-            self.lda_axes.plot( X_lda, Y_lda, color='r', marker='o', linestyle='--' )
-            for tl in self.lda_axes.get_yticklabels():
-                tl.set_color('r')
+        if show_raw:
+            if self.num_features_raw_results is None:
+                self.num_features_raw_results = Experiment.NumFeaturesGridSearch(
+                    feature_space=self.feature_space, param_space=param_space, quiet=quiet,
+                    lda=False, **kwargs )
+            else:
+                # Implement ability to choose different params and add additional runs
+                pass
+            x,y = zip( *self.num_features_raw_results)
+            all_results.append( (x,y) )
+            data_labels.append( 'Without LDA' )
+        if show_lda:
+            if self.num_features_lda_results is None:
+                self.num_features_lda_results = Experiment.NumFeaturesGridSearch(
+                    feature_space=self.feature_space, param_space=param_space, quiet=quiet,
+                    lda=True, **kwargs )
+            else:
+                pass
+            x,y = zip( *self.num_features_lda_results)
+            all_results.append( (x,y) )
+            data_labels.append( 'With LDA' )
+        if show_lda_prefilter:
+            if self.num_features_lda_prefilter_results is None:
+                self.num_features_lda_prefilter_results = Experiment.NumFeaturesGridSearch(
+                    feature_space=self.feature_space, param_space=param_space, quiet=quiet,
+                    lda=True, pre_lda_feature_filter=True, **kwargs )
+            else:
+                pass
+            x,y = zip( *self.num_features_lda_prefilter_results)
+            all_results.append( (x,y) )
+            data_labels.append( 'With LDA and prefilter' )
 
-#        self.lda_axes.annotate( 'min R={0:.3f} @ {1}'.format(min_voting_yval, optimal_num_feats_voting),
-#        color='r',
-#        xy=( optimal_num_feats_voting, min_voting_yval ),
-#        xytext=( optimal_num_feats_voting, 0.6 * _max ),
-#        arrowprops=dict(facecolor='black', shrink=0.05),
-#        horizontalalignment='right' )
+        if y_lim == None:
+            y_min = min( all_Ys )
+            y_max = max( all_Ys )
+            # add 5% to top and bottom
+            horiz_buffer = 0.05 * ( y_max - y_min )
+            y_min -= horiz_buffer
+            y_max += horiz_buffer
+
+        ax.set_xlabel( '# top-ranked features', size=16 )
+        ax.set_xscale( param_scale )
+        ax.set_ylabel( 'Figure of Merit', size=16 )
+        ax.set_ylim( [ y_min, y_max ] )
+
+        for label, (X, Y) in zip( data_labels, all_results ):
+            ax.plot( X, Y, color='b', marker='o', linestyle='--' )
+            if text_angle is not None:
+                for x, y in zip( X, Y ):
+                    text = '({},{:0.03}'.format( x, y )
+                    ax.annotate( text, xy=(x,y), rotation=-45 )
+
+        self.figure = fig
+        self.main_axes = ax
+        return self

@@ -43,7 +43,7 @@ from wndcharm.FeatureWeights import FisherFeatureWeights
 from wndcharm.FeatureSpacePrediction import FeatureSpaceClassification
 from wndcharm.ArtificialFeatureSpace import CreateArtificialFeatureSpace_Discrete
 from wndcharm.FeatureSpacePredictionExperiment import FeatureSpaceClassificationExperiment
-from wndcharm.visualization import PredictedValuesGraph, AccuracyVersusNumFeaturesGraph
+from wndcharm.visualization import PredictedValuesGraph, HyperparameterOptimizationGraph
 try:
     import matplotlib
     matplotlib.use('Agg')
@@ -159,7 +159,6 @@ class TestGraphs( unittest.TestCase ):
         self.CompareGraphs( graph, testfilename )
 
     @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOT installed" )
-    #@unittest.skip('')
     def test_FromDiscreteClassificationExperimentResults( self ):
         """Rank Ordered Predicted values graph from an experiment result (multiple splits)"""
 
@@ -193,7 +192,7 @@ class TestGraphs( unittest.TestCase ):
         self.CompareGraphs( graph, testfilename )
 
     @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOT installed" )
-    def test_AccuracyVersusNumFeaturesGraph( self ):
+    def test_HyperparameterOptimizationGraph( self ):
         """Accuracy vs. # features with and without LDA feature space transform"""
 
         testfilename = 'test_graph_rank_ordered_experiment.npy'
@@ -216,15 +215,18 @@ class TestGraphs( unittest.TestCase ):
 
         ss_kwargs = {}
         ss_kwargs['quiet'] = False
-        ss_kwargs['feature_space'] = small_fs
         ss_kwargs['n_iter'] = n_iter = 10
         ss_kwargs['train_size'] = train_size = 18 # per-class
         ss_kwargs['test_size' ] = test_size = 2 # per-class
         ss_kwargs['random_state'] = 42
-        graph = AccuracyVersusNumFeaturesGraph( **ss_kwargs )
+        ss_kwargs['show_raw']=True
+        ss_kwargs['show_lda']=True
+        ss_kwargs['show_lda_prefilter']=True
+        graph = HyperparameterOptimizationGraph( small_fs )
+        graph.NumFeaturesGridSearch( **ss_kwargs )
+        graph.savefig( '~/test.png' )
 
     @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOT installed" )
-    #@unittest.skip('')
     def test_FromHTML( self ):
         """Rank Ordered Predicted values graph from an experiment result (multiple splits)"""
 
@@ -248,7 +250,6 @@ class TestGraphs( unittest.TestCase ):
         self.CompareGraphs( graph, testfilename )
 
     @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOTinstalled" )
-    #@unittest.skip('')
     def test_IfNotInterpolatable( self ):
         """You can't graph predicted values if the classes aren't interpolatable."""
 
