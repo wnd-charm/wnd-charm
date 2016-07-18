@@ -29,6 +29,16 @@ if sys.version_info < (2, 7):
 else:
     import unittest
 
+
+#for i, _ in enumerate(sys.path):
+#    if '/usr/local/lib/python2.7/site-packages/wndcharm-0.9.13' in _:
+#        del sys.path[i]
+#        print "deleting", _
+#    else:
+#        print i, _
+#from wndcharm import diagnostics
+#print diagnostics
+
 import re
 import numpy as np
 
@@ -643,6 +653,26 @@ class TestFeatureSpace( unittest.TestCase ):
         finally:
             rmtree( tempdir )
 
+    # --------------------------------------------------------------------------
+    @unittest.skip('')
+    def test_NewFromFileOfFiles_PROFILE( self ):
+        """Profile the loading of a TSV"""
+        import cProfile as pr
+        #import profile as pr
+        import tempfile
+        import pstats
+        prof = tempfile.NamedTemporaryFile()
+        cmd = 'fs = FeatureSpace.NewFromFileOfFiles( "/home/maltsevav/Documents/Notebooks/10-scale-12-tiles-grayscale-50.tsv", long=True, num_samples_per_group=12 )' 
+        try:
+            pr.runctx( cmd, globals(), locals(), prof.name)
+        except StandardError as e:
+            print e
+        p = pstats.Stats(prof.name)
+        #fs = FeatureSpace.NewFromFileOfFiles( "/home/maltsevav/Documents/Notebooks/10-scale-12-tiles-grayscale-50.tsv", long=True, num_samples_per_group=12 )
+        p.sort_stats('time').print_stats(50)
+        print '\n\n\n**********************************\n\n\n'
+        p.sort_stats('cumtime').print_stats(50)
+        prof.close()
     # --------------------------------------------------------------------------
     #@unittest.skip('')
     def test_NewFromDirectory( self ):
