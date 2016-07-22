@@ -1051,6 +1051,7 @@ class FeatureVector( object ):
                 # in this file, so do it the old, slow way:
                 values, names = \
                     zip( *[ line.split( None, 1 ) for line in infile.read().splitlines() ] )
+                values = [ float(_) for _ in values ]
 
         # Re: converting read-in text to numpy array of floats, np.fromstring is a 3x PIG:
         # %timeit out = np.array( [ float(val) for val in thing ] )
