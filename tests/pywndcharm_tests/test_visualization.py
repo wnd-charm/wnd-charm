@@ -220,9 +220,9 @@ class TestGraphs( unittest.TestCase ):
         ss_kwargs['test_size' ] = test_size = 2 # per-class
         ss_kwargs['random_state'] = 42
         ss_kwargs['show_raw']=True
-        ss_kwargs['show_lda_prefilter']=True
+        ss_kwargs['show_lda']=True
         ss_kwargs['param']= 'features'
-        ss_kwargs['text_angle']= None #-30
+        ss_kwargs['text_angle']= -30
 
         graph = HyperparameterOptimizationGraph( small_fs )
         graph.GridSearch( **ss_kwargs )
@@ -230,7 +230,7 @@ class TestGraphs( unittest.TestCase ):
 
         ss_kwargs['param']= 'samples'
         ss_kwargs['quiet']= False
-        ss_kwargs['text_angle']= None #-30
+        ss_kwargs['text_angle']= -30
         graph = HyperparameterOptimizationGraph( small_fs )
         graph.GridSearch( **ss_kwargs )
         #graph.savefig( '/Users/colettace/test_samples.png' )

@@ -378,10 +378,10 @@ class HyperparameterOptimizationGraph( _BaseGraph ):
         # Save the intermediate results in case you want to
         # write over them and redraw figure
         self.raw_results = None
-        self.lda_prefilter_results = None
+        self.lda_results = None
 
     def GridSearch( self, param='features', param_space=None, param_scale='log',
-            show_raw=True, show_lda_prefilter=True,
+            show_raw=True, show_lda=True,
             chart_title=None, figsize=(12, 8), y_lim=None, quiet=True,
             use_error_bars=True, text_angle=None, fig=None, ax=None, **kwargs ):
         """Creates graph for Classifier/Regressor figure of merit as a function of
@@ -400,10 +400,10 @@ class HyperparameterOptimizationGraph( _BaseGraph ):
             param_scale - str={'log', 'linear' }, default='log'
                 Passed through to matplotlib.ax.set_xscale()
             show_raw - bool, default=True
-                Include in figure results obtained WITHOUT LDA feature space transform
-            show_lda_prefilter - bool, default=True
-                Include in figure results obtained WITH LDA featurespace transform
-                AND WITH prefiltering the feature space upstream of LDA
+                Include in figure results obtained WITHOUT LDA dimensionality reduction
+            show_lda - bool, default=True
+                Include in figure results obtained WITH LDA dimensionality reduction done
+                just before classification in the pipeline.
             y_lim - (float,float), or None
                 Sets ymin and ymax of figure. If None, set dynamically using figure data.
             text_angle - int, or None
@@ -417,6 +417,12 @@ class HyperparameterOptimizationGraph( _BaseGraph ):
             **kwargs
                 Passed through to NewShuffleSplit()
         """
+
+        # dummyproof:
+        if 'feature_space' in kwargs:
+            if self.feature_space is not kwargs['feature_space']:
+                raise ValueError( 'This graph object already has a FeatureSpace associated with it: {}'.format( self.feature_space ) )
+
         import matplotlib.pyplot as plt
 
         if fig is None and ax is None:
@@ -427,18 +433,40 @@ class HyperparameterOptimizationGraph( _BaseGraph ):
         elif ax is None:
             ax = fig.gca()
 
-
         if self.discrete:
             from .FeatureSpacePredictionExperiment import FeatureSpaceClassificationExperiment as Experiment
         else:
             from .FeatureSpacePredictionExperiment import FeatureSpaceRegressionExperiment as Experiment
+
+        if chart_title == None:
+            if self.discrete:
+                d = '/class'
+            else:
+                d = ''
+            chart_info_str = 'Feature Space=' + self.feature_space.name + '\n'
+            if param != 'samples':
+                if 'train_size' in kwargs:
+                    chart_info_str+= "Train samps" + d + "={}, ".format( kwargs['train_size'] )
+            else:
+                if 'features_size' in kwargs:
+                    f = kwargs['features_size']
+                else:
+                    f = 0.15
+                chart_info_str += "Features size={}, ".format( f )
+            if 'test_size' in kwargs:
+                chart_info_str += "Test samps" + d + "={}, ".format( kwargs['test_size'] )
+            if 'n_iter' in kwargs:
+                chart_info_str += "# iter={}".format( kwargs['n_iter'] )
+            chart_info_str.rstrip( ', ' )
+            # make more room for 3-line title
 
         if param == 'features':
             GridSearch = Experiment.NumFeaturesGridSearch
             self.axes = ax
             ax.set_xlabel( '# top-ranked features', size=16 )
             if chart_title == None:
-                self.chart_title = "Figure of Merit vs. # Top-ranked Features"
+                self.chart_title = "Figure of Merit vs. # Top-ranked Features\n" + \
+                        chart_info_str
             else:
                 self.chart_title = chart_title
         elif param == 'samples':
@@ -446,7 +474,8 @@ class HyperparameterOptimizationGraph( _BaseGraph ):
             self.axes = ax
             ax.set_xlabel( '# samples per class', size=16 )
             if chart_title == None:
-                self.chart_title = "Figure of Merit vs. # Samples per class"
+                self.chart_title = "Figure of Merit vs. # Samples per class\n" + \
+                        chart_info_str
             else:
                 self.chart_title = chart_title
         else:
@@ -455,11 +484,6 @@ class HyperparameterOptimizationGraph( _BaseGraph ):
 
         data_series = []
         data_series_labels = []
-
-        # dummyproof:
-        if 'feature_space' in kwargs:
-            if self.feature_space is not kwargs['feature_space']:
-                raise ValueError( 'This graph object already has a FeatureSpace associated with it: {}'.format( self.feature_space ) )
 
         if show_raw:
             if self.raw_results is None:
@@ -471,15 +495,15 @@ class HyperparameterOptimizationGraph( _BaseGraph ):
                 pass
             data_series.append( self.raw_results )
             data_series_labels.append( 'Without LDA' )
-        if show_lda_prefilter:
-            if self.lda_prefilter_results is None:
-                self.lda_prefilter_results = GridSearch(
+        if show_lda:
+            if self.lda_results is None:
+                self.lda_results = GridSearch(
                     feature_space=self.feature_space, param_space=param_space, quiet=quiet,
                     lda=True, pre_lda_feature_filter=True, **kwargs )
             else:
                 pass
-            data_series.append( self.lda_prefilter_results )
-            data_series_labels.append( 'With LDA and prefilter' )
+            data_series.append( self.lda_results )
+            data_series_labels.append( 'With LDA' )
 
         ax.set_xscale( param_scale )
         ax.set_ylabel( 'Figure of Merit', size=16 )
@@ -519,4 +543,5 @@ class HyperparameterOptimizationGraph( _BaseGraph ):
 
         self.figure = fig
         self.main_axes = ax
+        plt.tight_layout()
         return self
