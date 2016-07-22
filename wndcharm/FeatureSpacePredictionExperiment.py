@@ -201,6 +201,10 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
 
         max_n_feats = kwargs['feature_space'].num_features
 
+        # doesn't make sense to keep this, since this is the thing we're going to vary
+        if 'features_size' in kwargs:
+            del kwargs['features_size']
+
         def GenParamSpace( n_intervals=20 ):
             from math import log10
             max_exp = log10( max_n_feats )
@@ -292,6 +296,10 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
         Return:
             list of 2-tuples, with x-coord = n_features, and y-coord = figure of merit"""
 
+        # doesn't make sense to keep this, since this is the thing we're going to vary
+        if 'train_size' in kwargs:
+            del kwargs['train_size']
+
         max_n_samps = min( kwargs['feature_space'].class_sizes )
 
         def GenParamSpace( n_intervals=20 ):
@@ -332,9 +340,12 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
             print "NUM TRAINING SET SAMPLES GRID SEARCH RESULTS:"
             print "n samples\t figure of merit"
 
+        if "test_size" not in kwargs:
+            kwargs['test_size'] = 1
+
         for n_samples in param_space:
             try:
-                exp = cls.NewShuffleSplit( quiet=True, train_size=n_samples, test_size=1, **kwargs )
+                exp = cls.NewShuffleSplit( quiet=True, train_size=n_samples, **kwargs )
             except ValueError:
                 print "Skipping n_samples={} and above due to a FeatureSpace.Split error".format( n_samples )
                 break

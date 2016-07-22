@@ -193,7 +193,7 @@ class TestGraphs( unittest.TestCase ):
 
     @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOT installed" )
     def test_HyperparameterOptimizationGraph( self ):
-        """Accuracy vs. # features with and without LDA feature space transform"""
+        """Accuracy vs. # features or samples with and without LDA feature space transform"""
 
         testfilename = 'test_graph_rank_ordered_experiment.npy'
 
@@ -221,8 +221,19 @@ class TestGraphs( unittest.TestCase ):
         ss_kwargs['random_state'] = 42
         ss_kwargs['show_raw']=True
         ss_kwargs['show_lda_prefilter']=True
+        ss_kwargs['param']= 'features'
+        ss_kwargs['text_angle']= None #-30
+
         graph = HyperparameterOptimizationGraph( small_fs )
-        graph.NumFeaturesGridSearch( **ss_kwargs )
+        graph.GridSearch( **ss_kwargs )
+        #graph.savefig( '/Users/colettace/test_features.png' )
+
+        ss_kwargs['param']= 'samples'
+        ss_kwargs['quiet']= False
+        ss_kwargs['text_angle']= None #-30
+        graph = HyperparameterOptimizationGraph( small_fs )
+        graph.GridSearch( **ss_kwargs )
+        #graph.savefig( '/Users/colettace/test_samples.png' )
 
     @unittest.skipUnless( HasMatplotlib, "Skipped if matplotlib IS NOT installed" )
     def test_FromHTML( self ):

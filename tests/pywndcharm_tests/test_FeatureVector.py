@@ -148,8 +148,6 @@ class TestFeatureCalculation( unittest.TestCase ):
         finally:
             rmtree( tempdir )
 
-
-
     # --------------------------------------------------------------------------
     def test_FeatureComputationFromROI( self ):
         """Specify bounding box to FeatureVector, calc features, then compare
