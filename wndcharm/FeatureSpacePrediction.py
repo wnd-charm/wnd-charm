@@ -68,11 +68,6 @@ class _FeatureSpacePrediction( object ):
         self.predicted_values = None
         self.ground_truth_values = None
 
-        #: If there was randomness associated with generating results
-        #: set use_error_bars = True to calculate confidence intervals for
-        #: resulting figures of merit
-        self.use_error_bars = None
-
         # This stuff is for correllation analysis
         self.pearson_coeff = None
         self.pearson_p_value = None
@@ -393,6 +388,12 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
         self.similarity_matrix = None
         self.average_class_probability_matrix = None
 
+        #: If there was randomness associated with generating results
+        #: set use_error_bars = True to calculate confidence intervals for
+        #: resulting figures of merit
+        self.use_error_bars = None
+        self.confidence_interval = None
+
     #==============================================================    
     def __str__( self ):
         outstr = '<' + self.__class__.__name__
@@ -482,6 +483,15 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
                 self.similarity_matrix = None
 
         self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
+
+        if not self.use_error_bars:
+            from .utils import ConfidenceInterval_95
+            self.confidence_interval = ConfidenceInterval_95(
+                self.classification_accuracy, self.num_classifications,
+                self.num_correct_classifications)
+        else:
+            self.confidence_interval = None
+
         return self
 
     #==============================================================
@@ -507,41 +517,30 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
         n = self.num_classifications
         n_correct = self.num_correct_classifications
 
-        if not self.use_error_bars:
-            print "{0}/{1} correct = {2:0.2f}%".format( n_correct, n, acc * 100 )
-        else:
-            # Using either normal approximation of binomial distribution or the Wilson score interval
-            # to calculate standard error of the mean, depending on the situation.
-            # For more info, see http://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval
-            # The confidence interval is S.E.M. * quantile for your chosen accuracy
-            # The quantile for 95% accuracy is ~ 1.96.
-            z = 1.95996
-            z2 = 3.84144 # z^2
-
-            from math import sqrt
-
+        if self.use_error_bars and self.confidence_interval:
+            conf_interval = self.confidence_interval
             # This is a rule of thumb test to check whecther sample size is large enough
             # to use normal approximation of binomial distribution:
             if ((n * acc) > 5) and ((n * (1 - acc)) > 5):
                 # Using normal approximation:
-                std_error_of_mean = sqrt( acc * (1-acc) / n )
-                conf_interval = z * std_error_of_mean
                 print "{0}/{1} correct = {2:0.2f} +/- {3:0.2f}% w/ 95% conf. (normal approx. interval)".format(
                     n_correct, n, acc * 100, conf_interval * 100 )
             else:
                 # Using Wilson approximation:
                 # This term goes to 1 as number of classifications gets large:
+                z2 = 3.84144 # z^2 = (1.95996)^2
                 coeff = 1 / (1+(z2/n))
                 raw_acc = acc
                 # Wilson accuracy modifies the raw accuracy for low n:
                 acc = coeff * (raw_acc + z2/(2*n))
-                conf_interval = coeff * z * sqrt( (raw_acc*(1-raw_acc)/n) + (z2/(4*n**2)) )
-
                 outstr = "{0}/{1} correct = {2:0.1f}% raw accuracy".format(
                     n_correct, n, raw_acc * 100, conf_interval * 100 )
                 outstr += " ({0:0.2f} +/- {1:0.2f}% w/ 95% conf. (Wilson score interval))".format(
                         acc * 100, conf_interval * 100)
                 print outstr
+        else:
+            print "{0}/{1} correct = {2:0.2f}%".format( n_correct, n, acc * 100 )
+
 
         if self.std_err is not None:
             print "Standard Error: {0:0.4f}".format( self.std_err)

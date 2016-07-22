@@ -201,6 +201,10 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
 
         max_n_feats = kwargs['feature_space'].num_features
 
+        # doesn't make sense to keep this, since this is the thing we're going to vary
+        if 'features_size' in kwargs:
+            del kwargs['features_size']
+
         def GenParamSpace( n_intervals=20 ):
             from math import log10
             max_exp = log10( max_n_feats )
@@ -219,7 +223,9 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
         if not quiet:
             print "Using num features param space of :", param_space
 
-        results = []
+        X = []
+        Y = []
+        E = []
         kwargs['progress'] = False
 
         if not quiet:
@@ -229,19 +235,23 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
 
         for n_features in param_space:
             try:
-                exp = cls.NewShuffleSplit( quiet=True, features_size=n_features, **kwargs ).GenerateStats()
-                results.append( ( n_features, exp.figure_of_merit ) )
-                if not quiet:
-                    print "{}\t{}".format( n_features, exp.figure_of_merit )
-            except ValueError:
+                exp = cls.NewShuffleSplit( quiet=True, features_size=n_features, **kwargs )
+            except ValueError as e:
                 # Sometimes the features ranked above a certain number are all 0, e.g.,
                 #    ValueError: Can't reduce feature weights "None" to 2919 features.
                 #    Features ranked 2631 and below have a Fisher score of 0. Request
                 #    less features.
                 print "Skipping n_features={} and above due to feature reduction error".format( n_features )
+                print e
                 break
+            exp.GenerateStats()
+            X.append( n_features )
+            Y.append( exp.figure_of_merit )
+            E.append( exp.confidence_interval )
+            if not quiet:
+                    print "{}\t{}".format( n_features, exp.figure_of_merit )
 
-        return results
+        return (X, Y, E)
 
 #        print ""
 #        print "Aggregate feature weight analysis:"
@@ -286,6 +296,10 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
         Return:
             list of 2-tuples, with x-coord = n_features, and y-coord = figure of merit"""
 
+        # doesn't make sense to keep this, since this is the thing we're going to vary
+        if 'train_size' in kwargs:
+            del kwargs['train_size']
+
         max_n_samps = min( kwargs['feature_space'].class_sizes )
 
         def GenParamSpace( n_intervals=20 ):
@@ -316,7 +330,9 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
         if not quiet:
             print "Using num samples per class param space of :", param_space
 
-        results = []
+        X = []
+        Y = []
+        E = []
         kwargs['progress'] = False
 
         if not quiet:
@@ -324,30 +340,88 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
             print "NUM TRAINING SET SAMPLES GRID SEARCH RESULTS:"
             print "n samples\t figure of merit"
 
+        if "test_size" not in kwargs:
+            kwargs['test_size'] = 1
+
         for n_samples in param_space:
             try:
-                exp = cls.NewShuffleSplit( quiet=True, train_size=n_samples, test_size=1, **kwargs ).GenerateStats()
-                results.append( ( n_samples, exp.figure_of_merit ) )
-                if not quiet:
-                    print "{}\t{}".format( n_samples, exp.figure_of_merit )
+                exp = cls.NewShuffleSplit( quiet=True, train_size=n_samples, **kwargs )
             except ValueError:
-                # Sometimes the features ranked above a certain number are all 0, e.g.,
-                #    ValueError: Can't reduce feature weights "None" to 2919 features.
-                #    Features ranked 2631 and below have a Fisher score of 0. Request
-                #    less features.
                 print "Skipping n_samples={} and above due to a FeatureSpace.Split error".format( n_samples )
                 break
+            exp.GenerateStats()
+            X.append( n_samples )
+            Y.append( exp.figure_of_merit )
+            E.append( exp.confidence_interval )
+            if not quiet:
+                print "{}\t{}".format( n_samples, exp.figure_of_merit )
 
-        return results
+        return (X, Y, E)
 
     #=====================================================================
     @classmethod
-    def NewShuffleSplit( cls, feature_space, test_set=None, n_iter=5, name=None, features_size=0.15,
-                           train_size=None, test_size=None, balanced_classes=True, random_state=True,
-                           classifier=None, lda=False, quiet=True, display=15, conserve_mem=False,
-                           progress=True ):
-        """args train_size, test_size, and random_state are all passed through to Split()
-        feature_size if a float is feature usage fraction, if in is top n features."""
+    def NewShuffleSplit( cls, feature_space, test_set=None, n_iter=5, name=None,
+            features_size=0.15, train_size=None, test_size=None, balanced_classes=True,
+            random_state=True, classifier=None, lda=False, lda_features_size=1.0,
+            pre_lda_feature_filter=False, quiet=True, display=15, conserve_mem=False,
+            progress=True ):
+        """Perform a shuffle-split cross validation, with randomization enabled by default.
+        Also known as "Bagging," i.e bootstrap and aggregate. N.B., sampling is done
+        WITH replacement, i.e., a sample may be selected to be in training or test sets
+        multiple times over the course of iterations, but will NEVER be in training AND test
+        sets at the same time within a given iteration (unless user puts same sample in both
+        feature_space and test_set FeatureSpaces).
+
+        feature_space - wndcharm.FeatureSpace.FeatureSpace
+            Pool of samples from which training set is drawn.
+        test_set - wndcharm.FeatureSpace.FeatureSpace, default=None
+            Pool of samples from which test set is drawn. Will draw test set samples from
+            feature_space if None.
+        n_iter - int, default=5
+            Number of iterations/splits.
+        name - string
+            A descriptor for this experiment. If not provided, takes name from feature_space
+            name.
+        feature_size - float, int, default=0.15
+            Per-split dimensionality reduction/hard thresholding cutoff of top-ranked
+            features. If int, take top-ranked n features. If float, take top ranked n
+            fraction of feature space. Ranking done with Fisher discriminant if
+            this is a classification problem, or with Pearson Correlation Coefficient
+            if regression.
+        train_size & test_size - float, int
+            Args passed directly through to FeatureSpace.Split, see docstring for details.
+        balanced_classes - boolean, default True
+            Arg passed directly through to FeatureSpace.Split, see docstring for details.
+        random_state - int, bool, or numpy.random.RandomState, default True
+            The seed used to create other seeds for each call to FeatureSpace.Split.
+            By providing a seed here once, the composition of samples in each train/test
+            split is deterministic. Very good for apples to apples comparison of
+            hyperparameters.
+        classifier - string ("lstsq" (default), "linear")
+            For regression problems only.
+            "lstsq" uses FeatureSpaceRegression.NewMultivariateLinear regressor.
+            "linear" uses FeatureSpaceRegression.NewLeastSquares regressor.
+        lda - boolean, default False
+            If True, use sklearn.discriminant_analysis.LinearDiscriminantAnalysis to
+            transform raw feature spaces into "linear subspaces consisting of the
+            directions which maximize the separation between classes." The LDA model is fit
+            to the training set and then used to transform the both training and test
+            feature spaces, which are used by the classifers/regressors downstream. See
+            scikit-learn docs for more info.
+        lda_features_size - float, int, iterable, default=1.0
+            Applies only when arg lda is True. By default, classifiers downstream of LDA
+            use entire feature space returned by LDA transform. Optionally, LDA dimensions
+            can be subselected based on ranking of their respective eigenvalues.
+        pre_lda_feature_filter - boolean, default=False
+            Pre filter raw feature space before LDA transform.
+        conserve_mem - boolean, default=False
+            When False, guarantees not to modify input FeatureSpaces; otherwise, sorts
+            etc are done in-place.
+
+        Returns:
+            This is a factory method which will create an instance of
+            FeatureSpaceClassificationExperiment or FeatureSpaceRegressionExperiment and
+            return it."""
 
         # Splitting will result in a call to _RebuildViews and SortSamplesByGroundTruth
         # so we have to make sure that the input FeatureSpace is sorted too
@@ -379,6 +453,9 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
             num_features = features_size
         else:
             raise ValueError( 'Arg "features_size" must be valid float or int.' )
+
+        if lda_features_size:
+            lda_features_slice = None
 
         if not quiet:
             print "using top " + str( num_features ) + " features"
@@ -423,13 +500,15 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
         if master_test_set is not None:
             ReplaceNonReal( master_test_set.data_matrix )
 
+        nonconvergence_count = 0
+
         for split_index in xrange( n_iter ):
             if not quiet:
                 print "\n\n=========================================="
                 print "SHUFFLE SPLIT ITERATION", str( split_index )
             if progress:
                 stdout.write( str( split_index ) + '\t' )
- 
+
             if master_test_set == None:
                 train_set, test_set = feature_space.Split( train_size, test_size,
                         random_state=randint(), balanced_classes=balanced_classes, quiet=quiet )
@@ -438,30 +517,67 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
                         balanced_classes=balanced_classes, quiet=quiet )
                 test_set = master_test_set.Split( test_size, 0, random_state=randint(),
                         balanced_classes=balanced_classes, quiet=quiet )
-            
+
             # Normalize features using zscores if lda
-            train_set.Normalize( quiet=quiet, inplace=True, non_real_check=False, zscore=lda )
+            train_set.Normalize(quiet=quiet, inplace=True, non_real_check=False, zscore=lda )
 
-            if feature_space.discrete:
-                weights = \
-                  FisherFeatureWeights.NewFromFeatureSpace( train_set ).Threshold( num_features )
-            else:    
-                weights = \
-                  PearsonFeatureWeights.NewFromFeatureSpace( train_set ).Threshold( num_features )
+            if not lda or pre_lda_feature_filter:
+                if feature_space.discrete:
+                    weights = \
+                      FisherFeatureWeights.NewFromFeatureSpace( train_set ).Threshold( num_features )
+                else:
+                    weights = \
+                      PearsonFeatureWeights.NewFromFeatureSpace( train_set ).Threshold( num_features )
 
-            if not quiet:
-                weights.Print( display=display )
-            train_set.FeatureReduce( weights, quiet=quiet, inplace=True )
-            test_set.FeatureReduce( weights, quiet=quiet, inplace=True )
+                if not quiet:
+                    weights.Print( display=display )
+
+                train_set.FeatureReduce( weights, quiet=quiet, inplace=True )
+                test_set.FeatureReduce( weights, quiet=quiet, inplace=True )
+
             test_set.Normalize( train_set, quiet=quiet, inplace=True,
                     non_real_check=False, zscore=lda )
 
+            # If a classification problem (not regression):
             if feature_space.discrete:
                 if lda:
-                    # Don't Fisher weight the LDA transformed feature space
+                    # LDA feature space is pre-weighted, so we won't need this anymore:
                     weights = None
-                    train_set.LDATransform( inplace=True, quiet=quiet )
-                    test_set.LDATransform( train_set, inplace=True, quiet=quiet )
+                    try:
+                        # At the user's request, fit an LDA model to this split's training
+                        # set, then transform both the training set and the test set using
+                        # this model. Downstream, the Euclidean distances calculated for
+                        # WND5 classification with be done in this orthogonal LDA feature
+                        # space.
+                        train_set.LDATransform( inplace=True, quiet=quiet )
+                        test_set.LDATransform( train_set, inplace=True, quiet=quiet )
+                    except:
+                        nonconvergence_count += 1
+                        continue
+
+                    if lda_features_size and lda_features_size != 1.0:
+
+                        if lda_features_size is None:
+                            if isinstance( lda_features_size, float ):
+                                if lda_features_size < 0 or lda_features_size > 1.0:
+                                    raise ValueError('Arg "lda_features_size" must be on interval [0,1] if a float.')
+                                lda_num_features = int( round( lda_features_size * feature_space.num_classes ) )
+                            elif isinstance( lda_features_size, int ):
+                                if lda_features_size < 0 or lda_features_size > feature_space.num_classes:
+                                    raise ValueError( 'Arg "lda_features_size" must be on interval [0,num_classes] if an int.')
+                                lda_num_features = lda_features_size
+                            else:
+                                try:
+                                    len( lda_features_size )
+                                    raise NotImplementedError( 'Passing an iterable to specify desired LDA dimensions has not been implemented yet.' )
+                                except TypeError:
+                                    pass
+
+                                raise ValueError( 'Arg "lda_features_size" must be valid float or int.' )
+
+                        desired_feats = train_set.feature_names[:lda_num_features]
+                        train_set.FeatureReduce( desired_feats, inplace=True, quiet=quiet )
+                        test_set.FeatureReduce( desired_feats, inplace=True, quiet=quiet )
 
                 split_result = FeatureSpaceClassification.NewWND5( train_set, \
                  test_set, weights, split_number=split_index, quiet=quiet,\
@@ -488,6 +604,9 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
 
         if not quiet:
             experiment.Print()
+            if nonconvergence_count > 0:
+                print "nonconvergence count: ", nonconvergence_count
+
         return experiment
 
     #=====================================================================
@@ -532,6 +651,7 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
         self.averaged_results.sort( key=lambda res: res.ground_truth_label )
         self.averaged_results.sort( key=lambda res: res.ground_truth_value )
         self.averaged_results.sort( key=lambda res: res.source_filepath )
+        self.averaged_results.sort( key=lambda res: res.name )
 
         self.averaged_predicted_values, self.averaged_ground_truth_values = zip(
             *[ (res.predicted_value, res.ground_truth_value ) for res in self.averaged_results ] )
@@ -579,6 +699,12 @@ class FeatureSpaceClassificationExperiment( _FeatureSpacePredictionExperiment ):
         self.confusion_matrix = None
         self.average_similarity_matrix = None
         self.average_class_probability_matrix = None
+
+        #: If there was randomness associated with generating results
+        #: set use_error_bars = True to calculate confidence intervals for
+        #: resulting figures of merit
+        self.use_error_bars = None
+        self.confidence_interval = None
 
     #==============================================================    
     def __str__( self ):
@@ -674,6 +800,15 @@ class FeatureSpaceClassificationExperiment( _FeatureSpacePredictionExperiment ):
 
         self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
         self.figure_of_merit = self.classification_accuracy
+
+        if self.use_error_bars:
+            from .utils import ConfidenceInterval_95
+            self.confidence_interval = ConfidenceInterval_95(
+                self.classification_accuracy, self.num_classifications,
+                self.num_correct_classifications)
+        else:
+            self.confidence_interval = None
+
         return self
 
     #=====================================================================
@@ -706,41 +841,29 @@ class FeatureSpaceClassificationExperiment( _FeatureSpacePredictionExperiment ):
         n = self.num_classifications
         n_correct = self.num_correct_classifications
 
-        if not self.use_error_bars:
-            print "{0}/{1} correct = {2:0.2f}%".format( n_correct, n, acc * 100 )
-        else:
-            # Using either normal approximation of binomial distribution or the Wilson score interval
-            # to calculate standard error of the mean, depending on the situation.
-            # For more info, see http://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval
-            # The confidence interval is S.E.M. * quantile for your chosen accuracy
-            # The quantile for 95% accuracy is ~ 1.96.
-            z = 1.95996
-            z2 = 3.84144 # z^2
-
-            from math import sqrt
-
+        if self.use_error_bars and self.confidence_interval:
+            conf_interval = self.confidence_interval
             # This is a rule of thumb test to check whecther sample size is large enough
             # to use normal approximation of binomial distribution:
             if ((n * acc) > 5) and ((n * (1 - acc)) > 5):
                 # Using normal approximation:
-                std_error_of_mean = sqrt( acc * (1-acc) / n )
-                conf_interval = z * std_error_of_mean
                 print "{0}/{1} correct = {2:0.2f} +/- {3:0.2f}% w/ 95% conf. (normal approx. interval)".format(
                     n_correct, n, acc * 100, conf_interval * 100 )
             else:
                 # Using Wilson approximation:
                 # This term goes to 1 as number of classifications gets large:
+                z2 = 3.84144 # z^2 = (1.95996)^2
                 coeff = 1 / (1+(z2/n))
                 raw_acc = acc
                 # Wilson accuracy modifies the raw accuracy for low n:
                 acc = coeff * (raw_acc + z2/(2*n))
-                conf_interval = coeff * z * sqrt( (raw_acc*(1-raw_acc)/n) + (z2/(4*n**2)) )
-
                 outstr = "{0}/{1} correct = {2:0.1f}% raw accuracy".format(
                     n_correct, n, raw_acc * 100, conf_interval * 100 )
                 outstr += " ({0:0.2f} +/- {1:0.2f}% w/ 95% conf. (Wilson score interval))".format(
                         acc * 100, conf_interval * 100)
                 print outstr
+        else:
+            print "{0}/{1} correct = {2:0.2f}%".format( n_correct, n, acc * 100 )
 
         if self.std_err is not None:
             print "Standard Error: {0:0.4f}".format( self.std_err)

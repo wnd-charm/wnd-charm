@@ -36,6 +36,8 @@ class WrongFeatureSetVersionError( Exception ):
 class IncompleteFeatureSetError( Exception ):
     pass
 
+from . import feature_vector_minor_version_from_num_features
+ver_to_num_feats_map = dict((v, k) for k, v in feature_vector_minor_version_from_num_features.iteritems())
 # Couldn't get this "Python singleton inherited from swig-wrapped C++ object" to work:
 #*** NotImplementedError: Wrong number or type of arguments for overloaded function 'FeatureComputationPlan_add'.
 #  Possible C/C++ prototypes are:
@@ -744,7 +746,7 @@ class FeatureVector( object ):
         comp_names = [ comp_plan.getFeatureNameByIndex(i) for i in xrange( comp_plan.n_features ) ]
 
         # convert std::vector<double> to native python list of floats
-        comp_vals = list( tmp_vec )
+        comp_vals = np.array( list( tmp_vec ) )
 
         # Feature Reduction/Reorder step:
         # Feature computation may give more features than are asked for by user, or out of order.
@@ -758,15 +760,12 @@ class FeatureVector( object ):
                     # FIXME: if there is overlap between what was loaded and what was 
                     # calculated, check to see that they match.
                     comp_names.extend( self.temp_names )
-                    comp_vals.extend( self.temp_values )
+                    comp_vals = np.hstack( (comp_vals,  self.temp_values ))
                     del self.temp_names
                     del self.temp_values
-                self.values = np.array( [ comp_vals[ comp_names.index( name ) ] for name in self.feature_names ] )
-            else:
-                self.values = comp_vals
-        else:
-            self.feature_names = comp_names
-            self.values = comp_vals
+            comp_vals = np.array( [ comp_vals[ comp_names.index( name ) ] for name in self.feature_names ] )
+        self.feature_names = comp_names
+        self.values = comp_vals
 
         if not quiet:
             if len( comp_vals ) != len( self ):
@@ -1033,8 +1032,26 @@ class FeatureVector( object ):
                     self.source_filepath = orig_source_tiff_path
 
             # Load data into local variables:
-            values, names = \
-                zip( *[ line.split( None, 1 ) for line in infile.read().splitlines() ] )
+            # Loading these sig files takes way too long.
+            # Try to speed up by being more explicit
+            # hardcode the num features check:
+            if (input_fs_major_ver == '2' or input_fs_major_ver== '3') and \
+                    input_fs_minor_ver != '0':
+                # We know exactly how long these feature vectors are gonna be
+                # so allocate just the right amount of memory:
+                vec_len = ver_to_num_feats_map[ int( input_fs_minor_ver ) ]
+                values = np.zeros( vec_len )
+                names = [None] * vec_len
+                for i, line in enumerate( infile ):
+                    val, name = line.rstrip('\n').split( None, 1 )
+                    values[i] = float( val )
+                    names[i] = name
+            else:
+                # If we're here, then we don't know for sure how many features are
+                # in this file, so do it the old, slow way:
+                values, names = \
+                    zip( *[ line.split( None, 1 ) for line in infile.read().splitlines() ] )
+                values = [ float(_) for _ in values ]
 
         # Re: converting read-in text to numpy array of floats, np.fromstring is a 3x PIG:
         # %timeit out = np.array( [ float(val) for val in thing ] )
@@ -1064,19 +1081,21 @@ class FeatureVector( object ):
                     # temporarily store loaded features in temp members to be used by 
                     # self.GenerateFeatures to create the final feature vector.
                     self.temp_names = names
-                    self.temp_values = [ float( val ) for val in values ]
+                    #self.temp_values = [ float( val ) for val in values ]
+                    self.temp_values = values
                     raise IncompleteFeatureSetError
                 else:
                     # If you get to here, we loaded MORE features than asked for,
                     # or the features are out of desired order, or both.
-                    values = [ values[ names.index( name ) ] for name in self.feature_names ]
+                    values = np.array( [ values[ names.index( name ) ] for name in self.feature_names ] )
         else:
             # User didn't indicate what features they wanted.
             # It's a pretty dangerous assumption to make that the user just "got 
             # what they wanted" by loading the file, but danger is my ... middle name ;-)
             self.feature_names = list( names )
 
-        self.values = np.array( [ float( val ) for val in values ] )
+        #self.values = np.array( [ float( val ) for val in values ] )
+        self.values = values
 
         if not self.name or update_samp_opts_from_pathname:
             # Subtract path so that path part doesn't become part of name

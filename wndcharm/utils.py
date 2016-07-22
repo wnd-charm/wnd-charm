@@ -27,6 +27,7 @@
 # wndcharm.py has the definitions of all the SWIG-wrapped primitive C++ WND_CHARM objects.
 import wndcharm
 import numpy as np
+from functools import wraps
 
 # ============================================================
 # BEGIN: Initialize module level globals
@@ -81,7 +82,8 @@ def output_railroad_switch( method_that_prints_output ):
     """This is a decorator that optionally lets the user specify a file to which to redirect
     STDOUT. To use, you must use the keyword argument "output_filepath" and optionally
     the keyword argument "mode" """
-
+    
+    @wraps( method_that_prints_output )
     def print_method_wrapper( *args, **kwargs ):
         
         retval = None
@@ -237,9 +239,37 @@ def normalize_by_columns( feature_matrix, mins=None, maxs=None, means=None, stde
 
     return( mins, maxs, means, stdevs )
 
-# END: Initialize module level globals
 #===============================================================
+def ConfidenceInterval_95( acc, n, n_correct ):
+    """Using either normal approximation of binomial distribution or the Wilson score interval
+    to calculate standard error of the mean, depending on the situation.
+    For more info, see http://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval
+    The confidence interval is S.E.M. * quantile for your chosen accuracy
+    The quantile for 95% accuracy is ~ 1.96."""
 
+    z = 1.95996
+    z2 = 3.84144 # z^2
+
+    from math import sqrt
+
+    # This is a rule of thumb test to check whecther sample size is large enough
+    # to use normal approximation of binomial distribution:
+    if ((n * acc) > 5) and ((n * (1 - acc)) > 5):
+        # Using normal approximation:
+        std_error_of_mean = sqrt( acc * (1-acc) / n )
+        confidence_interval = z * std_error_of_mean
+    else:
+        # Using Wilson approximation:
+        # This term goes to 1 as number of classifications gets large:
+        coeff = 1 / (1+(z2/n))
+        raw_acc = acc
+        # Wilson accuracy modifies the raw accuracy for low n:
+        acc = coeff * (raw_acc + z2/(2*n))
+        confidence_interval = coeff * z * sqrt( (raw_acc*(1-raw_acc)/n) + (z2/(4*n**2)) )
+    return confidence_interval
+
+# END: Initialize module level globals
+# ============================================================
 initialize_module()
 
 # BEGIN: Helper functions

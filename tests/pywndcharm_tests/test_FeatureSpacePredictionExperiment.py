@@ -272,6 +272,8 @@ class TESTINGFeatureSpaceClassificationExperiment( unittest.TestCase ):
         fs_kwargs['clip'] = False
         fs = CreateArtificialFeatureSpace_Discrete( **fs_kwargs )
 
+
+        # Use case 1: Straight, classic WND-CHARM train/test splits
         ss_kwargs = {}
         ss_kwargs['name'] = "Discrete PerSampleStatistics ShuffleSplit WITH Pred Values"
         ss_kwargs['quiet'] = True
@@ -281,8 +283,20 @@ class TESTINGFeatureSpaceClassificationExperiment( unittest.TestCase ):
         ss_kwargs['random_state'] = 42
         exp = FeatureSpaceClassificationExperiment.NewShuffleSplit( fs, **ss_kwargs )
 
+
+        # Use case 2: Put LDA in pipeline (no fisher feature space prefilter, by default)
         ss_kwargs['lda'] = True
         exp = FeatureSpaceClassificationExperiment.NewShuffleSplit( fs, **ss_kwargs )
+
+        ## Use case 3: LDA AND Fisher feature space prefilter
+        #ss_kwargs['pre_lda_feature_filter'] = True
+        #exp = FeatureSpaceClassificationExperiment.NewShuffleSplit( fs, **ss_kwargs )
+
+        ## Use case 4: LDA AND Fisher feature space prefilter, AND post-LDA dimension reduction 
+        #ss_kwargs['lda_features_size'] = 0.5
+        #exp = FeatureSpaceClassificationExperiment.NewShuffleSplit( fs, **ss_kwargs )
+
+
         #Print calls self.GenereateStats()
         #from os import devnull
         exp.Print( )#output_stream=devnull )
@@ -290,7 +304,7 @@ class TESTINGFeatureSpaceClassificationExperiment( unittest.TestCase ):
         self.assertTrue(True)
 
     # -------------------------------------------------------------------
-    def test_GridSearches(self):
+    def test_NumSamplesGridSearch(self):
 
         fs_kwargs = {}
         fs_kwargs['name'] = "DISCRETE PerSampleStatistics WITH Pred Values"
@@ -311,8 +325,43 @@ class TESTINGFeatureSpaceClassificationExperiment( unittest.TestCase ):
         ss_kwargs['quiet'] = False
         ss_kwargs['n_iter'] = n_iter = 50
         ss_kwargs['random_state'] = 42
-        exp = FeatureSpaceClassificationExperiment.NumSamplesGridSearch( **ss_kwargs )
+        ss_kwargs['conserve_mem'] = False # otherwise the input fs will be modified
 
+        FeatureSpaceClassificationExperiment.NumSamplesGridSearch( **ss_kwargs )
+        ss_kwargs['lda']=True
+        FeatureSpaceClassificationExperiment.NumSamplesGridSearch( **ss_kwargs )
+        ss_kwargs['pre_lda_feature_filter']=True
+        FeatureSpaceClassificationExperiment.NumSamplesGridSearch( **ss_kwargs )
+
+    # -------------------------------------------------------------------
+    def test_NumFeaturesGridSearch(self):
+
+        fs_kwargs = {}
+        fs_kwargs['name'] = "DISCRETE PerSampleStatistics WITH Pred Values"
+        fs_kwargs['n_samples'] = n_samples = 250
+        fs_kwargs['n_classes'] = 10
+        fs_kwargs['num_features_per_signal_type'] = 10 # small on purpose, to make test fast
+        fs_kwargs['noise_gradient'] = 5
+        fs_kwargs['initial_noise_sigma'] = 75
+        fs_kwargs['n_samples_per_group'] = 1
+        fs_kwargs['random_state'] = 42
+        fs_kwargs['interpolatable'] = True
+        fs_kwargs['singularity'] = False
+        fs_kwargs['clip'] = False
+        fs = CreateArtificialFeatureSpace_Discrete( **fs_kwargs )
+
+        ss_kwargs = {}
+        ss_kwargs['feature_space'] = fs
+        ss_kwargs['quiet'] = False
+        ss_kwargs['n_iter'] = n_iter = 10
+        ss_kwargs['random_state'] = 42
+        ss_kwargs['conserve_mem'] = False # otherwise the input fs will be modified
+
+        FeatureSpaceClassificationExperiment.NumFeaturesGridSearch( **ss_kwargs )
+        ss_kwargs['lda']=True
+        ss_kwargs['pre_lda_feature_filter']=True
+        #import pdb; pdb.set_trace()
+        FeatureSpaceClassificationExperiment.NumFeaturesGridSearch( **ss_kwargs )
 
 if __name__ == '__main__':
     unittest.main()
