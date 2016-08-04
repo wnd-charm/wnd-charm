@@ -485,6 +485,12 @@ class HyperparameterOptimizationGraph( _BaseGraph ):
         data_series = []
         data_series_labels = []
 
+        # Use or non-use of LDA is governed by args to this method, not by kwargs:
+        if 'lda' in kwargs:
+            del kwargs['lda']
+        if 'pre_lda_feature_filter' in kwargs:
+            del kwargs['pre_lda_feature_filter']
+
         if show_raw:
             if self.raw_results is None:
                 self.raw_results = GridSearch(
