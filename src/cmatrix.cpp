@@ -360,6 +360,7 @@ void ImageMatrix::allocate (unsigned int w, unsigned int h) {
 		// The width and height are updated to the parmeters here because remap_pix_plane was not called
 		width = w;
 		height = h;
+        _is_pix_writeable = true;
 	}
 
 	// cleanup the color plane if it changed size, or if we have a gray image.
@@ -844,7 +845,6 @@ void ImageMatrix::normalize(double n_min, double n_max, long n_range, double n_m
 
 	unsigned int x,y;
 	double val;
-    this->_is_pix_writeable = true;
 	writeablePixels pix_plane = WriteablePixels();
 
 	/* normalized to n_min and n_max */
@@ -876,7 +876,7 @@ void ImageMatrix::normalize(double n_min, double n_max, long n_range, double n_m
 			}
 		}
 	}
-    this->_is_pix_writeable = false;
+    //this->_is_pix_writeable = false;
     #if DEBUG
         curr_mean = _pix_plane.mean();
         curr_min = _pix_plane.minCoeff();
@@ -1108,14 +1108,27 @@ double ImageMatrix::fft2 (const ImageMatrix &matrix_IN) {
 	fftw_plan p;
 	unsigned int half_height = matrix_IN.height/2+1;
 
+    #if DEBUG
+        std::cout << "BEFORE: Source writable? " << (matrix_IN._is_pix_writeable ? "yes" : "no" ) << '\n';
+        std::cout << "BEFORE: Target writable? " << (this->_is_pix_writeable ? "yes" : "no") << '\n';
+    #endif
+
 	copyFields (matrix_IN);
 	allocate (matrix_IN.width, matrix_IN.height);
+
+    #if DEBUG
+        std::cout << "matrix_IN.width " << matrix_IN.width << " matrix_IN.height " << matrix_IN.height << '\n';
+        std::cout << "AFTER: Source writable? " << (matrix_IN._is_pix_writeable ? "yes" : "no") << '\n';
+        std::cout << "AFTER: Target writable? " << (this->_is_pix_writeable ? "yes" : "no") << '\n';
+    #endif
+
 	writeablePixels out_plane = WriteablePixels();
 	readOnlyPixels in_plane = matrix_IN.ReadablePixels();
 
-	double *in = (double*) fftw_malloc(sizeof(double) * width*height);
+    double *in = (double*) fftw_malloc(sizeof(double) * width*height);
  	fftw_complex *out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * width*height);
 	p = fftw_plan_dft_r2c_2d(width,height,in,out, FFTW_MEASURE); // FFTW_ESTIMATE: deterministic
+
 	unsigned int x,y;
  	for (x=0;x<width;x++)
  		for (y=0;y<height;y++)
