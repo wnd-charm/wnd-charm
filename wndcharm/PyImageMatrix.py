@@ -24,9 +24,24 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"""
 
 import wndcharm
-from wndcharm import ImageMatrix
+from wndcharm import ImageMatrix as _SWIG_ImageMatrix
 import numpy as np
 import ctypes
+
+
+class PicklableSwig(object):
+
+    def __setstate__(self, state):
+        self.__init__(*state['args'])
+
+    def __getstate__(self):
+        return {'args': self.args}
+
+class ImageMatrix(_SWIG_ImageMatrix, PicklableSwig):
+
+    def __init__(self, *args):
+        self.args = args
+        _SWIG_ImageMatrix.__init__(self)
 
 class PyImageMatrix (ImageMatrix):
 	bytes_per_double = np.dtype(np.double).itemsize
@@ -46,6 +61,8 @@ class PyImageMatrix (ImageMatrix):
 # 		stride_bytes = (self.width * PyImageMatrix.bytes_per_double, self.height * PyImageMatrix.bytes_per_double)
 # 		return np.ndarray(shape=(self.height,self.width), dtype = np.double, strides=stride_bytes, buffer=ap.contents)
 		return np.ndarray(shape=(self.height,self.width), dtype = np.double, buffer=ap.contents)
+
+
 if __name__ == "__main__":
 	im = PyImageMatrix()
 	im.allocate (200,200)
