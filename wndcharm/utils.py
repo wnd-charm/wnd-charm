@@ -374,17 +374,20 @@ def print_log_message( fv ):
     from os import getpid
     #from multiprocessing import get_logger
     #logger = get_logger()
-    if fv.tile_row_index is not None:
-        col = fv.tile_col_index
-        row = fv.tile_row_index
-    elif fv.sliding_window_row_index is not None:
-        col = fv.sliding_window_row_index
-        row = fv.sliding_window_col_index
+
+    outstr = "Process {}: calculating {}".format( getpid(), fv )
+
+    if getattr( fv, 'tile_row_index', None ) is not None:
+        outstr += " (row-{} col{})".format( fv.tile_row_index, fv.tile_col_index )
+    elif getattr( fv, 'sliding_window_row_index', None ) is not None:
+        outstr += " (row-{} col{})".format(
+                fv.sliding_window_row_index, fv.sliding_window_col_index )
+    if getattr( fv, "original_px_plane", None ) is not None:
+        outstr += " from pixel plane"
+        outstr += " width={} height={}".format( fv.original_px_plane.width, fv.original_px_plane.height )
     else:
-        col = ""
-        row = ""
-    line = "Process {}: calculating {} row-{} col{}".format( getpid(), fv, row, col )
-    print line
+        outstr += " (no pixel plane came through the wire)"
+    print outstr
     #logger.info( line )
 
 def WorkerFunction( fv ):
@@ -394,7 +397,11 @@ def WorkerFunction( fv ):
 def WorkerFunctionVerbose( fv ):
     """Helper function used for parallel calculation of image features"""
     print_log_message( fv )
-    fv.GenerateFeatures( write_to_disk=True, quiet=False )
+    try:
+        fv.GenerateFeatures( write_to_disk=True, quiet=False )
+    except:
+        import sys, traceback
+        print traceback.print_exc()
 
 def parallel_compute( samples, n_jobs=True, quiet=True ):
     """WND-CHARM implementation of symmetric multiprocessing, see:
@@ -419,12 +426,15 @@ def parallel_compute( samples, n_jobs=True, quiet=True ):
         worker = WorkerFunctionVerbose
 
     try:
-        pool.map_async( worker, samples, chunksize=1 )
+        result = pool.map_async( worker, samples, chunksize=1 )
         pool.close()
         signal.signal(signal.SIGINT, signal.SIG_DFL)
+        result.get()
         pool.join()
     except KeyboardInterrupt:
         print "Caught KeyboardInterrupt, terminating workers"
         pool.terminate()
         pool.join()
-
+    except:
+        pool.terminate()
+        pool.join()
