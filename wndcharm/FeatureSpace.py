@@ -684,18 +684,24 @@ class FeatureSpace( object ):
         return retval
 
     #==============================================================
-    def LDATransform( self, reference_features=None, n_components=None, inplace=True, quiet=False ):
-        """Use sklearn.lda.LDA to transform a feature space.
-        reference_features - None, or wndcharm.FeatureSpace object.
-            - If None, fits LDA model to self.data_matrix and transforms it.
-            - If not None, takes the fitted model from arg reference_features and 
-                transforms self.data_matrix based on that. Updates self's feature metadata to
-                reflect reduced dimensionality.
-        n_components - int - passed trhough as argument to LDA fitter.
+    def LDATransform( self, reference_features=None, inplace=True, quiet=False, **kwargs ):
+        """Use sklearn.discriminant_analysis.LinearDiscriminantAnalysis to transform a feature space.
 
-        N.B. Use this method like you would for FeatureWeights, transforming self against self
-        for training set, then transforming the test set against self before proceeding with 
-        classification."""
+        Arguments:
+
+            reference_features - None, or wndcharm.FeatureSpace object.
+                If None, fits LDA model to self.data_matrix and transforms it.
+                If not None, takes the fitted model from arg reference_features and
+                transforms self.data_matrix based on that. Updates self's feature metadata
+                to reflect reduced dimensionality.
+            inplace - Boolean, default=True
+                If False, create a new FeatureSpace object and leave self untouched.
+            quiet - Boolean, default=False
+                Say what happened.
+            **kwargs
+                Args directly passed through to LinearDiscriminantAnalysis constructor
+                {solver, shrinkage, priors, n_components, store_covariance, tol}.
+                See scikit-learn docs for details."""
 
         try:
             from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
@@ -715,17 +721,15 @@ class FeatureSpace( object ):
             # transform my feature space by fitting and LDA model to my features
             # and transforming self.data_matrix using that model.
             newdata['transformed_against'] = 'self'
-            if n_components != None:
-                self.lda_fitter = LDA( n_components )
-            else:
-                self.lda_fitter = LDA()
+            self.lda_fitter = LDA( **kwargs )
 
             self.lda_fitter.fit( self.data_matrix, self._contiguous_ground_truth_labels )
             fitter = self.lda_fitter
         else:
             # Recalculate my feature space according to fitted model in reference_features
             # Dummyproofing:
-            # 1. Can't proceed if reference_features does not have an LDA model fitted already:
+            # 1. Can't proceed if reference_features does not have an LDA model
+            # fitted already:
             if reference_features.lda_fitter == None or\
                     reference_features.pretransformed_feature_names == None:
                 err_str = "Can't transform {0} \"{1}\" against {2} \"{3}\": ".format(

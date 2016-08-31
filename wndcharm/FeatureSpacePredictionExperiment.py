@@ -300,7 +300,8 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
         if 'train_size' in kwargs:
             del kwargs['train_size']
 
-        max_n_samps = min( kwargs['feature_space'].class_sizes )
+        fs = kwargs['feature_space']
+        max_n_samps = int( min( fs.class_sizes ) / fs.num_samples_per_group )
 
         def GenParamSpace( n_intervals=20 ):
             from math import log10
