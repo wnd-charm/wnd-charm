@@ -149,16 +149,13 @@ am_libchrm_a_OBJECTS = libchrm_a-FeatureAlgorithms.$(OBJEXT) \
 libchrm_a_OBJECTS = $(am_libchrm_a_OBJECTS)
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_wndchrm_OBJECTS = wndchrm_src/wndchrm-wndchrm.$(OBJEXT)
+am_wndchrm_OBJECTS = wndchrm_src/wndchrm.$(OBJEXT)
 wndchrm_OBJECTS = $(am_wndchrm_OBJECTS)
 wndchrm_DEPENDENCIES = libchrm.a
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
-wndchrm_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(wndchrm_CXXFLAGS) \
-	$(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -662,8 +659,7 @@ noinst_HEADERS = Eigen/Array \
 
 
 # echo "noinst_HEADERS = $(find Eigen  -not -path '*.svn/*'  -type f | perl -n -e 'chomp;s/^\.\///;push (@foo,$_); END{print join(" \\\n    ",@foo)}')" > Eigen/sources.am 
-AM_CPPFLAGS = -fPIC -Os
-AM_CFLAGS = -Os
+AM_CPPFLAGS = -fPIC
 noinst_LIBRARIES = libchrm.a
 libchrm_a_SOURCES = \
   unordered_map_dfn.h \
@@ -739,11 +735,8 @@ libchrm_a_SOURCES = \
   wndchrm_error.cpp \
   wndchrm_error.h
 
-libchrm_a_CXXFLAGS = -Wall -Os
-libchrm_a_CFLAGS = -Os
+libchrm_a_CXXFLAGS = -Wall
 wndchrm_SOURCES = wndchrm_src/wndchrm.cpp
-wndchrm_CXXFLAGS = -Wall -Os
-wndchrm_CFLAGS = -Os
 wndchrm_LDADD = libchrm.a -lm -ltiff -L. -lchrm -lfftw3
 all: all-am
 
@@ -964,12 +957,12 @@ clean-binPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
-wndchrm_src/wndchrm-wndchrm.$(OBJEXT): wndchrm_src/$(am__dirstamp) \
+wndchrm_src/wndchrm.$(OBJEXT): wndchrm_src/$(am__dirstamp) \
 	wndchrm_src/$(DEPDIR)/$(am__dirstamp)
 
 wndchrm$(EXEEXT): $(wndchrm_OBJECTS) $(wndchrm_DEPENDENCIES) $(EXTRA_wndchrm_DEPENDENCIES) 
 	@rm -f wndchrm$(EXEEXT)
-	$(AM_V_CXXLD)$(wndchrm_LINK) $(wndchrm_OBJECTS) $(wndchrm_LDADD) $(LIBS)
+	$(AM_V_CXXLD)$(CXXLINK) $(wndchrm_OBJECTS) $(wndchrm_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -1019,7 +1012,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@wndchrm_src/$(DEPDIR)/libchrm_a-TrainingSet.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@wndchrm_src/$(DEPDIR)/libchrm_a-WORMfile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@wndchrm_src/$(DEPDIR)/libchrm_a-signatures.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@wndchrm_src/$(DEPDIR)/wndchrm-wndchrm.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@wndchrm_src/$(DEPDIR)/wndchrm.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -1506,20 +1499,6 @@ libchrm_a-wndchrm_error.obj: wndchrm_error.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='wndchrm_error.cpp' object='libchrm_a-wndchrm_error.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libchrm_a_CXXFLAGS) $(CXXFLAGS) -c -o libchrm_a-wndchrm_error.obj `if test -f 'wndchrm_error.cpp'; then $(CYGPATH_W) 'wndchrm_error.cpp'; else $(CYGPATH_W) '$(srcdir)/wndchrm_error.cpp'; fi`
-
-wndchrm_src/wndchrm-wndchrm.o: wndchrm_src/wndchrm.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(wndchrm_CXXFLAGS) $(CXXFLAGS) -MT wndchrm_src/wndchrm-wndchrm.o -MD -MP -MF wndchrm_src/$(DEPDIR)/wndchrm-wndchrm.Tpo -c -o wndchrm_src/wndchrm-wndchrm.o `test -f 'wndchrm_src/wndchrm.cpp' || echo '$(srcdir)/'`wndchrm_src/wndchrm.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) wndchrm_src/$(DEPDIR)/wndchrm-wndchrm.Tpo wndchrm_src/$(DEPDIR)/wndchrm-wndchrm.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='wndchrm_src/wndchrm.cpp' object='wndchrm_src/wndchrm-wndchrm.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(wndchrm_CXXFLAGS) $(CXXFLAGS) -c -o wndchrm_src/wndchrm-wndchrm.o `test -f 'wndchrm_src/wndchrm.cpp' || echo '$(srcdir)/'`wndchrm_src/wndchrm.cpp
-
-wndchrm_src/wndchrm-wndchrm.obj: wndchrm_src/wndchrm.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(wndchrm_CXXFLAGS) $(CXXFLAGS) -MT wndchrm_src/wndchrm-wndchrm.obj -MD -MP -MF wndchrm_src/$(DEPDIR)/wndchrm-wndchrm.Tpo -c -o wndchrm_src/wndchrm-wndchrm.obj `if test -f 'wndchrm_src/wndchrm.cpp'; then $(CYGPATH_W) 'wndchrm_src/wndchrm.cpp'; else $(CYGPATH_W) '$(srcdir)/wndchrm_src/wndchrm.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) wndchrm_src/$(DEPDIR)/wndchrm-wndchrm.Tpo wndchrm_src/$(DEPDIR)/wndchrm-wndchrm.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='wndchrm_src/wndchrm.cpp' object='wndchrm_src/wndchrm-wndchrm.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(wndchrm_CXXFLAGS) $(CXXFLAGS) -c -o wndchrm_src/wndchrm-wndchrm.obj `if test -f 'wndchrm_src/wndchrm.cpp'; then $(CYGPATH_W) 'wndchrm_src/wndchrm.cpp'; else $(CYGPATH_W) '$(srcdir)/wndchrm_src/wndchrm.cpp'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
