@@ -145,7 +145,7 @@ double efficientLocalMean(const long x,const long y,const long k, const pixDataM
 #define K_VALUE 7
 double coarseness(const ImageMatrix &image, double *hist,unsigned int nbins) {
 	unsigned int x,y,k;
-	int max;
+	double hist_max = 0.0;
 	const unsigned int yDim = image.height;
 	const unsigned int xDim = image.width;
 	double sum = 0.0;
@@ -250,11 +250,11 @@ double coarseness(const ImageMatrix &image, double *hist,unsigned int nbins) {
 	Sbest->histogram(hist,nbins,0);
 
 	/* normalize the 3-bin histogram */
-	max = (int)-INF;
+	hist_max = 0.0;
 	for (k = 0; k < nbins; k++)
-		if (hist[k] > max) max = (int)(hist[k]);
+		if (hist[k] > hist_max) hist_max = hist[k];
 	for (k = 0; k < nbins; k++)
-		hist[k] = hist[k]/max;
+		hist[k] = hist[k]/hist_max;
 
 	/* free allocated memory */
 	for (k = 1; k <= K_VALUE; k++) {
