@@ -24,6 +24,7 @@ stamp-h1
 *.o
 *.so
 src/wndchrm
+*.pyc
 
 # OS generated files #
 ######################
@@ -63,6 +64,7 @@ autom4te.cache/requests
 pychrm/pychrm.py
 pychrm/swig/pychrm_wrap.cpp
 .dirstamp
+wndcharm/_git_hash.py
 
 # Sigs calculated during tests
 tests/wndchrm_tests/images/binuc/*.sig
