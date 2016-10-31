@@ -105,7 +105,6 @@ wndchrm_module = Extension('_wndcharm',
 	include_dirs=['./','src/', '/usr/local/include'],
 	swig_opts=['-threads', '-c++', '-I./', '-I./src', '-outdir', 'wndcharm'],
 	libraries=['tiff','fftw3'],
-        extra_compile_args = ['-Os'],
 )
 
 setup (

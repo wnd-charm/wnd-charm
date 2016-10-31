@@ -576,15 +576,12 @@ class TestFeatureSpace( unittest.TestCase ):
             #np.testing.assert_allclose( actual=fs_fit.data_matrix, desired=fs_fof.data_matrix,
             #        rtol=1e-03, atol=0 )
             #np.testing.assert_array_almost_equal_nulp( fs_fit.data_matrix, fs_fof.data_matrix )
-
-            errmsg = ""
-            self.assertEqual( fs_fit.feature_names, fs_fof.feature_names )
             for row_num, (fit_row, fof_row) in enumerate( zip( fs_fit.data_matrix, fs_fof.data_matrix )):
-                retval = compare( fit_row, fof_row, feature_names=fs_fit.feature_names )
+                retval = compare( fit_row, fof_row )
                 if retval == False:
-                    errmsg = "Error in sample row {0}: ".format( row_num )
-                    errmsg += "FIT: " + fs_fit._contiguous_sample_names[row_num] + ", FOF: " + fs_fof._contiguous_sample_names[row_num]
-                self.assertTrue( retval, errmsg )
+                    print "error in sample row", row_num
+                    print "FIT: ", fs_fit._contiguous_sample_names[row_num], "FOF", fs_fof._contiguous_sample_names[row_num]
+                self.assertTrue( retval )
 
 
             # Test sorting; scramble the FOF then load and check:
@@ -614,15 +611,12 @@ class TestFeatureSpace( unittest.TestCase ):
             kwargs['tile_num_cols'] = 5
             fs_fof = FeatureSpace.NewFromFileOfFiles( **kwargs )
             # Check again
-
-            self.assertEqual( fs_fit.feature_names, fs_fof.feature_names )
-            errmsg = ""
             for row_num, (fit_row, fof_row) in enumerate( zip( fs_fit.data_matrix, fs_fof.data_matrix )):
-                retval = compare( fit_row, fof_row, feature_names=fs_fit.feature_names )
+                retval = compare( fit_row, fof_row )
                 if retval == False:
-                    errmsg = "Error in sample row {0}: ".format( row_num )
-                    errmsg += "FIT: " + fs_fit._contiguous_sample_names[row_num] + ", FOF: " + fs_fof._contiguous_sample_names[row_num]
-                self.assertTrue( retval, errmsg )
+                    print "error in sample row", row_num
+                    print "FIT: ", fs_fit._contiguous_sample_names[row_num], "FOF", fs_fof._contiguous_sample_names[row_num]
+                self.assertTrue( retval )
 
             # TESTING TAKE TILES:
             self.assertRaises( ValueError, fs_fof.TakeTiles, tuple() )
@@ -693,9 +687,7 @@ class TestFeatureSpace( unittest.TestCase ):
         copy( orig_img_filepath, tempdir )
         try:
             fs = FeatureSpace.NewFromDirectory( tempdir, quiet=False )
-            self.assertEqual( fs.feature_names, ref_fv.feature_names )
-            retval = compare( fs.data_matrix[0], ref_fv.values, feature_names=ref_fv.feature_names )
-            self.assertTrue( retval, "features calculated don't match reference features" )
+            self.assertTrue( compare( fs.data_matrix[0], ref_fv.values ) )
             #from numpy.testing import assert_allclose
             #assert_allclose( ref_fv.values, fs.data_matrix[0], rtol=1e-05 )
         finally:
@@ -712,10 +704,8 @@ class TestFeatureSpace( unittest.TestCase ):
 
             fs = FeatureSpace.NewFromDirectory( toptempdir, quiet=False, )
             self.assertEqual( fs.class_names, ['A', 'B', 'C' ] )
-            for row, row_of_features in enumerate( fs.data_matrix ):
-                retval = compare( row_of_features, ref_fv.values, feature_names=ref_fv.feature_names )
-                self.assertTrue( retval, "New from directory features from row {0}, sample\"{1}\" don't match.".format(
-                    row, fs._contiguous_sample_names[row] ) )
+            for row_of_features in fs.data_matrix:
+                self.assertTrue( compare( row_of_features, ref_fv.values ) )
 
         finally:
             rmtree( toptempdir )
