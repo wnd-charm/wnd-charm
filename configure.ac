@@ -3,6 +3,24 @@
 
 AC_PREREQ([2.69])
 AC_INIT([wndchrm], [1.60], [christopher.coletta@nih.gov])
+
+dnl set the default c++ flags
+dnl Need to make the default CXXFLAGS be blank instead of -g -O2.  Use these in AM_CXXFLAGS instead
+if test x"${CXXFLAGS+set}" = xset; then 
+  # the user set CXXFLAGS; don't override it.
+  # Much more clever would be to issue a warning if users' CXXFLAGS have optimization higher than 0
+  # Cleverer still would be to figure out which versions of g++ barf when compiling FeatureNames.cpp with optimization.
+	MY_CXXFLAGS="${CXXFLAGS}"
+else 
+	MY_CXXFLAGS=""
+fi 
+# This sets the default CXXFLAGS (user/environment/or built-in default)
+AC_PROG_CXX
+# And here we overwrite it based on our test above
+CXXFLAGS=$MY_CXXFLAGS
+# Put the usual defualt into AM_CXXFLAGS
+#AM_CXXFLAGS="-Wall -g -O2"
+
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AM_PATH_PYTHON
 AC_CONFIG_SRCDIR([config.h.in])
@@ -12,7 +30,7 @@ AC_CONFIG_MACRO_DIR([m4])
 LT_INIT
 
 # Checks for programs.
-AC_PROG_CXX
+#AC_PROG_CXX
 AC_PROG_AWK
 AC_PROG_CC
 AC_PROG_CPP

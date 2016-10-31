@@ -99,7 +99,9 @@ class TestFeatureCalculation( unittest.TestCase ):
         # Remember we're reading these values in from strings. and the ranges are so wide
         # you only have 6 sig figs. Better apples to apples comparison is to 
         # compare strings.
-        self.assertTrue( compare( target_sample.values, reference_sample.values ) )
+        retval = compare( target_sample.values, reference_sample.values,
+                feature_names=reference_sample.feature_names )
+        self.assertTrue( retval, "Features calculated for test img {0} don't match".format( self.test_tif_path ) )
 
     # --------------------------------------------------------------------------
     def test_LoadSubsetFromFile( self ):
@@ -201,7 +203,9 @@ class TestFeatureCalculation( unittest.TestCase ):
             # you only have 6 sig figs. Better apples to apples comparison is to
             # compare strings.
             self.assertEqual( top_left_tile_feats.feature_names, top_left_tile_reference_feats.feature_names )
-            self.assertTrue( compare( top_left_tile_feats.values, top_left_tile_reference_feats.values ) )
+            retval = compare( top_left_tile_feats.values, top_left_tile_reference_feats.values,
+                    feature_names=top_left_tile_feats.feature_names )
+            self.assertTrue( retval, "Features calculated for top left tile of img {0} don't match reference features".format(img_filename) )
 
             kwargs[ 'x' ] = 1155
             kwargs[ 'y' ] = 832
@@ -210,7 +214,9 @@ class TestFeatureCalculation( unittest.TestCase ):
             bot_right_tile_reference_feats = FeatureVector.NewFromSigFile( targetdir + sep + 'lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E-t6x5_5_4-l.sig' ) 
 
             self.assertEqual( bot_right_tile_feats.feature_names, bot_right_tile_reference_feats.feature_names )
-            self.assertTrue( compare( bot_right_tile_feats.values, bot_right_tile_reference_feats.values ) )
+            retval = compare( bot_right_tile_feats.values, bot_right_tile_reference_feats.values,
+                    feature_names=top_left_tile_feats.feature_names )
+            self.assertTrue( retval, "Features calculated for bottom right tile of img {0} don't match reference features".format(img_filename) )
 
         finally:
             rmtree( sourcedir )
@@ -361,7 +367,10 @@ class TestSlidingWindow( unittest.TestCase ):
             for test_feats in window.sample():
                 test_feats.GenerateFeatures( quiet=False, write_to_disk=False, cache=True )
                 reference_feats = FeatureVector.NewFromSigFile( targetdir + sep + ref_file.format(0,0) )
-                self.assertTrue( compare( test_feats.values, reference_feats.values ) )
+                self.assertEqual( test_feats.feature_names, reference_feats.feature_names )
+                retval = compare( test_feats.values, reference_feats.values,
+                        feature_names=reference_feats.feature_names )
+                self.assertTrue( retval, "Scanning window features calculated for top left tile of img {0} don't match reference features".format( img_filename) )
                 break
 
             # below top left:
