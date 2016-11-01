@@ -1098,8 +1098,6 @@ class FeatureVector( object ):
         #self.values = np.array( [ float( val ) for val in values ] )
         self.values = values
         
-        print "self.values type = {}, shape = {}".format(type(self.values),self.values.shape)
-
         if not self.name or update_samp_opts_from_pathname:
             # Subtract path so that path part doesn't become part of name
             from os.path import basename
