@@ -32,6 +32,20 @@ AC_COMPILE_IFELSE(
 ) 
 AC_LANG_POP(C++) 
 
+# Add repository revision control
+
+GITREV=`( git rev-parse --short HEAD ) 2>/dev/null`
+if { ! expr "$GITREV" : '[[A-Za-z0-9]]*'  >/dev/null 2>&1 ;} ;
+	then GITREV=`cat $srcdir/GITREV`
+else echo $GITREV>$srcdir/GITREV
+fi
+AC_SUBST(GITREV)
+
+AC_DEFINE_UNQUOTED([GITREV],["$GITREV"], [Git Revision from git rev-parse --short HEAD])
+AC_DEFINE_UNQUOTED([PACKAGE_VERSION],["$VERSION-$GITREV"], [Version string, including GITREV])
+AC_DEFINE_UNQUOTED([PACKAGE_STRING],["$PACKAGE_NAME $VERSION-$GITREV"], [Package string with version+GITREV])
+
+
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-lchrm':
 AC_CHECK_LIB([chrm], [main])

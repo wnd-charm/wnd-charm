@@ -65,6 +65,7 @@ pychrm/pychrm.py
 pychrm/swig/pychrm_wrap.cpp
 .dirstamp
 wndcharm/_git_hash.py
+GITREV
 
 # Sigs calculated during tests
 tests/wndchrm_tests/images/binuc/*.sig

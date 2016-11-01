@@ -1,5 +1,6 @@
 
 ACLOCAL_AMFLAGS = -I m4
-EXTRA_DIST = setup.py wndcharm/_version.py
+EXTRA_DIST = GITREV setup.py wndcharm/_version.py
+distdir = $(PACKAGE)-$(VERSION).$(GITREV)
 SUBDIRS = src
 
