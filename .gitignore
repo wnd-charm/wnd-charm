@@ -60,7 +60,9 @@ _autosave*
 
 # Stuff generated during configure/build
 *.0
-autom4te.cache/requests
+/Makefile
+/Makefile.in
+autom4te.cache/
 pychrm/pychrm.py
 pychrm/swig/pychrm_wrap.cpp
 .dirstamp
