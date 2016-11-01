@@ -89,6 +89,13 @@ class _diagnostics( object ):
         import wndcharm
 
         outstr += 'WND-CHARM library path:\n\t' + wndcharm.__file__ + '\n'
+        
+        outstr += 'WND-CHARM features major version: ' + str(feature_vector_major_version) + '\n'
+        for type,foo in sorted(feature_vector_minor_version_from_vector_type.items(), key=lambda x: x[1]):
+        	outstr += '\t'+type+': '
+        	outstr += str(feature_vector_major_version) + '.' + str(feature_vector_minor_version_from_vector_type[type])
+        	outstr += ' (N = '+str(feature_vector_num_features_from_vector_type[type]) + ')\n'
+        
 
         outstr += 'Package versions:\n'
         retval = self.get_package_versions()
@@ -100,7 +107,7 @@ class _diagnostics( object ):
 diagnostics = _diagnostics()
 
 # The numbers *must* be consistent with what's defined in wndchrm C-codebase.
-feature_vector_major_version = 3
+feature_vector_major_version = wndcharm.StdFeatureComputationPlans.feature_vector_major_version
 # Feature vector lengths in current version
 # #define NUM_LC_FEATURES  4059
 # #define NUM_L_FEATURES   2919
@@ -136,4 +143,22 @@ feature_vector_num_features_from_vector_type = {
     'long':2919,
     'short_color':2199,
     'long_color':4059
+}
+feature_vector_num_features_from_vector_version = {
+    '1.1':1025,
+    '1.2':2873,
+    '1.3':2160,
+    '1.4':4008,
+    '2.1':1059,
+    '2.2':2919,
+    '2.3':2199,
+    '2.4':4059,
+    '3.1':1059,
+    '3.2':2919,
+    '3.3':2199,
+    '3.4':4059,
+    '4.1':1059,
+    '4.2':2919,
+    '4.3':2199,
+    '4.4':4059,
 }

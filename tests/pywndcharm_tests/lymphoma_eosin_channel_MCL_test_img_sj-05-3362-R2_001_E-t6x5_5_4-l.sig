@@ -1,4 +1,4 @@
-0	3.1
+0	4.1
 lymphoma_eosin_channel_MCL_test_img_sj-05-3362-R2_001_E-t6x5_5_4-l.tiff
 482.000000	Chebyshev-Fourier Coefficients () [0]
 37.000000	Chebyshev-Fourier Coefficients () [1]

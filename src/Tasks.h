@@ -34,6 +34,8 @@
 // defines OUR_UNORDERED_MAP based on what's available
 #include "unordered_map_dfn.h"
 
+// This should be the one and only place where the current feature version is specified
+#define CURRENT_FEATURE_VERSION 4
 
 class FeatureComputationPlan;
 class ComputationTaskNode;
@@ -266,7 +268,6 @@ class ImageMatrix;
 class FeatureGroup;
 // This class has additional members and methods specific for a feature computation plan
 // Plans aren't executable themselves because they do not hold state durring an execution.
-#define CURRENT_FEATURE_VERSION 3
 class FeatureComputationPlan : public ComputationPlan {
 	public:
 		size_t n_features;
@@ -361,6 +362,7 @@ class StdFeatureComputationPlans {
 			fv_short_color = 3,
 			fv_long_color = 4
 		};
+		static const int feature_vector_major_version = CURRENT_FEATURE_VERSION;
 		static const FeatureComputationPlan *getFeatureSet();
 		static const FeatureComputationPlan *getFeatureSetColor();
 		static const FeatureComputationPlan *getFeatureSetLong();

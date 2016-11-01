@@ -38,6 +38,8 @@ class IncompleteFeatureSetError( Exception ):
 
 from . import feature_vector_minor_version_from_num_features
 ver_to_num_feats_map = dict((v, k) for k, v in feature_vector_minor_version_from_num_features.iteritems())
+from . import feature_vector_num_features_from_vector_version
+
 # Couldn't get this "Python singleton inherited from swig-wrapped C++ object" to work:
 #*** NotImplementedError: Wrong number or type of arguments for overloaded function 'FeatureComputationPlan_add'.
 #  Possible C/C++ prototypes are:
@@ -1035,11 +1037,10 @@ class FeatureVector( object ):
             # Loading these sig files takes way too long.
             # Try to speed up by being more explicit
             # hardcode the num features check:
-            if (input_fs_major_ver == '2' or input_fs_major_ver== '3') and \
-                    input_fs_minor_ver != '0':
+            if input_fs_version in feature_vector_num_features_from_vector_version:
                 # We know exactly how long these feature vectors are gonna be
                 # so allocate just the right amount of memory:
-                vec_len = ver_to_num_feats_map[ int( input_fs_minor_ver ) ]
+                vec_len = feature_vector_num_features_from_vector_version [input_fs_version]
                 values = np.zeros( vec_len )
                 names = [None] * vec_len
                 for i, line in enumerate( infile ):
@@ -1096,6 +1097,8 @@ class FeatureVector( object ):
 
         #self.values = np.array( [ float( val ) for val in values ] )
         self.values = values
+        
+        print "self.values type = {}, shape = {}".format(type(self.values),self.values.shape)
 
         if not self.name or update_samp_opts_from_pathname:
             # Subtract path so that path part doesn't become part of name

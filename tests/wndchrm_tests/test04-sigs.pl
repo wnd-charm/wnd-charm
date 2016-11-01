@@ -23,7 +23,7 @@ print "comparing to unbalanced.fit\n";
 my @res = `diff $path/test-images-sigs-l.fit $path/unbalanced.fit`;
 chomp foreach (@res);
 
-if (length (@res) < 2) {
+if (scalar (@res) < 1 or (scalar (@res) == 1 and $res[0] = '')) {
 	print "Passed - No differences found\n";
 	unlink ("$path/test-images-sigs-l.fit");
 } else {

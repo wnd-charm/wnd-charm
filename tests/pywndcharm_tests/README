@@ -1,0 +1,2 @@
+# To run all of the tests:
+python -m unittest discover
