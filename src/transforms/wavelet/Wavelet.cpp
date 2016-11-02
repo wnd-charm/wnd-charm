@@ -509,8 +509,8 @@ void Wavelet::transform3D(DataGrid * data) {
 		}
 
 		
-		delete approx;
-		delete detail;
+		delete[] approx;
+		delete[] detail;
 
 		double * approx1 = new double[outsizey];
 		double * detail1 = new double[outsizey];
@@ -567,10 +567,10 @@ void Wavelet::transform3D(DataGrid * data) {
 			}
 		}
 		
-		delete approx1;
-		delete approx2;
-		delete detail1;
-		delete detail2;
+		delete[] approx1;
+		delete[] approx2;
+		delete[] detail1;
+		delete[] detail2;
 			
 		// NOW GO THROUGH AND DECIMATE THE FINAL
 		// ROW - THE X ROW	
@@ -662,14 +662,14 @@ void Wavelet::transform3D(DataGrid * data) {
 			}
 		}
 
-		delete approx1;
-		delete approx2;
-		delete approx3;
-		delete approx4;
-		delete detail1;
-		delete detail2;
-		delete detail3;
-		delete detail4;
+		delete[] approx1;
+		delete[] approx2;
+		delete[] approx3;
+		delete[] approx4;
+		delete[] detail1;
+		delete[] detail2;
+		delete[] detail3;
+		delete[] detail4;
 		
 		xsize = outsizex;
 		ysize = outsizey;

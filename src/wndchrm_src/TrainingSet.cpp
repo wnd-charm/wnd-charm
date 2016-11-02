@@ -219,7 +219,7 @@ int TrainingSet::AddContinuousClass(char *label) {
 	is_numeric = 1;
 	class_num = 1;
 	if (label) snprintf(class_labels[CONTINUOUS_CLASS_INDEX],MAX_CLASS_NAME_LENGTH,"%s",label);
-	else class_labels[CONTINUOUS_CLASS_INDEX] = '\0';
+	else *(class_labels[CONTINUOUS_CLASS_INDEX]) = '\0';
 	class_nsamples[CONTINUOUS_CLASS_INDEX] = 0;
 	
 	return (1);
@@ -505,7 +505,7 @@ long index;
 
 	for (index=0;index < class_num;index++) strcpy(class_labels[index],"");
 	if (label) snprintf(class_labels[CONTINUOUS_CLASS_INDEX],MAX_CLASS_NAME_LENGTH,"%s",label);
-	else class_labels[CONTINUOUS_CLASS_INDEX] = '\0';
+	else *(class_labels[CONTINUOUS_CLASS_INDEX]) = '\0';
 
 
 	/* make the samples referring to class_index refer to class 0 */

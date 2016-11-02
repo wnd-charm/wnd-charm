@@ -1057,7 +1057,7 @@ void results (double *Tp, char *c, double *a)
   double max, min;
   max = a[0];
   min = a[0];
-  for (i = 0; i < 4; ++i, *Tp++)
+  for (i = 0; i < 4; ++i, Tp++)
     {	
     if (a[i] <= min)
 	min = a[i];
@@ -1067,7 +1067,7 @@ void results (double *Tp, char *c, double *a)
     }	
 
   *Tp = (a[0] + a[1] + a[2] + a[3]) / 4;
-  *Tp++;
+  Tp++;
   *Tp = max - min;
  
   	

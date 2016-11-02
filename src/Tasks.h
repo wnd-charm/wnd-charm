@@ -52,6 +52,7 @@ class ComputationTask {
 		std::string name;
 		TaskType type;
 
+		virtual ~ComputationTask() {};
 		virtual bool register_task() const = 0;
 
 		virtual void print_info() const;
@@ -174,7 +175,7 @@ class ComputationPlan {
 			root = new ComputationTaskNode(NULL,NULL);
 			isFinal = false;
 		}
-		~ComputationPlan() {
+		virtual ~ComputationPlan() {
 			nodemap_t::iterator nodemap_it;
 			for(nodemap_it = nodemap.begin(); nodemap_it != nodemap.end(); nodemap_it++) {
 				delete (nodemap_it->second);
@@ -233,7 +234,7 @@ class ComputationPlanExecutor {
 		ComputationPlanExecutor(const ComputationPlan *plan_in) {
 			plan = plan_in;
 		}
-		~ComputationPlanExecutor () {
+		virtual ~ComputationPlanExecutor () {
 			reset();
 		}
 	protected:
@@ -292,7 +293,7 @@ class FeatureComputationPlan : public ComputationPlan {
 		}
 		// parent destructor takes care of CalculationTask objects
 		// This plan doesn't own any of the objects it has references to
-		~FeatureComputationPlan() {}
+		virtual ~FeatureComputationPlan() {}
 	private:
 		std::vector<const FeatureGroup *> feature_groups;
 
@@ -325,7 +326,7 @@ class FeatureComputationPlanExecutor : public ComputationPlanExecutor {
 		// in the parent, the run method signature has no parameters and is pure virtual
 		// this class has to have run parameters, so we override the paren't virtual run() with a noop
 		virtual void run () {}
-		~FeatureComputationPlanExecutor () {
+		virtual ~FeatureComputationPlanExecutor () {
 			reset();
 		}
 		// sub-classes must set their own plan.  Relying on the parent class to do this doesn't work.

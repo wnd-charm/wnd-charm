@@ -219,7 +219,7 @@ int ImageMatrix::SaveTiff(char *filename) {
 	unsigned char *BufImage8 = new unsigned char[width*height];
 	if (!BufImage8) {
 		TIFFClose(tif);
-		delete BufImage16;
+		delete[] BufImage16;
 		return (0);
 	}
 
@@ -244,8 +244,8 @@ int ImageMatrix::SaveTiff(char *filename) {
 	}
 
 	TIFFClose(tif);
-	delete BufImage16;
-	delete BufImage8;
+	delete[] BufImage16;
+	delete[] BufImage8;
 	return(1);
 }
 
