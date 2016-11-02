@@ -23,7 +23,9 @@ This research was supported entirely by the Intramural Research Program of the N
 
 ## Current Release
 
-The current release of the wndchrm command-line utility is  version 1.52, available here: [wndchrm-1.52.775.tar.gz](https://ome.irp.nia.nih.gov/wnd-charm/wndchrm-1.52.775.tar.gz)
+The current release of the wndchrm command-line utility is  version 1.60, available here: [wndchrm-1.60.977f5f6.tar.gz](https://github.com/wnd-charm/wnd-charm/files/565545/wndchrm-1.60.977f5f6.tar.gz)
+
+The previous release, v1.52, is available here: [wndchrm-1.52.775.tar.gz](https://github.com/wnd-charm/wnd-charm/files/565579/wndchrm-1.52.775.tar.gz)
 
 ## Supported Platforms
 
