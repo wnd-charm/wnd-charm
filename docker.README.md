@@ -1,11 +1,7 @@
 Development with Docker
 ===
-[Docker](https://www.docker.com/) to run, test, and debug our application.
-The following documents how to install and use Docker on a Mac. There are
-[instructions](https://docs.docker.com/installation) for installing and using
-docker on other operating systems.
-
-On the mac, we use [docker for mac](https://docs.docker.com/engine/installation/mac/#/docker-for-mac).
+This document contains instructions on setting up a [Docker](https://www.docker.com/) container that contains a compiled version of wnd-charm and other
+recommended python packages.
 
 Table of Contents
 ===
@@ -13,8 +9,7 @@ Table of Contents
 
 Docker and WNDCHARM
 ===
-In the [docker](./docker) file in this repo, we've included the necessary
-files to compile and build a docker container that exposes wnd-charm using
+In the [docker](./docker) folder `Dockerfile` that compiles and provides and interface to wnd-charm through
 [Jupyterhub](https://github.com/jupyterhub/jupyterhub) and
 [Jupyterlab](https://github.com/jupyterlab/jupyterlab).
 
