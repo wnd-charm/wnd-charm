@@ -8,7 +8,7 @@ Table of Contents
 
 Docker and WNDCHARM
 ===
-In the [docker](./docker) folder `Dockerfile` that compiles and provides and interface to wnd-charm through
+In the [docker](./docker) folder, there is a `Dockerfile` that compiles and provides and interface to wnd-charm through
 [Jupyterhub](https://github.com/jupyterhub/jupyterhub) and
 [Jupyterlab](https://github.com/jupyterlab/jupyterlab).
 
