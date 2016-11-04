@@ -460,6 +460,13 @@ class FeatureVector( object ):
                 continue
             if key in kwargs:
                 new_obj_namespace[key] = kwargs[key]
+            elif self_namespace[key] is None:
+                new_obj_namespace[key] = None
+            #
+			# Special cases for swig objects.
+			#  if a feature_computation_plan isFinal, then just copy the reference
+            elif key == 'feature_computation_plan' and self_namespace[key].isFinalized():
+                new_obj_namespace[key] = self_namespace[key]
             else:
                 new_obj_namespace[key] = deepcopy( self_namespace[key] )
         return new_obj
