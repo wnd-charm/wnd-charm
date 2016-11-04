@@ -1,7 +1,6 @@
 Development with Docker
 ===
-This document contains instructions on setting up a [Docker](https://www.docker.com/) container that contains a compiled version of wnd-charm and other
-recommended python packages.
+This document contains instructions illustrating how to set up a [Docker](https://www.docker.com/) image that contains a compiled version of wnd-charm and other recommended python packages.
 
 Table of Contents
 ===
