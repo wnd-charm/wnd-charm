@@ -31,7 +31,7 @@ An interactive prompt will now open, choose a passwd for the newuser. After ente
 ```
 exit
 ```
-wndcharm is now available for use at: http://localhost:8000. After logging in using `newuser` and the password entered above, choose `Notebook` and then choose the `Python 2` kernel when prompted (**not `Python 3`**). In the notebook you can run the following code to see the environment setup:
+wndcharm is now available for use at: [http://localhost:8000](http://localhost:8000). After logging in using `newuser` and the password entered above, choose `Notebook` and then choose the `Python 2` kernel when prompted (**not `Python 3`**). In the notebook you can run the following code to see the environment setup:
 ```
 from wndcharm import diagnostics
 print diagnostics
