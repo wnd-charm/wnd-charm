@@ -500,8 +500,7 @@ class FeatureSpace( object ):
                    # The labels could all be None's
                 if self.class_names == [None]:
                     self.class_names = ["UNKNOWN"]
-                self.interpolation_coefficients = \
-                    CheckIfClassNamesAreInterpolatable( self.class_names )
+                self.UpdateGroundTruthValues()
 
             # Remember, for class-based classification problems, we construct per-class
             # views into the contiguous feature space/metadata that results in lists of lists
@@ -544,6 +543,22 @@ class FeatureSpace( object ):
         return self
 
     #==============================================================
+    def UpdateGroundTruthValues( self ):
+        """Update ground truth numeric values based on ground truth labels
+        """
+        _retval = CheckIfClassNamesAreInterpolatable( self.class_names )
+        if _retval:
+            self.interpolation_coefficients = _retval
+            self._contiguous_ground_truth_values = [ _retval[ class_index ] \
+                for class_index in xrange( self.num_classes ) \
+                  for i in xrange( self.class_sizes[ class_index ] ) ]
+        else:
+            self._contiguous_ground_truth_values = [ None \
+                for class_index in xrange( self.num_classes ) \
+                  for i in xrange( self.class_sizes[ class_index ] ) ]
+
+
+    #==============================================================
     def SortSamplesByGroundTruth( self, rebuild_views=True, inplace=False,
             force_use_labels=False, quiet=False ):
         """Sort sample rows in self to be in ground truth label/value order.
@@ -562,9 +577,10 @@ class FeatureSpace( object ):
         sample_data.sort( key=itemgetter(3) )
         # finally sort by ground truth
         if self.discrete:
-            if not force_use_labels and self.interpolation_coefficients is not None:
+            if not force_use_labels and self.interpolation_coefficients is not None and not (
+                None in self._contiguous_ground_truth_values):
                 # sort by the numeric values
-                sortfunc = itemgetter(1)
+                    sortfunc = itemgetter(1)
             else:
                 # sort by the alphanumeric labels
                 sortfunc = itemgetter(0)
@@ -884,16 +900,7 @@ class FeatureSpace( object ):
 
         # If label is interpretable as a number, load it up into a target vector
         # for interpolation/regression/etc.
-        _retval = CheckIfClassNamesAreInterpolatable( new_fs.class_names )
-        if _retval:
-            new_fs.interpolation_coefficients = _retval
-            new_fs._contiguous_ground_truth_values = [ _retval[ class_index ] \
-                for class_index in xrange( num_classes ) \
-                  for i in xrange( new_fs.class_sizes[ class_index ] ) ]
-        else:
-            new_fs._contiguous_ground_truth_values = [ None \
-                for class_index in xrange( num_classes ) \
-                  for i in xrange( new_fs.class_sizes[ class_index ] ) ]
+        new_fs.UpdateGroundTruthValues()
 
         if new_fs.num_samples_per_group != 1:
             # sample sequence id = tile id
