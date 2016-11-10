@@ -85,7 +85,7 @@ class _FeatureSpacePrediction( object ):
             return len( self.averaged_results )
         try:
             return len( self.individual_results )
-        except:
+        except Exception:
             return 0
 
     #==============================================================
@@ -479,7 +479,7 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
                     denom = self.similarity_matrix[ row ][ row ]
                     for col in self.training_set.class_names:
                         self.similarity_matrix[ row ][ col ] /= denom
-            except:
+            except Exception:
                 self.similarity_matrix = None
 
         self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )

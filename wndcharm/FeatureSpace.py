@@ -44,7 +44,7 @@ def CheckIfClassNamesAreInterpolatable( class_names ):
                 interp_coeffs = None
                 break
         return interp_coeffs
-    except:
+    except Exception:
         pass
 
     return None
@@ -1972,7 +1972,7 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
             retval = self.SampleReduce( leave_in_sample_group_ids=None,
                 leave_out_sample_group_ids=sample_group_ids_to_be_removed,
                 inplace=inplace, quiet=True )
-        except:
+        except Exception:
             print "Error removing class {0}".format( class_token )
             raise
 

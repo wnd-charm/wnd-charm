@@ -59,7 +59,7 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
     def __len__( self ):
         try:
             return len( self.individual_results )
-        except:
+        except Exception:
             return 0
 
     #=====================================================================
@@ -552,7 +552,7 @@ class _FeatureSpacePredictionExperiment( _FeatureSpacePrediction ):
                         # space.
                         train_set.LDATransform( inplace=True, quiet=quiet )
                         test_set.LDATransform( train_set, inplace=True, quiet=quiet )
-                    except:
+                    except Exception:
                         nonconvergence_count += 1
                         continue
 

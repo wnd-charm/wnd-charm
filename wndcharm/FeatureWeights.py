@@ -55,7 +55,7 @@ class FeatureWeights( object ):
     def __len__( self ):
         try:
             return len( self.feature_names )
-        except:
+        except Exception:
             return 0
     #================================================================
     def __eq__( self, other ):
@@ -482,7 +482,7 @@ class PearsonFeatureWeights( FeatureWeights ):
         if min_corr_coeff is not None:
             try:
                 val = abs( float( min_corr_coeff ) )
-            except:
+            except Exception:
                 raise ValueError( 'Cannot convert {0} to a float.'.format( min_corr_coeff ) )
             if val <= 0 or val > 1:
                 raise ValueError( 'Abs val of min correlation coefficient must be between 0 and 1.' )

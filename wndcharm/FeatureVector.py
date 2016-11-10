@@ -319,7 +319,7 @@ class FeatureVector( object ):
     def __len__( self ):
         try:
             length = len( self.values )
-        except:
+        except Exception:
             length = 0
         return length
 

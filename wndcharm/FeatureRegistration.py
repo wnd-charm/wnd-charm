@@ -25,7 +25,7 @@
 
 try:
 	from . import wndcharm
-except:
+except Exception:
 	import wndcharm
 #================================================================
 def LoadFeatureAlgorithms():

@@ -399,7 +399,7 @@ def WorkerFunctionVerbose( fv ):
     print_log_message( fv )
     try:
         fv.GenerateFeatures( write_to_disk=True, quiet=False )
-    except:
+    except Exception:
         import sys, traceback
         print traceback.print_exc()
 
@@ -435,6 +435,6 @@ def parallel_compute( samples, n_jobs=True, quiet=True ):
         print "Caught KeyboardInterrupt, terminating workers"
         pool.terminate()
         pool.join()
-    except:
+    except Exception:
         pool.terminate()
         pool.join()
