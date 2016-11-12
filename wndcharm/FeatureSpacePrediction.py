@@ -127,12 +127,12 @@ class _FeatureSpacePrediction( object ):
 
                 # For now, ignore "FloatingPointError: 'underflow encountered in stdtr'"
                 np.seterr (under='ignore')
-                slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
-                         linregress( ground_truth_values, predicted_values )
 
                 try:
+                    slope, intercept, self.pearson_coeff, self.pearson_p_value, self.pearson_std_err = \
+                         linregress( ground_truth_values, predicted_values )
                     self.spearman_coeff, self.spearman_p_value =\
-                   spearmanr( ground_truth_values, predicted_values )
+                    spearmanr( ground_truth_values, predicted_values )
                 except FloatingPointError:
                     # to avoid: "FloatingPointError: invalid value encountered in true_divide"
                     self.spearman_coeff, self.spearman_p_value = ( 0, 1 )
@@ -462,10 +462,13 @@ class FeatureSpaceClassification( _FeatureSpacePrediction ):
 
         # Finalize the Average Class Probability Matrix by dividing each marginal probability
         # sum by the number of marginal probabilities for that ground truth:
-        for row in self.test_set.class_names:
-            for col in self.training_set.class_names:
-                self.average_class_probability_matrix[ row ][ col ] /= \
-                   self.num_classifications_per_class[ row ]
+        try:
+            for row in self.test_set.class_names:
+                for col in self.training_set.class_names:
+                    self.average_class_probability_matrix[ row ][ col ] /= \
+                       self.num_classifications_per_class[ row ]
+        except ZeroDivisionError:
+            self.average_class_probability_matrix = None
 
         # The similarity matrix is just the average class probability matrix
         # normalized to have 1's in the diagonal.

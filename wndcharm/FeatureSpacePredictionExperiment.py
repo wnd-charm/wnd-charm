@@ -776,28 +776,33 @@ class FeatureSpaceClassificationExperiment( _FeatureSpacePredictionExperiment ):
                     if gt_class == pred_class:
                         self.num_correct_classifications += count
                         self.num_correct_classifications_per_class[ gt_class ] += count
-
-                    self.average_class_probability_matrix[ gt_class ][ pred_class ] += \
-                      split_result.average_class_probability_matrix[ gt_class ][ pred_class ]
+                    
+                    if self.average_class_probability_matrix:
+                        self.average_class_probability_matrix[ gt_class ][ pred_class ] += \
+                          split_result.average_class_probability_matrix[ gt_class ][ pred_class ]
 
         # Finalize the Average Class Probability Matrix by dividing each marginal
         # probability sum by the number of splits:
         # FIXME: This assumes there were an equal number of classifications in each batch
-        for row in sorted( self.test_set.class_names ):
-            for col in sorted( self.training_set.class_names ):
-                self.average_class_probability_matrix[ row ][ col ] /= len( self )
+        if self.average_class_probability_matrix:
+            for row in sorted( self.test_set.class_names ):
+                for col in sorted( self.training_set.class_names ):
+                    self.average_class_probability_matrix[ row ][ col ] /= len( self )
 
         # The similarity matrix is just the average class probability matrix
         # normalized to have 1's in the diagonal.
         # Doesn't make sense to do this unless the matrix is square
         # if row labels == column labels:
-        if self.test_set.class_names == self.training_set.class_names:
-            from copy import deepcopy
-            self.similarity_matrix = deepcopy( self.average_class_probability_matrix )
-            for row in self.test_set.class_names:
-                denom = self.similarity_matrix[ row ][ row ]
-                for col in self.training_set.class_names:
-                    self.similarity_matrix[ row ][ col ] /= denom
+        try:
+            if self.test_set.class_names == self.training_set.class_names:
+                from copy import deepcopy
+                self.similarity_matrix = deepcopy( self.average_class_probability_matrix )
+                for row in self.test_set.class_names:
+                    denom = self.similarity_matrix[ row ][ row ]
+                    for col in self.training_set.class_names:
+                        self.similarity_matrix[ row ][ col ] /= denom
+        except ZeroDivisionError:
+            self.similarity_matrix = None
 
         self.classification_accuracy = float( self.num_correct_classifications) / float( self.num_classifications )
         self.figure_of_merit = self.classification_accuracy
