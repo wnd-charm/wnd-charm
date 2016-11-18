@@ -1054,6 +1054,9 @@ class FeatureVector( object ):
                     val, name = line.rstrip('\n').split( None, 1 )
                     values[i] = float( val )
                     names[i] = name
+                # Check that we read the correct number of features from the file
+                if i != vec_len - 1:
+                    raise IncompleteFeatureSetError( 'In file {}, expecting {} features, but got {}'.format (path,vec_len,i) )
             else:
                 # If we're here, then we don't know for sure how many features are
                 # in this file, so do it the old, slow way:
