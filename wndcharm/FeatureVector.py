@@ -1131,7 +1131,7 @@ class FeatureVector( object ):
     def NewFromSigFile( cls, sigfile_path, image_path=None, quiet=False ):
         """@return  - An instantiated FeatureVector class with feature names translated from
         the old naming convention, if applicable."""
-        return cls( source_filepath=image_path ).LoadSigFile( sigfile_path, quiet )
+        return cls( source_filepath=image_path ).LoadSigFile( sigfile_path, quiet=quiet )
 
     #================================================================
     def ToSigFile( self, path=None, quiet=False ):
