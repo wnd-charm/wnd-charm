@@ -66,7 +66,10 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "CVIPtexture.h"
+#include "Eigen/Core"
+#include <stdexcept>
 
 #define RADIX 2.0
 #define EPSILON 0.000000001
@@ -74,6 +77,10 @@
 #define SIGN(x,y) ((y)<0 ? -fabs(x) : fabs(x))
 #define SWAP(a,b) {y=(a);(a)=(b);(b)=y;}
 #define PGM_MAXMAXVAL 255
+
+typedef Eigen::Map<Eigen::ArrayXd> e_vector;
+typedef Eigen::Array< double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor > ArrayXXd_rowmajor;
+typedef Eigen::Array< double, 1, Eigen::Dynamic, Eigen::RowMajor > ArrayXd_rowmajor;
 
 double f1_asm (double **P, int Ng);
 double f2_contrast (double **P, int Ng);
@@ -652,7 +659,7 @@ double f2_contrast (double **P, int Ng) {
 */
 double f3_corr (double **P, int Ng) {
 	int i, j;
-	double sum_sqrx = 0, sum_sqry = 0, tmp, *px;
+	double sum_sqrx = 0, tmp, *px;
 	double meanx =0 , meany = 0 , stddevx, stddevy;
 
 	px = allocate_vector (0, Ng);
@@ -680,7 +687,6 @@ double f3_corr (double **P, int Ng) {
 	
 	/* M. Boland meanx = meanx/(sqrt(Ng)); */
 	meany = meanx;
-	sum_sqry = sum_sqrx;
 	stddevx = sqrt (sum_sqrx - (meanx * meanx));
 	stddevy = stddevx;
 	
@@ -941,19 +947,102 @@ double f13_icorr (double **P, int Ng) {
 	return (sqrt (fabs (1 - exp (-2.0 * (hxy2 - hxy)))));
 }
 
-/* Returns the Maximal Correlation Coefficient */
-double f14_maxcorr (double **P, int Ng) {
+
+void _Q_calc_eigen(const ArrayXXd_rowmajor & P, const int Ng, double **Q) {
+	int i, j;
+	ArrayXd_rowmajor row_product(Ng);
+	ArrayXd_rowmajor px(Ng);
+	ArrayXd_rowmajor py(Ng);
+    px = P.rowwise().sum();
+    py = P.colwise().sum();
+	for (i = 0; i < Ng; ++i) {
+        /* This simplified formulation is about 5% slower:
+        for (j = 0; j < Ng; ++j) {
+            Q[i + 1][j + 1] = (P.row(i) * P.row(j) / 
+                               (px[i] * py + 0.0000000000001)).sum();
+        }
+        */
+        for (j = 0; j < i; ++j) {
+            row_product = P.row(i) * P.row(j);
+            Q[i + 1][j + 1] = (row_product / 
+                               (px[i] * py + 0.0000000000001)).sum();
+            Q[j + 1][i + 1] = (row_product / 
+                               (px[j] * py + 0.0000000000001)).sum();
+        }
+        Q[i + 1][i + 1] = (P.row(i) * P.row(i) / 
+                           (px[i] * py + 0.0000000000001)).sum();
+    }
+}
+
+void _Q_calc(double **P, int Ng, double *px, double *py, double **Q) {
+    // Optimized without using Eigen libraries to ~1/2 of original runtime
 	int i, j, k;
-	double *px, *py, **Q;
+	double **denominator = allocate_matrix (0, Ng, 0, Ng);
+	for (i = 0; i < Ng; ++i) {
+        for (k = 0; k < Ng; ++k) {
+            denominator[i][k] = px[i] * py[k];
+        }
+    }	
+	for (i = 0; i < Ng; ++i) {
+        if (px[i]) { /* protect division by zero */
+            for (j = 0; j < Ng; ++j) {
+    			Q[i + 1][j + 1] = 0;
+                for (k = 0; k < Ng; ++k) {
+                    if (py[k]) { /* protect division by zero */
+                        Q[i + 1][j + 1] += P[i][k] * P[j][k] / denominator[i][k];
+                    }
+                }
+            }
+        } else {
+    	    memset(&(Q[i + 1][1]), 0, Ng * sizeof(double));
+        }
+	}
+    free_matrix(denominator,Ng);
+}
+
+void _Q_calc_orig(double **P, int Ng, double *px, double *py, double **Q) {
+	int i, j, k;
+	for (i = 0; i < Ng; ++i) {
+		for (j = 0; j < Ng; ++j) {
+			Q[i + 1][j + 1] = 0;
+			for (k = 0; k < Ng; ++k)
+			    if (px[i] && py[k])
+  			        Q[i + 1][j + 1] += P[i][k] * P[j][k] / px[i] / py[k];
+		}
+	}
+}
+
+
+/* Returns the Maximal Correlation Coefficient */
+#define VALIDATE_NEW_Q_CALC 1
+double f14_maxcorr (double **P, int Ng) {
+//    return 0.0;
+	int i, j;
+	double **Q;
+#if VALIDATE_NEW_Q_CALC
+	double *px, *py, **Q_old;
+#endif
 	double *x, *iy, tmp;
 	double f=0.0;
 	
-	px = allocate_vector (0, Ng);
-	py = allocate_vector (0, Ng);
+	ArrayXXd_rowmajor P_e(Ng, Ng);
+	for (i = 0; i < Ng; ++i) {
+		for (j = 0; j < Ng; ++j) {
+		    P_e(i,j) = P[i][j];
+		}
+	}
+
 	Q = allocate_matrix (1, Ng + 1, 1, Ng + 1);
 	x = allocate_vector (1, Ng);
 	iy = allocate_vector (1, Ng);
-	
+		
+	/* Find the Q matrix */
+	_Q_calc_eigen(P_e, Ng, Q);
+
+#if VALIDATE_NEW_Q_CALC
+	px = allocate_vector (0, Ng);
+	py = allocate_vector (0, Ng);
+	Q_old = allocate_matrix (1, Ng + 1, 1, Ng + 1);
 	/*
 	* px[i] is the (i-1)th entry in the marginal probability matrix obtained
 	* by summing the rows of p[i][j]
@@ -964,16 +1053,22 @@ double f14_maxcorr (double **P, int Ng) {
 			py[j] += P[i][j];
 		}
 	}
-	
-	/* Find the Q matrix */
+	_Q_calc_orig(P, Ng, px, py, Q_old);
 	for (i = 0; i < Ng; ++i) {
 		for (j = 0; j < Ng; ++j) {
-			Q[i + 1][j + 1] = 0;
-			for (k = 0; k < Ng; ++k)
-                          if (px[i] && py[k])  /* make sure to protect division by zero */
-  			    Q[i + 1][j + 1] += P[i][k] * P[j][k] / px[i] / py[k];
+          if(abs((Q_old[i+1][j+1] - Q[i+1][j+1]) / Q[i+1][j+1]) > pow(10.0,-9.0)) {
+                fprintf(stderr, "Q != Q_old\n[%d][%d]: %E %E\n", i+1, j+1, 
+                        Q[i + 1][j + 1], Q_old[i + 1][j + 1]);
+                throw std::invalid_argument( "Q != Q_old" );
+			}
 		}
 	}
+    for (i=1; i<=Ng+1; i++) free(Q_old[i]+1);
+    free(Q_old+1);
+    free((char *)px);
+    free((char *)py);
+//	fprintf(stderr, "Q validation passes to 9 significant figures.\n");
+#endif
 
 	/* Balance the matrix */
 	mkbalanced (Q, Ng);
@@ -984,8 +1079,6 @@ double f14_maxcorr (double **P, int Ng) {
 		/* Memmory cleanup */
 		for (i=1; i<=Ng+1; i++) free(Q[i]+1);
 		free(Q+1);
-		free((char *)px);
-		free((char *)py);
 		free((x+1));
 		free((iy+1));
 
@@ -1003,13 +1096,12 @@ double f14_maxcorr (double **P, int Ng) {
 
 	for (i=1; i<=Ng+1; i++) free(Q[i]+1);
 	free(Q+1);
-	free((char *)px);
-	free((char *)py);
 	free((x+1));
 	free((iy+1));
 
 	return f;
 }
+
 
 double *allocate_vector (int nl, int nh) {
 	double *v;
@@ -1090,5 +1182,3 @@ void simplesrt (int n, double arr[])
     arr[i + 1] = a;
   }
 }
-
-
