@@ -1821,7 +1821,10 @@ sample2 ClassA  /path/to/ClassA/sample2_A.tiff    {x=12;y=34;w;56;h=78} /path/to
         training_set_only = None
 
         if test_size == None:
-            test_size = 0.25
+            if isinstance( train_size, float ):
+                test_size = 1.0 - train_size
+            else:
+                test_size = 0.25
 
         # ----- BEGIN NESTED FUNCTION -----------------------------------------------
         def CalcTrainTestSampleGroupMembership( sample_group_ids, _max=None ):
