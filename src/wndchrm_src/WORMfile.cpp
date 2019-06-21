@@ -119,7 +119,7 @@ FILE *WORMfile::fp () {
 
 void WORMfile::finish (bool reopen) {
 
-	if (_fp < 0) return;
+	if (_fp < (void*)0) return;
 
 	if (status == WORM_WR) {
 		// Change to read-only permissions
