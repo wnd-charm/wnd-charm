@@ -60,6 +60,10 @@
 **                         we aren't actually using quantizations higher than 255
 **                         and the hash-tables have memory-leaks.
 **
+** May 2 2017 - J. Johnston: Fix long-standing bug in f14_maxcorr; use 2nd 
+**       largest eigenvalue instead of 2nd smallest. Sped up f14_maxcorr ~2x 
+**       using the Eigen library. f14_maxcorr is a little less numerically unstable.
+**
 */
 
 #include <sys/types.h>
@@ -67,6 +71,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "CVIPtexture.h"
+#include <Eigen/Core>
+#include <Eigen/Eigenvalues>
 
 #define RADIX 2.0
 #define EPSILON 0.000000001
@@ -74,6 +80,9 @@
 #define SIGN(x,y) ((y)<0 ? -fabs(x) : fabs(x))
 #define SWAP(a,b) {y=(a);(a)=(b);(b)=y;}
 #define PGM_MAXMAXVAL 255
+
+typedef Eigen::Array< double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor > ArrayXXd_rowmajor;
+typedef Eigen::Array< double, 1, Eigen::Dynamic, Eigen::RowMajor > ArrayXd_rowmajor;
 
 double f1_asm (double **P, int Ng);
 double f2_contrast (double **P, int Ng);
@@ -89,7 +98,6 @@ double f11_dentropy (double **P, int Ng);
 double f12_icorr (double **P, int Ng);
 double f13_icorr (double **P, int Ng);
 double f14_maxcorr (double **P, int Ng);
-
 
 double *allocate_vector (int nl, int nh);
 double **allocate_matrix (int nrl, int nrh, int ncl, int nch);
@@ -114,43 +122,36 @@ void mkbalanced (double **a, int n)
 
   sqrdx = RADIX * RADIX;
   last = 0;
-  while (last == 0)
-  {
+  while (last == 0) {
     last = 1;
-    for (i = 1; i <= n; i++)
-    {
+    for (i = 1; i <= n; i++) {
       r = c = 0.0;
       for (j = 1; j <= n; j++)
-	if (j != i)
-	{
-	  c += fabs (a[j][i]);
-	  r += fabs (a[i][j]);
-	}
-      if (c && r)
-      {
-	g = r / RADIX;
-	f = 1.0;
-	s = c + r;
-	while (c < g)
-	{
-	  f *= RADIX;
-	  c *= sqrdx;
-	}
-	g = r * RADIX;
-	while (c > g)
-	{
-	  f /= RADIX;
-	  c /= sqrdx;
-	}
-	if ((c + r) / f < 0.95 * s)
-	{
-	  last = 0;
-	  g = 1.0 / f;
-	  for (j = 1; j <= n; j++)
-	    a[i][j] *= g;
-	  for (j = 1; j <= n; j++)
-	    a[j][i] *= f;
-	}
+        if (j != i) {
+          c += fabs (a[j][i]);
+          r += fabs (a[i][j]);
+        }
+      if (c && r) {
+        g = r / RADIX;
+        f = 1.0;
+        s = c + r;
+        while (c < g) {
+          f *= RADIX;
+          c *= sqrdx;
+        }
+        g = r * RADIX;
+        while (c > g) {
+          f /= RADIX;
+          c /= sqrdx;
+        }
+        if ((c + r) / f < 0.95 * s) {
+          last = 0;
+          g = 1.0 / f;
+          for (j = 1; j <= n; j++)
+            a[i][j] *= g;
+          for (j = 1; j <= n; j++)
+            a[j][i] *= f;
+        }
       }
     }
   }
@@ -360,7 +361,23 @@ int hessenberg (double **a, int n, double wr[], double wi[])
 return 1;
 }
 
+void simplesrt (int n, double arr[])
+{
+  int i, j;
+  double a;
 
+  for (j = 2; j <= n; j++)
+  {
+    a = arr[j];
+    i = j - 1;
+    while (i > 0 && arr[i] > a)
+    {
+      arr[i + 1] = arr[i];
+      i--;
+    }
+    arr[i + 1] = a;
+  }
+}
 
 
 
@@ -652,7 +669,7 @@ double f2_contrast (double **P, int Ng) {
 */
 double f3_corr (double **P, int Ng) {
 	int i, j;
-	double sum_sqrx = 0, sum_sqry = 0, tmp, *px;
+	double sum_sqrx = 0, tmp, *px;
 	double meanx =0 , meany = 0 , stddevx, stddevy;
 
 	px = allocate_vector (0, Ng);
@@ -680,7 +697,6 @@ double f3_corr (double **P, int Ng) {
 	
 	/* M. Boland meanx = meanx/(sqrt(Ng)); */
 	meany = meanx;
-	sum_sqry = sum_sqrx;
 	stddevx = sqrt (sum_sqrx - (meanx * meanx));
 	stddevy = stddevx;
 	
@@ -941,19 +957,81 @@ double f13_icorr (double **P, int Ng) {
 	return (sqrt (fabs (1 - exp (-2.0 * (hxy2 - hxy)))));
 }
 
+
+void _Q_calc_eigen(const ArrayXXd_rowmajor & P, const int Ng, 
+                    ArrayXXd_rowmajor const & _Q) {
+    /* Eigen library documentation explains the hack used to make Q a 
+    writable pass-by-reference.
+    https://eigen.tuxfamily.org/dox/TopicFunctionTakingEigenTypes.html
+    */
+	int i, j;
+	ArrayXd_rowmajor row_product(Ng);
+	ArrayXd_rowmajor px(Ng);
+	ArrayXd_rowmajor py(Ng);
+	ArrayXXd_rowmajor & Q = const_cast< ArrayXXd_rowmajor& >(_Q);
+    px = P.rowwise().sum();
+    py = P.colwise().sum();
+    
+	for (i = 0; i < Ng; ++i) {
+        /* This simplified formulation is about 5% slower:
+        for (j = 0; j < Ng; ++j)
+            Q(i,j) = (P.row(i) * P.row(j) / (px[i] * py + 0.0000000000001)).sum();
+        */
+        for (j = 0; j < i; ++j) {
+            row_product = P.row(i) * P.row(j);
+            Q(i,j) = (row_product / (px[i] * py + 0.0000000000001)).sum();
+            Q(j,i) = (row_product / (px[j] * py + 0.0000000000001)).sum();
+        }
+        Q(i,i) = (P.row(i) * P.row(i) / (px[i] * py + 0.0000000000001)).sum();
+    }
+}
+
+
 /* Returns the Maximal Correlation Coefficient */
+/* Uncomment VALIDATE_NEW_f14_maxcorr to compare against the last implementation.
+#define VALIDATE_NEW_f14_maxcorr */
 double f14_maxcorr (double **P, int Ng) {
-	int i, j, k;
-	double *px, *py, **Q;
-	double *x, *iy, tmp;
-	double f=0.0;
-	
-	px = allocate_vector (0, Ng);
-	py = allocate_vector (0, Ng);
-	Q = allocate_matrix (1, Ng + 1, 1, Ng + 1);
+#ifdef VALIDATE_NEW_f14_maxcorr
+    int k;
+	double *px, *py, **Q_old;
+	double *x, *iy;
+	double old_f=0.0;
+#endif
+	int i, j;
+	double f=0.0;	
+    ArrayXXd_rowmajor Q(Ng, Ng);
+    Eigen::VectorXcd Q_eigen_values_sorted(Ng);
+	ArrayXXd_rowmajor P_e(Ng, Ng);
+
+	for (i = 0; i < Ng; ++i) {
+		for (j = 0; j < Ng; ++j) {
+		    P_e(i,j) = P[i][j];
+		}
+	}
+
+	/* Find the Q matrix */
+	_Q_calc_eigen(P_e, Ng, Q);
+    /* Eigenvalues */
+    Q_eigen_values_sorted = Q.matrix().eigenvalues();
+    if(Q_eigen_values_sorted(2).imag() == 0) {
+        f = sqrt(Q_eigen_values_sorted(2).real());
+    } else {
+        f = 0.0;
+    }
+#ifndef VALIDATE_NEW_f14_maxcorr
+	return f;
+#endif
+#ifdef VALIDATE_NEW_f14_maxcorr
+    /* Original runtime for Q calc (with bug): 2862
+       Last best runtime for eigen optimized: 732
+        + 958 (hessenberg)
+        + 642 (reduction)
+    */
+	Q_old = allocate_matrix (1, Ng + 1, 1, Ng + 1);
 	x = allocate_vector (1, Ng);
 	iy = allocate_vector (1, Ng);
-	
+	px = allocate_vector (0, Ng);
+	py = allocate_vector (0, Ng);
 	/*
 	* px[i] is the (i-1)th entry in the marginal probability matrix obtained
 	* by summing the rows of p[i][j]
@@ -964,52 +1042,71 @@ double f14_maxcorr (double **P, int Ng) {
 			py[j] += P[i][j];
 		}
 	}
-	
-	/* Find the Q matrix */
+	/* Find the Q matrix with the very slow original method. */
 	for (i = 0; i < Ng; ++i) {
 		for (j = 0; j < Ng; ++j) {
 			Q[i + 1][j + 1] = 0;
 			for (k = 0; k < Ng; ++k)
-                          if (px[i] && py[k])  /* make sure to protect division by zero */
-  			    Q[i + 1][j + 1] += P[i][k] * P[j][k] / px[i] / py[k];
+			    if (px[i] && py[k])
+  			        Q[i + 1][j + 1] += P[i][k] * P[j][k] / px[i] / py[k];
 		}
 	}
+	for (i = 0; i < Ng; ++i) {
+		for (j = 0; j < Ng; ++j) {
+          if(abs((Q_old[i+1][j+1] - Q(i,j)) / Q(i,j)) > pow(10.0,-9.0)) {
+                fprintf(stderr, "Q != Q_old\n[%d][%d]: %E %E\n", i+1, j+1, 
+                        Q(i,j), Q_old[i + 1][j + 1]);
+                /* throw std::invalid_argument( "Q != Q_old" ); */
+			}
+		}
+	}
+	/* fprintf(stderr, "Q validation passes to 9 significant figures.\n"); */
 
 	/* Balance the matrix */
-	mkbalanced (Q, Ng);
+	mkbalanced (Q_old, Ng);
 	/* Reduction to Hessenberg Form */
-	reduction (Q, Ng);
+	reduction (Q_old, Ng);
 	/* Finding eigenvalue for nonsymetric matrix using QR algorithm */
-	if (!hessenberg (Q, Ng, x, iy)) {
-		/* Memmory cleanup */
-		for (i=1; i<=Ng+1; i++) free(Q[i]+1);
-		free(Q+1);
-		free((char *)px);
-		free((char *)py);
-		free((x+1));
-		free((iy+1));
-
+	if (!hessenberg (Q_old, Ng, x, iy)) {
 		/* computation failed ! */
-		return 0.0;
+		old_f = 0.0;
+	} else {
+    	/* Returns the sqrt of the second largest eigenvalue of Q.
+           Sorting the x matrix first with simplesrt is crucial, or you could
+           take x[3] (I say this based on inspection of x). The simplesrt
+           function was commented out or otherwise disabled in all prior
+           versions I could find online, and predates the incorporation of
+           this file in wnd-chrm.
+    	*/
+    	simplesrt(Ng,x);
+        if (x[Ng - 1]>=0)
+          old_f = sqrt(x[Ng - 1]);	
 	}
 
-	/* simplesrt(Ng,x); */
-	/* Returns the sqrt of the second largest eigenvalue of Q */
-	for (i = 2, tmp = x[1]; i <= Ng; ++i)
-		tmp = (tmp > x[i]) ? tmp : x[i];
+    if(old_f != f && abs((old_f - f) / f) > pow(10.0,-5.0)) {
+        fprintf(stderr, "old_f != f: %E %E\n", old_f, f);
+        fprintf(stderr, "Top eigenvalues: <old> vs <new_real, new_imaginary>\n");
+        for(i=0; i<Ng; ++i){
+            fprintf(stderr, "\t%E vs (%E, %E)\n", x[Ng-i], 
+                    Q_eigen_values_sorted(i).real(),
+                    Q_eigen_values_sorted(i).imag());
+            if(i==4) break;
+        }
+        /* throw std::invalid_argument( "f != old_f" ); */
+    }
+	/* fprintf(stderr, "f validation passes to 5 significant figures.\n"); */
 
-	if (x[Ng - 1]>=0)
-	  f = sqrt(x[Ng - 1]);
-
-	for (i=1; i<=Ng+1; i++) free(Q[i]+1);
-	free(Q+1);
-	free((char *)px);
-	free((char *)py);
+    for (i=1; i<=Ng+1; i++) free(Q_old[i]+1);
+    free(Q_old+1);
+    free((char *)px);
+    free((char *)py);
 	free((x+1));
 	free((iy+1));
-
 	return f;
+#endif
+
 }
+
 
 double *allocate_vector (int nl, int nh) {
 	double *v;
@@ -1072,23 +1169,3 @@ void results (double *Tp, char *c, double *a)
  
   	
 }
-
-void simplesrt (int n, double arr[])
-{
-  int i, j;
-  double a;
-
-  for (j = 2; j <= n; j++)
-  {
-    a = arr[j];
-    i = j - 1;
-    while (i > 0 && arr[i] > a)
-    {
-      arr[i + 1] = arr[i];
-      i--;
-    }
-    arr[i + 1] = a;
-  }
-}
-
-
