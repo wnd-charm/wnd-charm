@@ -100,13 +100,20 @@ int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec) {
 		J1[a] = new double[m];
 	}
 
-	for (y = 0; y < m; y++) {
-		for (x = 0; x < n; x++) {
+//	for (y = 0; y < m; y++) {
+//		for (x = 0; x < n; x++) {
+//			I[x][y] = y+1;
+//			J[x][y] = x+1;
+//		}
+//	}
+
+	for (x = 0; x < n; x++) {
+		for (y = 0; y < m; y++) {
 			I[x][y] = y+1;
 			J[x][y] = x+1;
 		}
 	}
-
+	
 	n2 = (int)(round(n/2));
 	m2 = (int)(round(m/2));
 
@@ -119,13 +126,20 @@ int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec) {
 		for (a = 0; a < 4; a++) matr4moments[a][matr4moments_index]=z4[a];
 
 		tmpMoments.reset();
-		for (y = 0; y < m; y++) {
-			for (x = 0; x < n; x++) {
+//		for (y = 0; y < m; y++) {
+//			for (x = 0; x < n; x++) {
+//				if (fabs(I[x][y] + ii - J[x][y]) < 1)
+//					tmpMoments.add (pix_plane(y,x));
+//			}
+//		}
+
+		for (x = 0; x < n; x++) {
+			for (y = 0; y < m; y++) {
 				if (fabs(I[x][y] + ii - J[x][y]) < 1)
 					tmpMoments.add (pix_plane(y,x));
 			}
 		}
-
+		
 		tmpMoments.momentVector(z);
 		for (a = 0; a < 4; a++) matr4moments[a][matr4moments_index] = z[a];
 		matr4moments_index++;
@@ -134,10 +148,14 @@ int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec) {
 
 	/* major diag +45 degrees */
 	/* fliplr J */
-	for (y = 0; y < m; y++)
-		for (x = 0; x < n; x++)
-			J1[x][y] = J[n-1-x][y];
+//	for (y = 0; y < m; y++)
+//		for (x = 0; x < n; x++)
+//			J1[x][y] = J[n-1-x][y];
 
+	for (x = 0; x < n; x++)
+		for (y = 0; y < m; y++)
+			J1[x][y] = J[n-1-x][y];
+			
 	matr4moments_index = 0;
 	step = (double)m / 10.0;
 	if (step < 1.0) step = 1.0;
@@ -146,13 +164,20 @@ int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec) {
 		for (a = 0; a < 4; a++) matr4moments[a][matr4moments_index]=z4[a];
 
 		tmpMoments.reset();
-		for (y = 0; y < m; y++) {
-			for (x = 0; x < n; x++) {
+//		for (y = 0; y < m; y++) {
+//			for (x = 0; x < n; x++) {
+//				if (fabs(I[x][y] + ii - J1[x][y]) < 1)
+//					tmpMoments.add (pix_plane(y,x));
+//			}
+//        }
+
+		for (x = 0; x < n; x++) {      
+			for (y = 0; y < m; y++) {
 				if (fabs(I[x][y] + ii - J1[x][y]) < 1)
 					tmpMoments.add (pix_plane(y,x));
 			}
-        }
-
+		} 
+		
 		tmpMoments.momentVector(z);
 		for (a = 0; a < 4; a++) matr4moments[a][matr4moments_index] = z[a];
 		matr4moments_index++;
@@ -168,13 +193,20 @@ int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec) {
 		for (a = 0; a < 4; a++) matr4moments[a][matr4moments_index]=z4[a];
 
 		tmpMoments.reset();
-		for (y = 0; y < m; y++) {
-			for (x = 0; x < n; x++) {
+//		for (y = 0; y < m; y++) {
+//			for (x = 0; x < n; x++) {
+//				if (fabs(J[x][y] + ii - n2) < 1)
+//					tmpMoments.add (pix_plane(y,x));
+//			}
+//		}
+
+		for (x = 0; x < n; x++) {
+			for (y = 0; y < m; y++) {
 				if (fabs(J[x][y] + ii - n2) < 1)
 					tmpMoments.add (pix_plane(y,x));
 			}
 		}
-
+		
 		tmpMoments.momentVector(z);
 		for (a = 0; a < 4; a++) matr4moments[a][matr4moments_index] = z[a];
 		matr4moments_index++;
@@ -190,13 +222,20 @@ int CombFirst4Moments2D(const ImageMatrix &Im, std::vector<double> &vec) {
 		for (a = 0; a < 4; a++) matr4moments[a][matr4moments_index] = z4[a];
 
 		tmpMoments.reset();
-		for (y = 0; y < m; y++) {
-			for (x = 0; x < n; x++) {
+//		for (y = 0; y < m; y++) {
+//			for (x = 0; x < n; x++) {
+//				if (fabs(I[x][y] + ii - m2) < 1)
+//					tmpMoments.add (pix_plane(y,x));
+//			}
+//       }
+
+		for (x = 0; x < n; x++) {
+			for (y = 0; y < m; y++) {
 				if (fabs(I[x][y] + ii - m2) < 1)
 					tmpMoments.add (pix_plane(y,x));
 			}
-        }
-
+		}
+		
 		tmpMoments.momentVector(z);
 		for (a = 0; a < 4; a++) matr4moments[a][matr4moments_index] = z[a];
 		matr4moments_index++;

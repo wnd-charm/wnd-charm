@@ -31,7 +31,7 @@
 #include <string.h>
 
 #include "FeatureStatistics.h"
-
+#include <omp.h>
 typedef struct POINT1 {
 	long x,y;
 } point;
@@ -164,13 +164,23 @@ unsigned long FeatureCentroid(const ImageMatrix &Im, double object_index,double 
 	unsigned long x_mass=0,y_mass=0,mass=0;
 	readOnlyPixels pix_plane = Im.ReadablePixels();
 
-	for (y = 0; y < h; y++)
-		for (x = 0; x < w; x++)
+//	for (y = 0; y < h; y++)
+//		for (x = 0; x < w; x++)
+//			if (pix_plane(y,x) == object_index) {
+//				x_mass=x_mass+x+1;      /* the "+1" is only for compatability with matlab code (where index starts from 1) */
+//				y_mass=y_mass+y+1;      /* the "+1" is only for compatability with matlab code (where index starts from 1) */
+//				mass++;
+//			}
+
+    #pragma omp parallel for schedule(dynamic) reduction(+:x_mass,y_mass,mass)	
+	for (int y = 0; y < h; y++)
+		for (int x = 0; x < w; x++)
 			if (pix_plane(y,x) == object_index) {
-				x_mass=x_mass+x+1;      /* the "+1" is only for compatability with matlab code (where index starts from 1) */
-				y_mass=y_mass+y+1;      /* the "+1" is only for compatability with matlab code (where index starts from 1) */
+				x_mass+=x+1;      /* the "+1" is only for compatability with matlab code (where index starts from 1) */
+				y_mass+=y+1;      /* the "+1" is only for compatability with matlab code (where index starts from 1) */
 				mass++;
 			}
+			
 	if (x_centroid) *x_centroid=(double)x_mass/(double)mass;
 	if (y_centroid) *y_centroid=(double)y_mass/(double)mass;
 	return(mass);

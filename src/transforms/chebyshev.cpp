@@ -33,7 +33,7 @@
 
 #include "cmatrix.h"
 #include "chebyshev.h"
-
+#include <omp.h>
 //---------------------------------------------------------------------------
 
 void TNx(double *x, double *out, int N, int height) {
@@ -77,7 +77,7 @@ void TNx(double *x, double *out, int N, int height) {
 	delete [] temp;
 }
 
-void getChCoeff1D(double *f,double *out,double *Tj,int N,int width) {
+/*void getChCoeff1D(double *f,double *out,double *Tj,int N,int width) {
 	double *tj;
 	int jj,a;
 
@@ -99,6 +99,29 @@ void getChCoeff1D(double *f,double *out,double *Tj,int N,int width) {
 			out[jj] += f[a]*tj[a]/2;
 	}
 	delete [] tj;
+}
+*/
+
+void getChCoeff1D(double *f,double *out,double *Tj,int N,int width) {
+	double Inversewidth=1.0/(double)width;   
+
+    #pragma omp parallel for schedule(dynamic) 	
+	for (int jj = 0; jj < N; jj++) {
+		double *tj = new double[width];		
+		for (int a = 0; a < width; a++) tj[a] = Tj[a*N+jj];
+
+		if (!jj) {
+			for (int a = 0; a < width; a++) tj[a] = tj[a]*Inversewidth;
+		} 
+		else {
+			for (int a = 0; a < width; a++) tj[a] *= 2*Inversewidth;
+		}
+
+		out[jj] = 0;
+		for (int a = 0; a < width; a++) out[jj] += f[a]*tj[a]*0.5;
+
+		delete [] tj;
+	}	
 }
 
 void getChCoeff(double *Im, double *out, double *Tj,int N,int width, int height) {
