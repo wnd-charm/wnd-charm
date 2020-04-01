@@ -27,8 +27,8 @@ void conv2comp(double *c, double *a, double *b, int na, int ma, int nb, int mb) 
 	nc = (na+nb-1)*2;
 
 	/* initalize the output matrix */
-	for (j = 0; j < mc; ++j)     /* For each element in b */
-		for (i = 0; i < nc; ++i)
+	for (int j = 0; j < mc; ++j)     /* For each element in b */
+		for (int i = 0; i < nc; ++i)
 			c[j*nc+i] = 0;
 
     /* Perform convolution */
