@@ -1,4 +1,9 @@
 # WND-CHARM
+#### N.B.: Recent development and maintenance has moved to GitLab:
+https://gitlab.com/iggman/wnd-charm
+#### A new project for ease of integration with [scikit-learn](https://scikit-learn.org/) isolates feature computation code and uses a ctypes python interface instead of SWIG:
+https://gitlab.com/iggman/charm-features
+## Description
 WND-CHARM is a multi-purpose image classifier that can be applied to a wide variety of image classification tasks without modifications or fine-tuning, and yet provides classification accuracy comparable to state-of-the-art task-specific image classifiers. WND-CHARM can extract up to ~3,000 generic image descriptors (features) including polynomial decompositions, high contrast features, pixel statistics, and textures. These features are derived from the raw image, transforms of the image, and compound transforms of the image (transforms of transforms). The features are filtered and weighted depending on their effectiveness in discriminating between a set of predefined image classes (the training set). These features are then used to classify test images based on their similarity to the training classes. This classifier was tested on a wide variety of imaging problems including biological and medical image classification using several imaging modalities, face recognition, and other pattern recognition tasks. WND-CHARM is an acronym that stands for *"Weighted Neighbor Distance using Compound Hierarchy of Algorithms Representing Morphology."*
 
 This package contains two implementations both of which use common image transform and feature extraction code:
